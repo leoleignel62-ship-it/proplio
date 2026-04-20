@@ -508,7 +508,7 @@ export default function EtatsDesLieuxPage() {
       )}
 
       {deleteTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
           <div className="proplio-card w-full max-w-md p-6">
             <h2 className="text-lg font-semibold text-proplio-text">Supprimer l&apos;état des lieux</h2>
             <p className="mt-3 text-sm text-proplio-muted">
@@ -546,7 +546,7 @@ export default function EtatsDesLieuxPage() {
       ) : null}
 
       {modal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
           <div className="proplio-card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
             <h2 className="text-lg font-semibold text-proplio-text">Nouvel état des lieux</h2>
             <form onSubmit={onCreate} className="mt-4 space-y-4">

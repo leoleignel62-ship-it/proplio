@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type CSSProperties } from "react";
 import {
   IconBuilding,
   IconChart,
@@ -14,6 +14,17 @@ import {
   IconUsers,
 } from "@/components/proplio-icons";
 import { supabase } from "@/lib/supabase";
+
+const C = {
+  sidebar: "#13131A",
+  card: "#1A1A24",
+  border: "#2D2D3D",
+  text: "#F1F1F5",
+  muted: "#9090A8",
+  primary: "#7C3AED",
+  secondary: "#A78BFA",
+  white: "#FFFFFF",
+} as const;
 
 const navigationItems = [
   { href: "/", label: "Dashboard", icon: IconChart },
@@ -33,19 +44,30 @@ function NavLink({
 }: {
   href: string;
   label: string;
-  Icon: ComponentType<{ className?: string }>;
+  Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   isActive: boolean;
 }) {
+  const activeStyle: CSSProperties = {
+    backgroundColor: C.primary,
+    color: C.white,
+    boxShadow: "0 4px 14px -2px rgba(124, 58, 237, 0.35)",
+  };
+  const idleStyle: CSSProperties = { color: C.muted };
+
   return (
     <Link
       href={href}
       className={
         isActive
-          ? "flex items-center gap-3 rounded-xl bg-proplio-primary px-3 py-2.5 text-sm font-medium text-white shadow-[0_4px_14px_-2px_rgb(124_58_237/0.35)]"
-          : "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-proplio-muted transition hover:bg-proplio-card hover:text-proplio-text"
+          ? "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium"
+          : "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-[#1A1A24] hover:text-[#F1F1F5]"
       }
+      style={isActive ? activeStyle : idleStyle}
     >
-      <Icon className={isActive ? "text-white" : "text-proplio-secondary"} />
+      <Icon
+        className={isActive ? "text-white" : undefined}
+        style={isActive ? undefined : { color: C.secondary }}
+      />
       {label}
     </Link>
   );
@@ -96,15 +118,48 @@ export function NavigationSidebar() {
     router.refresh();
   }
 
+  const asideStyle: CSSProperties = {
+    backgroundColor: C.sidebar,
+    borderRight: `1px solid ${C.border}`,
+  };
+
+  const mobileBarStyle: CSSProperties = {
+    backgroundColor: C.sidebar,
+    borderBottom: `1px solid ${C.border}`,
+  };
+
+  const profileCardStyle: CSSProperties = {
+    backgroundColor: "rgba(26, 26, 36, 0.8)",
+    border: `1px solid ${C.border}`,
+  };
+
+  const avatarRingStyle: CSSProperties = {
+    backgroundColor: "rgba(124, 58, 237, 0.25)",
+    color: C.secondary,
+  };
+
+  const logoBadgeStyle: CSSProperties = {
+    backgroundColor: "rgba(124, 58, 237, 0.2)",
+    color: C.primary,
+  };
+
   return (
     <>
-      <aside className="hidden min-h-screen w-64 shrink-0 flex-col border-r border-proplio-border bg-proplio-sidebar md:flex">
+      <aside
+        className="hidden min-h-screen w-64 shrink-0 flex-col md:flex"
+        style={asideStyle}
+      >
         <div className="flex flex-1 flex-col p-5">
           <Link href="/" className="mb-10 flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-proplio-primary/20 text-proplio-primary">
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={logoBadgeStyle}
+            >
               <IconHome className="h-6 w-6" />
             </span>
-            <span className="text-lg font-semibold tracking-tight text-proplio-text">Proplio</span>
+            <span className="text-lg font-semibold tracking-tight" style={{ color: C.text }}>
+              Proplio
+            </span>
           </Link>
 
           <nav className="flex flex-1 flex-col gap-1">
@@ -119,21 +174,31 @@ export function NavigationSidebar() {
             ))}
           </nav>
 
-          <div className="mt-auto border-t border-proplio-border pt-5">
-            <div className="flex items-center gap-3 rounded-xl border border-proplio-border bg-proplio-card/80 px-3 py-2.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-proplio-primary/25 text-xs font-semibold text-proplio-secondary">
+          <div className="mt-auto pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
+            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                style={avatarRingStyle}
+              >
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 {ownerName ? (
-                  <p className="truncate text-sm font-medium text-proplio-text">{ownerName}</p>
+                  <p className="truncate text-sm font-medium" style={{ color: C.text }}>
+                    {ownerName}
+                  </p>
                 ) : null}
-                {email ? <p className="truncate text-xs text-proplio-muted">{email}</p> : null}
+                {email ? (
+                  <p className="truncate text-xs" style={{ color: C.muted }}>
+                    {email}
+                  </p>
+                ) : null}
               </div>
             </div>
             <button
               type="button"
-              className="mt-3 w-full rounded-xl px-3 py-2 text-left text-xs text-proplio-muted transition hover:bg-proplio-card hover:text-proplio-text"
+              className="mt-3 w-full rounded-xl px-3 py-2 text-left text-xs transition hover:bg-[#1A1A24] hover:text-[#F1F1F5]"
+              style={{ color: C.muted }}
               onClick={onLogout}
             >
               Déconnexion
@@ -142,12 +207,17 @@ export function NavigationSidebar() {
         </div>
       </aside>
 
-      <div className="border-b border-proplio-border bg-proplio-sidebar px-4 py-3 md:hidden">
+      <div className="px-4 py-3 md:hidden" style={mobileBarStyle}>
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-proplio-primary/20 text-proplio-primary">
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            style={logoBadgeStyle}
+          >
             <IconHome className="h-5 w-5" />
           </span>
-          <span className="font-semibold text-proplio-text">Proplio</span>
+          <span className="font-semibold" style={{ color: C.text }}>
+            Proplio
+          </span>
         </Link>
         <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {navigationItems.map((item) => {
@@ -159,8 +229,13 @@ export function NavigationSidebar() {
                 href={item.href}
                 className={
                   isActive
-                    ? "flex shrink-0 items-center gap-2 rounded-xl bg-proplio-primary px-3 py-2 text-sm font-medium text-white"
-                    : "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-proplio-muted hover:bg-proplio-card hover:text-proplio-text"
+                    ? "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
+                    : "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium hover:bg-[#1A1A24] hover:text-[#F1F1F5]"
+                }
+                style={
+                  isActive
+                    ? { backgroundColor: C.primary, color: C.white }
+                    : { color: C.muted }
                 }
               >
                 <Icon className="h-4 w-4" />
@@ -171,7 +246,8 @@ export function NavigationSidebar() {
         </nav>
         <button
           type="button"
-          className="mt-3 w-full rounded-xl border border-proplio-border py-2 text-sm text-proplio-muted hover:bg-proplio-card hover:text-proplio-text"
+          className="mt-3 w-full rounded-xl py-2 text-sm hover:bg-[#1A1A24] hover:text-[#F1F1F5]"
+          style={{ border: `1px solid ${C.border}`, color: C.muted }}
           onClick={onLogout}
         >
           Déconnexion

@@ -43,7 +43,7 @@ export function EntityFormModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
       <div className="proplio-card w-full max-w-xl p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <h3 className="text-lg font-semibold text-proplio-text">{title}</h3>

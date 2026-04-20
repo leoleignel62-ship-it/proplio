@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
@@ -23,12 +24,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shellBg: CSSProperties = {
+    backgroundColor: "#0F0F13",
+    color: "#F1F1F5",
+  };
+
   return (
     <html
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={shellBg}
     >
-      <body className="min-h-full">
+      <body className="min-h-full" style={shellBg}>
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -1,64 +1,154 @@
 @import "tailwindcss";
 
+/* Source unique des couleurs Proplio (Safari + tous navigateurs) */
+:root {
+  color-scheme: dark;
+  --proplio-bg: #0f0f13;
+  --proplio-sidebar: #13131a;
+  --proplio-card: #1a1a24;
+  --proplio-border: #2d2d3d;
+  --proplio-text: #f1f1f5;
+  --proplio-muted: #9090a8;
+  --proplio-primary: #7c3aed;
+  --proplio-primary-hover: #6d28d9;
+  --proplio-secondary: #a78bfa;
+  --proplio-success: #10b981;
+  --proplio-danger: #ef4444;
+  --proplio-warning: #f59e0b;
+  --proplio-accent-blue: #6366f1;
+  --proplio-white: #ffffff;
+  --radius-proplio-card: 12px;
+  --shadow-proplio-card: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+/* Pont Tailwind v4 : utilitaires bg-proplio-* / text-proplio-* pointent vers :root */
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --color-proplio-bg: #0f0f13;
-  --color-proplio-sidebar: #13131a;
-  --color-proplio-card: #1a1a24;
-  --color-proplio-border: #2d2d3d;
-  --color-proplio-text: #f1f1f5;
-  --color-proplio-muted: #9090a8;
-  --color-proplio-primary: #7c3aed;
-  --color-proplio-primary-hover: #6d28d9;
-  --color-proplio-secondary: #a78bfa;
-  --color-proplio-success: #10b981;
-  --color-proplio-danger: #ef4444;
-  --color-proplio-warning: #f59e0b;
-  --color-proplio-accent-blue: #6366f1;
+  --color-proplio-bg: var(--proplio-bg);
+  --color-proplio-sidebar: var(--proplio-sidebar);
+  --color-proplio-card: var(--proplio-card);
+  --color-proplio-border: var(--proplio-border);
+  --color-proplio-text: var(--proplio-text);
+  --color-proplio-muted: var(--proplio-muted);
+  --color-proplio-primary: var(--proplio-primary);
+  --color-proplio-primary-hover: var(--proplio-primary-hover);
+  --color-proplio-secondary: var(--proplio-secondary);
+  --color-proplio-success: var(--proplio-success);
+  --color-proplio-danger: var(--proplio-danger);
+  --color-proplio-warning: var(--proplio-warning);
+  --color-proplio-accent-blue: var(--proplio-accent-blue);
 
-  --radius-proplio-card: 12px;
-  --shadow-proplio-card: 0 4px 24px -4px rgb(0 0 0 / 0.45);
+  --radius-proplio-card: var(--radius-proplio-card);
+  --shadow-proplio-card: var(--shadow-proplio-card);
 }
 
-/* Formulaires & boutons réutilisables */
+/* Formulaires & boutons — CSS pur (pas @apply sur les couleurs thème) */
 @layer components {
   .proplio-input {
-    @apply rounded-xl border border-proplio-border bg-proplio-card px-3 py-2.5 text-sm text-proplio-text outline-none transition;
-    @apply placeholder:text-proplio-muted/70;
-    @apply focus:border-proplio-primary focus:ring-2 focus:ring-proplio-primary/30;
+    border-radius: 0.75rem;
+    border: 1px solid var(--proplio-border);
+    background-color: var(--proplio-card);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--proplio-text);
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .proplio-input::placeholder {
+    color: rgba(144, 144, 168, 0.7);
+  }
+
+  .proplio-input:focus {
+    border-color: var(--proplio-primary);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
   }
 
   .proplio-label {
-    @apply flex flex-col gap-1.5 text-sm text-proplio-muted;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--proplio-muted);
   }
 
   .proplio-label > span.font-medium {
-    @apply text-proplio-muted;
+    color: var(--proplio-muted);
   }
 
   .proplio-select {
-    @apply cursor-pointer rounded-xl border border-proplio-border bg-proplio-card px-3 py-2.5 text-sm text-proplio-text outline-none transition;
-    @apply focus:border-proplio-primary focus:ring-2 focus:ring-proplio-primary/30;
+    cursor: pointer;
+    border-radius: 0.75rem;
+    border: 1px solid var(--proplio-border);
+    background-color: var(--proplio-card);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--proplio-text);
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .proplio-select:focus {
+    border-color: var(--proplio-primary);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
   }
 
   .proplio-btn-primary {
-    @apply rounded-xl bg-proplio-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm transition;
-    @apply hover:bg-proplio-primary-hover disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: 0.75rem;
+    background-color: var(--proplio-primary);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--proplio-white);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.15s ease;
+  }
+
+  .proplio-btn-primary:hover:not(:disabled) {
+    background-color: var(--proplio-primary-hover);
+  }
+
+  .proplio-btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   .proplio-btn-secondary {
-    @apply rounded-xl border border-proplio-border bg-transparent px-4 py-2.5 text-sm font-medium text-proplio-text transition;
-    @apply hover:border-proplio-muted hover:bg-proplio-card;
+    border-radius: 0.75rem;
+    border: 1px solid var(--proplio-border);
+    background-color: transparent;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--proplio-text);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .proplio-btn-secondary:hover:not(:disabled) {
+    border-color: var(--proplio-muted);
+    background-color: var(--proplio-card);
   }
 
   .proplio-card {
     border-radius: var(--radius-proplio-card);
-    @apply border border-proplio-border bg-proplio-card shadow-[var(--shadow-proplio-card)];
+    border: 1px solid var(--proplio-border);
+    background-color: var(--proplio-card);
+    box-shadow: var(--shadow-proplio-card);
   }
 
-  /* Pastilles stats dashboard — dégradés visibles dès hydratation */
   .proplio-stat-icon--violet {
     background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
   }
@@ -76,27 +166,66 @@
   }
 
   .proplio-page-wrap {
-    @apply mx-auto w-full max-w-6xl;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 72rem;
   }
 
   .proplio-alert-error {
-    @apply mb-4 rounded-xl border border-proplio-danger/30 bg-proplio-danger/10 px-4 py-3 text-sm text-proplio-danger;
+    margin-bottom: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.1);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--proplio-danger);
   }
 
   .proplio-alert-success {
-    @apply rounded-xl border border-proplio-success/30 bg-proplio-success/10 px-4 py-3 text-sm text-proplio-success;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background-color: rgba(16, 185, 129, 0.1);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--proplio-success);
   }
 
   .proplio-link {
-    @apply font-medium text-proplio-secondary underline-offset-2 hover:text-proplio-text hover:underline;
+    font-weight: 500;
+    color: var(--proplio-secondary);
+    text-underline-offset: 2px;
+  }
+
+  .proplio-link:hover {
+    color: var(--proplio-text);
+    text-decoration: underline;
   }
 }
 
 html {
   color-scheme: dark;
+  min-height: 100%;
+  background-color: #0f0f13;
+  color: #f1f1f5;
 }
 
 body {
-  @apply min-h-full bg-proplio-bg text-proplio-text antialiased;
+  min-height: 100%;
+  margin: 0;
+  background-color: #0f0f13;
+  color: #f1f1f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Safari : flous d’arrière-plan */
+@layer utilities {
+  .backdrop-blur-safari {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
 }

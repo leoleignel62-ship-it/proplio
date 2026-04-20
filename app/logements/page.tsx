@@ -380,7 +380,7 @@ export default function LogementsPage() {
       )}
 
       {isModalOpen ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-safari">
           <div className="proplio-card mx-auto max-w-3xl p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between">
               <h3 className="text-lg font-semibold text-proplio-text">

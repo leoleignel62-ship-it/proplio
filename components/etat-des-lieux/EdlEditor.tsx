@@ -647,7 +647,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       ) : null}
 
       {finalizeOpen ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
           <div className="proplio-card max-w-md p-6 shadow-xl">
             <h2 className="text-lg font-semibold text-proplio-text">Finaliser l&apos;état des lieux</h2>
             <p className="mt-3 text-sm leading-relaxed text-proplio-muted">
