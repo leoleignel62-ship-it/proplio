@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Source unique des couleurs Proplio (Safari + tous navigateurs) */
+/* Source unique des couleurs Proplio (variables + composants) */
 :root {
   color-scheme: dark;
   --proplio-bg: #0f0f13;
@@ -21,30 +23,7 @@
   --shadow-proplio-card: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
 }
 
-/* Pont Tailwind v4 : utilitaires bg-proplio-* / text-proplio-* pointent vers :root */
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
-  --color-proplio-bg: var(--proplio-bg);
-  --color-proplio-sidebar: var(--proplio-sidebar);
-  --color-proplio-card: var(--proplio-card);
-  --color-proplio-border: var(--proplio-border);
-  --color-proplio-text: var(--proplio-text);
-  --color-proplio-muted: var(--proplio-muted);
-  --color-proplio-primary: var(--proplio-primary);
-  --color-proplio-primary-hover: var(--proplio-primary-hover);
-  --color-proplio-secondary: var(--proplio-secondary);
-  --color-proplio-success: var(--proplio-success);
-  --color-proplio-danger: var(--proplio-danger);
-  --color-proplio-warning: var(--proplio-warning);
-  --color-proplio-accent-blue: var(--proplio-accent-blue);
-
-  --radius-proplio-card: var(--radius-proplio-card);
-  --shadow-proplio-card: var(--shadow-proplio-card);
-}
-
-/* Formulaires & boutons — CSS pur (pas @apply sur les couleurs thème) */
+/* Formulaires & boutons — CSS pur */
 @layer components {
   .proplio-input {
     border-radius: 0.75rem;
@@ -222,7 +201,6 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Safari : flous d’arrière-plan */
 @layer utilities {
   .backdrop-blur-safari {
     -webkit-backdrop-filter: blur(4px);
