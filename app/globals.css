@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-proplio-bg: #0f0f13;
+  --color-proplio-sidebar: #13131a;
+  --color-proplio-card: #1a1a24;
+  --color-proplio-border: #2d2d3d;
+  --color-proplio-text: #f1f1f5;
+  --color-proplio-muted: #9090a8;
+  --color-proplio-primary: #7c3aed;
+  --color-proplio-primary-hover: #6d28d9;
+  --color-proplio-secondary: #a78bfa;
+  --color-proplio-success: #10b981;
+  --color-proplio-danger: #ef4444;
+  --color-proplio-warning: #f59e0b;
+  --color-proplio-accent-blue: #6366f1;
+
+  --radius-proplio-card: 12px;
+  --shadow-proplio-card: 0 4px 24px -4px rgb(0 0 0 / 0.45);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Formulaires & boutons réutilisables */
+@layer components {
+  .proplio-input {
+    @apply rounded-xl border border-proplio-border bg-proplio-card px-3 py-2.5 text-sm text-proplio-text outline-none transition;
+    @apply placeholder:text-proplio-muted/70;
+    @apply focus:border-proplio-primary focus:ring-2 focus:ring-proplio-primary/30;
+  }
+
+  .proplio-label {
+    @apply flex flex-col gap-1.5 text-sm text-proplio-muted;
+  }
+
+  .proplio-label > span.font-medium {
+    @apply text-proplio-muted;
+  }
+
+  .proplio-select {
+    @apply cursor-pointer rounded-xl border border-proplio-border bg-proplio-card px-3 py-2.5 text-sm text-proplio-text outline-none transition;
+    @apply focus:border-proplio-primary focus:ring-2 focus:ring-proplio-primary/30;
+  }
+
+  .proplio-btn-primary {
+    @apply rounded-xl bg-proplio-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm transition;
+    @apply hover:bg-proplio-primary-hover disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .proplio-btn-secondary {
+    @apply rounded-xl border border-proplio-border bg-transparent px-4 py-2.5 text-sm font-medium text-proplio-text transition;
+    @apply hover:border-proplio-muted hover:bg-proplio-card;
+  }
+
+  .proplio-card {
+    border-radius: var(--radius-proplio-card);
+    @apply border border-proplio-border bg-proplio-card shadow-[var(--shadow-proplio-card)];
+  }
+
+  /* Pastilles stats dashboard — dégradés visibles dès hydratation */
+  .proplio-stat-icon--violet {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  }
+
+  .proplio-stat-icon--blue {
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  }
+
+  .proplio-stat-icon--green {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  }
+
+  .proplio-stat-icon--orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  }
+
+  .proplio-page-wrap {
+    @apply mx-auto w-full max-w-6xl;
+  }
+
+  .proplio-alert-error {
+    @apply mb-4 rounded-xl border border-proplio-danger/30 bg-proplio-danger/10 px-4 py-3 text-sm text-proplio-danger;
+  }
+
+  .proplio-alert-success {
+    @apply rounded-xl border border-proplio-success/30 bg-proplio-success/10 px-4 py-3 text-sm text-proplio-success;
+  }
+
+  .proplio-link {
+    @apply font-medium text-proplio-secondary underline-offset-2 hover:text-proplio-text hover:underline;
   }
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply min-h-full bg-proplio-bg text-proplio-text antialiased;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
