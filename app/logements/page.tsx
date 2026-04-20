@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
 import { IconPlus } from "@/components/proplio-icons";
 import {
@@ -12,6 +12,14 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputMd, fieldInputStyle, fieldSelectMd, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+
+const LOGEMENT_MODAL_CARD: CSSProperties = {
+  ...panelCard,
+  padding: 24,
+  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+};
 
 type Logement = {
   id: string;
@@ -77,11 +85,17 @@ export default function LogementsPage() {
         label: "Colocation",
         render: (row) =>
           row.est_colocation ? (
-            <span className="inline-flex rounded-full bg-proplio-primary/25 px-2.5 py-1 text-xs font-medium text-proplio-secondary">
+            <span
+              className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+            >
               Oui
             </span>
           ) : (
-            <span className="inline-flex rounded-full bg-proplio-warning/15 px-2.5 py-1 text-xs font-medium text-proplio-warning">
+            <span
+              className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
+            >
               Non
             </span>
           ),
@@ -346,11 +360,13 @@ export default function LogementsPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">Logements</h1>
-          <p className="mt-2 text-sm text-proplio-muted">Liste, création et gestion de vos biens.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Logements</h1>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+            Liste, création et gestion de vos biens.
+          </p>
         </div>
         <button
           type="button"
@@ -362,10 +378,17 @@ export default function LogementsPage() {
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-lg bg-proplio-danger/10 px-3 py-2 text-sm text-proplio-danger">{error}</p> : null}
+      {error ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {isLoading ? (
-        <div className="rounded-xl border border-proplio-border bg-proplio-card p-6 text-sm text-proplio-muted">
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des logements...
         </div>
       ) : (
@@ -381,107 +404,101 @@ export default function LogementsPage() {
 
       {isModalOpen ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-safari">
-          <div className="proplio-card mx-auto max-w-3xl p-6 shadow-2xl">
+          <div className="mx-auto max-w-3xl" style={LOGEMENT_MODAL_CARD}>
             <div className="mb-4 flex items-start justify-between">
-              <h3 className="text-lg font-semibold text-proplio-text">
-                {isEditing ? "Modifier le logement" : "Créer un logement"}
-              </h3>
-              <button
-                type="button"
-                className="rounded-lg px-2 py-1 text-sm text-proplio-muted hover:bg-proplio-bg hover:text-proplio-text"
-                onClick={closeModal}
-              >
+              <h3 className="text-lg font-semibold">{isEditing ? "Modifier le logement" : "Créer un logement"}</h3>
+              <button type="button" className="rounded-lg px-2 py-1 text-sm pc-close-muted" onClick={closeModal}>
                 Fermer
               </button>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Nom du logement</span>
                   <input
                     required
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.nom}
                     onChange={(e) => onChange("nom", e.target.value)}
                     placeholder="Appartement République"
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Adresse</span>
                   <input
                     required
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.adresse}
                     onChange={(e) => onChange("adresse", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Ville</span>
                   <input
                     required
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.ville}
                     onChange={(e) => onChange("ville", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Code postal</span>
                   <input
                     required
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.code_postal}
                     onChange={(e) => onChange("code_postal", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Type</span>
                   <input
                     required
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.type}
                     onChange={(e) => onChange("type", e.target.value)}
                     placeholder="T2, Studio..."
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Surface (m²)</span>
                   <input
                     required
                     type="number"
                     step="0.1"
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.surface}
                     onChange={(e) => onChange("surface", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Loyer global (€)</span>
                   <input
                     required
                     type="number"
                     step="0.01"
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.loyer}
                     onChange={(e) => onChange("loyer", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Charges globales (€)</span>
                   <input
                     required
                     type="number"
                     step="0.01"
-                    className="proplio-input"
+                    style={fieldInputStyle}
                     value={values.charges}
                     onChange={(e) => onChange("charges", e.target.value)}
                   />
                 </label>
-                <label className="proplio-label sm:col-span-2">
+                <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                   <span className="font-medium">Mode</span>
                   <select
                     required
-                    className="proplio-input"
+                    style={fieldSelectStyle}
                     value={values.est_colocation}
                     onChange={(e) => onChange("est_colocation", e.target.value)}
                   >
@@ -492,12 +509,18 @@ export default function LogementsPage() {
               </div>
 
               {isColocation ? (
-                <div className="rounded-lg border border-proplio-primary/40 bg-proplio-primary/10 p-4">
-                  <h4 className="text-sm font-semibold text-proplio-text">Gestion de la colocation</h4>
-                  <label className="mt-3 flex max-w-xs flex-col gap-1.5 text-sm text-proplio-muted">
+                <div
+                  className="rounded-lg p-4"
+                  style={{
+                    border: `1px solid ${PC.primaryBorder40}`,
+                    backgroundColor: PC.primaryBg10,
+                  }}
+                >
+                  <h4 className="text-sm font-semibold">Gestion de la colocation</h4>
+                  <label className="mt-3 flex max-w-xs flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                     <span className="font-medium">Nombre de chambres</span>
                     <select
-                      className="proplio-select"
+                      style={fieldSelectStyle}
                       value={nombreChambres}
                       onChange={(e) => {
                         const v = e.target.value;
@@ -513,16 +536,14 @@ export default function LogementsPage() {
                     </select>
                   </label>
 
-                  <div className="mt-4 border-b border-proplio-border">
+                  <div className="mt-4" style={{ borderBottom: `1px solid ${PC.border}` }}>
                     <div className="flex flex-wrap gap-1">
                       {chambres.slice(0, nCh).map((_, i) => (
                         <button
                           key={i}
                           type="button"
                           className={`rounded-t-md px-3 py-2 text-sm font-medium ${
-                            activeChambreTab === i
-                              ? "bg-proplio-card text-proplio-secondary ring-1 ring-proplio-border ring-b-0"
-                              : "text-proplio-muted hover:bg-proplio-card/60"
+                            activeChambreTab === i ? "pc-tab-log-active" : "pc-tab-log-inactive"
                           }`}
                           onClick={() => setActiveChambreTab(i)}
                         >
@@ -534,47 +555,55 @@ export default function LogementsPage() {
 
                   {chambres.slice(0, nCh).map((ch, i) =>
                     i === activeChambreTab ? (
-                      <div key={i} className="grid gap-3 border border-t-0 border-proplio-border bg-proplio-card p-4 sm:grid-cols-2">
-                        <label className="flex flex-col gap-1 text-xs text-proplio-muted">
-                          <span className="font-medium text-proplio-muted">Loyer de la chambre (€)</span>
+                      <div
+                        key={i}
+                        className="grid gap-3 border border-t-0 p-4 sm:grid-cols-2"
+                        style={{ borderColor: PC.border, backgroundColor: PC.card }}
+                      >
+                        <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                          <span className="font-medium">Loyer de la chambre (€)</span>
                           <input
                             type="number"
                             step="0.01"
-                            className="rounded-md border border-proplio-border px-2 py-1.5 text-sm"
+                            className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                            style={fieldInputMd}
                             value={ch.loyer || ""}
                             onChange={(e) =>
                               updateChambre(i, { loyer: Number(e.target.value) || 0 })
                             }
                           />
                         </label>
-                        <label className="flex flex-col gap-1 text-xs text-proplio-muted">
-                          <span className="font-medium text-proplio-muted">Charges de la chambre (€)</span>
+                        <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                          <span className="font-medium">Charges de la chambre (€)</span>
                           <input
                             type="number"
                             step="0.01"
-                            className="rounded-md border border-proplio-border px-2 py-1.5 text-sm"
+                            className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                            style={fieldInputMd}
                             value={ch.charges || ""}
                             onChange={(e) =>
                               updateChambre(i, { charges: Number(e.target.value) || 0 })
                             }
                           />
                         </label>
-                        <label className="flex flex-col gap-1 text-xs text-proplio-muted">
-                          <span className="font-medium text-proplio-muted">Surface (m²)</span>
+                        <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                          <span className="font-medium">Surface (m²)</span>
                           <input
                             type="number"
                             step="0.1"
-                            className="rounded-md border border-proplio-border px-2 py-1.5 text-sm"
+                            className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                            style={fieldInputMd}
                             value={ch.surface || ""}
                             onChange={(e) =>
                               updateChambre(i, { surface: Number(e.target.value) || 0 })
                             }
                           />
                         </label>
-                        <label className="flex flex-col gap-1 text-xs text-proplio-muted">
-                          <span className="font-medium text-proplio-muted">Statut</span>
+                        <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                          <span className="font-medium">Statut</span>
                           <select
-                            className="rounded-md border border-proplio-border px-2 py-1.5 text-sm"
+                            className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                            style={fieldSelectMd}
                             value={ch.statut}
                             onChange={(e) =>
                               updateChambre(i, {
@@ -586,10 +615,11 @@ export default function LogementsPage() {
                             <option value="occupee">Occupée</option>
                           </select>
                         </label>
-                        <label className="sm:col-span-2 flex flex-col gap-1 text-xs text-proplio-muted">
-                          <span className="font-medium text-proplio-muted">Description / équipements</span>
+                        <label className="sm:col-span-2 flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                          <span className="font-medium">Description / équipements</span>
                           <textarea
-                            className="min-h-16 rounded-md border border-proplio-border px-2 py-1.5 text-sm"
+                            className="min-h-16 w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                            style={fieldInputMd}
                             value={ch.description}
                             onChange={(e) => updateChambre(i, { description: e.target.value })}
                             placeholder="Meublée, balcon, salle d'eau privative..."
@@ -599,19 +629,23 @@ export default function LogementsPage() {
                     ) : null,
                   )}
 
-                  <div className="mt-4 rounded-md border border-proplio-border bg-proplio-card p-3 text-sm">
-                    <p className="font-medium text-proplio-text">Récapitulatif</p>
-                    <p className="mt-1 text-proplio-muted">
+                  <div
+                    className="mt-4 rounded-md p-3 text-sm"
+                    style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}
+                  >
+                    <p className="font-medium">Récapitulatif</p>
+                    <p className="mt-1" style={{ color: PC.muted }}>
                       Total loyers des chambres :{" "}
                       <strong>{totalChambresLoyers.toFixed(2)} €</strong>
                     </p>
-                    <p className="text-proplio-muted">
+                    <p style={{ color: PC.muted }}>
                       Loyer global du logement : <strong>{loyerGlobal.toFixed(2)} €</strong>
                     </p>
                     <p
-                      className={`mt-1 text-xs ${
-                        Math.abs(ecartLoyer) < 0.01 ? "text-proplio-success" : "text-proplio-warning"
-                      }`}
+                      className="mt-1 text-xs"
+                      style={{
+                        color: Math.abs(ecartLoyer) < 0.01 ? PC.success : PC.warning,
+                      }}
                     >
                       {Math.abs(ecartLoyer) < 0.01
                         ? "Somme des loyers de chambres = loyer global."

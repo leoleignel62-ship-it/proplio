@@ -9,6 +9,8 @@ import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
 
 type EdlRow = {
   id: string;
@@ -358,11 +360,11 @@ export default function EtatsDesLieuxPage() {
   }, [labels]);
 
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">États des lieux</h1>
-          <p className="mt-2 text-sm text-proplio-muted">
+          <h1 className="text-3xl font-semibold tracking-tight">États des lieux</h1>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
             États d&apos;entrée et de sortie, photos, compteurs et PDF Proplio.
           </p>
         </div>
@@ -389,50 +391,61 @@ export default function EtatsDesLieuxPage() {
       ) : null}
 
       {loading ? (
-        <div className="proplio-card p-6 text-sm text-proplio-muted">Chargement…</div>
+        <div className="p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Chargement…
+        </div>
       ) : rows.length === 0 ? (
-        <div className="proplio-card p-8 text-center text-sm text-proplio-muted">
+        <div className="p-8 text-center text-sm" style={{ ...panelCard, color: PC.muted }}>
           Aucun état des lieux. Créez-en un pour commencer.
         </div>
       ) : (
-        <div className="proplio-card overflow-hidden">
+        <div className="overflow-hidden" style={panelCard}>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-proplio-border">
-              <thead className="bg-proplio-card">
+            <table className="min-w-full pc-divide-y-border">
+              <thead style={{ backgroundColor: PC.card }}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-proplio-secondary">
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: PC.secondary }}
+                  >
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-proplio-secondary">
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: PC.secondary }}
+                  >
                     Locataire / Logement
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-proplio-secondary">
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: PC.secondary }}
+                  >
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-proplio-secondary">
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: PC.secondary }}
+                  >
                     Statut
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-proplio-secondary">
+                  <th
+                    className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: PC.secondary }}
+                  >
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-proplio-border">
+              <tbody className="pc-divide-y-border">
                 {rows.map((r, i) => (
-                  <tr
-                    key={r.id}
-                    className={
-                      i % 2 === 0
-                        ? "bg-proplio-bg/40 hover:bg-proplio-primary/10"
-                        : "bg-proplio-card/60 hover:bg-proplio-primary/10"
-                    }
-                  >
+                  <tr key={r.id} className={i % 2 === 0 ? "pc-edl-row-sel" : "pc-edl-row"}>
                     <td className="px-4 py-3">
                       <span
-                        className={
+                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        style={
                           getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree"
-                            ? "inline-flex rounded-full bg-proplio-success/20 px-2.5 py-1 text-xs font-medium text-proplio-success"
-                            : "inline-flex rounded-full bg-proplio-warning/15 px-2.5 py-1 text-xs font-medium text-proplio-warning"
+                            ? { backgroundColor: PC.successBg20, color: PC.success }
+                            : { backgroundColor: PC.warningBg15, color: PC.warning }
                         }
                       >
                         {getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree"
@@ -440,16 +453,17 @@ export default function EtatsDesLieuxPage() {
                           : "Sortie"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-proplio-text">{subtitle(r)}</td>
-                    <td className="px-4 py-3 text-sm text-proplio-muted">
+                    <td className="px-4 py-3 text-sm">{subtitle(r)}</td>
+                    <td className="px-4 py-3 text-sm" style={{ color: PC.muted }}>
                       {r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={
+                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        style={
                           r.statut === "termine"
-                            ? "inline-flex rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-medium text-red-600"
-                            : "inline-flex rounded-full bg-proplio-warning/15 px-2.5 py-1 text-xs font-medium text-proplio-warning"
+                            ? { backgroundColor: PC.dangerBg15, color: PC.red600 }
+                            : { backgroundColor: PC.warningBg15, color: PC.warning }
                         }
                       >
                         {r.statut === "termine" ? "Finalisé" : "En cours"}
@@ -489,7 +503,7 @@ export default function EtatsDesLieuxPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
-                          className="rounded-lg border border-proplio-danger/40 px-2 py-1.5 text-xs text-proplio-danger hover:bg-proplio-danger/10"
+                          className="rounded-lg px-2 py-1.5 text-xs pc-outline-danger"
                         >
                           Supprimer
                         </button>
@@ -505,14 +519,14 @@ export default function EtatsDesLieuxPage() {
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="proplio-card w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-proplio-text">Supprimer l&apos;état des lieux</h2>
-            <p className="mt-3 text-sm text-proplio-muted">
+          <div className="w-full max-w-md p-6" style={panelCard}>
+            <h2 className="text-lg font-semibold">Supprimer l&apos;état des lieux</h2>
+            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
               {deleteTarget.statut === "termine"
                 ? "Attention, cet état des lieux est finalisé et a valeur légale. Êtes-vous sûr de vouloir le supprimer définitivement ?"
                 : "Êtes-vous sûr de vouloir supprimer cet état des lieux ?"}
             </p>
-            <p className="mt-2 text-xs text-proplio-muted">
+            <p className="mt-2 text-xs" style={{ color: PC.muted }}>
               Les photos associées seront également supprimées du stockage.
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
@@ -526,7 +540,7 @@ export default function EtatsDesLieuxPage() {
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-proplio-danger/50 bg-proplio-danger/15 px-4 py-2.5 text-sm font-medium text-proplio-danger transition hover:bg-proplio-danger/25 disabled:opacity-50"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 pc-danger-fill"
                 disabled={deleteSubmitting}
                 onClick={() => void executeDeleteConfirmed()}
               >
@@ -543,13 +557,13 @@ export default function EtatsDesLieuxPage() {
 
       {modal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="proplio-card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
-            <h2 className="text-lg font-semibold text-proplio-text">Nouvel état des lieux</h2>
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-6" style={panelCard}>
+            <h2 className="text-lg font-semibold">Nouvel état des lieux</h2>
             <form onSubmit={onCreate} className="mt-4 space-y-4">
-              <label className="proplio-label">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span>Bail</span>
                 <select
-                  className="proplio-select"
+                  style={fieldSelectStyle}
                   required
                   value={bailId}
                   onChange={(e) => setBailId(e.target.value)}
@@ -563,8 +577,10 @@ export default function EtatsDesLieuxPage() {
                 </select>
               </label>
               <fieldset className="space-y-2">
-                <legend className="text-sm text-proplio-muted">Type</legend>
-                <label className="flex items-center gap-2 text-sm text-proplio-text">
+                <legend className="text-sm" style={{ color: PC.muted }}>
+                  Type
+                </legend>
+                <label className="flex items-center gap-2 text-sm" style={{ color: PC.text }}>
                   <input
                     type="radio"
                     name="te"
@@ -573,7 +589,7 @@ export default function EtatsDesLieuxPage() {
                   />
                   Entrée
                 </label>
-                <label className="flex items-center gap-2 text-sm text-proplio-text">
+                <label className="flex items-center gap-2 text-sm" style={{ color: PC.text }}>
                   <input
                     type="radio"
                     name="te"
@@ -584,10 +600,10 @@ export default function EtatsDesLieuxPage() {
                 </label>
               </fieldset>
               {typeEtat === "sortie" ? (
-                <label className="proplio-label">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span>État d&apos;entrée à comparer</span>
                   <select
-                    className="proplio-select"
+                    style={fieldSelectStyle}
                     required
                     value={entreeId}
                     onChange={(e) => setEntreeId(e.target.value)}
@@ -601,23 +617,23 @@ export default function EtatsDesLieuxPage() {
                   </select>
                 </label>
               ) : null}
-              <label className="proplio-label">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span>Date</span>
                 <input
                   type="date"
-                  className="proplio-input"
+                  style={fieldInputStyle}
                   required
                   value={dateEtat}
                   onChange={(e) => setDateEtat(e.target.value)}
                 />
               </label>
-              <label className="proplio-label">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span>Type de logement</span>
-                <p className="mb-1 text-xs text-proplio-muted">
+                <p className="mb-1 text-xs" style={{ color: PC.muted }}>
                   Pré-rempli automatiquement selon le type de bail ; vous pouvez l&apos;ajuster si besoin.
                 </p>
                 <select
-                  className="proplio-select"
+                  style={fieldSelectStyle}
                   value={typeLogement}
                   onChange={(e) => setTypeLogement(e.target.value as "meuble" | "vide")}
                 >

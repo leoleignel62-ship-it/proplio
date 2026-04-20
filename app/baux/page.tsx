@@ -1,12 +1,20 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
 import { IconPlus } from "@/components/proplio-icons";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputLg, fieldInputMd, fieldSelectLg, panelCard } from "@/lib/proplio-field-styles";
+
+const BAIL_MODAL_CARD: CSSProperties = {
+  ...panelCard,
+  padding: 24,
+  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
+};
 
 type Bail = {
   id: string;
@@ -243,7 +251,10 @@ export default function BauxPage() {
             return (
               <span className="flex flex-col gap-1">
                 <span>{label}</span>
-                <span className="inline-flex w-fit rounded-full bg-proplio-primary/25 px-2 py-0.5 text-xs font-medium text-proplio-secondary">
+                <span
+                  className="inline-flex w-fit rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                >
                   Colocation — Chambre {row.colocation_chambre_index}
                 </span>
               </span>
@@ -877,11 +888,11 @@ export default function BauxPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">Baux</h1>
-          <p className="mt-2 text-sm text-proplio-muted">
+          <h1 className="text-3xl font-semibold tracking-tight">Baux</h1>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
             Création de baux conformes loi Alur et loi du 6 juillet 1989.
           </p>
         </div>
@@ -895,10 +906,20 @@ export default function BauxPage() {
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-lg bg-proplio-danger/10 px-3 py-2 text-sm text-proplio-danger">{error}</p> : null}
+      {error ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {isLoading ? (
-        <div className="rounded-xl border border-proplio-border bg-proplio-card p-6 text-sm text-proplio-muted">
+        <div
+          className="rounded-xl p-6 text-sm"
+          style={{ ...panelCard, color: PC.muted }}
+        >
           Chargement des baux...
         </div>
       ) : (
@@ -912,16 +933,25 @@ export default function BauxPage() {
           statusRenderer={(row) => (
             <div className="flex flex-col items-end gap-1">
               {row.statut === "actif" ? (
-                <span className="rounded-full bg-proplio-success/20 px-2.5 py-1 text-xs font-medium text-proplio-success">
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                >
                   Actif
                 </span>
               ) : (
-                <span className="rounded-full bg-proplio-border px-2.5 py-1 text-xs font-medium text-proplio-muted">
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: PC.border, color: PC.muted }}
+                >
                   Terminé
                 </span>
               )}
               {row.email_envoye ? (
-                <span className="rounded-full bg-proplio-primary/20 px-2.5 py-1 text-xs font-medium text-proplio-secondary">
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}
+                >
                   Bail envoyé
                 </span>
               ) : null}
@@ -931,7 +961,7 @@ export default function BauxPage() {
             <div className="flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                className="rounded-md border border-proplio-primary/50 px-3 py-1.5 text-xs font-medium text-proplio-secondary hover:bg-proplio-primary/10 disabled:opacity-60"
+                className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-primary disabled:opacity-60"
                 onClick={() => onGeneratePdf(row.id)}
                 disabled={isGeneratingPdfId === row.id}
               >
@@ -939,7 +969,7 @@ export default function BauxPage() {
               </button>
               <button
                 type="button"
-                className="rounded-md border border-proplio-success/40 px-3 py-1.5 text-xs font-medium text-proplio-success hover:bg-proplio-success/10 disabled:opacity-60"
+                className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-success disabled:opacity-60"
                 onClick={() => onSendBailEmail(row.id)}
                 disabled={isSendingEmailId === row.id}
               >
@@ -952,15 +982,16 @@ export default function BauxPage() {
 
       {isModalOpen ? (
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/60 p-4">
-          <div className="mx-auto max-w-3xl rounded-xl border border-proplio-border bg-proplio-card p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-proplio-text">
+          <div className="mx-auto max-w-3xl rounded-xl" style={BAIL_MODAL_CARD}>
+            <h3 className="text-lg font-semibold">
               {isEditing ? "Modifier le bail" : "Créer un bail"}
             </h3>
             <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted sm:col-span-2">
+              <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                 <span className="font-medium">Logement</span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.logement_id}
                   onChange={(event) => onChange("logement_id", event.target.value)}
                   required
@@ -973,12 +1004,13 @@ export default function BauxPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted sm:col-span-2">
+              <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                 <span className="font-medium">
                   {isColocationLogement ? "Locataire (une personne par bail)" : "Locataire"}
                 </span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.locataire_id}
                   onChange={(event) => onChange("locataire_id", event.target.value)}
                   required
@@ -994,23 +1026,30 @@ export default function BauxPage() {
                   ))}
                 </select>
                 {isColocationLogement && values.logement_id && locatairesSelectList.length === 0 ? (
-                  <span className="text-xs text-proplio-warning">
+                  <span className="text-xs" style={{ color: PC.warning }}>
                     Aucun colocataire lié à ce logement avec une chambre : configurez d&apos;abord les fiches dans
                     Locataires.
                   </span>
                 ) : null}
               </label>
               {isColocationLogement ? (
-                <div className="sm:col-span-2 rounded-lg border border-violet-200 bg-violet-50/70 p-4">
-                  <p className="text-sm font-semibold text-proplio-secondary">Bail individuel - Colocation</p>
-                  <p className="mt-1 text-xs text-proplio-muted">
+                <div
+                  className="sm:col-span-2 rounded-lg p-4"
+                  style={{
+                    border: `1px solid ${PC.violet200}`,
+                    backgroundColor: "rgba(245, 243, 255, 0.72)",
+                  }}
+                >
+                  <p className="text-sm font-semibold" style={{ color: PC.secondary }}>Bail individuel - Colocation</p>
+                  <p className="mt-1 text-xs" style={{ color: PC.muted }}>
                     Un seul locataire par bail. Le loyer et les charges se remplissent selon la chambre assignée sur
                     sa fiche.
                   </p>
-                  <label className="mt-3 flex flex-col gap-1.5 text-sm text-proplio-text">
+                  <label className="mt-3 flex flex-col gap-1.5 text-sm" style={{ color: PC.text }}>
                     <span className="font-medium">Parties communes et équipements partagés (PDF)</span>
                     <textarea
-                      className="min-h-20 rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                      className="min-h-20 w-full rounded-lg px-3 py-2 text-sm outline-none pc-field-focus"
+                  style={fieldInputLg}
                       value={values.colocation_parties_communes}
                       onChange={(event) => onChange("colocation_parties_communes", event.target.value)}
                       placeholder="Ex. : cuisine, séjour, salle de bain, WC, entrée, buanderie…"
@@ -1018,10 +1057,11 @@ export default function BauxPage() {
                   </label>
                 </div>
               ) : null}
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Type de bail</span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.type_bail}
                   onChange={(event) => onChange("type_bail", event.target.value)}
                   required
@@ -1030,20 +1070,22 @@ export default function BauxPage() {
                   <option value="meuble">Meublé</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Date de début</span>
                 <input
                   type="date"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.date_debut}
                   onChange={(event) => onChange("date_debut", event.target.value)}
                   required
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Durée</span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.duree_mois}
                   onChange={(event) => onChange("duree_mois", event.target.value)}
                   required
@@ -1052,57 +1094,62 @@ export default function BauxPage() {
                   <option value="12">12 mois (1 an)</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Montant du loyer (€)</span>
                 <input
                   type="number"
                   step="0.01"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.loyer}
                   onChange={(event) => onChange("loyer", event.target.value)}
                   required
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Montant des charges (€)</span>
                 <input
                   type="number"
                   step="0.01"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.charges}
                   onChange={(event) => onChange("charges", event.target.value)}
                   required
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Dépôt de garantie (€)</span>
                 <input
                   type="number"
                   step="0.01"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.depot_garantie}
                   onChange={(event) => onChange("depot_garantie", event.target.value)}
                   required
                 />
-                <span className="text-xs font-normal text-proplio-muted">
+                <span className="text-xs font-normal" style={{ color: PC.muted }}>
                   Proposition automatique : 1× le loyer (bail vide) ou 2× (meublé) lors du choix du logement ou du loyer.
                   Vous pouvez modifier le montant si besoin.
                 </span>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Dernier loyer précédent (€)</span>
                 <input
                   type="number"
                   step="0.01"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.dernier_loyer_precedent}
                   onChange={(event) => onChange("dernier_loyer_precedent", event.target.value)}
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Mode de paiement du loyer</span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.mode_paiement_loyer}
                   onChange={(event) => onChange("mode_paiement_loyer", event.target.value)}
                   required
@@ -1112,41 +1159,51 @@ export default function BauxPage() {
                   <option value="prelevement">Prélèvement</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Jour de paiement (1 à 28)</span>
                 <input
                   type="number"
                   min={1}
                   max={28}
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.jour_paiement}
                   onChange={(event) => onChange("jour_paiement", event.target.value)}
                   required
                 />
               </label>
-              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Modalités de révision du loyer (IRL)</span>
                 <textarea
-                  className="min-h-20 rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="min-h-20 w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.revision_loyer}
                   onChange={(event) => onChange("revision_loyer", event.target.value)}
                 />
               </label>
-              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Désignation précise du logement</span>
                 <textarea
-                  className="min-h-20 rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="min-h-20 w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.designation_logement}
                   onChange={(event) => onChange("designation_logement", event.target.value)}
                 />
               </label>
-              <div className="sm:col-span-2 rounded-lg border border-proplio-border bg-proplio-card/90 p-4">
-                <h4 className="text-sm font-semibold text-proplio-text">Informations complémentaires du logement</h4>
+              <div
+                className="sm:col-span-2 rounded-lg p-4"
+                style={{
+                  border: `1px solid ${PC.border}`,
+                  backgroundColor: PC.cardAlpha90,
+                }}
+              >
+                <h4 className="text-sm font-semibold">Informations complémentaires du logement</h4>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1.5 text-sm text-proplio-muted sm:col-span-2">
+                  <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                     <span className="font-medium">Étage</span>
                     <select
-                      className="rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                      className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                       value={values.logement_etage}
                       onChange={(event) => onChange("logement_etage", event.target.value)}
                     >
@@ -1158,8 +1215,8 @@ export default function BauxPage() {
                     </select>
                   </label>
                   <div className="sm:col-span-2 space-y-2">
-                    <span className="text-sm font-medium text-proplio-muted">Interphone / Digicode</span>
-                    <div className="flex flex-wrap gap-4 text-sm text-proplio-muted">
+                    <span className="text-sm font-medium" style={{ color: PC.muted }}>Interphone / Digicode</span>
+                    <div className="flex flex-wrap gap-4 text-sm" style={{ color: PC.muted }}>
                       <label className="inline-flex items-center gap-2">
                         <input
                           type="radio"
@@ -1186,11 +1243,12 @@ export default function BauxPage() {
                       </label>
                     </div>
                     {values.interphone_digicode_oui ? (
-                      <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+                      <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                         <span className="font-medium">Code ou indications</span>
                         <input
                           type="text"
-                          className="rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                          className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                           value={values.interphone_digicode_code}
                           onChange={(event) =>
                             setValues((prev) => ({ ...prev, interphone_digicode_code: event.target.value }))
@@ -1200,10 +1258,10 @@ export default function BauxPage() {
                       </label>
                     ) : null}
                   </div>
-                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium text-proplio-muted">
+                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium" style={{ color: PC.muted }}>
                     <input
                       type="checkbox"
-                      className="rounded border-proplio-border"
+                      className="rounded" style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
                       checked={values.parking_inclus}
                       onChange={(event) =>
                         setValues((prev) => ({
@@ -1216,20 +1274,21 @@ export default function BauxPage() {
                     Parking inclus
                   </label>
                   {values.parking_inclus ? (
-                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                       <span className="font-medium">Numéro de place</span>
                       <input
                         type="text"
-                        className="rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                         value={values.parking_numero}
                         onChange={(event) => onChange("parking_numero", event.target.value)}
                       />
                     </label>
                   ) : null}
-                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium text-proplio-muted">
+                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium" style={{ color: PC.muted }}>
                     <input
                       type="checkbox"
-                      className="rounded border-proplio-border"
+                      className="rounded" style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
                       checked={values.cave_incluse}
                       onChange={(event) =>
                         setValues((prev) => ({
@@ -1242,20 +1301,21 @@ export default function BauxPage() {
                     Cave incluse
                   </label>
                   {values.cave_incluse ? (
-                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                       <span className="font-medium">Numéro de cave</span>
                       <input
                         type="text"
-                        className="rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                         value={values.cave_numero}
                         onChange={(event) => onChange("cave_numero", event.target.value)}
                       />
                     </label>
                   ) : null}
-                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium text-proplio-muted">
+                  <label className="sm:col-span-2 inline-flex items-center gap-2 text-sm font-medium" style={{ color: PC.muted }}>
                     <input
                       type="checkbox"
-                      className="rounded border-proplio-border"
+                      className="rounded" style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
                       checked={values.garage_inclus}
                       onChange={(event) =>
                         setValues((prev) => ({
@@ -1268,11 +1328,12 @@ export default function BauxPage() {
                     Garage inclus
                   </label>
                   {values.garage_inclus ? (
-                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+                    <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                       <span className="font-medium">Numéro de garage</span>
                       <input
                         type="text"
-                        className="rounded-lg border border-proplio-border bg-proplio-card px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                         value={values.garage_numero}
                         onChange={(event) => onChange("garage_numero", event.target.value)}
                       />
@@ -1280,10 +1341,11 @@ export default function BauxPage() {
                   ) : null}
                 </div>
               </div>
-              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Travaux réalisés depuis le dernier bail</span>
                 <textarea
-                  className="min-h-20 rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="min-h-20 w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.travaux_realises}
                   onChange={(event) => onChange("travaux_realises", event.target.value)}
                 />
@@ -1291,13 +1353,20 @@ export default function BauxPage() {
             <div className="mt-6">
               {values.type_bail === "meuble" ? (
                 <>
-                  <h4 className="text-sm font-semibold text-proplio-text">
+                  <h4 className="text-sm font-semibold">
                     Équipements inclus (obligatoires meublé - loi Alur)
                   </h4>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {EQUIPEMENTS_MEUBLES_ALUR.map((item) => (
-                      <div key={item} className="rounded-lg border border-proplio-border bg-proplio-card p-3">
-                        <label className="inline-flex items-center gap-2 text-sm font-medium text-proplio-muted">
+                      <div
+                      key={item}
+                      className="rounded-lg p-3"
+                      style={{
+                        border: `1px solid ${PC.border}`,
+                        backgroundColor: PC.card,
+                      }}
+                    >
+                        <label className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: PC.muted }}>
                           <input
                             type="checkbox"
                             checked={values.equipements.includes(item)}
@@ -1307,22 +1376,24 @@ export default function BauxPage() {
                         </label>
                         {values.equipements.includes(item) ? (
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                            <label className="flex flex-col gap-1 text-xs text-proplio-muted">
+                            <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
                               <span>Quantité</span>
                               <input
                                 type="number"
                                 min={1}
-                                className="rounded-md border border-proplio-border px-2 py-1.5 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                                className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                                style={fieldInputMd}
                                 value={values.equipements_details[item]?.quantity ?? 1}
                                 onChange={(event) =>
                                   onEquipementDetailChange(item, "quantity", event.target.value)
                                 }
                               />
                             </label>
-                            <label className="flex flex-col gap-1 text-xs text-proplio-muted">
+                            <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
                               <span>Pièce(s)</span>
                               <input
-                                className="rounded-md border border-proplio-border px-2 py-1.5 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                                className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                                style={fieldInputMd}
                                 placeholder="Ex: Chambre 1, Salon"
                                 value={values.equipements_details[item]?.rooms ?? ""}
                                 onChange={(event) =>
@@ -1336,11 +1407,12 @@ export default function BauxPage() {
                     ))}
                   </div>
                   <div className="mt-4 space-y-3">
-                    <span className="text-sm font-medium text-proplio-muted">Autres meubles</span>
+                    <span className="text-sm font-medium" style={{ color: PC.muted }}>Autres meubles</span>
                     <div className="flex flex-wrap items-center gap-2">
                       <input
                         type="text"
-                        className="min-w-[12rem] flex-1 rounded-lg border border-proplio-border px-3 py-2 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                        className="min-w-[12rem] flex-1 rounded-lg px-3 py-2 text-sm outline-none pc-field-focus"
+                  style={fieldInputLg}
                         value={nouveauMeubleNom}
                         onChange={(event) => {
                           setNouveauMeubleNom(event.target.value);
@@ -1356,7 +1428,7 @@ export default function BauxPage() {
                       />
                       <button
                         type="button"
-                        className="rounded-lg border border-proplio-border bg-proplio-card px-4 py-2 text-sm font-medium text-proplio-text hover:bg-proplio-card"
+                        className="rounded-lg px-4 py-2 text-sm font-medium pc-ghost-card"
                         onClick={() => addCustomMeuble()}
                       >
                         Ajouter
@@ -1366,15 +1438,23 @@ export default function BauxPage() {
                     {customEquipements.length > 0 ? (
                       <div className="grid gap-2 sm:grid-cols-2">
                         {customEquipements.map((item) => (
-                          <div key={item} className="rounded-lg border border-proplio-border bg-proplio-card p-3">
+                          <div
+                      key={item}
+                      className="rounded-lg p-3"
+                      style={{
+                        border: `1px solid ${PC.border}`,
+                        backgroundColor: PC.card,
+                      }}
+                    >
                             <div className="flex items-start justify-between gap-2">
-                              <span className="text-sm font-medium text-proplio-muted">
+                              <span className="text-sm font-medium" style={{ color: PC.muted }}>
                                 <span aria-hidden>✅ </span>
                                 {item}
                               </span>
                               <button
                                 type="button"
-                                className="shrink-0 rounded p-0.5 text-lg leading-none text-proplio-muted hover:bg-proplio-border hover:text-proplio-danger"
+                                className="shrink-0 rounded p-0.5 text-lg leading-none pc-icon-danger-hover"
+                                style={{ color: PC.muted }}
                                 onClick={() => removeCustomMeuble(item)}
                                 aria-label={`Retirer ${item}`}
                               >
@@ -1382,22 +1462,24 @@ export default function BauxPage() {
                               </button>
                             </div>
                             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                              <label className="flex flex-col gap-1 text-xs text-proplio-muted">
+                              <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
                                 <span>Quantité</span>
                                 <input
                                   type="number"
                                   min={1}
-                                  className="rounded-md border border-proplio-border px-2 py-1.5 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                                  className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                                style={fieldInputMd}
                                   value={values.equipements_details[item]?.quantity ?? 1}
                                   onChange={(event) =>
                                     onEquipementDetailChange(item, "quantity", event.target.value)
                                   }
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-xs text-proplio-muted">
+                              <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
                                 <span>Pièce(s)</span>
                                 <input
-                                  className="rounded-md border border-proplio-border px-2 py-1.5 text-sm outline-none ring-proplio-primary/35 focus:ring-2"
+                                  className="w-full rounded-md px-2 py-1.5 text-sm outline-none pc-field-focus"
+                                style={fieldInputMd}
                                   placeholder="Ex: Chambre 1, Salon"
                                   value={values.equipements_details[item]?.rooms ?? ""}
                                   onChange={(event) =>
@@ -1415,10 +1497,11 @@ export default function BauxPage() {
               ) : null}
             </div>
 
-              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Clauses particulières (libre)</span>
                 <textarea
-                  className="min-h-24 rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="min-h-24 w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.clauses_particulieres}
                   onChange={(event) => onChange("clauses_particulieres", event.target.value)}
                   placeholder="Avenants, conditions spécifiques, etc. (reproduites dans le PDF)"
@@ -1426,8 +1509,8 @@ export default function BauxPage() {
               </label>
 
             <div className="mt-6">
-              <h4 className="text-sm font-semibold text-proplio-text">Diagnostics techniques</h4>
-              <p className="mt-1 text-xs text-proplio-muted">
+              <h4 className="text-sm font-semibold">Diagnostics techniques</h4>
+              <p className="mt-1 text-xs" style={{ color: PC.muted }}>
                 Le DPE et l&apos;ERP sont requis pour toute mise en location et restent cochés.
               </p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -1435,11 +1518,12 @@ export default function BauxPage() {
                   item.mandatory ? (
                     <div
                       key={item.key}
-                      className="inline-flex cursor-not-allowed items-center gap-2 text-sm text-proplio-muted"
+                      className="inline-flex cursor-not-allowed items-center gap-2 text-sm"
+                      style={{ color: PC.muted }}
                     >
                       <input
                         type="checkbox"
-                        className="rounded border-proplio-border"
+                        className="rounded" style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
                         checked
                         disabled
                         readOnly
@@ -1447,25 +1531,26 @@ export default function BauxPage() {
                       />
                       <span>
                         {item.label}{" "}
-                        <span className="font-medium text-proplio-muted">(obligatoire)</span>
+                        <span className="font-medium" style={{ color: PC.muted }}>(obligatoire)</span>
                       </span>
                     </div>
                   ) : (
                     <label
                       key={item.key}
-                      className="inline-flex cursor-help items-start gap-2 text-sm text-proplio-muted"
+                      className="inline-flex cursor-help items-start gap-2 text-sm"
+                      style={{ color: PC.muted }}
                       title={item.hint}
                     >
                       <input
                         type="checkbox"
-                        className="mt-0.5 rounded border-proplio-border"
+                        className="mt-0.5 rounded" style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
                         checked={Boolean(values.diagnostics[item.key])}
                         onChange={() => toggleDiagnostic(item.key)}
                       />
                       <span>
                         {item.label}
                         {item.hint ? (
-                          <span className="ml-1 inline-block text-xs font-normal text-proplio-muted" aria-hidden>
+                          <span className="ml-1 inline-block text-xs font-normal" style={{ color: PC.muted }} aria-hidden>
                             ⓘ
                           </span>
                         ) : null}
@@ -1475,10 +1560,11 @@ export default function BauxPage() {
                 )}
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Classe énergie (DPE)</span>
                   <select
-                    className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                    className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                     value={values.dpe_classe_energie}
                     onChange={(event) => onChange("dpe_classe_energie", event.target.value)}
                   >
@@ -1490,19 +1576,21 @@ export default function BauxPage() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Valeur (kWh/m²/an)</span>
                   <input
                     type="number"
-                    className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                    className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                     value={values.dpe_valeur_kwh}
                     onChange={(event) => onChange("dpe_valeur_kwh", event.target.value)}
                   />
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Classe GES</span>
                   <select
-                    className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                    className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                     value={values.dpe_classe_ges}
                     onChange={(event) => onChange("dpe_classe_ges", event.target.value)}
                   >
@@ -1520,14 +1608,14 @@ export default function BauxPage() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-proplio-border px-4 py-2 text-sm font-medium text-proplio-muted hover:bg-proplio-bg"
+                className="rounded-lg px-4 py-2 text-sm font-medium pc-outline-muted"
                 onClick={closeModal}
               >
                 Fermer
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-proplio-primary px-4 py-2 text-sm font-medium text-white hover:bg-proplio-primary-hover disabled:opacity-60"
+                className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary disabled:opacity-60"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}

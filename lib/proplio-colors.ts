@@ -31,4 +31,15 @@ export const PC = {
   red800: "#991B1B",
   violet50: "#F5F3FF",
   violet200: "#DDD6FE",
+  /** Badges / fonds warning */
+  warningBg15: "rgba(245, 158, 11, 0.15)",
+  borderPrimary50: "rgba(124, 58, 237, 0.5)",
+  borderSuccess40: "rgba(16, 185, 129, 0.4)",
+  borderDanger40: "rgba(239, 68, 68, 0.4)",
+  borderDanger50: "rgba(239, 68, 68, 0.5)",
+  dangerBg15: "rgba(239, 68, 68, 0.15)",
+  dangerBg25: "rgba(239, 68, 68, 0.25)",
+  successBg10: "rgba(16, 185, 129, 0.1)",
+  primaryBorder40: "rgba(124, 58, 237, 0.4)",
+  primaryBg05: "rgba(124, 58, 237, 0.05)",
 } as const;

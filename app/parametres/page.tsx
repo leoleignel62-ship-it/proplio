@@ -11,6 +11,8 @@ import {
 } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
 
 export default function ParametresPage() {
   const [profile, setProfile] = useState<ProprietaireProfile>(emptyProprietaireProfile);
@@ -151,99 +153,109 @@ export default function ParametresPage() {
   }
 
   return (
-    <section className="proplio-page-wrap max-w-4xl space-y-8">
+    <section className="proplio-page-wrap max-w-4xl space-y-8" style={{ color: PC.text }}>
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">Paramètres</h1>
-        <p className="mt-2 text-sm text-proplio-muted">
+        <h1 className="text-3xl font-semibold tracking-tight">Paramètres</h1>
+        <p className="mt-2 text-sm" style={{ color: PC.muted }}>
           Configurez votre profil propriétaire utilisé automatiquement dans les quittances et baux.
         </p>
       </header>
 
-      <div className="proplio-card p-6">
-        <h2 className="text-lg font-semibold text-proplio-text">Mon profil propriétaire</h2>
+      <div className="p-6" style={panelCard}>
+        <h2 className="text-lg font-semibold">Mon profil propriétaire</h2>
 
         {isLoading ? (
-          <p className="mt-3 text-sm text-proplio-muted">Chargement du profil...</p>
+          <p className="mt-3 text-sm" style={{ color: PC.muted }}>
+            Chargement du profil...
+          </p>
         ) : (
           <form onSubmit={onSubmit} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Nom</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.nom}
                 onChange={(event) => onChange("nom", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Prénom</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.prenom}
                 onChange={(event) => onChange("prenom", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Email</span>
               <input
                 type="email"
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.email}
                 onChange={(event) => onChange("email", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Téléphone</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.telephone}
                 onChange={(event) => onChange("telephone", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label sm:col-span-2">
+            <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
               <span className="font-medium">Adresse</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.adresse}
                 onChange={(event) => onChange("adresse", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Ville</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.ville}
                 onChange={(event) => onChange("ville", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label">
+            <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
               <span className="font-medium">Code postal</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.code_postal}
                 onChange={(event) => onChange("code_postal", event.target.value)}
                 required
               />
             </label>
-            <label className="proplio-label sm:col-span-2">
+            <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
               <span className="font-medium">SIRET (optionnel)</span>
               <input
-                className="proplio-input"
+                style={fieldInputStyle}
                 value={profile.siret}
                 onChange={(event) => onChange("siret", event.target.value)}
               />
             </label>
 
             {error ? (
-              <p className="sm:col-span-2 rounded-lg bg-proplio-danger/10 px-3 py-2 text-sm text-proplio-danger">{error}</p>
+              <p
+                className="sm:col-span-2 rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
+              >
+                {error}
+              </p>
             ) : null}
             {success ? (
-              <p className="sm:col-span-2 rounded-lg bg-proplio-success/10 px-3 py-2 text-sm text-proplio-success">
+              <p
+                className="sm:col-span-2 rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: PC.successBg10, color: PC.success }}
+              >
                 {success}
               </p>
             ) : null}
@@ -257,9 +269,9 @@ export default function ParametresPage() {
         )}
       </div>
 
-      <div className="proplio-card p-6">
-        <h2 className="text-lg font-semibold text-proplio-text">Signature</h2>
-        <p className="mt-1 text-sm text-proplio-muted">
+      <div className="p-6" style={panelCard}>
+        <h2 className="text-lg font-semibold">Signature</h2>
+        <p className="mt-1 text-sm" style={{ color: PC.muted }}>
           Ajoutez votre signature pour l&apos;intégrer automatiquement aux quittances PDF.
         </p>
 
@@ -278,7 +290,10 @@ export default function ParametresPage() {
           </label>
 
           {signatureUrl ? (
-            <div className="rounded-lg border border-proplio-border bg-proplio-card p-2">
+            <div
+              className="rounded-lg p-2"
+              style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}
+            >
               <Image
                 src={signatureUrl}
                 alt="Signature du propriétaire"
@@ -288,7 +303,9 @@ export default function ParametresPage() {
               />
             </div>
           ) : (
-            <p className="text-sm text-proplio-muted">Aucune signature enregistrée.</p>
+            <p className="text-sm" style={{ color: PC.muted }}>
+              Aucune signature enregistrée.
+            </p>
           )}
         </div>
       </div>

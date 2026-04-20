@@ -207,3 +207,125 @@ body {
     backdrop-filter: blur(4px);
   }
 }
+
+/* Focus champs — même effet que ring-proplio-primary (sans utility Tailwind couleur) */
+.pc-field-focus:focus {
+  outline: none;
+  border-color: var(--proplio-primary);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.35);
+}
+
+/* Séparateurs tableau (remplace divide-proplio-border) */
+.pc-divide-y-border > :not([hidden]) ~ :not([hidden]) {
+  border-top: 1px solid var(--proplio-border);
+}
+
+.pc-outline-primary {
+  border: 1px solid rgba(124, 58, 237, 0.5);
+  color: var(--proplio-secondary);
+  background-color: transparent;
+}
+.pc-outline-primary:hover:not(:disabled) {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.pc-outline-success {
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--proplio-success);
+  background-color: transparent;
+}
+.pc-outline-success:hover:not(:disabled) {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.pc-outline-muted {
+  border: 1px solid var(--proplio-border);
+  color: var(--proplio-muted);
+  background-color: transparent;
+}
+.pc-outline-muted:hover:not(:disabled) {
+  background-color: var(--proplio-bg);
+}
+
+.pc-solid-primary {
+  background-color: var(--proplio-primary);
+  color: var(--proplio-white);
+}
+.pc-solid-primary:hover:not(:disabled) {
+  background-color: var(--proplio-primary-hover);
+}
+
+.pc-ghost-card {
+  border: 1px solid var(--proplio-border);
+  background-color: var(--proplio-card);
+  color: var(--proplio-text);
+}
+.pc-ghost-card:hover:not(:disabled) {
+  background-color: var(--proplio-card);
+}
+
+.pc-icon-danger-hover:hover {
+  background-color: var(--proplio-border);
+  color: var(--proplio-danger);
+}
+
+.pc-tab-log-active {
+  background-color: var(--proplio-card);
+  color: var(--proplio-secondary);
+  box-shadow: 0 0 0 1px var(--proplio-border);
+  border-bottom: 0;
+}
+
+.pc-tab-log-inactive {
+  color: var(--proplio-muted);
+  background-color: transparent;
+}
+
+.pc-tab-log-inactive:hover {
+  background-color: rgba(26, 26, 36, 0.6);
+}
+
+.pc-edl-row {
+  background-color: rgba(26, 26, 36, 0.6);
+}
+
+.pc-edl-row:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.pc-edl-row-sel {
+  background-color: rgba(15, 15, 19, 0.4);
+}
+
+.pc-edl-row-sel:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.pc-close-muted {
+  color: var(--proplio-muted);
+}
+
+.pc-close-muted:hover {
+  background-color: var(--proplio-bg);
+  color: var(--proplio-text);
+}
+
+.pc-outline-danger {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--proplio-danger);
+  background-color: transparent;
+}
+
+.pc-outline-danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.pc-danger-fill {
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--proplio-danger);
+}
+
+.pc-danger-fill:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.25);
+}

@@ -1,12 +1,20 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
 import { IconPlus } from "@/components/proplio-icons";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputLg, fieldSelectLg, panelCard } from "@/lib/proplio-field-styles";
+
+const LOCA_MODAL_CARD: CSSProperties = {
+  ...panelCard,
+  padding: 24,
+  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
+};
 
 type LogementRow = {
   id: string;
@@ -81,7 +89,10 @@ export default function LocatairesPage() {
           if (!isColoc || !log) return "—";
           const label = log.nom || log.adresse || "Logement";
           return (
-            <span className="inline-flex items-center rounded-full bg-proplio-primary/25 px-2.5 py-1 text-xs font-medium text-proplio-secondary">
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+            >
               Colocataire · {label} · Ch. {row.colocation_chambre_index}
             </span>
           );
@@ -349,11 +360,13 @@ export default function LocatairesPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">Locataires</h1>
-          <p className="mt-2 text-sm text-proplio-muted">Liste, création et gestion des profils locataires.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Locataires</h1>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+            Liste, création et gestion des profils locataires.
+          </p>
         </div>
         <button
           type="button"
@@ -365,10 +378,17 @@ export default function LocatairesPage() {
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-lg bg-proplio-danger/10 px-3 py-2 text-sm text-proplio-danger">{error}</p> : null}
+      {error ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {isLoading ? (
-        <div className="rounded-xl border border-proplio-border bg-proplio-card p-6 text-sm text-proplio-muted">
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des locataires...
         </div>
       ) : (
@@ -384,14 +404,12 @@ export default function LocatairesPage() {
 
       {isModalOpen ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4">
-          <div className="mx-auto max-w-lg rounded-xl border border-proplio-border bg-proplio-card p-6 shadow-xl">
+          <div className="mx-auto max-w-lg rounded-xl" style={LOCA_MODAL_CARD}>
             <div className="mb-4 flex items-start justify-between">
-              <h3 className="text-lg font-semibold text-proplio-text">
-                {isEditing ? "Modifier le locataire" : "Créer un locataire"}
-              </h3>
+              <h3 className="text-lg font-semibold">{isEditing ? "Modifier le locataire" : "Créer un locataire"}</h3>
               <button
                 type="button"
-                className="rounded-md px-2 py-1 text-sm text-proplio-muted hover:bg-proplio-bg"
+                className="rounded-md px-2 py-1 text-sm pc-outline-muted"
                 onClick={closeModal}
               >
                 Fermer
@@ -399,52 +417,57 @@ export default function LocatairesPage() {
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Nom</span>
                 <input
                   required
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.nom}
                   onChange={(e) => onFieldChange("nom", e.target.value)}
                   placeholder="Dupont"
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Prénom</span>
                 <input
                   required
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.prenom}
                   onChange={(e) => onFieldChange("prenom", e.target.value)}
                   placeholder="Claire"
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Email</span>
                 <input
                   required
                   type="email"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.email}
                   onChange={(e) => onFieldChange("email", e.target.value)}
                   placeholder="claire@email.com"
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Téléphone</span>
                 <input
                   type="tel"
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
                   value={values.telephone}
                   onChange={(e) => onFieldChange("telephone", e.target.value)}
                   placeholder="06 12 34 56 78"
                 />
               </label>
 
-              <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Logement lié (optionnel)</span>
                 <select
-                  className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                  className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldSelectLg}
                   value={values.logement_id}
                   onChange={(e) => onFieldChange("logement_id", e.target.value)}
                 >
@@ -460,11 +483,12 @@ export default function LocatairesPage() {
 
               {isColocLogement ? (
                 <>
-                  <label className="flex flex-col gap-1.5 text-sm text-proplio-muted">
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                     <span className="font-medium">Chambre assignée</span>
                     <select
                       required
-                      className="rounded-lg border border-proplio-border px-3 py-2 outline-none ring-proplio-primary/35 focus:ring-2"
+                      className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                      style={fieldSelectLg}
                       value={values.colocation_chambre_index}
                       onChange={(e) => onFieldChange("colocation_chambre_index", e.target.value)}
                     >
@@ -477,31 +501,34 @@ export default function LocatairesPage() {
                     </select>
                   </label>
                   {chambreDetail ? (
-                    <div className="rounded-lg border border-proplio-border bg-proplio-card p-3 text-sm text-proplio-muted">
-                      <p className="font-medium text-proplio-text">Loyer de cette chambre</p>
+                    <div
+                      className="rounded-lg p-3 text-sm"
+                      style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.muted }}
+                    >
+                      <p className="font-medium" style={{ color: PC.text }}>
+                        Loyer de cette chambre
+                      </p>
                       <p className="mt-1">
                         Loyer : <strong>{Number(chambreDetail.loyer).toFixed(2)} €</strong> — Charges :{" "}
                         <strong>{Number(chambreDetail.charges).toFixed(2)} €</strong>
                       </p>
                     </div>
                   ) : values.colocation_chambre_index ? (
-                    <p className="text-xs text-proplio-warning">Détail de chambre introuvable. Vérifiez le logement.</p>
+                    <p className="text-xs" style={{ color: PC.warning }}>
+                      Détail de chambre introuvable. Vérifiez le logement.
+                    </p>
                   ) : null}
                 </>
               ) : null}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="rounded-lg border border-proplio-border px-4 py-2 text-sm text-proplio-muted"
-                  onClick={closeModal}
-                >
+                <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={closeModal}>
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-proplio-primary px-4 py-2 text-sm font-medium text-white hover:bg-proplio-primary-hover disabled:opacity-60"
+                  className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary disabled:opacity-60"
                 >
                   {isSubmitting ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}
                 </button>

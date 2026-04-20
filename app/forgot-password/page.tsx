@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, type CSSProperties } from "react";
 import { IconHome } from "@/components/proplio-icons";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { fieldInputStyle } from "@/lib/proplio-field-styles";
+
+const CARD: CSSProperties = {
+  width: "100%",
+  maxWidth: "28rem",
+  padding: 32,
+  backgroundColor: PC.card,
+  border: `1px solid ${PC.border}`,
+  borderRadius: 12,
+  boxShadow: PC.cardShadow,
+};
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -33,40 +45,71 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <section className="proplio-card w-full max-w-md p-8">
+    <section style={CARD}>
       <div className="mb-8 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-proplio-primary/20 text-proplio-primary">
+        <span
+          className="flex h-11 w-11 items-center justify-center rounded-xl"
+          style={{ backgroundColor: PC.primaryBg20, color: PC.primary }}
+        >
           <IconHome className="h-6 w-6" />
         </span>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-proplio-secondary">Proplio</p>
-          <h1 className="text-xl font-semibold text-proplio-text">Mot de passe oublié</h1>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PC.secondary }}>
+            Proplio
+          </p>
+          <h1 className="text-xl font-semibold" style={{ color: PC.text }}>
+            Mot de passe oublié
+          </h1>
         </div>
       </div>
-      <p className="text-sm text-proplio-muted">Reçois un lien de réinitialisation sur ton adresse email.</p>
+      <p className="text-sm" style={{ color: PC.muted }}>
+        Reçois un lien de réinitialisation sur ton adresse email.
+      </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <label className="proplio-label">
+        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
           <span className="font-medium">Email</span>
           <input
             type="email"
             required
-            className="proplio-input"
+            style={fieldInputStyle}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
         </label>
 
-        {error ? <p className="proplio-alert-error">{error}</p> : null}
-        {success ? <p className="proplio-alert-success">{success}</p> : null}
+        {error ? (
+          <p
+            className="rounded-xl px-4 py-3 text-sm"
+            style={{
+              border: `1px solid rgba(239, 68, 68, 0.3)`,
+              backgroundColor: PC.dangerBg10,
+              color: PC.danger,
+            }}
+          >
+            {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p
+            className="rounded-xl px-4 py-3 text-sm"
+            style={{
+              border: `1px solid rgba(16, 185, 129, 0.3)`,
+              backgroundColor: PC.successBg10,
+              color: PC.success,
+            }}
+          >
+            {success}
+          </p>
+        ) : null}
 
         <button type="submit" className="proplio-btn-primary w-full py-3" disabled={isSubmitting}>
           {isSubmitting ? "Envoi..." : "Envoyer le lien"}
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-proplio-muted">
-        <Link href="/login" className="proplio-link">
+      <p className="mt-6 text-sm" style={{ color: PC.muted }}>
+        <Link href="/login" style={{ color: PC.secondary, fontWeight: 500 }}>
           Retour à la connexion
         </Link>
       </p>

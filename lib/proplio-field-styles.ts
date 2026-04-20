@@ -25,3 +25,34 @@ export const edlFieldCardStyle: CSSProperties = {
   backgroundColor: "rgba(15, 15, 19, 0.4)",
   padding: 16,
 };
+
+/** Carte panneau (listes, modales) */
+export const panelCard: CSSProperties = {
+  backgroundColor: PC.card,
+  border: `1px solid ${PC.border}`,
+  borderRadius: 12,
+  boxShadow: PC.cardShadow,
+};
+
+/** Input compact (rounded-lg / 8px) */
+export const fieldInputLg: CSSProperties = {
+  ...fieldInputStyle,
+  borderRadius: 8,
+};
+
+export const fieldSelectLg: CSSProperties = {
+  ...fieldSelectStyle,
+  borderRadius: 8,
+};
+
+/** Champ compact (rounded-md, formulaires grille) */
+export const fieldInputMd: CSSProperties = {
+  ...fieldInputStyle,
+  borderRadius: 6,
+  padding: "0.375rem 0.5rem",
+};
+
+export const fieldSelectMd: CSSProperties = {
+  ...fieldInputMd,
+  cursor: "pointer",
+};

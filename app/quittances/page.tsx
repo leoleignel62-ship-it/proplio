@@ -13,6 +13,8 @@ import {
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
+import { panelCard } from "@/lib/proplio-field-styles";
 
 type Quittance = {
   id: string;
@@ -521,7 +523,7 @@ export default function QuittancesPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <ProprietaireProfileCard
         profile={proprietaireProfile}
         title="Profil propriétaire utilisé automatiquement pour les quittances"
@@ -529,8 +531,10 @@ export default function QuittancesPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-proplio-text">Quittances</h1>
-          <p className="mt-2 text-sm text-proplio-muted">Liste, création et suivi des quittances.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Quittances</h1>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+            Liste, création et suivi des quittances.
+          </p>
         </div>
         <button
           type="button"
@@ -542,10 +546,17 @@ export default function QuittancesPage() {
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-lg bg-proplio-danger/10 px-3 py-2 text-sm text-proplio-danger">{error}</p> : null}
+      {error ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {isLoading ? (
-        <div className="rounded-xl border border-proplio-border bg-proplio-card p-6 text-sm text-proplio-muted">
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des quittances...
         </div>
       ) : (
@@ -558,11 +569,17 @@ export default function QuittancesPage() {
           isDeleting={isDeleting}
           statusRenderer={(row) =>
             row.envoyee ? (
-              <span className="rounded-full bg-proplio-success/20 px-2.5 py-1 text-xs font-medium text-proplio-success">
+              <span
+                className="rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{ backgroundColor: PC.successBg20, color: PC.success }}
+              >
                 Envoyée le {row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}
               </span>
             ) : (
-              <span className="rounded-full bg-proplio-warning/15 px-2.5 py-1 text-xs font-medium text-proplio-warning">
+              <span
+                className="rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
+              >
                 Non envoyée
               </span>
             )
@@ -570,7 +587,7 @@ export default function QuittancesPage() {
           actionsRenderer={(row) => (
             <button
               type="button"
-              className="rounded-md border border-proplio-success/40 px-3 py-1.5 text-xs font-medium text-proplio-success hover:bg-proplio-success/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-success disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => onSendQuittance(row)}
               disabled={sendingId === row.id}
             >
