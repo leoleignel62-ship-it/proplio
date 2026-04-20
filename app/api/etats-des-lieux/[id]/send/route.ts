@@ -26,7 +26,7 @@ export async function POST(
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("*")
+      .select("id, prenom, nom, email, signature_path")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -64,12 +64,18 @@ export async function POST(
     }
 
     const locataireId = edl.locataire_id as string | undefined;
-    let tenantEmail = "";
-    if (locataireId) {
-      const { data: loc } = await supabase.from("locataires").select("email").eq("id", locataireId).maybeSingle();
-      tenantEmail = String(loc?.email ?? "").trim();
-    }
+    const sigPath = proprietaire.signature_path as string | undefined;
 
+    const [locRes, sigDownload] = await Promise.all([
+      locataireId
+        ? supabase.from("locataires").select("email").eq("id", locataireId).maybeSingle()
+        : Promise.resolve({ data: null as { email: string | null } | null }),
+      sigPath
+        ? supabaseAdmin.storage.from("signatures").download(sigPath)
+        : Promise.resolve({ data: null as Blob | null }),
+    ]);
+
+    const tenantEmail = String(locRes.data?.email ?? "").trim();
     if (!tenantEmail) {
       return NextResponse.json(
         { error: "E-mail du locataire manquant sur sa fiche." },
@@ -78,15 +84,12 @@ export async function POST(
     }
 
     let signatureImage: { bytes: Uint8Array; isPng: boolean } | null = null;
-    const sigPath = proprietaire.signature_path as string | undefined;
-    if (sigPath) {
-      const { data: signatureBlob } = await supabaseAdmin.storage.from("signatures").download(sigPath);
-      if (signatureBlob) {
-        const bytes = new Uint8Array(await signatureBlob.arrayBuffer());
-        const isPng =
-          signatureBlob.type === "image/png" || sigPath.toLowerCase().endsWith(".png");
-        signatureImage = { bytes, isPng };
-      }
+    if (sigPath && sigDownload.data) {
+      const signatureBlob = sigDownload.data;
+      const bytes = new Uint8Array(await signatureBlob.arrayBuffer());
+      const isPng =
+        signatureBlob.type === "image/png" || sigPath.toLowerCase().endsWith(".png");
+      signatureImage = { bytes, isPng };
     }
 
     const pdfBytes = await buildEdlPdfBufferFromDb(

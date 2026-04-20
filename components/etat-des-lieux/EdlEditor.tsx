@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { EdlElementField } from "@/components/etat-des-lieux/EdlElementField";
 import { addChambreToPieces, ELEMENT_LABELS, normalizePiecesData } from "@/lib/etat-des-lieux/defaults";
@@ -8,12 +9,15 @@ import { ETAT_LABELS, formatEtatLabel, normalizeEtatNiveau } from "@/lib/etat-de
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { compareRoomElements } from "@/lib/etat-des-lieux/compare";
 import { compressImageForEdl } from "@/lib/etat-des-lieux/compress-image";
-import type { PiecesEdlData, RoomEdl, ElementEdl } from "@/lib/etat-des-lieux/types";
+import type { PiecesEdlData, ElementEdl } from "@/lib/etat-des-lieux/types";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 
 type EdlRow = Record<string, unknown>;
+
+const EDL_ROW_SELECT =
+  "id, proprietaire_id, type_logement, pieces, compteurs, cles_remises, badges_remis, observations, statut, etat_entree_id, date_etat, type, type_etat";
 
 function pathKey(roomId: string, elementKey: string) {
   return `${roomId}::${elementKey}`;
@@ -85,76 +89,96 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
 
-  const refreshSignedUrl = useCallback(async (storagePath: string) => {
-    const { data, error: e } = await supabase.storage
-      .from("etats-des-lieux")
-      .createSignedUrl(storagePath, 3600);
-    if (!e && data?.signedUrl) {
-      setPhotoUrls((prev) => ({ ...prev, [storagePath]: data.signedUrl }));
+  const refreshSignedUrls = useCallback(async (pathsList: string[]) => {
+    if (pathsList.length === 0) return;
+    const settled = await Promise.allSettled(
+      pathsList.map(async (storagePath) => {
+        const { data, error: e } = await supabase.storage
+          .from("etats-des-lieux")
+          .createSignedUrl(storagePath, 3600);
+        if (e || !data?.signedUrl) return null;
+        return [storagePath, data.signedUrl] as const;
+      }),
+    );
+    const next: Record<string, string> = {};
+    for (const s of settled) {
+      if (s.status === "fulfilled" && s.value) next[s.value[0]] = s.value[1];
+    }
+    if (Object.keys(next).length) {
+      setPhotoUrls((prev) => ({ ...prev, ...next }));
     }
   }, []);
 
-  const load = useCallback(async () => {
-    setError("");
-    const { proprietaireId: pid, error: pe } = await getCurrentProprietaireId();
-    if (pe || !pid) {
-      setError(pe ? formatSubmitError(pe) : "Session invalide.");
-      return;
-    }
-    setProprietaireId(pid);
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setError("");
+      const { proprietaireId: pid, error: pe } = await getCurrentProprietaireId();
+      if (signal?.aborted) return;
+      if (pe || !pid) {
+        setError(pe ? formatSubmitError(pe) : "Session invalide.");
+        return;
+      }
+      setProprietaireId(pid);
 
-    const { data: edl, error: ee } = await supabase
-      .from("etats_des_lieux")
-      .select("*")
-      .eq("id", edlId)
-      .eq("proprietaire_id", pid)
-      .maybeSingle();
-
-    if (ee || !edl) {
-      setError(ee ? formatSubmitError(ee) : "État des lieux introuvable.");
-      return;
-    }
-
-    const r = edl as EdlRow;
-    setRow(r);
-    const meuble = r.type_logement === "meuble";
-    let p = normalizePiecesData(r.pieces, meuble);
-    p = {
-      ...p,
-      compteurs: { ...p.compteurs, ...(typeof r.compteurs === "object" && r.compteurs ? (r.compteurs as object) : {}) },
-      clesRemises: Number(r.cles_remises ?? p.clesRemises) || 0,
-      badgesRemis: Number(r.badges_remis ?? p.badgesRemis) || 0,
-      observationsGenerales: String(r.observations ?? p.observationsGenerales ?? ""),
-    };
-    setPieces(p);
-
-    const entryId = r.etat_entree_id as string | undefined;
-    if (getEdlTypeEtatFromRow(r) === "sortie" && entryId) {
-      const { data: ent } = await supabase
+      const { data: edl, error: ee } = await supabase
         .from("etats_des_lieux")
-        .select("pieces, type_logement")
-        .eq("id", entryId)
+        .select(EDL_ROW_SELECT)
+        .eq("id", edlId)
+        .eq("proprietaire_id", pid)
         .maybeSingle();
-      if (ent?.pieces) {
-        setEntryPieces(normalizePiecesData(ent.pieces, ent.type_logement === "meuble"));
-      }
-    }
 
-    const paths = new Set<string>();
-    for (const room of p.rooms) {
-      for (const el of Object.values(room.elements)) {
-        if (el.photoPath) paths.add(el.photoPath);
+      if (signal?.aborted) return;
+      if (ee || !edl) {
+        setError(ee ? formatSubmitError(ee) : "État des lieux introuvable.");
+        return;
       }
-    }
-    for (const k of Object.keys(p.compteurs) as (keyof typeof p.compteurs)[]) {
-      const ph = p.compteurs[k]?.photoPath;
-      if (ph) paths.add(ph);
-    }
-    for (const path of paths) void refreshSignedUrl(path);
-  }, [edlId, refreshSignedUrl]);
+
+      const r = edl as EdlRow;
+      setRow(r);
+      const meuble = r.type_logement === "meuble";
+      let p = normalizePiecesData(r.pieces, meuble);
+      p = {
+        ...p,
+        compteurs: { ...p.compteurs, ...(typeof r.compteurs === "object" && r.compteurs ? (r.compteurs as object) : {}) },
+        clesRemises: Number(r.cles_remises ?? p.clesRemises) || 0,
+        badgesRemis: Number(r.badges_remis ?? p.badgesRemis) || 0,
+        observationsGenerales: String(r.observations ?? p.observationsGenerales ?? ""),
+      };
+      setPieces(p);
+
+      const entryId = r.etat_entree_id as string | undefined;
+      if (getEdlTypeEtatFromRow(r) === "sortie" && entryId) {
+        const { data: ent } = await supabase
+          .from("etats_des_lieux")
+          .select("pieces, type_logement")
+          .eq("id", entryId)
+          .maybeSingle();
+        if (signal?.aborted) return;
+        if (ent?.pieces) {
+          setEntryPieces(normalizePiecesData(ent.pieces, ent.type_logement === "meuble"));
+        }
+      }
+
+      const paths = new Set<string>();
+      for (const room of p.rooms) {
+        for (const el of Object.values(room.elements)) {
+          if (el.photoPath) paths.add(el.photoPath);
+        }
+      }
+      for (const k of Object.keys(p.compteurs) as (keyof typeof p.compteurs)[]) {
+        const ph = p.compteurs[k]?.photoPath;
+        if (ph) paths.add(ph);
+      }
+      if (signal?.aborted) return;
+      await refreshSignedUrls(Array.from(paths));
+    },
+    [edlId, refreshSignedUrls],
+  );
 
   useEffect(() => {
-    void load();
+    const ac = new AbortController();
+    void load(ac.signal);
+    return () => ac.abort();
   }, [load]);
 
   const persist = useCallback(async () => {
@@ -262,7 +286,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
           };
         });
       }
-      await refreshSignedUrl(path);
+      await refreshSignedUrls([path]);
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -525,10 +549,16 @@ export function EdlEditor({ edlId }: { edlId: string }) {
                       <button
                         type="button"
                         onClick={() => setPreview(photoUrls[path])}
-                        className="h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
+                        className="relative h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={photoUrls[path]} alt="" className="h-full w-full object-cover" />
+                        <Image
+                          src={photoUrls[path]}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="60px"
+                          unoptimized
+                        />
                       </button>
                       {!isFinalise ? (
                         <button
@@ -702,8 +732,14 @@ export function EdlEditor({ edlId }: { edlId: string }) {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setPreview(null)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="" className="max-h-[90vh] max-w-full object-contain" />
+          <Image
+            src={preview}
+            alt=""
+            width={1600}
+            height={1200}
+            className="max-h-[90vh] w-auto max-w-full object-contain"
+            unoptimized
+          />
         </button>
       ) : null}
     </div>

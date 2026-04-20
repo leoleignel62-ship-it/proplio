@@ -105,54 +105,64 @@ export default function EtatsDesLieuxPage() {
     const locIds = [...new Set(list.map((r) => r.locataire_id).filter(Boolean))] as string[];
     const map: Record<string, string> = {};
 
-    if (logIds.length) {
-      const { data: logs } = await supabase.from("logements").select("id, nom, adresse").in("id", logIds);
-      for (const l of logs ?? []) {
-        const row = l as { id: string; nom: string; adresse: string };
-        map[`log:${row.id}`] = row.nom || row.adresse || row.id;
-      }
-    }
-    if (locIds.length) {
-      const { data: locs } = await supabase.from("locataires").select("id, prenom, nom").in("id", locIds);
-      for (const l of locs ?? []) {
-        const row = l as { id: string; prenom: string; nom: string };
-        map[`loc:${row.id}`] = `${row.prenom} ${row.nom}`.trim();
-      }
-    }
-    setLabels(map);
-
-    const { data: bauxRows } = await supabase
+    const bauxQuery = supabase
       .from("baux")
       .select("id, logement_id, locataire_id, statut, type_bail")
       .eq("proprietaire_id", proprietaireId)
       .eq("statut", "actif");
 
-    const bailList: BailOpt[] = [];
-    for (const b of bauxRows ?? []) {
-      const row = b as {
-        id: string;
-        logement_id: string | null;
-        locataire_id: string | null;
-        type_bail?: string | null;
-      };
-      const { data: log } = row.logement_id
-        ? await supabase.from("logements").select("nom, adresse").eq("id", row.logement_id).maybeSingle()
-        : { data: null };
-      const { data: loc } = row.locataire_id
-        ? await supabase.from("locataires").select("prenom, nom").eq("id", row.locataire_id).maybeSingle()
-        : { data: null };
-      const logL = log as { nom?: string; adresse?: string } | null;
-      const locL = loc as { prenom?: string; nom?: string } | null;
+    const [logsRes, locsRes, bauxRes] = await Promise.all([
+      logIds.length
+        ? supabase.from("logements").select("id, nom, adresse").in("id", logIds)
+        : Promise.resolve({ data: [] as { id: string; nom: string; adresse: string }[] }),
+      locIds.length
+        ? supabase.from("locataires").select("id, prenom, nom").in("id", locIds)
+        : Promise.resolve({ data: [] as { id: string; prenom: string; nom: string }[] }),
+      bauxQuery,
+    ]);
+
+    for (const l of logsRes.data ?? []) {
+      map[`log:${l.id}`] = l.nom || l.adresse || l.id;
+    }
+    for (const l of locsRes.data ?? []) {
+      map[`loc:${l.id}`] = `${l.prenom} ${l.nom}`.trim();
+    }
+    setLabels(map);
+
+    const bauxRows = (bauxRes.data ?? []) as {
+      id: string;
+      logement_id: string | null;
+      locataire_id: string | null;
+      type_bail?: string | null;
+    }[];
+    const bailLogIds = [...new Set(bauxRows.map((b) => b.logement_id).filter(Boolean))] as string[];
+    const bailLocIds = [...new Set(bauxRows.map((b) => b.locataire_id).filter(Boolean))] as string[];
+
+    const [bailLogsRes, bailLocsRes] = await Promise.all([
+      bailLogIds.length
+        ? supabase.from("logements").select("id, nom, adresse").in("id", bailLogIds)
+        : Promise.resolve({ data: [] as { id: string; nom: string; adresse: string }[] }),
+      bailLocIds.length
+        ? supabase.from("locataires").select("id, prenom, nom").in("id", bailLocIds)
+        : Promise.resolve({ data: [] as { id: string; prenom: string; nom: string }[] }),
+    ]);
+
+    const logById = new Map((bailLogsRes.data ?? []).map((l) => [l.id, l]));
+    const locById = new Map((bailLocsRes.data ?? []).map((l) => [l.id, l]));
+
+    const bailList: BailOpt[] = bauxRows.map((row) => {
+      const logL = row.logement_id ? logById.get(row.logement_id) : undefined;
+      const locL = row.locataire_id ? locById.get(row.locataire_id) : undefined;
       const ln = logL?.nom || logL?.adresse || "Logement";
       const tn = `${locL?.prenom ?? ""} ${locL?.nom ?? ""}`.trim() || "Locataire";
-      bailList.push({
+      return {
         id: row.id,
         logement_id: row.logement_id,
         locataire_id: row.locataire_id,
         type_bail: typeBailToLogement(row.type_bail),
         label: `${tn} — ${ln}`,
-      });
-    }
+      };
+    });
     setBauxOptions(bailList);
     setLoading(false);
   }, []);
@@ -167,6 +177,7 @@ export default function EtatsDesLieuxPage() {
       setEntreeId("");
       return;
     }
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("etats_des_lieux")
@@ -174,6 +185,7 @@ export default function EtatsDesLieuxPage() {
         .eq("bail_id", bailId)
         .or("type.eq.entree,type_etat.eq.entree")
         .order("created_at", { ascending: false });
+      if (cancelled) return;
       setEntreesOptions(
         (data ?? []).map((r) => {
           const row = r as { id: string; date_etat: string | null };
@@ -184,6 +196,9 @@ export default function EtatsDesLieuxPage() {
         }),
       );
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [bailId, typeEtat]);
 
   useEffect(() => {
@@ -244,16 +259,6 @@ export default function EtatsDesLieuxPage() {
       updated_at: nowIso,
     };
 
-    console.log("[etats-des-lieux] INSERT payload (exact object envoyé à Supabase)", insertPayload);
-    try {
-      console.log(
-        "[etats-des-lieux] INSERT payload JSON",
-        JSON.stringify(insertPayload, null, 2),
-      );
-    } catch (jsonErr) {
-      console.warn("[etats-des-lieux] INSERT payload — JSON.stringify impossible", jsonErr);
-    }
-
     const { data: inserted, error: insErr } = await supabase
       .from("etats_des_lieux")
       .insert(insertPayload)
@@ -262,15 +267,6 @@ export default function EtatsDesLieuxPage() {
 
     setSubmitting(false);
     if (insErr || !inserted?.id) {
-      if (insErr) {
-        console.log("[etats-des-lieux] INSERT erreur Supabase (objet complet)", insErr);
-        console.log("[etats-des-lieux] INSERT erreur champs", {
-          message: insErr.message,
-          details: insErr.details,
-          hint: insErr.hint,
-          code: insErr.code,
-        });
-      }
       setError(
         insErr
           ? formatSupabaseInsertError(insErr)

@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
 import type { ElementEdl, EtatNiveau } from "@/lib/etat-des-lieux/types";
 import { ETAT_LABELS, ETAT_OPTIONS, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
-import { ELEMENT_LABELS } from "@/lib/etat-des-lieux/defaults";
 import { SOL_TYPES } from "@/lib/etat-des-lieux/defaults";
 
 type Props = {
@@ -274,10 +274,16 @@ export function EdlElementField({
               <button
                 type="button"
                 onClick={onPreview}
-                className="h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
+                className="relative h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+                <Image
+                  src={previewUrl}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="60px"
+                  unoptimized
+                />
               </button>
               {!readOnly ? (
                 <button

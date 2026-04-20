@@ -38,12 +38,20 @@ export async function buildEdlPdfBufferFromDb(
   const logementId = edl.logement_id as string | undefined;
   const locataireId = edl.locataire_id as string | undefined;
 
-  const { data: logement } = logementId
-    ? await supabase.from("logements").select("*").eq("id", logementId).maybeSingle()
-    : { data: null };
-  const { data: locataire } = locataireId
-    ? await supabase.from("locataires").select("*").eq("id", locataireId).maybeSingle()
-    : { data: null };
+  const [logementRes, locataireRes] = await Promise.all([
+    logementId
+      ? supabase
+          .from("logements")
+          .select("id, adresse, code_postal, ville")
+          .eq("id", logementId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    locataireId
+      ? supabase.from("locataires").select("id, prenom, nom").eq("id", locataireId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const logement = logementRes.data;
+  const locataire = locataireRes.data;
 
   const bailleurNom =
     `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—";
@@ -76,11 +84,15 @@ export async function buildEdlPdfBufferFromDb(
 
   const photoFiles = new Map<string, Uint8Array>();
   const paths = collectPhotoPathsFromPieces(pieces);
-  for (const path of paths) {
-    const { data: blob, error } = await supabaseAdmin.storage.from("etats-des-lieux").download(path);
-    if (!error && blob) {
-      photoFiles.set(path, new Uint8Array(await blob.arrayBuffer()));
-    }
+  const downloaded = await Promise.all(
+    paths.map(async (path) => {
+      const { data: blob, error } = await supabaseAdmin.storage.from("etats-des-lieux").download(path);
+      if (error || !blob) return null;
+      return [path, new Uint8Array(await blob.arrayBuffer())] as const;
+    }),
+  );
+  for (const entry of downloaded) {
+    if (entry) photoFiles.set(entry[0], entry[1]);
   }
 
   const params: EdlPdfParams = {

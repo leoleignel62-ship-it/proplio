@@ -120,7 +120,9 @@ export default function LocatairesPage() {
 
       const { data, error: fetchError } = await supabase
         .from("locataires")
-        .select("*")
+        .select(
+          "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, created_at",
+        )
         .eq("proprietaire_id", activeOwnerId)
         .order("created_at", { ascending: false });
 
@@ -157,20 +159,36 @@ export default function LocatairesPage() {
         return;
       }
 
-      await loadLogements(ownerId);
-      const { data, error: fetchError } = await supabase
-        .from("locataires")
-        .select("*")
-        .eq("proprietaire_id", ownerId)
-        .order("created_at", { ascending: false });
+      const locataireCols =
+        "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, created_at";
+
+      const [logRes, locRes] = await Promise.all([
+        supabase
+          .from("logements")
+          .select("id, nom, adresse, est_colocation, nombre_chambres, chambres_details")
+          .eq("proprietaire_id", ownerId)
+          .order("nom", { ascending: true }),
+        supabase
+          .from("locataires")
+          .select(locataireCols)
+          .eq("proprietaire_id", ownerId)
+          .order("created_at", { ascending: false }),
+      ]);
 
       if (!isMounted) return;
 
-      if (fetchError) {
-        setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
+      if (logRes.error) {
+        setError((prev) => prev || `Erreur logements : ${formatSubmitError(logRes.error)}`);
+        setLogements([]);
+      } else {
+        setLogements((logRes.data as LogementRow[]) ?? []);
+      }
+
+      if (locRes.error) {
+        setError(`Erreur de chargement : ${formatSubmitError(locRes.error)}`);
         setRows([]);
       } else {
-        setRows((data as Locataire[]) ?? []);
+        setRows((locRes.data as Locataire[]) ?? []);
       }
 
       setIsLoading(false);

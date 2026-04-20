@@ -22,7 +22,7 @@ export async function GET(
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("*")
+      .select("id, prenom, nom, signature_path")
       .eq("user_id", user.id)
       .maybeSingle();
 

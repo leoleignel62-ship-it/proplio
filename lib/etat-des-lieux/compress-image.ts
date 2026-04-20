@@ -1,6 +1,6 @@
 /**
  * Redimensionne (max 1200px côté long) et compresse en JPEG qualité 0.7.
- * Retourne un Blob image/jpeg (cible &lt; ~200 Ko quand possible).
+ * Retourne un Blob image/jpeg (cible ≤ 200 Ko quand possible).
  */
 export async function compressImageForEdl(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
@@ -24,8 +24,8 @@ export async function compressImageForEdl(file: File): Promise<Blob> {
   );
   if (!blob) throw new Error("Compression impossible");
 
-  // Réduire un peu la qualité si trop lourd (&gt; 250 Ko)
-  for (let i = 0; i < 4 && blob.size > 250 * 1024 && quality > 0.45; i++) {
+  // Réduire la qualité tant que &gt; 200 Ko (objectif perf / stockage)
+  for (let i = 0; i < 5 && blob.size > 200 * 1024 && quality > 0.4; i++) {
     quality -= 0.08;
     blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", quality));
     if (!blob) break;

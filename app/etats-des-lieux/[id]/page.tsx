@@ -1,4 +1,10 @@
-import { EdlEditor } from "@/components/etat-des-lieux/EdlEditor";
+import dynamic from "next/dynamic";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
+
+const EdlEditorLazy = dynamic(
+  () => import("@/components/etat-des-lieux/EdlEditor").then((mod) => ({ default: mod.EdlEditor })),
+  { loading: () => <PageSkeleton /> },
+);
 
 export default async function EtatDesLieuxDetailPage({
   params,
@@ -8,7 +14,7 @@ export default async function EtatDesLieuxDetailPage({
   const { id } = await params;
   return (
     <section className="proplio-page-wrap space-y-8">
-      <EdlEditor edlId={id} />
+      <EdlEditorLazy edlId={id} />
     </section>
   );
 }

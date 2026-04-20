@@ -19,7 +19,7 @@ async function getCount(table: string, ownerId: string) {
   const supabase = await createSupabaseServerClient();
   const { count, error } = await supabase
     .from(table)
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("proprietaire_id", ownerId);
 
   if (error) return 0;
@@ -30,7 +30,7 @@ async function getBauxActifsCount(ownerId: string) {
   const supabase = await createSupabaseServerClient();
   const { count, error } = await supabase
     .from("baux")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("proprietaire_id", ownerId)
     .eq("statut", "actif");
 
@@ -46,7 +46,7 @@ async function getQuittancesEnvoyeesCeMois(ownerId: string) {
 
   const { count, error } = await supabase
     .from("quittances")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("proprietaire_id", ownerId)
     .eq("envoyee", true)
     .gte("created_at", startOfMonth.toISOString());
@@ -227,8 +227,7 @@ export default async function Home() {
 
     if (proprietaire?.id) {
       const ownerId = proprietaire.id as string;
-      stats = await getDashboardStats(ownerId);
-      activity = await getRecentActivity(ownerId);
+      [stats, activity] = await Promise.all([getDashboardStats(ownerId), getRecentActivity(ownerId)]);
     }
   }
 

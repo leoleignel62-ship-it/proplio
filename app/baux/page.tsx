@@ -228,7 +228,6 @@ export default function BauxPage() {
         label: "Locataire",
         render: (row) => {
           const main = locatairesMap.get(row.locataire_id) ?? row.locataire_id;
-          const log = logementsDetailsMap.get(row.logement_id);
           const extra = Array.isArray(row.colocataires_ids) ? row.colocataires_ids.length : 0;
           const legacyColocs = extra > 0 && !row.colocation_chambre_index;
           return legacyColocs ? `${main} (+${extra})` : main;
