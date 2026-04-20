@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { EdlElementField } from "@/components/etat-des-lieux/EdlElementField";
 import { addChambreToPieces, ELEMENT_LABELS, normalizePiecesData } from "@/lib/etat-des-lieux/defaults";
 import { ETAT_LABELS, formatEtatLabel, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
@@ -13,14 +22,47 @@ import type { PiecesEdlData, ElementEdl } from "@/lib/etat-des-lieux/types";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PC } from "@/lib/proplio-colors";
 
 type EdlRow = Record<string, unknown>;
 
 const EDL_ROW_SELECT =
   "id, proprietaire_id, type_logement, pieces, compteurs, cles_remises, badges_remis, observations, statut, etat_entree_id, date_etat, type, type_etat";
 
+const CARD: CSSProperties = {
+  backgroundColor: PC.card,
+  border: `1px solid ${PC.border}`,
+  borderRadius: 12,
+  boxShadow: PC.cardShadow,
+};
+
 function pathKey(roomId: string, elementKey: string) {
   return `${roomId}::${elementKey}`;
+}
+
+function MutedActionBtn({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="text-xs disabled:opacity-50"
+      style={{ color: h && !disabled ? PC.secondary : PC.muted }}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+    >
+      {children}
+    </button>
+  );
 }
 
 function CompteurPhotoInputs({
@@ -49,26 +91,71 @@ function CompteurPhotoInputs({
       />
       <input ref={importInputRef} type="file" accept="image/*" className="hidden" onChange={onChange} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button
-          type="button"
-          onClick={() => captureInputRef.current?.click()}
-          disabled={uploading}
-          className="text-xs text-proplio-muted hover:text-proplio-secondary disabled:opacity-50"
-        >
+        <MutedActionBtn disabled={uploading} onClick={() => captureInputRef.current?.click()}>
           {uploading ? "…" : "📷 Prendre une photo"}
-        </button>
-        <button
-          type="button"
-          onClick={() => importInputRef.current?.click()}
-          disabled={uploading}
-          className="text-xs text-proplio-muted hover:text-proplio-secondary disabled:opacity-50"
-        >
+        </MutedActionBtn>
+        <MutedActionBtn disabled={uploading} onClick={() => importInputRef.current?.click()}>
           {uploading ? "…" : "🖼 Importer une photo"}
-        </button>
+        </MutedActionBtn>
       </div>
     </>
   );
 }
+
+function EdlTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg px-3 py-2 text-sm font-medium"
+      style={
+        active
+          ? { backgroundColor: PC.primary, color: PC.white }
+          : { color: PC.muted, backgroundColor: h ? PC.card : "transparent" }
+      }
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+    >
+      {children}
+    </button>
+  );
+}
+
+function BackToListLink() {
+  const [h, setH] = useState(false);
+  return (
+    <Link
+      href="/etats-des-lieux"
+      className="text-xs"
+      style={{ color: h ? PC.text : PC.secondary, textDecoration: h ? "underline" : "none" }}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+    >
+      ← Retour à la liste
+    </Link>
+  );
+}
+
+const INP: CSSProperties = {
+  borderRadius: 12,
+  border: `1px solid ${PC.border}`,
+  backgroundColor: PC.card,
+  padding: "0.625rem 0.75rem",
+  fontSize: "0.875rem",
+  color: PC.text,
+  outline: "none",
+  maxWidth: "20rem",
+  width: "100%",
+};
 
 export function EdlEditor({ edlId }: { edlId: string }) {
   const [row, setRow] = useState<EdlRow | null>(null);
@@ -344,7 +431,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
 
   if (!row || !pieces) {
     return (
-      <div className="proplio-card p-8 text-sm text-proplio-muted">
+      <div className="p-8 text-sm" style={{ ...CARD, color: PC.muted }}>
         {error || "Chargement…"}
       </div>
     );
@@ -358,18 +445,17 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/etats-des-lieux" className="text-xs text-proplio-secondary hover:underline">
-            ← Retour à la liste
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-proplio-text">État des lieux</h1>
-          <p className="mt-1 text-sm text-proplio-muted">
+          <BackToListLink />
+          <h1 className="mt-2 text-2xl font-semibold" style={{ color: PC.text }}>
+            État des lieux
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: PC.muted }}>
             {getEdlTypeEtatFromRow(row) === "sortie" ? "Sortie" : "Entrée"} ·{" "}
             {row.date_etat ? new Date(String(row.date_etat)).toLocaleDateString("fr-FR") : "—"} ·{" "}
             {meuble ? "Meublé" : "Vide"} · Statut :{" "}
             <span
-              className={
-                isFinalise ? "font-medium text-red-600" : "text-proplio-warning"
-              }
+              className="font-medium"
+              style={{ color: isFinalise ? PC.red600 : PC.warning }}
             >
               {isFinalise ? "Finalisé" : "En cours"}
             </span>
@@ -377,20 +463,40 @@ export function EdlEditor({ edlId }: { edlId: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!isFinalise && secondsSinceSave != null ? (
-            <span className="text-xs text-proplio-muted">
+            <span className="text-xs" style={{ color: PC.muted }}>
               Sauvegardé il y a {secondsSinceSave}s
               {saving ? " · …" : ""}
             </span>
           ) : null}
           {!isFinalise ? (
-            <button type="button" className="proplio-btn-secondary text-sm" onClick={() => void persist()}>
+            <button
+              type="button"
+              className="text-sm"
+              style={{
+                borderRadius: 12,
+                border: `1px solid ${PC.border}`,
+                backgroundColor: "transparent",
+                color: PC.text,
+                fontWeight: 500,
+                padding: "0.625rem 1rem",
+              }}
+              onClick={() => void persist()}
+            >
               Sauvegarder
             </button>
           ) : null}
           {!isFinalise ? (
             <button
               type="button"
-              className="proplio-btn-primary text-sm"
+              className="text-sm"
+              style={{
+                borderRadius: 12,
+                backgroundColor: PC.primary,
+                color: PC.white,
+                fontWeight: 500,
+                padding: "0.625rem 1rem",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+              }}
               onClick={() => setFinalizeOpen(true)}
             >
               Finaliser l&apos;état des lieux
@@ -401,13 +507,21 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               href={`/api/etats-des-lieux/${edlId}/pdf`}
               target="_blank"
               rel="noreferrer"
-              className="proplio-btn-secondary inline-flex items-center text-sm"
+              className="inline-flex items-center text-sm"
+              style={{
+                borderRadius: 12,
+                border: `1px solid ${PC.border}`,
+                color: PC.text,
+                fontWeight: 500,
+                padding: "0.625rem 1rem",
+              }}
             >
               Générer le PDF
             </a>
           ) : (
             <span
-              className="inline-flex cursor-not-allowed items-center rounded-lg border border-proplio-border px-3 py-2 text-sm text-proplio-muted opacity-60"
+              className="inline-flex cursor-not-allowed items-center rounded-lg px-3 py-2 text-sm opacity-60"
+              style={{ border: `1px solid ${PC.border}`, color: PC.muted }}
               title="Finalisez l'état des lieux pour générer le PDF."
             >
               Générer le PDF
@@ -416,7 +530,14 @@ export function EdlEditor({ edlId }: { edlId: string }) {
           {isFinalise ? (
             <button
               type="button"
-              className="proplio-btn-primary text-sm"
+              className="text-sm"
+              style={{
+                borderRadius: 12,
+                backgroundColor: PC.primary,
+                color: PC.white,
+                fontWeight: 500,
+                padding: "0.625rem 1rem",
+              }}
               onClick={async () => {
                 const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
                 const j = (await res.json()) as { error?: string };
@@ -428,7 +549,8 @@ export function EdlEditor({ edlId }: { edlId: string }) {
             </button>
           ) : (
             <span
-              className="inline-flex cursor-not-allowed items-center rounded-lg bg-proplio-primary/40 px-3 py-2 text-sm text-white opacity-70"
+              className="inline-flex cursor-not-allowed items-center rounded-lg px-3 py-2 text-sm opacity-70"
+              style={{ backgroundColor: PC.primaryBg40, color: PC.white }}
               title="Finalisez l'état des lieux pour envoyer par e-mail."
             >
               Envoyer par e-mail
@@ -437,34 +559,43 @@ export function EdlEditor({ edlId }: { edlId: string }) {
         </div>
       </div>
 
-      {error ? <p className="proplio-alert-error">{error}</p> : null}
+      {error ? (
+        <p
+          className="mb-4 rounded-xl px-4 py-3 text-sm"
+          style={{
+            border: `1px solid rgba(239, 68, 68, 0.3)`,
+            backgroundColor: PC.dangerBg10,
+            color: PC.danger,
+          }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {isFinalise ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+        <p
+          className="rounded-lg px-4 py-2 text-sm"
+          style={{
+            border: `1px solid ${PC.red200}`,
+            backgroundColor: PC.red50,
+            color: PC.red800,
+          }}
+        >
           Document finalisé — lecture seule. Vous pouvez générer le PDF ou l&apos;envoyer par e-mail.
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 border-b border-proplio-border pb-2">
+      <div className="flex flex-wrap gap-2 pb-2" style={{ borderBottom: `1px solid ${PC.border}` }}>
         {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTab(t.id)}
-            className={
-              activeTab === t.id
-                ? "rounded-lg bg-proplio-primary px-3 py-2 text-sm font-medium text-white"
-                : "rounded-lg px-3 py-2 text-sm text-proplio-muted hover:bg-proplio-card"
-            }
-          >
+          <EdlTabButton key={t.id} active={activeTab === t.id} onClick={() => setActiveTab(t.id)}>
             {t.label}
-          </button>
+          </EdlTabButton>
         ))}
       </div>
 
       {activeTab === "__compare__" && entryPieces ? (
-        <div className="proplio-card space-y-6 p-4">
-          <p className="text-sm text-proplio-muted">
+        <div className="space-y-6 p-4" style={CARD}>
+          <p className="text-sm" style={{ color: PC.muted }}>
             Éléments dont l&apos;état à la sortie est moins bon qu&apos;à l&apos;entrée.
           </p>
           {pieces.rooms.map((room) => {
@@ -473,18 +604,20 @@ export function EdlEditor({ edlId }: { edlId: string }) {
             if (rows.length === 0) return null;
             return (
               <div key={room.id}>
-                <h3 className="mb-2 font-semibold text-proplio-text">{room.label}</h3>
+                <h3 className="mb-2 font-semibold" style={{ color: PC.text }}>
+                  {room.label}
+                </h3>
                 <ul className="space-y-1 text-sm">
                   {rows.map((x) => (
                     <li key={x.key} className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-sm">
-                      <span className="font-medium text-proplio-text">
+                      <span className="font-medium" style={{ color: PC.text }}>
                         {ELEMENT_LABELS[x.key] ?? x.key}
                       </span>
-                      <span className="text-proplio-muted">:</span>
+                      <span style={{ color: PC.muted }}>:</span>
                       <span style={{ color: ETAT_LABELS[normalizeEtatNiveau(x.entree.state)].color }}>
                         {formatEtatLabel(x.entree.state)}
                       </span>
-                      <span className="text-proplio-muted">→</span>
+                      <span style={{ color: PC.muted }}>→</span>
                       <span
                         className="font-medium"
                         style={{ color: ETAT_LABELS[normalizeEtatNiveau(x.sortie.state)].color }}
@@ -501,7 +634,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       ) : null}
 
       {activeTab === "__compteurs__" ? (
-        <div className="proplio-card space-y-4 p-4">
+        <div className="space-y-4 p-4" style={CARD}>
           {(["electricite", "eauFroide", "eauChaude", "gaz"] as const).map((k) => {
             const label =
               k === "electricite"
@@ -515,10 +648,17 @@ export function EdlEditor({ edlId }: { edlId: string }) {
             const path = c.photoPath;
             const pk = pathKey("__compteurs__", k);
             return (
-              <div key={k} className="rounded-xl border border-proplio-border p-4">
-                <p className="mb-2 text-sm font-medium text-proplio-text">{label}</p>
+              <div
+                key={k}
+                className="rounded-xl p-4"
+                style={{ border: `1px solid ${PC.border}` }}
+              >
+                <p className="mb-2 text-sm font-medium" style={{ color: PC.text }}>
+                  {label}
+                </p>
                 <input
-                  className="proplio-input max-w-xs"
+                  className="max-w-xs"
+                  style={INP}
                   placeholder="Index relevé"
                   readOnly={isFinalise}
                   disabled={isFinalise}
@@ -549,7 +689,8 @@ export function EdlEditor({ edlId }: { edlId: string }) {
                       <button
                         type="button"
                         onClick={() => setPreview(photoUrls[path])}
-                        className="relative h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
+                        className="relative h-[60px] w-[60px] overflow-hidden rounded-lg"
+                        style={{ border: `1px solid ${PC.border}` }}
                       >
                         <Image
                           src={photoUrls[path]}
@@ -564,7 +705,8 @@ export function EdlEditor({ edlId }: { edlId: string }) {
                         <button
                           type="button"
                           onClick={() => void onRemovePhoto("__compteurs__", k, path)}
-                          className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-proplio-danger text-[10px] text-white"
+                          className="absolute -right-1 -top-1 h-5 w-5 rounded-full text-[10px]"
+                          style={{ backgroundColor: PC.danger, color: PC.white }}
                         >
                           ×
                         </button>
@@ -575,12 +717,13 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               </div>
             );
           })}
-          <label className="proplio-label">
-            <span>Nombre de clés remises</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span style={{ color: PC.muted }}>Nombre de clés remises</span>
             <input
               type="number"
               min={0}
-              className="proplio-input max-w-xs"
+              className="max-w-xs"
+              style={INP}
               readOnly={isFinalise}
               disabled={isFinalise}
               value={pieces.clesRemises}
@@ -591,12 +734,13 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               }
             />
           </label>
-          <label className="proplio-label">
-            <span>Badges / télécommandes</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span style={{ color: PC.muted }}>Badges / télécommandes</span>
             <input
               type="number"
               min={0}
-              className="proplio-input max-w-xs"
+              className="max-w-xs"
+              style={INP}
               readOnly={isFinalise}
               disabled={isFinalise}
               value={pieces.badgesRemis}
@@ -607,10 +751,11 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               }
             />
           </label>
-          <label className="proplio-label">
-            <span>Observations générales</span>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span style={{ color: PC.muted }}>Observations générales</span>
             <textarea
-              className="proplio-input min-h-[120px]"
+              className="min-h-[120px] max-w-full"
+              style={{ ...INP, maxWidth: "100%", minHeight: 120 }}
               readOnly={isFinalise}
               disabled={isFinalise}
               value={pieces.observationsGenerales}
@@ -627,12 +772,20 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       {activeRoom && activeTab !== "__compteurs__" && activeTab !== "__compare__" ? (
         <div className="space-y-4">
           {["bureau", "cave", "garage", "balcon"].includes(activeRoom.id) && activeRoom.enabled === false ? (
-            <div className="proplio-card p-6 text-center">
-              <p className="text-sm text-proplio-muted">Cette pièce n&apos;est pas incluse.</p>
+            <div className="p-6 text-center" style={CARD}>
+              <p className="text-sm" style={{ color: PC.muted }}>
+                Cette pièce n&apos;est pas incluse.
+              </p>
               {!isFinalise ? (
                 <button
                   type="button"
-                  className="proplio-btn-primary mt-3"
+                  className="mt-3 text-sm font-medium"
+                  style={{
+                    borderRadius: 12,
+                    backgroundColor: PC.primary,
+                    color: PC.white,
+                    padding: "0.625rem 1rem",
+                  }}
                   onClick={() => setRoomEnabled(activeRoom.id, true)}
                 >
                   Activer {activeRoom.label}
@@ -644,7 +797,14 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               {activeRoom.id.startsWith("chambre_") && activeRoom.id === "chambre_1" && !isFinalise ? (
                 <button
                   type="button"
-                  className="proplio-btn-secondary text-sm"
+                  className="text-sm font-medium"
+                  style={{
+                    borderRadius: 12,
+                    border: `1px solid ${PC.border}`,
+                    color: PC.text,
+                    padding: "0.625rem 1rem",
+                    backgroundColor: "transparent",
+                  }}
                   onClick={() =>
                     setPieces((prev) => (prev ? addChambreToPieces(prev, meuble) : prev))
                   }
@@ -677,17 +837,29 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       ) : null}
 
       {finalizeOpen ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="proplio-card max-w-md p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-proplio-text">Finaliser l&apos;état des lieux</h2>
-            <p className="mt-3 text-sm leading-relaxed text-proplio-muted">
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 backdrop-blur-safari"
+          style={{ backgroundColor: PC.overlay }}
+        >
+          <div className="max-w-md p-6 shadow-xl" style={CARD}>
+            <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
+              Finaliser l&apos;état des lieux
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
               Attention : une fois finalisé, l&apos;état des lieux ne pourra plus être modifié car il a valeur
               légale. Confirmez-vous la finalisation ?
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                className="proplio-btn-secondary"
+                className="font-medium"
+                style={{
+                  borderRadius: 12,
+                  border: `1px solid ${PC.border}`,
+                  color: PC.text,
+                  padding: "0.625rem 1rem",
+                  backgroundColor: "transparent",
+                }}
                 disabled={finalizing}
                 onClick={() => setFinalizeOpen(false)}
               >
@@ -695,7 +867,13 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               </button>
               <button
                 type="button"
-                className="proplio-btn-primary bg-red-600 hover:opacity-90"
+                className="font-medium"
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: PC.red600,
+                  color: PC.white,
+                  padding: "0.625rem 1rem",
+                }}
                 disabled={finalizing}
                 onClick={() => {
                   void (async () => {
@@ -729,7 +907,8 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       {preview ? (
         <button
           type="button"
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ backgroundColor: PC.overlayDark }}
           onClick={() => setPreview(null)}
         >
           <Image

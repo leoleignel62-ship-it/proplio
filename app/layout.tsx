@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { PC } from "@/lib/proplio-colors";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const shellBg: CSSProperties = {
-    backgroundColor: "#0F0F13",
-    color: "#F1F1F5",
+    backgroundColor: PC.bg,
+    color: PC.text,
   };
 
   return (

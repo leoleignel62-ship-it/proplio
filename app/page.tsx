@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { DashboardQuickLinks } from "@/components/dashboard-quick-links";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
+import { PC } from "@/lib/proplio-colors";
 
 type DashboardStats = {
   logements: number;
@@ -147,11 +148,6 @@ async function getRecentActivity(ownerId: string): Promise<ActivityItem[]> {
   }));
 }
 
-const CARD_BG = "#1A1A24";
-const CARD_BORDER = "#2D2D3D";
-const TEXT_PRIMARY = "#F1F1F5";
-const TEXT_MUTED = "#9090A8";
-
 function StatCard({
   titre,
   valeur,
@@ -169,34 +165,35 @@ function StatCard({
     <article
       className="relative overflow-hidden p-5"
       style={{
-        backgroundColor: CARD_BG,
-        border: `1px solid ${CARD_BORDER}`,
+        backgroundColor: PC.card,
+        border: `1px solid ${PC.border}`,
         borderRadius: 12,
-        boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.45)",
+        boxShadow: PC.cardShadow,
       }}
     >
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium" style={{ color: TEXT_MUTED }}>
+          <p className="text-sm font-medium" style={{ color: PC.muted }}>
             {titre}
           </p>
           <p
             className="mt-2 text-2xl font-semibold tabular-nums sm:text-[26px]"
-            style={{ color: TEXT_PRIMARY }}
+            style={{ color: PC.text }}
           >
             {valeur}
           </p>
-          <p className="mt-2 text-sm" style={{ color: TEXT_MUTED }}>
+          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
             {description}
           </p>
         </div>
         <span
-          className="flex shrink-0 items-center justify-center text-white shadow-md"
+          className="flex shrink-0 items-center justify-center shadow-md"
           style={{
             width: 36,
             height: 36,
             borderRadius: 10,
             background: iconGradient,
+            color: PC.white,
           }}
         >
           <Icon className="!h-4 !w-4 shrink-0" aria-hidden />
@@ -244,11 +241,11 @@ export default async function Home() {
         <div>
           <h1
             className="text-2xl font-semibold tracking-tight sm:text-[28px]"
-            style={{ color: TEXT_PRIMARY }}
+            style={{ color: PC.text }}
           >
             Bonjour{prenom ? ` ${prenom}` : ""}
           </h1>
-          <p className="mt-1 capitalize text-sm sm:text-base" style={{ color: TEXT_MUTED }}>
+          <p className="mt-1 capitalize text-sm sm:text-base" style={{ color: PC.muted }}>
             {dateLong}
           </p>
         </div>
@@ -288,65 +285,44 @@ export default async function Home() {
       <section
         className="p-5 sm:p-6"
         style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${CARD_BORDER}`,
+          backgroundColor: PC.card,
+          border: `1px solid ${PC.border}`,
           borderRadius: 12,
-          boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.45)",
+          boxShadow: PC.cardShadow,
         }}
       >
-        <h2 className="text-lg font-semibold" style={{ color: TEXT_PRIMARY }}>
+        <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
           Actions rapides
         </h2>
-        <p className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
+        <p className="mt-1 text-sm" style={{ color: PC.muted }}>
           Accédez aux flux les plus courants en un clic.
         </p>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link
-            href="/quittances"
-            className="proplio-btn-primary inline-flex items-center justify-center gap-2 px-5 sm:min-w-[200px]"
-          >
-            <IconDocument className="h-4 w-4" />
-            Nouvelle quittance
-          </Link>
-          <Link
-            href="/baux"
-            className="proplio-btn-primary inline-flex items-center justify-center gap-2 px-5 sm:min-w-[200px]"
-          >
-            <IconContract className="h-4 w-4" />
-            Nouveau bail
-          </Link>
-          <Link
-            href="/etats-des-lieux"
-            className="proplio-btn-primary inline-flex items-center justify-center gap-2 px-5 sm:min-w-[200px]"
-          >
-            Nouvel état des lieux
-          </Link>
-        </div>
+        <DashboardQuickLinks />
       </section>
 
       <section
         className="overflow-hidden"
         style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${CARD_BORDER}`,
+          backgroundColor: PC.card,
+          border: `1px solid ${PC.border}`,
           borderRadius: 12,
-          boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.45)",
+          boxShadow: PC.cardShadow,
         }}
       >
         <div
           className="px-5 py-5 sm:px-6 sm:pt-6"
-          style={{ borderBottom: `1px solid ${CARD_BORDER}` }}
+          style={{ borderBottom: `1px solid ${PC.border}` }}
         >
-          <h2 className="text-lg font-semibold" style={{ color: TEXT_PRIMARY }}>
+          <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
             Activité récente
           </h2>
-          <p className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
+          <p className="mt-1 text-sm" style={{ color: PC.muted }}>
             Les cinq derniers événements enregistrés.
           </p>
         </div>
         <ul>
           {activity.length === 0 ? (
-            <li className="px-5 py-8 text-center text-sm" style={{ color: TEXT_MUTED }}>
+            <li className="px-5 py-8 text-center text-sm" style={{ color: PC.muted }}>
               Aucune activité récente.
             </li>
           ) : (
@@ -354,12 +330,12 @@ export default async function Home() {
               <li
                 key={item.id}
                 className="flex items-center justify-between gap-4 px-5 py-3.5"
-                style={i > 0 ? { borderTop: `1px solid ${CARD_BORDER}` } : undefined}
+                style={i > 0 ? { borderTop: `1px solid ${PC.border}` } : undefined}
               >
-                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
+                <span className="text-sm" style={{ color: PC.text }}>
                   {item.text}
                 </span>
-                <span className="shrink-0 text-xs" style={{ color: TEXT_MUTED }}>
+                <span className="shrink-0 text-xs" style={{ color: PC.muted }}>
                   {item.at}
                 </span>
               </li>

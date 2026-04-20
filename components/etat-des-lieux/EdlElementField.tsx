@@ -1,10 +1,51 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ElementEdl, EtatNiveau } from "@/lib/etat-des-lieux/types";
 import { ETAT_LABELS, ETAT_OPTIONS, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
 import { SOL_TYPES } from "@/lib/etat-des-lieux/defaults";
+import { PC } from "@/lib/proplio-colors";
+import { edlFieldCardStyle, fieldInputStyle, fieldSelectStyle } from "@/lib/proplio-field-styles";
+
+function PhotoPickBar({
+  uploading,
+  onCapture,
+  onImport,
+}: {
+  uploading: boolean;
+  onCapture: () => void;
+  onImport: () => void;
+}) {
+  const [h1, setH1] = useState(false);
+  const [h2, setH2] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+      <button
+        type="button"
+        onClick={onCapture}
+        disabled={uploading}
+        className="text-xs disabled:opacity-50"
+        style={{ color: h1 && !uploading ? PC.secondary : PC.muted }}
+        onMouseEnter={() => setH1(true)}
+        onMouseLeave={() => setH1(false)}
+      >
+        {uploading ? "…" : "📷 Prendre une photo"}
+      </button>
+      <button
+        type="button"
+        onClick={onImport}
+        disabled={uploading}
+        className="text-xs disabled:opacity-50"
+        style={{ color: h2 && !uploading ? PC.secondary : PC.muted }}
+        onMouseEnter={() => setH2(true)}
+        onMouseLeave={() => setH2(false)}
+      >
+        {uploading ? "…" : "🖼 Importer une photo"}
+      </button>
+    </div>
+  );
+}
 
 type Props = {
   label: string;
@@ -36,18 +77,22 @@ export function EdlElementField({
   const importInputRef = useRef<HTMLInputElement>(null);
   const stateCurrent = normalizeEtatNiveau(el.state);
   const stateMeta = ETAT_LABELS[stateCurrent];
+  const [hoverEt, setHoverEt] = useState<string | null>(null);
 
   return (
-    <div className="rounded-xl border border-proplio-border bg-proplio-bg/40 p-4">
+    <div className="rounded-xl p-4" style={edlFieldCardStyle}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-sm font-medium text-proplio-text">{label}</p>
+          <p className="text-sm font-medium" style={{ color: PC.text }}>
+            {label}
+          </p>
           {readOnly ? (
             <span
-              className="inline-flex rounded-lg border-2 px-2.5 py-1 text-xs font-medium text-proplio-text"
+              className="inline-flex rounded-lg border-2 px-2.5 py-1 text-xs font-medium"
               style={{
                 borderColor: stateMeta.color,
                 backgroundColor: `${stateMeta.color}22`,
+                color: PC.text,
               }}
             >
               {stateMeta.label}
@@ -62,16 +107,25 @@ export function EdlElementField({
                     key={opt}
                     type="button"
                     onClick={() => onChange({ ...el, state: opt as EtatNiveau })}
-                    className={
-                      on
-                        ? "rounded-lg border-2 px-2.5 py-1 text-xs font-medium text-proplio-text"
-                        : "rounded-lg border border-proplio-border px-2.5 py-1 text-xs text-proplio-muted hover:border-proplio-primary/40"
-                    }
+                    className="rounded-lg px-2.5 py-1 text-xs font-medium"
                     style={
                       on
-                        ? { borderColor: meta.color, backgroundColor: `${meta.color}22` }
-                        : undefined
+                        ? {
+                            borderWidth: 2,
+                            borderStyle: "solid",
+                            borderColor: meta.color,
+                            backgroundColor: `${meta.color}22`,
+                            color: PC.text,
+                          }
+                        : {
+                            borderWidth: 1,
+                            borderStyle: "solid",
+                            borderColor: hoverEt === opt ? "rgba(124, 58, 237, 0.4)" : PC.border,
+                            color: PC.muted,
+                          }
                     }
+                    onMouseEnter={() => setHoverEt(opt)}
+                    onMouseLeave={() => setHoverEt(null)}
                   >
                     {meta.label}
                   </button>
@@ -80,10 +134,11 @@ export function EdlElementField({
             </div>
           )}
           {elementKey === "sol" ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Type de sol
               <select
-                className="proplio-select mt-1 w-full max-w-xs"
+                className="mt-1 w-full max-w-xs"
+                style={{ ...fieldSelectStyle, marginTop: 4 }}
                 disabled={readOnly}
                 value={String(el.extra.sousType ?? "parquet")}
                 onChange={(e) =>
@@ -99,10 +154,11 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "digicode" ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Code
               <input
-                className="proplio-input mt-1 max-w-xs"
+                className="mt-1 max-w-xs"
+                style={{ ...fieldInputStyle, marginTop: 4 }}
                 readOnly={readOnly}
                 disabled={readOnly}
                 value={String(el.extra.code ?? "")}
@@ -113,10 +169,11 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "baignoire_ou_douche" ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Type
               <select
-                className="proplio-select mt-1 w-full max-w-xs"
+                className="mt-1 w-full max-w-xs"
+                style={{ ...fieldSelectStyle, marginTop: 4 }}
                 disabled={readOnly}
                 value={String(el.extra.type ?? "douche")}
                 onChange={(e) =>
@@ -129,10 +186,11 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "lit" ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Taille du lit
               <select
-                className="proplio-select mt-1 w-full max-w-xs"
+                className="mt-1 w-full max-w-xs"
+                style={{ ...fieldSelectStyle, marginTop: 4 }}
                 disabled={readOnly}
                 value={String(el.extra.taille ?? "double")}
                 onChange={(e) =>
@@ -147,10 +205,11 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "porte_garage" ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Type de porte
               <select
-                className="proplio-select mt-1 w-full max-w-xs"
+                className="mt-1 w-full max-w-xs"
+                style={{ ...fieldSelectStyle, marginTop: 4 }}
                 disabled={readOnly}
                 value={String(el.extra.type ?? "manuelle")}
                 onChange={(e) =>
@@ -163,12 +222,13 @@ export function EdlElementField({
             </label>
           ) : null}
           {["canape", "chaises", "telecommandes"].includes(elementKey) ? (
-            <label className="mt-1 block text-xs text-proplio-muted">
+            <label className="mt-1 block text-xs" style={{ color: PC.muted }}>
               Nombre
               <input
                 type="number"
                 min={0}
-                className="proplio-input mt-1 max-w-[120px]"
+                className="mt-1 max-w-[120px]"
+                style={{ ...fieldInputStyle, marginTop: 4 }}
                 readOnly={readOnly}
                 disabled={readOnly}
                 value={Number(el.extra.nombre ?? 0)}
@@ -179,7 +239,7 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "humidite" ? (
-            <label className="flex items-center gap-2 text-xs text-proplio-muted">
+            <label className="flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
               <input
                 type="checkbox"
                 disabled={readOnly}
@@ -192,14 +252,15 @@ export function EdlElementField({
             </label>
           ) : null}
           {elementKey === "vaisselle" ? (
-            <div className="flex flex-wrap gap-2 text-xs text-proplio-muted">
+            <div className="flex flex-wrap gap-2 text-xs" style={{ color: PC.muted }}>
               {(["assiettes", "verres", "couverts"] as const).map((k) => (
                 <label key={k} className="flex items-center gap-1">
                   {k}
                   <input
                     type="number"
                     min={0}
-                    className="proplio-input w-16 py-1"
+                    className="w-16 py-1"
+                    style={{ ...fieldInputStyle, paddingTop: 4, paddingBottom: 4 }}
                     readOnly={readOnly}
                     disabled={readOnly}
                     value={Number(el.extra[k] ?? 0)}
@@ -215,7 +276,7 @@ export function EdlElementField({
             </div>
           ) : null}
           <input
-            className="proplio-input"
+            style={fieldInputStyle}
             placeholder="Commentaire (optionnel)"
             readOnly={readOnly}
             disabled={readOnly}
@@ -249,24 +310,11 @@ export function EdlElementField({
                   e.target.value = "";
                 }}
               />
-              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                <button
-                  type="button"
-                  onClick={() => captureInputRef.current?.click()}
-                  disabled={uploading}
-                  className="text-xs text-proplio-muted hover:text-proplio-secondary disabled:opacity-50"
-                >
-                  {uploading ? "…" : "📷 Prendre une photo"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => importInputRef.current?.click()}
-                  disabled={uploading}
-                  className="text-xs text-proplio-muted hover:text-proplio-secondary disabled:opacity-50"
-                >
-                  {uploading ? "…" : "🖼 Importer une photo"}
-                </button>
-              </div>
+              <PhotoPickBar
+                uploading={uploading}
+                onCapture={() => captureInputRef.current?.click()}
+                onImport={() => importInputRef.current?.click()}
+              />
             </>
           ) : null}
           {previewUrl ? (
@@ -274,7 +322,8 @@ export function EdlElementField({
               <button
                 type="button"
                 onClick={onPreview}
-                className="relative h-[60px] w-[60px] overflow-hidden rounded-lg border border-proplio-border"
+                className="relative h-[60px] w-[60px] overflow-hidden rounded-lg"
+                style={{ border: `1px solid ${PC.border}` }}
               >
                 <Image
                   src={previewUrl}
@@ -289,7 +338,8 @@ export function EdlElementField({
                 <button
                   type="button"
                   onClick={onRemovePhoto}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-proplio-danger text-[10px] text-white"
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+                  style={{ backgroundColor: PC.danger, color: PC.white }}
                   aria-label="Supprimer la photo"
                 >
                   ×

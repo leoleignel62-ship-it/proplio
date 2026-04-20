@@ -4,10 +4,11 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { NavigationSidebar } from "@/components/navigation-sidebar";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
+import { PC } from "@/lib/proplio-colors";
 
 const authPages = ["/login", "/register", "/forgot-password", "/reset-password"];
 
-const shellStyle = { backgroundColor: "#0F0F13" as const };
+const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
