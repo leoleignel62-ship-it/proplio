@@ -5,19 +5,22 @@ import Link from "next/link";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
-const NEXT_PUBLIC_KEYS = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "NEXT_PUBLIC_SITE_URL",
-] as const;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-function maskValue(name: string, value: string | undefined): string {
+function maskValue(name: "url" | "key" | "site", value: string | undefined): string {
   if (value === undefined || value === "") return "(absent)";
   const v = String(value);
-  const n = name.includes("KEY") ? 8 : 14;
+  const n = name === "key" ? 8 : 14;
   if (v.length <= n) return `${v.slice(0, 3)}…`;
   return `${v.slice(0, n)}…`;
 }
+
+const rowStyle = {
+  backgroundColor: PC.bg,
+  border: `1px solid ${PC.border}`,
+} as const;
 
 const wrap: CSSProperties = {
   ...panelCard,
@@ -33,8 +36,8 @@ export default function TestAuthPage() {
   async function testSupabaseConnection() {
     setPingStatus("loading");
     setPingDetail("");
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const base = supabaseUrl?.replace(/\/+$/, "");
+    const anon = supabaseKey;
     if (!base || !anon) {
       setPingStatus("error");
       setPingDetail("URL ou clé anon manquante côté client (build Vercel).");
@@ -76,21 +79,24 @@ export default function TestAuthPage() {
             Variables NEXT_PUBLIC_* (aperçu tronqué)
           </p>
           <ul className="space-y-2 text-sm font-mono">
-            {NEXT_PUBLIC_KEYS.map((key) => {
-              const raw = (process.env as Record<string, string | undefined>)[key];
-              return (
-                <li
-                  key={key}
-                  className="rounded-lg px-3 py-2"
-                  style={{ backgroundColor: PC.bg, border: `1px solid ${PC.border}` }}
-                >
-                  <span style={{ color: PC.secondary }}>{key}</span>
-                  <span className="ml-2" style={{ color: PC.text }}>
-                    {maskValue(key, raw)}
-                  </span>
-                </li>
-              );
-            })}
+            <li className="rounded-lg px-3 py-2" style={rowStyle}>
+              <span style={{ color: PC.secondary }}>NEXT_PUBLIC_SUPABASE_URL</span>
+              <span className="ml-2" style={{ color: PC.text }}>
+                {maskValue("url", supabaseUrl)}
+              </span>
+            </li>
+            <li className="rounded-lg px-3 py-2" style={rowStyle}>
+              <span style={{ color: PC.secondary }}>NEXT_PUBLIC_SUPABASE_ANON_KEY</span>
+              <span className="ml-2" style={{ color: PC.text }}>
+                {maskValue("key", supabaseKey)}
+              </span>
+            </li>
+            <li className="rounded-lg px-3 py-2" style={rowStyle}>
+              <span style={{ color: PC.secondary }}>NEXT_PUBLIC_SITE_URL</span>
+              <span className="ml-2" style={{ color: PC.text }}>
+                {maskValue("site", siteUrl)}
+              </span>
+            </li>
           </ul>
         </div>
 
