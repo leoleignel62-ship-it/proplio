@@ -475,7 +475,7 @@ export function ContentTopHeader() {
 
   return (
     <header
-      className="fixed right-0 top-0 z-40 flex h-[60px] items-center justify-end px-4 md:left-64 md:px-8"
+      className="fixed right-0 top-0 z-40 hidden h-[60px] items-center justify-end px-4 md:left-64 md:flex md:px-8"
       style={{ backgroundColor: "#13131A", borderBottom: "1px solid #2D2D3D" }}
     >
       <div ref={wrapRef} className="relative">
