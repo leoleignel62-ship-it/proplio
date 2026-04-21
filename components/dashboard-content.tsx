@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-// import { DashboardAnnualChart } from "@/components/dashboard-annual-chart";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -307,7 +316,24 @@ export function DashboardContent() {
   const [prenom, setPrenom] = useState("");
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
-  const [, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
+  const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
+  /** Évite ResponsiveContainer avec taille -1 au prérendu SSR / build statique. */
+  const [chartMounted, setChartMounted] = useState(false);
+
+  const annualChartRows = useMemo(
+    () =>
+      annual.labels.map((label, i) => ({
+        mois: label,
+        encaisses: annual.encaisses[i] ?? 0,
+        manque: annual.manque[i] ?? 0,
+        potentiel: annual.potentiel[i] ?? 0,
+      })),
+    [annual],
+  );
+
+  useEffect(() => {
+    setChartMounted(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -470,14 +496,65 @@ export function DashboardContent() {
         <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
           Revenus {new Date().getFullYear()}
         </h2>
-        <div className="h-[320px]">
-          {/* <DashboardAnnualChart
-            labels={annual.labels}
-            encaisses={annual.encaisses}
-            manque={annual.manque}
-            potentiel={annual.potentiel}
-          /> */}
-          <div>Graphique à venir</div>
+        <div>
+          <div className="min-h-[300px] w-full min-w-0" style={{ position: "relative", height: 300 }}>
+            {chartMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={annualChartRows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke="rgba(144, 144, 168, 0.12)" vertical={false} />
+                  <XAxis dataKey="mois" tick={{ fill: PC.muted, fontSize: 12 }} axisLine={{ stroke: "rgba(144, 144, 168, 0.12)" }} tickLine={false} />
+                  <YAxis
+                    tick={{ fill: PC.muted, fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${Number(v).toLocaleString("fr-FR")} €`}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(144, 144, 168, 0.06)" }}
+                    formatter={(value, name) => {
+                      const n = Number(value ?? 0);
+                      const titre: Record<string, string> = {
+                        encaisses: "Revenus encaissés",
+                        manque: "Manque à gagner",
+                        potentiel: "Potentiel total",
+                      };
+                      const key = String(name);
+                      return [`${n.toLocaleString("fr-FR")} €`, titre[key] ?? key];
+                    }}
+                    labelStyle={{ color: PC.text }}
+                    contentStyle={{
+                      backgroundColor: PC.card,
+                      border: `1px solid ${PC.border}`,
+                      borderRadius: 8,
+                    }}
+                  />
+                  <Bar dataKey="encaisses" name="encaisses" fill={PC.primary} radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="manque" name="manque" fill="rgba(239, 68, 68, 0.25)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Line
+                    type="monotone"
+                    dataKey="potentiel"
+                    name="potentiel"
+                    stroke={PC.warning}
+                    strokeWidth={2}
+                    strokeDasharray="6 6"
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : null}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-4 text-xs">
+            <span style={{ color: PC.muted }}>
+              <span style={{ color: PC.primary, fontWeight: 700 }}>■</span> Revenus encaissés
+            </span>
+            <span style={{ color: PC.muted }}>
+              <span style={{ color: "rgba(239, 68, 68, 0.7)", fontWeight: 700 }}>■</span> Manque à gagner
+            </span>
+            <span style={{ color: PC.muted }}>
+              <span style={{ color: PC.warning, fontWeight: 700 }}>━</span> Potentiel total
+            </span>
+          </div>
         </div>
       </section>
     </>
