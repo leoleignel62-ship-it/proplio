@@ -491,7 +491,7 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, to: locataire.email });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur serveur." },

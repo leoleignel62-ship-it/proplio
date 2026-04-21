@@ -37,17 +37,21 @@ export default function ResetPasswordPage() {
     }
 
     setIsSubmitting(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
 
-    if (updateError) {
-      setError(updateError.message);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setSuccess("Mot de passe mis à jour. Connecte-toi avec ton nouveau mot de passe.");
+      router.push("/login?password_updated=1");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mise à jour impossible.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setSuccess("Mot de passe mis à jour. Connecte-toi avec ton nouveau mot de passe.");
-    setIsSubmitting(false);
-    router.push("/login?password_updated=1");
   }
 
   return (

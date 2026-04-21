@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
+import Link from "next/link";
 import { IconPlus } from "@/components/proplio-icons";
 import {
   defaultChambre,
@@ -61,7 +61,9 @@ export default function LogementsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const isColocation = values.est_colocation === "oui";
@@ -69,40 +71,6 @@ export default function LogementsPage() {
   const totalChambresLoyers = useMemo(() => totalLoyersChambres(chambres.slice(0, nCh)), [chambres, nCh]);
   const loyerGlobal = Number(values.loyer || 0);
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
-
-  const columns = useMemo<EntityColumn<Logement>[]>(
-    () => [
-      { key: "nom", label: "Nom" },
-      { key: "adresse", label: "Adresse" },
-      { key: "ville", label: "Ville" },
-      { key: "code_postal", label: "Code postal" },
-      { key: "type", label: "Type" },
-      { key: "surface", label: "Surface", render: (row) => `${row.surface} m²` },
-      { key: "loyer", label: "Loyer", render: (row) => `${row.loyer} €` },
-      { key: "charges", label: "Charges", render: (row) => `${row.charges} €` },
-      {
-        key: "est_colocation",
-        label: "Colocation",
-        render: (row) =>
-          row.est_colocation ? (
-            <span
-              className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
-            >
-              Oui
-            </span>
-          ) : (
-            <span
-              className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
-            >
-              Non
-            </span>
-          ),
-      },
-    ],
-    [],
-  );
 
   const loadRows = useCallback(async (ownerId?: string | null) => {
     const activeOwnerId = ownerId ?? proprietaireId;
@@ -115,17 +83,27 @@ export default function LogementsPage() {
     setIsLoading(true);
     setError("");
 
-    const { data, error: fetchError } = await supabase
+    const [{ data, error: fetchError }, { data: locData }] = await Promise.all([
+      supabase
       .from("logements")
       .select("*")
       .eq("proprietaire_id", activeOwnerId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }),
+      supabase.from("locataires").select("logement_id").eq("proprietaire_id", activeOwnerId),
+    ]);
 
     if (fetchError) {
       setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
       setRows([]);
     } else {
       setRows((data as Logement[]) ?? []);
+      const counts: Record<string, number> = {};
+      for (const row of locData ?? []) {
+        const id = row.logement_id as string | null;
+        if (!id) continue;
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+      setLocatairesByLogement(counts);
     }
 
     setIsLoading(false);
@@ -152,11 +130,14 @@ export default function LogementsPage() {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
+      const [{ data, error: fetchError }, { data: locData }] = await Promise.all([
+        supabase
         .from("logements")
         .select("*")
         .eq("proprietaire_id", ownerId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }),
+        supabase.from("locataires").select("logement_id").eq("proprietaire_id", ownerId),
+      ]);
 
       if (!isMounted) return;
 
@@ -165,6 +146,13 @@ export default function LogementsPage() {
         setRows([]);
       } else {
         setRows((data as Logement[]) ?? []);
+        const counts: Record<string, number> = {};
+        for (const row of locData ?? []) {
+          const id = row.logement_id as string | null;
+          if (!id) continue;
+          counts[id] = (counts[id] ?? 0) + 1;
+        }
+        setLocatairesByLogement(counts);
       }
 
       setIsLoading(false);
@@ -347,6 +335,13 @@ export default function LogementsPage() {
         .eq("proprietaire_id", ownerId);
 
       if (deleteError) {
+        const isLinkedDataError =
+          (deleteError as { code?: string }).code === "23503" ||
+          /foreign key|constraint|violat|reference/i.test(deleteError.message ?? "");
+        if (isLinkedDataError) {
+          setIsDeleteBlockedModalOpen(true);
+          return;
+        }
         setError(`Erreur de suppression : ${formatSubmitError(deleteError)}`);
         return;
       }
@@ -391,15 +386,76 @@ export default function LogementsPage() {
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des logements...
         </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Aucun logement enregistré.
+        </div>
       ) : (
-        <EntityTable
-          columns={columns}
-          rows={rows}
-          emptyMessage="Aucun logement enregistré."
-          onEdit={openEditModal}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-        />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {rows.map((row) => {
+            const activeLocataires = locatairesByLogement[row.id] ?? 0;
+            const capacity = row.est_colocation ? Number(row.nombre_chambres || 1) : 1;
+            const available = Math.max(0, capacity - activeLocataires);
+            const status =
+              activeLocataires === 0
+                ? { label: "Vacant", bg: PC.border, color: PC.muted }
+                : available === 0
+                  ? { label: "Complet", bg: PC.successBg20, color: PC.success }
+                  : { label: `${available} chambre(s) disponible(s)`, bg: PC.warningBg15, color: PC.warning };
+            return (
+              <Link
+                key={row.id}
+                href={`/logements/${row.id}`}
+                className="relative rounded-xl p-5 transition hover:translate-y-[-1px]"
+                style={panelCard}
+              >
+                <h3 className="text-lg font-semibold">{row.nom}</h3>
+                <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                  {row.adresse}, {row.code_postal} {row.ville}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
+                    {row.type}
+                  </span>
+                  <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: status.bg, color: status.color }}>
+                    {status.label}
+                  </span>
+                </div>
+                <div className="mt-4 space-y-1 text-sm" style={{ color: PC.muted }}>
+                  <p>
+                    Locataires: <strong style={{ color: PC.text }}>{activeLocataires} / {capacity}</strong>
+                  </p>
+                  <p>
+                    Loyer mensuel: <strong style={{ color: PC.text }}>{Number(row.loyer || 0).toFixed(2)} €</strong>
+                  </p>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      openEditModal(row);
+                    }}
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                    disabled={isDeleting}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void onDelete(row.id);
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       {isModalOpen ? (
@@ -664,6 +720,35 @@ export default function LogementsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isDeleteBlockedModalOpen ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-safari">
+          <div className="mx-auto mt-16 max-w-xl rounded-xl p-6" style={LOGEMENT_MODAL_CARD}>
+            <h3 className="text-xl font-semibold" style={{ color: PC.text }}>
+              Impossible de supprimer ce logement
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Ce logement a des données associées qui doivent être supprimées avant :
+              <br />- Locataires assignés
+              <br />- Baux actifs ou terminés
+              <br />- Quittances générées
+              <br />- États des lieux
+              <br />
+              <br />
+              Veuillez d&apos;abord supprimer ces éléments depuis leurs sections respectives.
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="proplio-btn-primary px-5 py-2"
+                onClick={() => setIsDeleteBlockedModalOpen(false)}
+              >
+                Compris
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

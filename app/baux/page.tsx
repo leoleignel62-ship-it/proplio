@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
-import { IconPlus } from "@/components/proplio-icons";
+import { useRouter, useSearchParams } from "next/navigation";
+import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -15,6 +15,7 @@ const BAIL_MODAL_CARD: CSSProperties = {
   padding: 24,
   boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
 };
+const BAIL_GROUP_CARD: CSSProperties = { ...panelCard, padding: 16 };
 
 type Bail = {
   id: string;
@@ -74,6 +75,7 @@ type LogementEntity = {
 type LocataireEntity = {
   id: string;
   label: string;
+  email?: string | null;
   logement_id?: string | null;
   colocation_chambre_index?: number | null;
 };
@@ -193,13 +195,12 @@ const defaultValues = {
 };
 
 export default function BauxPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<Bail[]>([]);
   const [values, setValues] = useState(defaultValues);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isGeneratingPdfId, setIsGeneratingPdfId] = useState<string | null>(null);
-  const [isSendingEmailId, setIsSendingEmailId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<Bail | null>(null);
   const [error, setError] = useState("");
@@ -214,69 +215,33 @@ export default function BauxPage() {
     () => values.equipements.filter((item) => !EQUIPEMENTS_MEUBLES_ALUR.includes(item)),
     [values.equipements],
   );
-  const logementsMap = useMemo(() => new Map(logements.map((item) => [item.id, item.label])), [logements]);
   const locatairesMap = useMemo(() => new Map(locataires.map((item) => [item.id, item.label])), [locataires]);
   const logementsDetailsMap = useMemo(() => new Map(logements.map((item) => [item.id, item])), [logements]);
   const selectedLogement = values.logement_id ? logementsDetailsMap.get(values.logement_id) : undefined;
   const isColocationLogement = Boolean(selectedLogement?.est_colocation);
   const locatairesSelectList = useMemo(() => {
-    if (!isColocationLogement || !values.logement_id) return locataires;
-    return locataires.filter(
-      (l) =>
-        l.logement_id === values.logement_id &&
-        l.colocation_chambre_index != null &&
-        l.colocation_chambre_index >= 1,
-    );
-  }, [isColocationLogement, values.logement_id, locataires]);
+    if (!values.logement_id) return locataires;
+    return locataires.filter((l) => l.logement_id === values.logement_id);
+  }, [values.logement_id, locataires]);
+  const [successToast, setSuccessToast] = useState("");
+  const logementFilter = searchParams.get("logement_id") ?? "";
+  const prefillLogementId = searchParams.get("logement_id") ?? "";
 
-  const columns = useMemo<EntityColumn<Bail>[]>(
-    () => [
-      {
-        key: "locataire_id",
-        label: "Locataire",
-        render: (row) => {
-          const main = locatairesMap.get(row.locataire_id) ?? row.locataire_id;
-          const extra = Array.isArray(row.colocataires_ids) ? row.colocataires_ids.length : 0;
-          const legacyColocs = extra > 0 && !row.colocation_chambre_index;
-          return legacyColocs ? `${main} (+${extra})` : main;
-        },
-      },
-      {
-        key: "logement_id",
-        label: "Logement",
-        render: (row) => {
-          const label = logementsMap.get(row.logement_id) ?? row.logement_id;
-          const log = logementsDetailsMap.get(row.logement_id);
-          if (log?.est_colocation && row.colocation_chambre_index != null) {
-            return (
-              <span className="flex flex-col gap-1">
-                <span>{label}</span>
-                <span
-                  className="inline-flex w-fit rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
-                >
-                  Colocation — Chambre {row.colocation_chambre_index}
-                </span>
-              </span>
-            );
-          }
-          return label;
-        },
-      },
-      { key: "type_bail", label: "Type", render: (row) => (row.type_bail === "meuble" ? "Meublé" : "Vide") },
-      {
-        key: "date_debut",
-        label: "Début",
-        render: (row) => new Date(row.date_debut).toLocaleDateString("fr-FR"),
-      },
-      {
-        key: "date_fin",
-        label: "Fin",
-        render: (row) => new Date(row.date_fin).toLocaleDateString("fr-FR"),
-      },
-    ],
-    [locatairesMap, logementsDetailsMap, logementsMap],
+  const filteredRows = useMemo(
+    () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
+    [rows, logementFilter],
   );
+  const groupedBaux = useMemo(() => {
+    const map = new Map<string, Bail[]>();
+    for (const row of filteredRows) {
+      const arr = map.get(row.logement_id) ?? [];
+      arr.push(row);
+      map.set(row.logement_id, arr);
+    }
+    return logements
+      .filter((l) => map.has(l.id))
+      .map((l) => ({ logement: l, rows: map.get(l.id) ?? [] }));
+  }, [filteredRows, logements]);
 
   const loadRelations = useCallback(async (ownerId: string) => {
     const [logementsResponse, locatairesResponse] = await Promise.all([
@@ -286,7 +251,7 @@ export default function BauxPage() {
         .eq("proprietaire_id", ownerId),
       supabase
         .from("locataires")
-        .select("id, nom, prenom, logement_id, colocation_chambre_index")
+        .select("id, nom, prenom, email, logement_id, colocation_chambre_index")
         .eq("proprietaire_id", ownerId),
     ]);
 
@@ -316,6 +281,7 @@ export default function BauxPage() {
       (locatairesResponse.data ?? []).map((item) => ({
         id: item.id,
         label: `${item.prenom} ${item.nom}`,
+        email: item.email ?? null,
         logement_id: item.logement_id ?? null,
         colocation_chambre_index:
           item.colocation_chambre_index != null ? Number(item.colocation_chambre_index) : null,
@@ -390,7 +356,7 @@ export default function BauxPage() {
 
   function openCreateModal() {
     setEditingRow(null);
-    setValues(defaultValues);
+    setValues({ ...defaultValues, logement_id: prefillLogementId });
     setNouveauMeubleNom("");
     setMeubleNomError("");
     setIsModalOpen(true);
@@ -797,7 +763,6 @@ export default function BauxPage() {
   }
 
   async function onDelete(id: string) {
-    setIsDeleting(true);
     setError("");
 
     try {
@@ -822,12 +787,10 @@ export default function BauxPage() {
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
-      setIsDeleting(false);
     }
   }
 
   async function onGeneratePdf(id: string) {
-    setIsGeneratingPdfId(id);
     setError("");
 
     try {
@@ -855,35 +818,31 @@ export default function BauxPage() {
     } catch (e) {
       setError(`Erreur de génération PDF : ${formatSubmitError(e)}`);
     } finally {
-      setIsGeneratingPdfId(null);
     }
   }
 
   async function onSendBailEmail(id: string) {
-    setIsSendingEmailId(id);
     setError("");
 
     try {
       const response = await fetch(`/api/baux/${id}/send`, { method: "POST" });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; to?: string[] };
 
       if (!response.ok) {
         let msg = `Envoi e-mail impossible (${response.status}). Vérifiez Resend et l'e-mail du propriétaire.`;
-        try {
-          const j = (await response.json()) as { error?: string };
-          if (j.error?.trim()) msg = j.error.trim();
-        } catch {
-          /* corps non JSON */
-        }
+        if (payload.error?.trim()) msg = payload.error.trim();
         setError(msg);
         return;
       }
 
       const { proprietaireId: ownerId } = await getCurrentProprietaireId();
       if (ownerId) await loadRows(ownerId);
+      const dest = payload.to?.join(", ") || "destinataire";
+      setSuccessToast(`Email envoyé avec succès à ${dest}`);
+      window.setTimeout(() => setSuccessToast(""), 3000);
     } catch (e) {
       setError(`Erreur d'envoi de l'e-mail : ${formatSubmitError(e)}`);
     } finally {
-      setIsSendingEmailId(null);
     }
   }
 
@@ -896,9 +855,25 @@ export default function BauxPage() {
             Création de baux conformes loi Alur et loi du 6 juillet 1989.
           </p>
         </div>
+        <select
+          value={logementFilter}
+          onChange={(event) => {
+            const next = event.target.value;
+            router.push(next ? `/baux?logement_id=${encodeURIComponent(next)}` : "/baux");
+          }}
+          className="rounded-lg px-3 py-2 text-sm"
+          style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+        >
+          <option value="">Tous les logements</option>
+          {logements.map((logement) => (
+            <option key={logement.id} value={logement.id}>
+              {logement.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
           onClick={openCreateModal}
         >
           <IconPlus className="h-4 w-4" />
@@ -914,6 +889,11 @@ export default function BauxPage() {
           {error}
         </p>
       ) : null}
+      {successToast ? (
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
+          {successToast}
+        </p>
+      ) : null}
 
       {isLoading ? (
         <div
@@ -923,61 +903,72 @@ export default function BauxPage() {
           Chargement des baux...
         </div>
       ) : (
-        <EntityTable
-          columns={columns}
-          rows={rows}
-          emptyMessage="Aucun bail enregistré."
-          onEdit={openEditModal}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-          statusRenderer={(row) => (
-            <div className="flex flex-col items-end gap-1">
-              {row.statut === "actif" ? (
-                <span
-                  className="rounded-full px-2.5 py-1 text-xs font-medium"
-                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
-                >
-                  Actif
-                </span>
-              ) : (
-                <span
-                  className="rounded-full px-2.5 py-1 text-xs font-medium"
-                  style={{ backgroundColor: PC.border, color: PC.muted }}
-                >
-                  Terminé
-                </span>
-              )}
-              {row.email_envoye ? (
-                <span
-                  className="rounded-full px-2.5 py-1 text-xs font-medium"
-                  style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}
-                >
-                  Bail envoyé
-                </span>
-              ) : null}
+        <div className="space-y-8">
+          {groupedBaux.length === 0 ? (
+            <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+              Aucun bail enregistré.
             </div>
+          ) : (
+            groupedBaux.map(({ logement, rows: groupRows }) => (
+              <section key={logement.id} className="space-y-4">
+                <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
+                  <div className="flex items-center gap-2">
+                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <h2 className="text-lg font-semibold">{logement.label}</h2>
+                    <span className="text-sm" style={{ color: PC.muted }}>
+                      ({groupRows.length} baux)
+                    </span>
+                  </div>
+                </header>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {groupRows.map((row) => (
+                    <article key={row.id} className="rounded-xl" style={BAIL_GROUP_CARD}>
+                      <h3 className="font-semibold tracking-tight">{locatairesMap.get(row.locataire_id) ?? row.locataire_id}</h3>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
+                          {row.type_bail === "meuble" ? "Meublé" : "Vide"}
+                        </span>
+                        {row.colocation_chambre_index ? (
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.warningBg15, color: PC.warning }}>
+                            Colocation · Ch. {row.colocation_chambre_index}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+                        {new Date(row.date_debut).toLocaleDateString("fr-FR")} → {new Date(row.date_fin).toLocaleDateString("fr-FR")}
+                      </p>
+                      <p className="text-base font-semibold">{Number(row.loyer).toFixed(2)} € / mois</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={row.statut === "actif" ? { backgroundColor: PC.successBg20, color: PC.success } : { backgroundColor: PC.border, color: PC.muted }}>
+                          {row.statut === "actif" ? "Actif" : "Terminé"}
+                        </span>
+                        {row.email_envoye ? (
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}>
+                            Bail envoyé
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-primary" onClick={() => onGeneratePdf(row.id)}>
+                          PDF
+                        </button>
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-success" onClick={() => onSendBailEmail(row.id)}>
+                          Envoyer
+                        </button>
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-muted" onClick={() => openEditModal(row)}>
+                          Modifier
+                        </button>
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-danger" onClick={() => void onDelete(row.id)}>
+                          Supprimer
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))
           )}
-          actionsRenderer={(row) => (
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-primary disabled:opacity-60"
-                onClick={() => onGeneratePdf(row.id)}
-                disabled={isGeneratingPdfId === row.id}
-              >
-                {isGeneratingPdfId === row.id ? "Génération..." : "Générer PDF"}
-              </button>
-              <button
-                type="button"
-                className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-success disabled:opacity-60"
-                onClick={() => onSendBailEmail(row.id)}
-                disabled={isSendingEmailId === row.id}
-              >
-                {isSendingEmailId === row.id ? "Envoi..." : "Envoyer par e-mail"}
-              </button>
-            </div>
-          )}
-        />
+        </div>
       )}
 
       {isModalOpen ? (
@@ -1025,10 +1016,9 @@ export default function BauxPage() {
                     </option>
                   ))}
                 </select>
-                {isColocationLogement && values.logement_id && locatairesSelectList.length === 0 ? (
+                {values.logement_id && locatairesSelectList.length === 0 ? (
                   <span className="text-xs" style={{ color: PC.warning }}>
-                    Aucun colocataire lié à ce logement avec une chambre : configurez d&apos;abord les fiches dans
-                    Locataires.
+                    Aucun locataire assigné à ce logement
                   </span>
                 ) : null}
               </label>

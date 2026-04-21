@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import type { CSSProperties } from "react";
+const EDL_GROUP_CARD: CSSProperties = { ...panelCard, padding: 16 };
 
 type EdlRow = {
   id: string;
@@ -60,6 +62,7 @@ function formatSupabaseInsertError(e: {
 
 export default function EtatsDesLieuxPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<EdlRow[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -73,9 +76,11 @@ export default function EtatsDesLieuxPage() {
   const [dateEtat, setDateEtat] = useState(() => new Date().toISOString().slice(0, 10));
   const [typeLogement, setTypeLogement] = useState<"meuble" | "vide">("vide");
   const [submitting, setSubmitting] = useState(false);
-  const [emailSendingId, setEmailSendingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [successToast, setSuccessToast] = useState("");
+  const logementFilter = searchParams.get("logement_id") ?? "";
+  const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,11 +175,13 @@ export default function EtatsDesLieuxPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
   useEffect(() => {
     if (!bailId || typeEtat !== "sortie") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEntreesOptions([]);
       setEntreeId("");
       return;
@@ -206,7 +213,10 @@ export default function EtatsDesLieuxPage() {
   useEffect(() => {
     if (!bailId) return;
     const b = bauxOptions.find((x) => x.id === bailId);
-    if (b) setTypeLogement(b.type_bail);
+    if (b) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTypeLogement(b.type_bail);
+    }
   }, [bailId, bauxOptions]);
 
   async function onCreate(e: FormEvent) {
@@ -281,14 +291,19 @@ export default function EtatsDesLieuxPage() {
   }
 
   async function onSendEmail(id: string) {
-    setEmailSendingId(id);
     setError("");
     try {
       const res = await fetch(`/api/etats-des-lieux/${id}/send`, { method: "POST" });
-      const j = (await res.json()) as { error?: string };
+      const j = (await res.json()) as { error?: string; to?: string[] };
       if (!res.ok) setError(j.error ?? "Envoi impossible.");
+      else {
+        setSuccessToast(`Email envoyé avec succès à ${(j.to ?? []).join(", ") || "destinataire"}`);
+        window.setTimeout(() => setSuccessToast(""), 3000);
+      }
+    } catch (e) {
+      setError(formatSubmitError(e));
     } finally {
-      setEmailSendingId(null);
+      // no-op
     }
   }
 
@@ -351,13 +366,10 @@ export default function EtatsDesLieuxPage() {
     void load();
   }
 
-  const subtitle = useMemo(() => {
-    return (r: EdlRow) => {
-      const loc = r.locataire_id ? labels[`loc:${r.locataire_id}`] : "";
-      const log = r.logement_id ? labels[`log:${r.logement_id}`] : "";
-      return [loc, log].filter(Boolean).join(" · ") || "—";
-    };
-  }, [labels]);
+  const filteredRows = useMemo(
+    () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
+    [rows, logementFilter],
+  );
 
   return (
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
@@ -368,11 +380,31 @@ export default function EtatsDesLieuxPage() {
             États d&apos;entrée et de sortie, photos, compteurs et PDF Proplio.
           </p>
         </div>
+        <select
+          value={logementFilter}
+          onChange={(event) => {
+            const next = event.target.value;
+            router.push(next ? `/etats-des-lieux?logement_id=${encodeURIComponent(next)}` : "/etats-des-lieux");
+          }}
+          className="rounded-lg px-3 py-2 text-sm"
+          style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+        >
+          <option value="">Tous les logements</option>
+          {bauxOptions
+            .map((b) => ({ id: b.logement_id ?? "", label: b.label.split(" — ").slice(1).join(" — ") || "Logement" }))
+            .filter((item, index, arr) => item.id && arr.findIndex((x) => x.id === item.id) === index)
+            .map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+        </select>
         <button
           type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
           onClick={() => {
-            setBailId("");
+            const preselected = bauxOptions.find((b) => b.logement_id === prefillLogementId)?.id ?? "";
+            setBailId(preselected);
             setTypeEtat("entree");
             setEntreeId("");
             setDateEtat(new Date().toISOString().slice(0, 10));
@@ -387,7 +419,12 @@ export default function EtatsDesLieuxPage() {
       </div>
 
       {error ? (
-        <p className="proplio-alert-error whitespace-pre-wrap break-words">{error}</p>
+        <p className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>{error}</p>
+      ) : null}
+      {successToast ? (
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
+          {successToast}
+        </p>
       ) : null}
 
       {loading ? (
@@ -399,47 +436,28 @@ export default function EtatsDesLieuxPage() {
           Aucun état des lieux. Créez-en un pour commencer.
         </div>
       ) : (
-        <div className="overflow-hidden" style={panelCard}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full pc-divide-y-border">
-              <thead style={{ backgroundColor: PC.card }}>
-                <tr>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: PC.secondary }}
-                  >
-                    Type
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: PC.secondary }}
-                  >
-                    Locataire / Logement
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: PC.secondary }}
-                  >
-                    Date
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: PC.secondary }}
-                  >
-                    Statut
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: PC.secondary }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="pc-divide-y-border">
-                {rows.map((r, i) => (
-                  <tr key={r.id} className={i % 2 === 0 ? "pc-edl-row-sel" : "pc-edl-row"}>
-                    <td className="px-4 py-3">
+        <div className="space-y-8">
+          {Array.from(new Set(filteredRows.map((r) => r.logement_id).filter(Boolean))).map((logementId) => {
+            const groupRows = filteredRows.filter((r) => r.logement_id === logementId);
+            if (!groupRows.length) return null;
+            const first = groupRows[0]!;
+            return (
+              <section key={logementId} className="space-y-4">
+                <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
+                  <div className="flex items-center gap-2">
+                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <h2 className="text-lg font-semibold">{labels[`log:${logementId}`] || "Logement"}</h2>
+                    <span className="text-sm" style={{ color: PC.muted }}>
+                      ({groupRows.length} états des lieux)
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                    {first.logement_id ? labels[`log:${first.logement_id}`] : ""}
+                  </p>
+                </header>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {groupRows.map((r) => (
+                    <article key={r.id} className="rounded-xl" style={EDL_GROUP_CARD}>
                       <span
                         className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
                         style={
@@ -448,72 +466,38 @@ export default function EtatsDesLieuxPage() {
                             : { backgroundColor: PC.warningBg15, color: PC.warning }
                         }
                       >
-                        {getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree"
-                          ? "Entrée"
-                          : "Sortie"}
+                        {getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree" ? "Entrée" : "Sortie"}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">{subtitle(r)}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: PC.muted }}>
-                      {r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
+                      <p className="mt-2 font-medium tracking-tight">{r.locataire_id ? labels[`loc:${r.locataire_id}`] : "—"}</p>
+                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                        {r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}
+                      </p>
                       <span
-                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={
-                          r.statut === "termine"
-                            ? { backgroundColor: PC.dangerBg15, color: PC.red600 }
-                            : { backgroundColor: PC.warningBg15, color: PC.warning }
-                        }
+                        className="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        style={r.statut === "termine" ? { backgroundColor: PC.dangerBg15, color: PC.red600 } : { backgroundColor: PC.warningBg15, color: PC.warning }}
                       >
                         {r.statut === "termine" ? "Finalisé" : "En cours"}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {r.statut !== "termine" ? (
-                          <Link href={`/etats-des-lieux/${r.id}`} className="proplio-btn-secondary py-1.5 text-xs">
-                            Continuer / Modifier
-                          </Link>
-                        ) : (
-                          <Link href={`/etats-des-lieux/${r.id}`} className="proplio-btn-secondary py-1.5 text-xs">
-                            Voir
-                          </Link>
-                        )}
-                        {r.statut === "termine" ? (
-                          <>
-                            <a
-                              href={`/api/etats-des-lieux/${r.id}/pdf`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="proplio-btn-secondary py-1.5 text-xs"
-                            >
-                              PDF
-                            </a>
-                            <button
-                              type="button"
-                              disabled={emailSendingId === r.id}
-                              onClick={() => void onSendEmail(r.id)}
-                              className="proplio-btn-primary py-1.5 text-xs disabled:opacity-60"
-                            >
-                              {emailSendingId === r.id ? "…" : "E-mail"}
-                            </button>
-                          </>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
-                          className="rounded-lg px-2 py-1.5 text-xs pc-outline-danger"
-                        >
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Link href={`/etats-des-lieux/${r.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-muted">
+                          Voir
+                        </Link>
+                        <a href={`/api/etats-des-lieux/${r.id}/pdf`} target="_blank" rel="noreferrer" className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
+                          PDF
+                        </a>
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-success" onClick={() => void onSendEmail(r.id)}>
+                          Email
+                        </button>
+                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-danger" onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}>
                           Supprimer
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
@@ -532,7 +516,7 @@ export default function EtatsDesLieuxPage() {
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                className="proplio-btn-secondary"
+                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
                 disabled={deleteSubmitting}
                 onClick={() => setDeleteTarget(null)}
               >
@@ -642,10 +626,10 @@ export default function EtatsDesLieuxPage() {
                 </select>
               </label>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="proplio-btn-secondary" onClick={() => setModal(false)}>
+                <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={() => setModal(false)}>
                   Annuler
                 </button>
-                <button type="submit" className="proplio-btn-primary" disabled={submitting}>
+                <button type="submit" className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary" disabled={submitting}>
                   {submitting ? "…" : "Commencer l'état des lieux"}
                 </button>
               </div>

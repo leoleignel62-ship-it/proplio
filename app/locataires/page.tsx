@@ -1,8 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
-import { IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
@@ -15,6 +14,8 @@ const LOCA_MODAL_CARD: CSSProperties = {
   padding: 24,
   boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
 };
+const GROUP_TITLE_STYLE: CSSProperties = { color: PC.text, fontWeight: 600, letterSpacing: "-0.01em" };
+const CARD_STYLE: CSSProperties = { ...panelCard, padding: 16 };
 
 type LogementRow = {
   id: string;
@@ -74,33 +75,39 @@ export default function LocatairesPage() {
         )
       : null;
 
-  const columns = useMemo<EntityColumn<Locataire>[]>(
-    () => [
-      { key: "nom", label: "Nom" },
-      { key: "prenom", label: "Prénom" },
-      { key: "email", label: "Email" },
-      { key: "telephone", label: "Téléphone" },
-      {
-        key: "id",
-        label: "Situation",
-        render: (row) => {
-          const log = row.logement_id ? logementsById.get(row.logement_id) : undefined;
-          const isColoc = Boolean(log?.est_colocation && row.colocation_chambre_index);
-          if (!isColoc || !log) return "—";
-          const label = log.nom || log.adresse || "Logement";
-          return (
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
-            >
-              Colocataire · {label} · Ch. {row.colocation_chambre_index}
-            </span>
-          );
-        },
-      },
-    ],
-    [logementsById],
-  );
+  const groupedLocataires = useMemo(() => {
+    const groups: Array<{ key: string; title: string; subtitle: string; rows: Locataire[] }> = [];
+    const byLogement = new Map<string, Locataire[]>();
+    const without: Locataire[] = [];
+    for (const row of rows) {
+      if (!row.logement_id) {
+        without.push(row);
+        continue;
+      }
+      const arr = byLogement.get(row.logement_id) ?? [];
+      arr.push(row);
+      byLogement.set(row.logement_id, arr);
+    }
+    for (const logement of logements) {
+      const rowsFor = byLogement.get(logement.id) ?? [];
+      if (!rowsFor.length) continue;
+      groups.push({
+        key: logement.id,
+        title: logement.nom || "Logement",
+        subtitle: logement.adresse || "",
+        rows: rowsFor,
+      });
+    }
+    if (without.length) {
+      groups.push({
+        key: "without",
+        title: "Sans logement assigné",
+        subtitle: "Locataires non affectés",
+        rows: without,
+      });
+    }
+    return groups;
+  }, [logements, rows]);
 
   const loadLogements = useCallback(async (ownerId: string) => {
     const { data, error: fetchError } = await supabase
@@ -294,6 +301,19 @@ export default function LocatairesPage() {
           ? Math.max(1, Math.min(10, Number(colocIdxRaw)))
           : null;
 
+      if (log?.est_colocation && colocation_chambre_index != null && logementId) {
+        const occupant = rows.find(
+          (r) =>
+            r.logement_id === logementId &&
+            r.colocation_chambre_index === colocation_chambre_index &&
+            (!isEditing || r.id !== editingRow!.id),
+        );
+        if (occupant) {
+          setError(`Cette chambre est déjà occupée par ${occupant.prenom} ${occupant.nom}`.trim());
+          return;
+        }
+      }
+
       const payload = {
         proprietaire_id: ownerId,
         nom,
@@ -370,7 +390,7 @@ export default function LocatairesPage() {
         </div>
         <button
           type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
           onClick={openCreateModal}
         >
           <IconPlus className="h-4 w-4" />
@@ -392,14 +412,93 @@ export default function LocatairesPage() {
           Chargement des locataires...
         </div>
       ) : (
-        <EntityTable
-          columns={columns}
-          rows={rows}
-          emptyMessage="Aucun locataire enregistré."
-          onEdit={openEditModal}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-        />
+        <div className="space-y-8">
+          {groupedLocataires.length === 0 ? (
+            <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+              Aucun locataire enregistré.
+            </div>
+          ) : (
+            groupedLocataires.map((group) => (
+              <section key={group.key} className="space-y-4">
+                <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
+                  <div className="flex items-center gap-2">
+                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <h2 className="text-lg font-semibold">{group.title}</h2>
+                    <span className="text-sm" style={{ color: PC.muted }}>
+                      ({group.rows.length} locataire{group.rows.length > 1 ? "s" : ""})
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                    {group.subtitle}
+                  </p>
+                </header>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {group.rows.map((row) => {
+                    const initiales = `${row.prenom?.[0] ?? ""}${row.nom?.[0] ?? ""}`.toUpperCase();
+                    const log = row.logement_id ? logementsById.get(row.logement_id) : null;
+                    return (
+                      <article key={row.id} className="rounded-xl" style={CARD_STYLE}>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold"
+                            style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                          >
+                            {initiales || "?"}
+                          </span>
+                          <div>
+                            <h3 className="font-semibold tracking-tight" style={GROUP_TITLE_STYLE}>
+                              {row.prenom} {row.nom}
+                            </h3>
+                            <span
+                              className="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                              style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                            >
+                              Actif
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
+                          @ {row.email || "—"}
+                        </p>
+                        <p className="mt-1 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
+                          ☎ {row.telephone || "—"}
+                        </p>
+                        {log ? (
+                          <span
+                            className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                            style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                          >
+                            {log.nom || log.adresse || "Logement"}
+                            {log.est_colocation && row.colocation_chambre_index
+                              ? ` · Chambre ${row.colocation_chambre_index}`
+                              : ""}
+                          </span>
+                        ) : null}
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            type="button"
+                            className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                            onClick={() => openEditModal(row)}
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                            disabled={isDeleting}
+                            onClick={() => void onDelete(row.id)}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ))
+          )}
+        </div>
       )}
 
       {isModalOpen ? (

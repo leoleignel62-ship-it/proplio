@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { DashboardQuickLinks } from "@/components/dashboard-quick-links";
+import { DashboardAnnualChart } from "@/components/dashboard-annual-chart";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
 import { PC } from "@/lib/proplio-colors";
 
@@ -10,10 +10,30 @@ type DashboardStats = {
   bauxActifs: number;
 };
 
-type ActivityItem = {
-  id: string;
-  text: string;
-  at: string;
+type FinancialMetrics = {
+  potentielTotal: number;
+  encaisseMois: number;
+  manque: number;
+  totalLogements: number;
+  logementsLouesCeMois: number;
+  chambresLouees: number;
+  logementsVacants: number;
+  chambresDisponibles: number;
+  tauxRemplissage: number;
+};
+
+type AlertMetrics = {
+  quittancesNonEnvoyeesMois: number;
+  baux30: number;
+  baux60: number;
+  logementsVacants: number;
+};
+
+type AnnualChartData = {
+  labels: string[];
+  encaisses: number[];
+  manque: number[];
+  potentiel: number[];
 };
 
 async function getCount(table: string, ownerId: string) {
@@ -72,80 +92,145 @@ async function getDashboardStats(ownerId: string): Promise<DashboardStats> {
   };
 }
 
-async function getRecentActivity(ownerId: string): Promise<ActivityItem[]> {
-  const supabase = await createSupabaseServerClient();
-  const fmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  const [qRes, bRes, lRes, locRes] = await Promise.all([
-    supabase
-      .from("quittances")
-      .select("id, created_at, mois, annee, envoyee")
-      .eq("proprietaire_id", ownerId)
-      .order("created_at", { ascending: false })
-      .limit(4),
-    supabase
-      .from("baux")
-      .select("id, created_at, statut")
-      .eq("proprietaire_id", ownerId)
-      .order("created_at", { ascending: false })
-      .limit(4),
+async function getFinancialAndAlerts(ownerId: string): Promise<{ financial: FinancialMetrics; alerts: AlertMetrics; annual: AnnualChartData }> {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const [logRes, locRes, quitRes, bauxRes] = await Promise.all([
     supabase
       .from("logements")
-      .select("id, created_at, nom")
-      .eq("proprietaire_id", ownerId)
-      .order("created_at", { ascending: false })
-      .limit(3),
+      .select("id, loyer, charges, est_colocation, nombre_chambres, chambres_details")
+      .eq("proprietaire_id", ownerId),
     supabase
       .from("locataires")
-      .select("id, created_at, nom, prenom")
+      .select("logement_id, colocation_chambre_index")
+      .eq("proprietaire_id", ownerId),
+    supabase
+      .from("quittances")
+      .select("total, envoyee, mois, annee, logement_id")
+      .eq("proprietaire_id", ownerId),
+    supabase
+      .from("baux")
+      .select("date_fin, statut")
       .eq("proprietaire_id", ownerId)
-      .order("created_at", { ascending: false })
-      .limit(3),
+      .eq("statut", "actif"),
   ]);
 
-  type Ev = { id: string; text: string; t: number };
-  const events: Ev[] = [];
+  const logements = logRes.data ?? [];
+  const locataires = locRes.data ?? [];
+  const quittances = quitRes.data ?? [];
+  const baux = bauxRes.data ?? [];
 
-  for (const row of qRes.data ?? []) {
-    const t = new Date(row.created_at as string).getTime();
-    const env = row.envoyee ? "envoyée" : "brouillon";
-    events.push({
-      id: `q-${row.id}`,
-      text: `Quittance ${row.mois}/${row.annee} — ${env}`,
-      t,
-    });
-  }
-  for (const row of bRes.data ?? []) {
-    const t = new Date(row.created_at as string).getTime();
-    events.push({
-      id: `b-${row.id}`,
-      text: `Bail ${row.statut === "actif" ? "actif" : "terminé"} enregistré`,
-      t,
-    });
-  }
-  for (const row of lRes.data ?? []) {
-    const t = new Date(row.created_at as string).getTime();
-    events.push({
-      id: `l-${row.id}`,
-      text: `Logement « ${row.nom} » ajouté`,
-      t,
-    });
-  }
-  for (const row of locRes.data ?? []) {
-    const t = new Date(row.created_at as string).getTime();
-    events.push({
-      id: `loc-${row.id}`,
-      text: `Locataire ${row.prenom} ${row.nom}`.trim(),
-      t,
-    });
+  const locatairesByLogement = new Map<string, Array<{ colocation_chambre_index: number | null }>>();
+  for (const loc of locataires) {
+    const logementId = loc.logement_id as string | null;
+    if (!logementId) continue;
+    const arr = locatairesByLogement.get(logementId) ?? [];
+    arr.push({ colocation_chambre_index: (loc.colocation_chambre_index as number | null) ?? null });
+    locatairesByLogement.set(logementId, arr);
   }
 
-  events.sort((a, b) => b.t - a.t);
-  return events.slice(0, 5).map((e) => ({
-    id: e.id,
-    text: e.text,
-    at: fmt.format(new Date(e.t)),
-  }));
+  const potentielTotal = logements.reduce((sum, row) => {
+    const isColocation = Boolean(row.est_colocation);
+    const charges = Number(row.charges ?? 0);
+    if (!isColocation) return sum + Number(row.loyer ?? 0) + charges;
+    const chambres = Array.isArray(row.chambres_details) ? row.chambres_details : [];
+    const loyerChambres = chambres.reduce((acc, ch) => acc + Number((ch as { loyer?: number }).loyer ?? 0), 0);
+    return sum + loyerChambres + charges;
+  }, 0);
+
+  const encaisseMois = quittances
+    .filter((q) => q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear)
+    .reduce((sum, q) => sum + Number(q.total ?? 0), 0);
+
+  const quittancesEnvoyeesMois = quittances.filter(
+    (q) => q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear,
+  );
+  const logementsLouesCeMois = new Set(
+    quittancesEnvoyeesMois.map((q) => (q as { logement_id?: string | null }).logement_id).filter(Boolean),
+  ).size;
+
+  let chambresDisponibles = 0;
+  for (const row of logements) {
+    if (!row.est_colocation) continue;
+    const declaredRooms = Math.max(1, Number(row.nombre_chambres ?? 0));
+    const detailRooms = Array.isArray(row.chambres_details) ? row.chambres_details.length : 0;
+    const totalRooms = Math.max(declaredRooms, detailRooms || 1);
+    const occupied = (locatairesByLogement.get(String(row.id)) ?? []).filter(
+      (l) => l.colocation_chambre_index != null && l.colocation_chambre_index >= 1,
+    ).length;
+    chambresDisponibles += Math.max(0, totalRooms - occupied);
+  }
+  const chambresLouees = (locataires as Array<{ colocation_chambre_index: number | null }>).filter(
+    (l) => l.colocation_chambre_index != null && l.colocation_chambre_index >= 1,
+  ).length;
+
+  const totalLogements = logements.length;
+  const logementsVacants = logements.filter((logement) => {
+    const logementId = String(logement.id);
+    const assigned = locatairesByLogement.get(logementId) ?? [];
+    return assigned.length === 0;
+  }).length;
+  const manque = Math.max(0, potentielTotal - encaisseMois);
+  const tauxRemplissage = potentielTotal > 0 ? Math.min(100, (encaisseMois / potentielTotal) * 100) : 0;
+
+  const quittancesNonEnvoyeesMois = quittances.filter(
+    (q) => !q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear,
+  ).length;
+
+  const in30 = new Date();
+  in30.setDate(in30.getDate() + 30);
+  const in60 = new Date();
+  in60.setDate(in60.getDate() + 60);
+
+  let baux30 = 0;
+  let baux60 = 0;
+  for (const bail of baux) {
+    const end = new Date(String(bail.date_fin));
+    if (Number.isNaN(end.getTime())) continue;
+    if (end >= now && end <= in30) baux30 += 1;
+    if (end > in30 && end <= in60) baux60 += 1;
+  }
+
+  const encaissesByMonth = Array.from({ length: 12 }, () => 0);
+  for (const q of quittances) {
+    if (!q.envoyee || Number(q.annee) !== currentYear) continue;
+    const idx = Number(q.mois) - 1;
+    if (idx >= 0 && idx < 12) encaissesByMonth[idx] += Number(q.total ?? 0);
+  }
+  const potentielByMonth = Array.from({ length: 12 }, () => potentielTotal);
+  const manqueByMonth = encaissesByMonth.map((v) => Math.max(0, potentielTotal - v));
+
+  const labels = ["Jan", "Fev", "Mar", "Avr", "Mai", "Jun", "Jul", "Aou", "Sep", "Oct", "Nov", "Dec"];
+
+  return {
+    financial: {
+      potentielTotal,
+      encaisseMois,
+      manque,
+      totalLogements,
+      logementsLouesCeMois,
+      chambresLouees,
+      logementsVacants,
+      chambresDisponibles,
+      tauxRemplissage,
+    },
+    alerts: {
+      quittancesNonEnvoyeesMois,
+      baux30,
+      baux60,
+      logementsVacants,
+    },
+    annual: {
+      labels,
+      encaisses: encaissesByMonth,
+      manque: manqueByMonth,
+      potentiel: potentielByMonth,
+    },
+  };
 }
 
 function StatCard({
@@ -153,36 +238,40 @@ function StatCard({
   valeur,
   description,
   icon: Icon,
-  iconGradient,
+  cardBg,
+  cardBorder,
+  iconBg,
 }: {
   titre: string;
   valeur: number;
   description: string;
   icon: typeof IconBuilding;
-  iconGradient: string;
+  cardBg: string;
+  cardBorder: string;
+  iconBg: string;
 }) {
   return (
     <article
       className="relative overflow-hidden p-5"
       style={{
-        backgroundColor: PC.card,
-        border: `1px solid ${PC.border}`,
+        backgroundColor: cardBg,
+        border: `1px solid ${cardBorder}`,
         borderRadius: 12,
         boxShadow: PC.cardShadow,
       }}
     >
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium" style={{ color: PC.muted }}>
+          <p className="text-sm font-medium" style={{ color: "#FFFFFF" }}>
             {titre}
           </p>
           <p
             className="mt-2 text-2xl font-semibold tabular-nums sm:text-[26px]"
-            style={{ color: PC.text }}
+            style={{ color: "#FFFFFF" }}
           >
             {valeur}
           </p>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+          <p className="mt-2 text-sm" style={{ color: "#FFFFFF" }}>
             {description}
           </p>
         </div>
@@ -192,8 +281,8 @@ function StatCard({
             width: 36,
             height: 36,
             borderRadius: 10,
-            background: iconGradient,
-            color: PC.white,
+            background: iconBg,
+            color: "#FFFFFF",
           }}
         >
           <Icon className="!h-4 !w-4 shrink-0" aria-hidden />
@@ -211,7 +300,18 @@ export default async function Home() {
 
   let stats: DashboardStats = { logements: 0, locataires: 0, quittancesEnvoyeesCeMois: 0, bauxActifs: 0 };
   let prenom = "";
-  let activity: ActivityItem[] = [];
+  let financial: FinancialMetrics = {
+    potentielTotal: 0,
+    encaisseMois: 0,
+    manque: 0,
+    totalLogements: 0,
+    logementsLouesCeMois: 0,
+    chambresLouees: 0,
+    logementsVacants: 0,
+    chambresDisponibles: 0,
+    tauxRemplissage: 0,
+  };
+  let annual: AnnualChartData = { labels: [], encaisses: [], manque: [], potentiel: [] };
 
   if (user) {
     const { data: proprietaire } = await supabase
@@ -224,7 +324,13 @@ export default async function Home() {
 
     if (proprietaire?.id) {
       const ownerId = proprietaire.id as string;
-      [stats, activity] = await Promise.all([getDashboardStats(ownerId), getRecentActivity(ownerId)]);
+      const [dashboardStats, derived] = await Promise.all([
+        getDashboardStats(ownerId),
+        getFinancialAndAlerts(ownerId),
+      ]);
+      stats = dashboardStats;
+      financial = derived.financial;
+      annual = derived.annual;
     }
   }
 
@@ -257,92 +363,102 @@ export default async function Home() {
           valeur={stats.logements}
           description="Biens enregistrés sur Proplio."
           icon={IconBuilding}
-          iconGradient="linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)"
+          cardBg="#7C3AED"
+          cardBorder="#8B5CF6"
+          iconBg="#6D28D9"
         />
         <StatCard
           titre="Locataires actifs"
           valeur={stats.locataires}
           description="Profils locataires suivis."
           icon={IconUsers}
-          iconGradient="linear-gradient(135deg, #6366f1 0%, #4338ca 100%)"
+          cardBg="#6D28D9"
+          cardBorder="#7C3AED"
+          iconBg="#5B21B6"
         />
         <StatCard
           titre="Quittances ce mois"
           valeur={stats.quittancesEnvoyeesCeMois}
           description="Marquées comme envoyées."
           icon={IconDocument}
-          iconGradient="linear-gradient(135deg, #10b981 0%, #047857 100%)"
+          cardBg="#5B21B6"
+          cardBorder="#6D28D9"
+          iconBg="#4C1D95"
         />
         <StatCard
           titre="Baux actifs"
           valeur={stats.bauxActifs}
           description="Contrats au statut actif."
           icon={IconContract}
-          iconGradient="linear-gradient(135deg, #f59e0b 0%, #b45309 100%)"
+          cardBg="#4C1D95"
+          cardBorder="#5B21B6"
+          iconBg="#3B0764"
         />
       </div>
 
       <section
-        className="p-5 sm:p-6"
-        style={{
-          backgroundColor: PC.card,
-          border: `1px solid ${PC.border}`,
-          borderRadius: 12,
-          boxShadow: PC.cardShadow,
-        }}
+        className="space-y-4 p-5 sm:p-6"
+        style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, borderRadius: 12, boxShadow: PC.cardShadow }}
       >
         <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
-          Actions rapides
+          Suivi financier — {new Intl.DateTimeFormat("fr-FR", { month: "long" }).format(new Date())}
         </h2>
-        <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-          Accédez aux flux les plus courants en un clic.
-        </p>
-        <DashboardQuickLinks />
+        <div className="grid gap-3 md:grid-cols-3">
+          <article className="rounded-xl p-4" style={{ backgroundColor: PC.primaryBg10, border: `1px solid ${PC.primaryBorder40}` }}>
+            <p className="text-xs font-medium" style={{ color: PC.secondary }}>Potentiel total du parc</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.primary }}>{financial.potentielTotal.toLocaleString("fr-FR")} €</p>
+            <p className="mt-1 text-xs" style={{ color: PC.muted }}>{financial.totalLogements} logement(s) total</p>
+          </article>
+          <article className="rounded-xl p-4" style={{ backgroundColor: PC.successBg10, border: `1px solid ${PC.borderSuccess40}` }}>
+            <p className="text-xs font-medium" style={{ color: PC.success }}>Actuellement encaissé</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.success }}>{financial.encaisseMois.toLocaleString("fr-FR")} €</p>
+            <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+              {financial.logementsLouesCeMois} logements · {financial.chambresLouees} chambres louées
+            </p>
+          </article>
+          <article className="rounded-xl p-4" style={{ backgroundColor: PC.dangerBg10, border: `1px solid ${PC.borderDanger40}` }}>
+            <p className="text-xs font-medium" style={{ color: PC.danger }}>Manque à gagner</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.danger }}>{financial.manque.toLocaleString("fr-FR")} €</p>
+            <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+              {financial.logementsVacants} logement(s) vacant(s) · {financial.chambresDisponibles} chambre(s) disponible(s)
+            </p>
+          </article>
+        </div>
+        <div className="space-y-2 rounded-xl p-4" style={{ backgroundColor: PC.bg, border: `1px solid ${PC.border}` }}>
+          <div className="h-3 w-full overflow-hidden rounded-full" style={{ backgroundColor: PC.border }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.max(0, Math.min(100, financial.tauxRemplissage))}%`,
+                background: `linear-gradient(90deg, ${PC.primary} 0%, ${PC.success} 100%)`,
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-xs" style={{ color: PC.muted }}>
+            <span>0€</span>
+            <span>{Math.round(financial.tauxRemplissage)}%</span>
+            <span>Objectif : {financial.potentielTotal.toLocaleString("fr-FR")}€</span>
+          </div>
+        </div>
       </section>
 
       <section
-        className="overflow-hidden"
-        style={{
-          backgroundColor: PC.card,
-          border: `1px solid ${PC.border}`,
-          borderRadius: 12,
-          boxShadow: PC.cardShadow,
-        }}
+        className="space-y-4 p-5 sm:p-6"
+        style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, borderRadius: 12, boxShadow: PC.cardShadow }}
       >
-        <div
-          className="px-5 py-5 sm:px-6 sm:pt-6"
-          style={{ borderBottom: `1px solid ${PC.border}` }}
-        >
-          <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
-            Activité récente
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-            Les cinq derniers événements enregistrés.
-          </p>
+        <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
+          Revenus {new Date().getFullYear()}
+        </h2>
+        <div className="h-[320px]">
+          <DashboardAnnualChart
+            labels={annual.labels}
+            encaisses={annual.encaisses}
+            manque={annual.manque}
+            potentiel={annual.potentiel}
+          />
         </div>
-        <ul>
-          {activity.length === 0 ? (
-            <li className="px-5 py-8 text-center text-sm" style={{ color: PC.muted }}>
-              Aucune activité récente.
-            </li>
-          ) : (
-            activity.map((item, i) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-4 px-5 py-3.5"
-                style={i > 0 ? { borderTop: `1px solid ${PC.border}` } : undefined}
-              >
-                <span className="text-sm" style={{ color: PC.text }}>
-                  {item.text}
-                </span>
-                <span className="shrink-0 text-xs" style={{ color: PC.muted }}>
-                  {item.at}
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
       </section>
+
     </section>
   );
 }

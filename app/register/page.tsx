@@ -39,25 +39,28 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
 
-    if (signUpError) {
-      setError(signUpError.message);
+      if (data.user && data.session) {
+        await ensureProprietaireRow();
+      }
+
+      setSuccess("Compte créé. Vérifie ta boîte email pour confirmer ton inscription.");
+      router.push("/login?check_email=1");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Inscription impossible.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    if (data.user && data.session) {
-      await ensureProprietaireRow();
-    }
-
-    setSuccess("Compte créé. Vérifie ta boîte email pour confirmer ton inscription.");
-    setIsSubmitting(false);
-    router.push("/login?check_email=1");
   }
 
   return (

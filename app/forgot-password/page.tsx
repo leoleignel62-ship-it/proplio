@@ -28,20 +28,23 @@ export default function ForgotPasswordPage() {
     setError("");
     setSuccess("");
     setIsSubmitting(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
 
-    const redirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (resetError) {
+        setError(resetError.message);
+        return;
+      }
 
-    if (resetError) {
-      setError(resetError.message);
+      setSuccess("Email envoyé. Vérifie ta boîte mail pour réinitialiser ton mot de passe.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Envoi impossible.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setSuccess("Email envoyé. Vérifie ta boîte mail pour réinitialiser ton mot de passe.");
-    setIsSubmitting(false);
   }
 
   return (

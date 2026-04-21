@@ -166,15 +166,23 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [successToast, setSuccessToast] = useState("");
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const piecesRef = useRef<PiecesEdlData | null>(null);
-  piecesRef.current = pieces;
   const statutRef = useRef<string | undefined>(undefined);
-  statutRef.current = row?.statut as string | undefined;
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    piecesRef.current = pieces;
+  }, [pieces]);
+
+  useEffect(() => {
+    statutRef.current = row?.statut as string | undefined;
+  }, [row?.statut]);
 
   const refreshSignedUrls = useCallback(async (pathsList: string[]) => {
     if (pathsList.length === 0) return;
@@ -264,6 +272,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
 
   useEffect(() => {
     const ac = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(ac.signal);
     return () => ac.abort();
   }, [load]);
@@ -328,7 +337,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     setError("");
     try {
       const blob = await compressImageForEdl(file);
-      const path = `${proprietaireId}/${edlId}/${roomId}/${elementKey}_${Date.now()}.jpg`;
+      const path = `${proprietaireId}/${edlId}/${roomId}/${elementKey}_${crypto.randomUUID()}.jpg`;
       const { error: upErr } = await supabase.storage.from("etats-des-lieux").upload(path, blob, {
         contentType: "image/jpeg",
         upsert: false,
@@ -420,14 +429,11 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     return t;
   }, [pieces, row, entryPieces]);
 
-  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const t = window.setInterval(() => setTick((x) => x + 1), 1000);
+    const t = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
-  const secondsSinceSave =
-    lastSaved != null ? Math.max(0, Math.round((Date.now() - lastSaved) / 1000)) : null;
-  void tick;
+  const secondsSinceSave = lastSaved != null ? Math.max(0, Math.round((nowMs - lastSaved) / 1000)) : null;
 
   if (!row || !pieces) {
     return (
@@ -540,9 +546,13 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               }}
               onClick={async () => {
                 const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
-                const j = (await res.json()) as { error?: string };
+                const j = (await res.json()) as { error?: string; to?: string[] };
                 if (!res.ok) setError(j.error ?? "Envoi impossible");
-                else setError("");
+                else {
+                  setError("");
+                  setSuccessToast(`Email envoyé avec succès à ${(j.to ?? []).join(", ") || "destinataire"}`);
+                  window.setTimeout(() => setSuccessToast(""), 3000);
+                }
               }}
             >
               Envoyer par e-mail
@@ -569,6 +579,14 @@ export function EdlEditor({ edlId }: { edlId: string }) {
           }}
         >
           {error}
+        </p>
+      ) : null}
+      {successToast ? (
+        <p
+          className="mb-4 rounded-xl px-4 py-3 text-sm"
+          style={{ border: `1px solid rgba(16, 185, 129, 0.3)`, backgroundColor: PC.successBg10, color: PC.success }}
+        >
+          {successToast}
         </p>
       ) : null}
 

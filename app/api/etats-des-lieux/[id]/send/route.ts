@@ -137,7 +137,7 @@ export async function POST(
       .eq("id", edl.id)
       .eq("proprietaire_id", proprietaire.id);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, to });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur serveur." },

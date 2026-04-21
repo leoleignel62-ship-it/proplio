@@ -34,21 +34,25 @@ function LoginForm() {
     event.preventDefault();
     setError("");
     setIsSubmitting(true);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
 
-    if (signInError) {
-      setError(signInError.message);
+      await ensureProprietaireRow();
+      router.push("/");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Connexion impossible.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    await ensureProprietaireRow();
-    router.push("/");
-    router.refresh();
   }
 
   return (

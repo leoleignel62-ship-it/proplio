@@ -17,6 +17,7 @@ type EntityField = {
   placeholder?: string;
   step?: string;
   options?: SelectOption[];
+  helperText?: string;
 };
 
 type EntityFormModalProps = {
@@ -110,6 +111,11 @@ export function EntityFormModal({
                   step={field.step}
                 />
               )}
+              {field.helperText ? (
+                <span className="text-xs" style={{ color: PC.warning }}>
+                  {field.helperText}
+                </span>
+              ) : null}
             </label>
           ))}
 

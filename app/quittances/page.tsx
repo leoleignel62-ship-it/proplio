@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
-import { EntityTable, type EntityColumn } from "@/components/crud/entity-table";
-import { IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { ProprietaireProfileCard } from "@/components/proprietaire-profile-card";
 import {
   fetchProprietaireProfile,
@@ -43,6 +44,7 @@ type LogementEntity = {
 type LocataireEntity = {
   id: string;
   label: string;
+  email: string | null;
   logement_id: string | null;
   colocation_chambre_index: number | null;
 };
@@ -78,18 +80,18 @@ const defaultValues = {
   loyer: "",
   charges: "",
   total: "",
-  envoyee: "non",
-  date_envoi: "",
 };
+const GROUP_CARD_STYLE = { ...panelCard, padding: 16 } as const;
 
 export default function QuittancesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<Quittance[]>([]);
   const [values, setValues] = useState<Record<string, string>>(defaultValues);
   const [editingRow, setEditingRow] = useState<Quittance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [logements, setLogements] = useState<LogementEntity[]>([]);
@@ -98,7 +100,6 @@ export default function QuittancesPage() {
   const [proprietaireProfile, setProprietaireProfile] = useState<ProprietaireProfile | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
-  const logementsMap = useMemo(() => new Map(logements.map((item) => [item.id, item.label])), [logements]);
   const logementsDetailsMap = useMemo(() => new Map(logements.map((item) => [item.id, item])), [logements]);
   const locatairesMap = useMemo(() => new Map(locataires.map((item) => [item.id, item.label])), [locataires]);
   const locatairesDetailsMap = useMemo(
@@ -115,6 +116,15 @@ export default function QuittancesPage() {
     [locataires],
   );
   const moisMap = useMemo(() => new Map(moisOptions.map((item) => [item.value, item.label])), []);
+  const logementFilter = searchParams.get("logement_id") ?? "";
+  const prefillLogementId = searchParams.get("logement_id") ?? "";
+  const locatairesForSelectedLogement = useMemo(
+    () =>
+      values.logement_id
+        ? locataires.filter((item) => item.logement_id === values.logement_id)
+        : locataires,
+    [locataires, values.logement_id],
+  );
 
   const fields = useMemo<EntityField[]>(
     () => [
@@ -130,50 +140,41 @@ export default function QuittancesPage() {
         label: "Locataire",
         type: "select",
         required: true,
-        options: locataires.map((item) => ({ value: item.id, label: item.label })),
+        options: locatairesForSelectedLogement.map((item) => ({ value: item.id, label: item.label })),
+        helperText:
+          values.logement_id && locatairesForSelectedLogement.length === 0
+            ? "Aucun locataire assigné à ce logement"
+            : undefined,
       },
       { name: "mois", label: "Mois", type: "select", required: true, options: moisOptions },
       { name: "annee", label: "Année", type: "select", required: true, options: anneeOptions },
       { name: "loyer", label: "Loyer (€)", type: "number", required: true, step: "0.01" },
       { name: "charges", label: "Charges (€)", type: "number", required: true, step: "0.01" },
       { name: "total", label: "Total (€)", type: "number", required: true, step: "0.01" },
-      {
-        name: "envoyee",
-        label: "Quittance envoyée",
-        type: "select",
-        required: true,
-        options: [
-          { value: "non", label: "Non" },
-          { value: "oui", label: "Oui" },
-        ],
-      },
-      { name: "date_envoi", label: "Date d'envoi", type: "date" },
     ],
-    [logements, locataires],
+    [logements, locatairesForSelectedLogement, values.logement_id],
   );
+  const [successToast, setSuccessToast] = useState("");
 
-  const columns = useMemo<EntityColumn<Quittance>[]>(
-    () => [
-      {
-        key: "logement_id",
-        label: "Logement",
-        render: (row) => logementsMap.get(row.logement_id) ?? row.logement_id,
-      },
-      {
-        key: "locataire_id",
-        label: "Locataire",
-        render: (row) => locatairesMap.get(row.locataire_id) ?? row.locataire_id,
-      },
-      { key: "mois", label: "Mois", render: (row) => moisMap.get(String(row.mois)) ?? String(row.mois) },
-      { key: "annee", label: "Année" },
-      { key: "loyer", label: "Loyer", render: (row) => `${row.loyer} €` },
-      { key: "charges", label: "Charges", render: (row) => `${row.charges} €` },
-      { key: "total", label: "Total", render: (row) => `${row.total} €` },
-      { key: "envoyee", label: "Envoyée", render: (row) => (row.envoyee ? "Oui" : "Non") },
-      { key: "date_envoi", label: "Date d'envoi", render: (row) => row.date_envoi ?? "—" },
-    ],
-    [locatairesMap, logementsMap, moisMap],
+  const filteredRows = useMemo(
+    () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
+    [rows, logementFilter],
   );
+  const groupedQuittances = useMemo(() => {
+    const map = new Map<string, Quittance[]>();
+    for (const row of filteredRows) {
+      const arr = map.get(row.logement_id) ?? [];
+      arr.push(row);
+      map.set(row.logement_id, arr);
+    }
+    return logements
+      .filter((l) => map.has(l.id))
+      .map((l) => {
+        const group = map.get(l.id) ?? [];
+        const sent = group.filter((q) => q.envoyee).length;
+        return { logement: l, rows: group, sent };
+      });
+  }, [filteredRows, logements]);
 
   const loadRelations = useCallback(async (ownerId: string) => {
     const [logementsResponse, locatairesResponse] = await Promise.all([
@@ -183,7 +184,7 @@ export default function QuittancesPage() {
         .eq("proprietaire_id", ownerId),
       supabase
         .from("locataires")
-        .select("id, nom, prenom, logement_id, colocation_chambre_index")
+        .select("id, nom, prenom, email, logement_id, colocation_chambre_index")
         .eq("proprietaire_id", ownerId),
     ]);
 
@@ -211,6 +212,7 @@ export default function QuittancesPage() {
       (locatairesResponse.data ?? []).map((item) => ({
         id: item.id,
         label: `${item.prenom} ${item.nom}`,
+        email: item.email ?? null,
         logement_id: item.logement_id ?? null,
         colocation_chambre_index:
           item.colocation_chambre_index != null ? Number(item.colocation_chambre_index) : null,
@@ -283,7 +285,7 @@ export default function QuittancesPage() {
 
   function openCreateModal() {
     setEditingRow(null);
-    setValues({ ...defaultValues, annee: defaultYear });
+    setValues({ ...defaultValues, annee: defaultYear, logement_id: prefillLogementId });
     setIsModalOpen(true);
     if (proprietaireId) void loadRelations(proprietaireId);
   }
@@ -298,8 +300,6 @@ export default function QuittancesPage() {
       loyer: String(row.loyer ?? ""),
       charges: String(row.charges ?? ""),
       total: String(row.total ?? ""),
-      envoyee: row.envoyee ? "oui" : "non",
-      date_envoi: row.date_envoi ? row.date_envoi.slice(0, 10) : "",
     });
     setIsModalOpen(true);
     if (proprietaireId) void loadRelations(proprietaireId);
@@ -418,13 +418,6 @@ export default function QuittancesPage() {
         total = expected;
       }
 
-      const envoyee = values.envoyee === "oui";
-      const dateEnvoi = values.date_envoi?.trim() || null;
-      if (envoyee && !dateEnvoi) {
-        setError("Si la quittance est marquée comme envoyée, indiquez la date d'envoi.");
-        return;
-      }
-
       const payload = {
         proprietaire_id: ownerId,
         logement_id: values.logement_id.trim(),
@@ -434,8 +427,6 @@ export default function QuittancesPage() {
         loyer,
         charges,
         total,
-        envoyee,
-        date_envoi: dateEnvoi,
       };
 
       const query = isEditing
@@ -444,7 +435,7 @@ export default function QuittancesPage() {
             .update(payload)
             .eq("id", editingRow!.id)
             .eq("proprietaire_id", ownerId)
-        : supabase.from("quittances").insert(payload);
+        : supabase.from("quittances").insert({ ...payload, envoyee: false, date_envoi: null });
 
       const { error: submitError } = await query;
 
@@ -463,7 +454,6 @@ export default function QuittancesPage() {
   }
 
   async function onDelete(id: string) {
-    setIsDeleting(true);
     setError("");
 
     try {
@@ -488,7 +478,6 @@ export default function QuittancesPage() {
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
-      setIsDeleting(false);
     }
   }
 
@@ -500,25 +489,49 @@ export default function QuittancesPage() {
       const response = await fetch(`/api/quittances/${row.id}/send`, {
         method: "POST",
       });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; to?: string };
 
       if (!response.ok) {
         let msg = `Envoi impossible (${response.status}). Vérifiez la configuration e-mail et les données de la quittance.`;
-        try {
-          const j = (await response.json()) as { error?: string };
-          if (j.error?.trim()) msg = j.error.trim();
-        } catch {
-          /* corps non JSON */
-        }
+        if (payload.error?.trim()) msg = payload.error.trim();
         setError(msg);
         return;
       }
 
       const { proprietaireId: ownerId } = await getCurrentProprietaireId();
       if (ownerId) await loadRows(ownerId);
+      const email = payload.to || locataires.find((l) => l.id === row.locataire_id)?.email || "destinataire";
+      setSuccessToast(`Email envoyé avec succès à ${email}`);
+      window.setTimeout(() => setSuccessToast(""), 3000);
     } catch (e) {
       setError(`Erreur lors de l'envoi : ${formatSubmitError(e)}`);
     } finally {
       setSendingId(null);
+    }
+  }
+
+  async function onGeneratePdf(row: Quittance) {
+    setError("");
+    try {
+      const response = await fetch(`/api/quittances/${row.id}/pdf`);
+      if (!response.ok) {
+        let msg = `Génération PDF impossible (${response.status}).`;
+        try {
+          const j = (await response.json()) as { error?: string };
+          if (j.error?.trim()) msg = j.error.trim();
+        } catch {}
+        setError(msg);
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `quittance-${row.id.slice(0, 8)}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(`Erreur de génération PDF : ${formatSubmitError(e)}`);
     }
   }
 
@@ -536,9 +549,27 @@ export default function QuittancesPage() {
             Liste, création et suivi des quittances.
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={logementFilter}
+            onChange={(event) => {
+              const next = event.target.value;
+              router.push(next ? `/quittances?logement_id=${encodeURIComponent(next)}` : "/quittances");
+            }}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          >
+            <option value="">Tous les logements</option>
+            {logements.map((logement) => (
+              <option key={logement.id} value={logement.id}>
+                {logement.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
           onClick={openCreateModal}
         >
           <IconPlus className="h-4 w-4" />
@@ -554,47 +585,85 @@ export default function QuittancesPage() {
           {error}
         </p>
       ) : null}
+      {successToast ? (
+        <p className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
+          {successToast}
+        </p>
+      ) : null}
 
       {isLoading ? (
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des quittances...
         </div>
       ) : (
-        <EntityTable
-          columns={columns}
-          rows={rows}
-          emptyMessage="Aucune quittance enregistrée."
-          onEdit={openEditModal}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-          statusRenderer={(row) =>
-            row.envoyee ? (
-              <span
-                className="rounded-full px-2.5 py-1 text-xs font-medium"
-                style={{ backgroundColor: PC.successBg20, color: PC.success }}
-              >
-                Envoyée le {row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}
-              </span>
-            ) : (
-              <span
-                className="rounded-full px-2.5 py-1 text-xs font-medium"
-                style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
-              >
-                Non envoyée
-              </span>
-            )
-          }
-          actionsRenderer={(row) => (
-            <button
-              type="button"
-              className="rounded-md px-3 py-1.5 text-xs font-medium pc-outline-success disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={() => onSendQuittance(row)}
-              disabled={sendingId === row.id}
-            >
-              {sendingId === row.id ? "Envoi..." : "Envoyer la quittance"}
-            </button>
+        <div className="space-y-8">
+          {groupedQuittances.length === 0 ? (
+            <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+              Aucune quittance enregistrée.
+            </div>
+          ) : (
+            groupedQuittances.map(({ logement, rows: groupRows, sent }) => (
+              <section key={logement.id} className="space-y-4">
+                <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
+                  <div className="flex items-center gap-2">
+                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <h2 className="text-lg font-semibold">{logement.label}</h2>
+                    <span className="text-sm" style={{ color: PC.muted }}>
+                      ({sent}/{groupRows.length} envoyées)
+                    </span>
+                  </div>
+                </header>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {groupRows.map((row) => (
+                    <article key={row.id} className="rounded-xl" style={GROUP_CARD_STYLE}>
+                      <h3 className="font-semibold tracking-tight">
+                        {moisMap.get(String(row.mois))} {row.annee}
+                      </h3>
+                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                        {locatairesMap.get(row.locataire_id) ?? row.locataire_id}
+                      </p>
+                      <p className="mt-3 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
+                        Loyer {row.loyer.toFixed(2)} € · Charges {row.charges.toFixed(2)} €
+                      </p>
+                      <p className="text-base font-semibold">Total {row.total.toFixed(2)} €</p>
+                      <span
+                        className="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                        style={
+                          row.envoyee
+                            ? { backgroundColor: PC.successBg20, color: PC.success }
+                            : { backgroundColor: PC.warningBg15, color: PC.warning }
+                        }
+                      >
+                        {row.envoyee
+                          ? `Envoyée le ${row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}`
+                          : "Non envoyée"}
+                      </span>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                          disabled={sendingId === row.id}
+                          onClick={() => onSendQuittance(row)}
+                        >
+                          {sendingId === row.id ? "Envoi..." : "Envoyer"}
+                        </button>
+                        <button type="button" onClick={() => void onGeneratePdf(row)} className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
+                          PDF
+                        </button>
+                        <button type="button" className="rounded-md px-2 py-1.5 text-xs pc-outline-muted" onClick={() => openEditModal(row)}>
+                          ✎
+                        </button>
+                        <button type="button" className="rounded-md px-2 py-1.5 text-xs pc-outline-danger" onClick={() => void onDelete(row.id)}>
+                          🗑
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))
           )}
-        />
+        </div>
       )}
 
       <EntityFormModal

@@ -910,7 +910,6 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       const invHeaderH = invRowH;
       const rowHeights = equipements.map((item) => {
         const detail = details[item] ?? {};
-        const quantity = detail.quantity && detail.quantity > 0 ? detail.quantity : 1;
         const rooms = detail.rooms?.trim() || "—";
         const itemLines = wrapLines(item, font, 9, PAGE_W * 0.42).length;
         const roomLines = wrapLines(rooms, font, 8, PAGE_W * 0.28).length;

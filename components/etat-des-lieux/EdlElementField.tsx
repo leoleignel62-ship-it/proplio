@@ -1,51 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { ElementEdl, EtatNiveau } from "@/lib/etat-des-lieux/types";
 import { ETAT_LABELS, ETAT_OPTIONS, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
 import { SOL_TYPES } from "@/lib/etat-des-lieux/defaults";
 import { PC } from "@/lib/proplio-colors";
 import { edlFieldCardStyle, fieldInputStyle, fieldSelectStyle } from "@/lib/proplio-field-styles";
-
-function PhotoPickBar({
-  uploading,
-  onCapture,
-  onImport,
-}: {
-  uploading: boolean;
-  onCapture: () => void;
-  onImport: () => void;
-}) {
-  const [h1, setH1] = useState(false);
-  const [h2, setH2] = useState(false);
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-      <button
-        type="button"
-        onClick={onCapture}
-        disabled={uploading}
-        className="text-xs disabled:opacity-50"
-        style={{ color: h1 && !uploading ? PC.secondary : PC.muted }}
-        onMouseEnter={() => setH1(true)}
-        onMouseLeave={() => setH1(false)}
-      >
-        {uploading ? "…" : "📷 Prendre une photo"}
-      </button>
-      <button
-        type="button"
-        onClick={onImport}
-        disabled={uploading}
-        className="text-xs disabled:opacity-50"
-        style={{ color: h2 && !uploading ? PC.secondary : PC.muted }}
-        onMouseEnter={() => setH2(true)}
-        onMouseLeave={() => setH2(false)}
-      >
-        {uploading ? "…" : "🖼 Importer une photo"}
-      </button>
-    </div>
-  );
-}
 
 type Props = {
   label: string;
@@ -73,8 +34,6 @@ export function EdlElementField({
   onPreview,
   readOnly = false,
 }: Props) {
-  const captureInputRef = useRef<HTMLInputElement>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
   const stateCurrent = normalizeEtatNiveau(el.state);
   const stateMeta = ETAT_LABELS[stateCurrent];
   const [hoverEt, setHoverEt] = useState<string | null>(null);
@@ -286,36 +245,20 @@ export function EdlElementField({
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           {!readOnly ? (
-            <>
+            <label className="text-xs" style={{ color: PC.muted }}>
+              Ajouter une photo
               <input
-                ref={captureInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
-                className="hidden"
+                disabled={uploading}
+                className="mt-1 block w-full max-w-[220px] rounded-md text-xs"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) onPickFile(f);
                   e.target.value = "";
                 }}
               />
-              <input
-                ref={importInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onPickFile(f);
-                  e.target.value = "";
-                }}
-              />
-              <PhotoPickBar
-                uploading={uploading}
-                onCapture={() => captureInputRef.current?.click()}
-                onImport={() => importInputRef.current?.click()}
-              />
-            </>
+            </label>
           ) : null}
           {previewUrl ? (
             <div className="relative">
