@@ -9,6 +9,6 @@ export const supabaseAuthOptions: NonNullable<SupabaseClientOptions<"public">["a
   storageKey: "proplio-auth-token",
   autoRefreshToken: true,
   persistSession: true,
-  detectSessionInUrl: false,
+  detectSessionInUrl: true,
   lock: undefined,
 };
