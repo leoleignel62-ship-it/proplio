@@ -228,9 +228,9 @@ export function NavigationSidebar() {
         </div>
       </aside>
 
-      {/* Barre mobile : hamburger à gauche (loin de la cloche fixe ContentTopHeader en haut-droite) */}
+      {/* Barre mobile : hamburger | logo | cloche (même style cloche que desktop) */}
       <div
-        className="relative z-[25] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
+        className="relative z-[45] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
         style={mobileBarStyle}
       >
         <div className="flex w-11 shrink-0 items-center justify-start">
@@ -261,8 +261,9 @@ export function NavigationSidebar() {
             </span>
           </Link>
         </div>
-        {/* Espace réservé (largeur ≈ zone tactile) pour équilibrer le logo ; la cloche est dans ContentTopHeader (z-40), pas ici */}
-        <div className="w-11 min-w-[44px] shrink-0" aria-hidden />
+        <div className="flex h-11 min-w-[44px] shrink-0 items-center justify-end">
+          <NotificationBellDropdown panelZClass="z-[110]" />
+        </div>
       </div>
 
       {mobileOpen ? (
@@ -448,7 +449,28 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   return { quittancesNonEnvoyeesMois, bauxUrgents, edlManquants };
 }
 
-export function ContentTopHeader() {
+let headerAlertsCache: HeaderAlertMetrics | null = null;
+let headerAlertsInflight: Promise<HeaderAlertMetrics> | null = null;
+
+function ensureHeaderAlertsLoaded(): Promise<HeaderAlertMetrics> {
+  if (headerAlertsCache) return Promise.resolve(headerAlertsCache);
+  if (!headerAlertsInflight) {
+    headerAlertsInflight = loadHeaderAlerts()
+      .then((data) => {
+        headerAlertsCache = data;
+        return data;
+      })
+      .catch(() => {
+        headerAlertsInflight = null;
+        const empty: HeaderAlertMetrics = { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [] };
+        headerAlertsCache = empty;
+        return empty;
+      });
+  }
+  return headerAlertsInflight;
+}
+
+function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<HeaderAlertMetrics>({
     quittancesNonEnvoyeesMois: 0,
@@ -458,7 +480,7 @@ export function ContentTopHeader() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    void loadHeaderAlerts().then(setAlerts);
+    void ensureHeaderAlertsLoaded().then(setAlerts);
   }, []);
 
   useEffect(() => {
@@ -474,73 +496,80 @@ export function ContentTopHeader() {
   const hasAnyAlert = badgeCount > 0;
 
   return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="relative flex h-10 w-10 items-center justify-center rounded-lg transition"
+        style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}
+        aria-label="Notifications"
+        aria-expanded={open}
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden focusable="false">
+          <path
+            fill="#FFFFFF"
+            d="M12 3a6 6 0 0 0-6 6v3.382l-.894 1.789A1 1 0 0 0 6 16h12a1 1 0 0 0 .894-1.447L18 12.382V9a6 6 0 0 0-6-6Zm0 18a3 3 0 0 0 2.816-2H9.184A3 3 0 0 0 12 21Z"
+          />
+        </svg>
+        {badgeCount > 0 ? (
+          <span
+            className="absolute -right-1 -top-1 min-w-5 rounded-full px-1.5 text-center text-[10px] font-semibold"
+            style={{ backgroundColor: PC.danger, color: PC.white, lineHeight: "18px" }}
+          >
+            {badgeCount}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div
+          className={`absolute right-0 z-50 mt-2 w-[min(320px,calc(100vw-1.5rem))] overflow-hidden rounded-xl ${panelZClass ?? ""}`}
+          style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, boxShadow: PC.cardShadow }}
+        >
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
+            <p className="text-sm font-semibold" style={{ color: PC.text }}>Notifications</p>
+          </div>
+          <div className="max-h-[min(420px,70vh)] overflow-y-auto p-2">
+            {!hasAnyAlert ? (
+              <div className="rounded-lg px-3 py-2 text-sm" style={{ color: PC.success, backgroundColor: PC.successBg10 }}>
+                Tout est en ordre !
+              </div>
+            ) : (
+              <>
+                {alerts.quittancesNonEnvoyeesMois > 0 ? (
+                  <Link href="/quittances" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
+                    <span>⚠</span>
+                    <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
+                  </Link>
+                ) : null}
+                {alerts.bauxUrgents.map((bail) => (
+                  <Link key={bail.id} href="/baux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }} onClick={() => setOpen(false)}>
+                    <span>⏱</span>
+                    <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
+                  </Link>
+                ))}
+                {alerts.edlManquants.map((item) => (
+                  <Link key={item.bailId} href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
+                    <span>📝</span>
+                    <span>État des lieux d&apos;entrée manquant pour {item.logementNom}</span>
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ContentTopHeader() {
+  return (
     <header
       className="fixed right-0 top-0 z-40 hidden h-[60px] items-center justify-end px-4 md:left-64 md:flex md:px-8"
       style={{ backgroundColor: "#13131A", borderBottom: "1px solid #2D2D3D" }}
     >
-      <div ref={wrapRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="relative flex h-10 w-10 items-center justify-center rounded-lg transition"
-          style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}
-          aria-label="Notifications"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden focusable="false">
-            <path
-              fill="#FFFFFF"
-              d="M12 3a6 6 0 0 0-6 6v3.382l-.894 1.789A1 1 0 0 0 6 16h12a1 1 0 0 0 .894-1.447L18 12.382V9a6 6 0 0 0-6-6Zm0 18a3 3 0 0 0 2.816-2H9.184A3 3 0 0 0 12 21Z"
-            />
-          </svg>
-          {badgeCount > 0 ? (
-            <span
-              className="absolute -right-1 -top-1 min-w-5 rounded-full px-1.5 text-center text-[10px] font-semibold"
-              style={{ backgroundColor: PC.danger, color: PC.white, lineHeight: "18px" }}
-            >
-              {badgeCount}
-            </span>
-          ) : null}
-        </button>
-
-        {open ? (
-          <div
-            className="absolute right-0 mt-2 w-[320px] overflow-hidden rounded-xl"
-            style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, boxShadow: PC.cardShadow }}
-          >
-            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
-              <p className="text-sm font-semibold" style={{ color: PC.text }}>Notifications</p>
-            </div>
-            <div className="p-2">
-              {!hasAnyAlert ? (
-                <div className="rounded-lg px-3 py-2 text-sm" style={{ color: PC.success, backgroundColor: PC.successBg10 }}>
-                  Tout est en ordre !
-                </div>
-              ) : (
-                <>
-                  {alerts.quittancesNonEnvoyeesMois > 0 ? (
-                    <Link href="/quittances" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}>
-                      <span>⚠</span>
-                      <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
-                    </Link>
-                  ) : null}
-                  {alerts.bauxUrgents.map((bail) => (
-                    <Link key={bail.id} href="/baux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}>
-                      <span>⏱</span>
-                      <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
-                    </Link>
-                  ))}
-                  {alerts.edlManquants.map((item) => (
-                    <Link key={item.bailId} href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}>
-                      <span>📝</span>
-                      <span>État des lieux d&apos;entrée manquant pour {item.logementNom}</span>
-                    </Link>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <NotificationBellDropdown />
     </header>
   );
 }
