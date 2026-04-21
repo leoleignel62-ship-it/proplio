@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { FormEvent, Suspense, useState, type CSSProperties } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { IconHome } from "@/components/proplio-icons";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle } from "@/lib/proplio-field-styles";
+
+function postLoginLocationHref(): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+  if (site) return `${site}/`;
+  if (typeof window !== "undefined") return `${window.location.origin}/`;
+  return "/";
+}
 
 const CARD: CSSProperties = {
   width: "100%",
@@ -20,7 +27,6 @@ const CARD: CSSProperties = {
 };
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,8 +52,8 @@ function LoginForm() {
       }
 
       await ensureProprietaireRow();
-      router.refresh();
-      router.replace("/");
+      // Navigation complète : garantit l’envoi des cookies au middleware / RSC sur Vercel (évite écran « page introuvable » après soft navigation).
+      window.location.assign(postLoginLocationHref());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connexion impossible.");
     } finally {
