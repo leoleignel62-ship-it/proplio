@@ -72,7 +72,7 @@ function NavLink({
 
 function HamburgerIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden className="shrink-0">
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden className="shrink-0">
       <path fill="currentColor" d="M4 7h16v2H4V7Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" />
     </svg>
   );
@@ -228,31 +228,41 @@ export function NavigationSidebar() {
         </div>
       </aside>
 
-      <div className="flex items-center justify-between gap-3 px-4 py-3 md:hidden" style={mobileBarStyle}>
-        <Link href="/" className="flex min-w-0 items-center gap-2">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={logoBadgeStyle}>
-            <IconHome className="h-5 w-5" style={{ color: PC.primary }} />
-          </span>
-          <span className="truncate font-semibold" style={{ color: PC.text }}>
-            Proplio
-          </span>
-        </Link>
-        <button
-          type="button"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition"
-          style={{
-            backgroundColor: PC.card,
-            border: `1px solid ${PC.border}`,
-            color: PC.text,
-            boxShadow: PC.cardShadow,
-          }}
-          aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav-drawer"
-          onClick={() => setMobileOpen((o) => !o)}
-        >
-          <HamburgerIcon />
-        </button>
+      {/* Barre mobile : hamburger à gauche (loin de la cloche fixe ContentTopHeader en haut-droite) */}
+      <div
+        className="relative z-[25] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
+        style={mobileBarStyle}
+      >
+        <div className="flex w-11 shrink-0 items-center justify-start">
+          <button
+            type="button"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition"
+            style={{
+              backgroundColor: PC.primaryBg10,
+              border: `2px solid ${PC.borderPrimary50}`,
+              color: PC.text,
+              boxShadow: PC.cardShadow,
+            }}
+            aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav-drawer"
+            onClick={() => setMobileOpen((o) => !o)}
+          >
+            <HamburgerIcon />
+          </button>
+        </div>
+        <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+          <Link href="/" className="flex max-w-full items-center justify-center gap-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={logoBadgeStyle}>
+              <IconHome className="h-5 w-5" style={{ color: PC.primary }} />
+            </span>
+            <span className="truncate text-center font-semibold" style={{ color: PC.text }}>
+              Proplio
+            </span>
+          </Link>
+        </div>
+        {/* Espace réservé (largeur ≈ zone tactile) pour équilibrer le logo ; la cloche est dans ContentTopHeader (z-40), pas ici */}
+        <div className="w-11 min-w-[44px] shrink-0" aria-hidden />
       </div>
 
       {mobileOpen ? (
