@@ -325,7 +325,13 @@ export function NavigationSidebar() {
                 ))}
               </nav>
 
-              <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${PC.border}` }}>
+              <div
+                className="mt-5 pt-5"
+                style={{
+                  borderTop: `1px solid ${PC.border}`,
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 20px) + 16px)",
+                }}
+              >
                 <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
