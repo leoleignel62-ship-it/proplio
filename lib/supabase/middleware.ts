@@ -4,7 +4,13 @@ import { supabaseAuthOptions } from "@/lib/supabase/auth-options";
 import { getSupabaseSsrCookieOptions } from "@/lib/supabase/cookie-options";
 import { getSupabasePublicConfig } from "@/lib/supabase/env-public";
 
-const PUBLIC_AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password"];
+const PUBLIC_AUTH_ROUTES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/test-auth",
+];
 const REDIRECT_IF_AUTHENTICATED = ["/login", "/register"];
 
 /** Copie cookies + en-têtes anti-cache de la réponse Supabase vers une redirection (évite perte de session sur Vercel). */
