@@ -332,7 +332,8 @@ export function DashboardContent() {
   );
 
   useEffect(() => {
-    setChartMounted(true);
+    const id = requestAnimationFrame(() => setChartMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {

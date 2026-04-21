@@ -31,11 +31,13 @@ function NavLink({
   label,
   Icon,
   isActive,
+  onNavigate,
 }: {
   href: string;
   label: string;
   Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   isActive: boolean;
+  onNavigate?: () => void;
 }) {
   const [hover, setHover] = useState(false);
 
@@ -57,6 +59,7 @@ function NavLink({
       style={isActive ? activeStyle : idleStyle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={() => onNavigate?.()}
     >
       <Icon
         className="h-5 w-5 shrink-0"
@@ -67,8 +70,28 @@ function NavLink({
   );
 }
 
+function HamburgerIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden className="shrink-0">
+      <path fill="currentColor" d="M4 7h16v2H4V7Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden className="shrink-0">
+      <path
+        fill="currentColor"
+        d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29 6.29-6.3 1.42 1.41Z"
+      />
+    </svg>
+  );
+}
+
 export function NavigationSidebar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string | null>(null);
 
@@ -92,6 +115,23 @@ export function NavigationSidebar() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const initials = useMemo(() => {
@@ -188,26 +228,119 @@ export function NavigationSidebar() {
         </div>
       </aside>
 
-      <div className="px-4 py-3 md:hidden" style={mobileBarStyle}>
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={logoBadgeStyle}>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 md:hidden" style={mobileBarStyle}>
+        <Link href="/" className="flex min-w-0 items-center gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={logoBadgeStyle}>
             <IconHome className="h-5 w-5" style={{ color: PC.primary }} />
           </span>
-          <span className="font-semibold" style={{ color: PC.text }}>
+          <span className="truncate font-semibold" style={{ color: PC.text }}>
             Proplio
           </span>
         </Link>
-        <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {navigationItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <MobileNavPill key={item.href} href={item.href} isActive={isActive} Icon={Icon} label={item.label} />
-            );
-          })}
-        </nav>
-        <MobileLogoutButton />
+        <button
+          type="button"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition"
+          style={{
+            backgroundColor: PC.card,
+            border: `1px solid ${PC.border}`,
+            color: PC.text,
+            boxShadow: PC.cardShadow,
+          }}
+          aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav-drawer"
+          onClick={() => setMobileOpen((o) => !o)}
+        >
+          <HamburgerIcon />
+        </button>
       </div>
+
+      {mobileOpen ? (
+        <>
+          <div
+            className="fixed inset-0 z-[100] md:hidden"
+            style={{ backgroundColor: PC.overlay }}
+            aria-hidden
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            id="mobile-nav-drawer"
+            className="fixed left-0 top-0 z-[101] flex h-screen w-64 max-w-[85vw] flex-col md:hidden"
+            style={{
+              backgroundColor: PC.sidebar,
+              borderRight: `1px solid ${PC.border}`,
+              boxShadow: "8px 0 32px rgba(0, 0, 0, 0.45)",
+            }}
+          >
+            <div className="flex h-full flex-col p-5">
+              <div className="mb-6 flex items-center justify-between gap-2">
+                <Link
+                  href="/"
+                  className="flex min-w-0 items-center gap-2.5"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={logoBadgeStyle}>
+                    <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
+                  </span>
+                  <span className="truncate text-lg font-semibold tracking-tight" style={{ color: PC.text }}>
+                    Proplio
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${PC.border}`,
+                    color: PC.text,
+                  }}
+                  aria-label="Fermer le menu"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+
+              <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
+                {navigationItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    Icon={item.icon}
+                    isActive={pathname === item.href}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                ))}
+              </nav>
+
+              <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${PC.border}` }}>
+                <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                    style={avatarRingStyle}
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {ownerName ? (
+                      <p className="truncate text-sm font-medium" style={{ color: PC.text }}>
+                        {ownerName}
+                      </p>
+                    ) : null}
+                    {email ? (
+                      <p className="truncate text-xs" style={{ color: PC.muted }}>
+                        {email}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <LogoutRowMuted />
+              </div>
+            </div>
+          </aside>
+        </>
+      ) : null}
     </>
   );
 }
@@ -434,67 +567,3 @@ function LogoutRowMuted() {
   );
 }
 
-function MobileNavPill({
-  href,
-  isActive,
-  Icon,
-  label,
-}: {
-  href: string;
-  isActive: boolean;
-  Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
-  label: string;
-}) {
-  const [h, setH] = useState(false);
-  return (
-    <Link
-      href={href}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition"
-      style={
-        isActive
-          ? { backgroundColor: PC.primary, color: PC.white }
-          : {
-              color: h ? PC.text : PC.muted,
-              backgroundColor: h ? PC.card : "transparent",
-            }
-      }
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-    >
-      <Icon className="h-4 w-4 shrink-0" style={{ color: isActive ? PC.white : PC.secondary }} />
-      {label}
-    </Link>
-  );
-}
-
-function MobileLogoutButton() {
-  const [h, setH] = useState(false);
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      className="mt-3 flex w-full items-center justify-center gap-2 px-4 py-3 text-sm transition"
-      style={{
-        borderRadius: 8,
-        backgroundColor: h ? "#DC2626" : "#EF4444",
-        color: "#FFFFFF",
-        fontWeight: 700,
-      }}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      onClick={async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
-        router.refresh();
-      }}
-    >
-      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false">
-        <path
-          d="M10 5a1 1 0 0 0 0 2h4v10h-4a1 1 0 1 0 0 2h5a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-5Zm-4.293 6.293a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 1 0 1.414-1.414L8.828 13H13a1 1 0 1 0 0-2H8.828l.793-.793a1 1 0 1 0-1.414-1.414l-2.5 2.5Z"
-          fill="#FFFFFF"
-        />
-      </svg>
-      Déconnexion
-    </button>
-  );
-}
