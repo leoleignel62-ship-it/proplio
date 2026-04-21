@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen" style={shellStyle}>
       <NavigationSidebar />
       <ContentTopHeader />
-      <main className="p-4 pt-[76px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
+      <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
     </div>
   );
 }

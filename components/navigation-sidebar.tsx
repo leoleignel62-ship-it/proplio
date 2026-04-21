@@ -228,9 +228,9 @@ export function NavigationSidebar() {
         </div>
       </aside>
 
-      {/* Barre mobile : hamburger | logo | cloche (même style cloche que desktop) */}
+      {/* Barre mobile : hamburger | logo | cloche — fixe en haut au scroll */}
       <div
-        className="relative z-[45] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
+        className="fixed left-0 right-0 top-0 z-[45] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
         style={mobileBarStyle}
       >
         <div className="flex w-11 shrink-0 items-center justify-start">
