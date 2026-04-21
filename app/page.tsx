@@ -36,90 +36,136 @@ type AnnualChartData = {
   potentiel: number[];
 };
 
-async function getCount(table: string, ownerId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { count, error } = await supabase
-    .from(table)
-    .select("id", { count: "exact", head: true })
-    .eq("proprietaire_id", ownerId);
+const MONTH_LABELS = ["Jan", "Fev", "Mar", "Avr", "Mai", "Jun", "Jul", "Aou", "Sep", "Oct", "Nov", "Dec"];
 
-  if (error) return 0;
-  return count ?? 0;
+function emptyDashboardStats(): DashboardStats {
+  return { logements: 0, locataires: 0, quittancesEnvoyeesCeMois: 0, bauxActifs: 0 };
+}
+
+function emptyFinancialMetrics(): FinancialMetrics {
+  return {
+    potentielTotal: 0,
+    encaisseMois: 0,
+    manque: 0,
+    totalLogements: 0,
+    logementsLouesCeMois: 0,
+    chambresLouees: 0,
+    logementsVacants: 0,
+    chambresDisponibles: 0,
+    tauxRemplissage: 0,
+  };
+}
+
+function emptyAlertMetrics(): AlertMetrics {
+  return { quittancesNonEnvoyeesMois: 0, baux30: 0, baux60: 0, logementsVacants: 0 };
+}
+
+function emptyAnnualChart(): AnnualChartData {
+  const zeros = Array.from({ length: 12 }, () => 0);
+  return { labels: [...MONTH_LABELS], encaisses: zeros, manque: zeros, potentiel: zeros };
+}
+
+async function getCount(table: string, ownerId: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { count, error } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("proprietaire_id", ownerId);
+
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function getBauxActifsCount(ownerId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { count, error } = await supabase
-    .from("baux")
-    .select("id", { count: "exact", head: true })
-    .eq("proprietaire_id", ownerId)
-    .eq("statut", "actif");
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { count, error } = await supabase
+      .from("baux")
+      .select("id", { count: "exact", head: true })
+      .eq("proprietaire_id", ownerId)
+      .eq("statut", "actif");
 
-  if (error) return 0;
-  return count ?? 0;
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function getQuittancesEnvoyeesCeMois(ownerId: string) {
-  const supabase = await createSupabaseServerClient();
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  try {
+    const supabase = await createSupabaseServerClient();
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-  const { count, error } = await supabase
-    .from("quittances")
-    .select("id", { count: "exact", head: true })
-    .eq("proprietaire_id", ownerId)
-    .eq("envoyee", true)
-    .gte("created_at", startOfMonth.toISOString());
+    const { count, error } = await supabase
+      .from("quittances")
+      .select("id", { count: "exact", head: true })
+      .eq("proprietaire_id", ownerId)
+      .eq("envoyee", true)
+      .gte("created_at", startOfMonth.toISOString());
 
-  if (error) return 0;
-  return count ?? 0;
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function getDashboardStats(ownerId: string): Promise<DashboardStats> {
-  const [logements, locataires, quittancesEnvoyeesCeMois, bauxActifs] = await Promise.all([
-    getCount("logements", ownerId),
-    getCount("locataires", ownerId),
-    getQuittancesEnvoyeesCeMois(ownerId),
-    getBauxActifsCount(ownerId),
-  ]);
+  try {
+    const [logements, locataires, quittancesEnvoyeesCeMois, bauxActifs] = await Promise.all([
+      getCount("logements", ownerId),
+      getCount("locataires", ownerId),
+      getQuittancesEnvoyeesCeMois(ownerId),
+      getBauxActifsCount(ownerId),
+    ]);
 
-  return {
-    logements,
-    locataires,
-    quittancesEnvoyeesCeMois,
-    bauxActifs,
-  };
+    return {
+      logements,
+      locataires,
+      quittancesEnvoyeesCeMois,
+      bauxActifs,
+    };
+  } catch {
+    return emptyDashboardStats();
+  }
 }
 
 
 async function getFinancialAndAlerts(ownerId: string): Promise<{ financial: FinancialMetrics; alerts: AlertMetrics; annual: AnnualChartData }> {
-  const supabase = await createSupabaseServerClient();
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
 
-  const [logRes, locRes, quitRes, bauxRes] = await Promise.all([
-    supabase
-      .from("logements")
-      .select("id, loyer, charges, est_colocation, nombre_chambres, chambres_details")
-      .eq("proprietaire_id", ownerId),
-    supabase
-      .from("locataires")
-      .select("logement_id, colocation_chambre_index")
-      .eq("proprietaire_id", ownerId),
-    supabase
-      .from("quittances")
-      .select("total, envoyee, mois, annee, logement_id")
-      .eq("proprietaire_id", ownerId),
-    supabase
-      .from("baux")
-      .select("date_fin, statut")
-      .eq("proprietaire_id", ownerId)
-      .eq("statut", "actif"),
-  ]);
+    const [logRes, locRes, quitRes, bauxRes] = await Promise.all([
+      supabase
+        .from("logements")
+        .select("id, loyer, charges, est_colocation, nombre_chambres, chambres_details")
+        .eq("proprietaire_id", ownerId),
+      supabase
+        .from("locataires")
+        .select("logement_id, colocation_chambre_index")
+        .eq("proprietaire_id", ownerId),
+      supabase
+        .from("quittances")
+        .select("total, envoyee, mois, annee, logement_id")
+        .eq("proprietaire_id", ownerId),
+      supabase
+        .from("baux")
+        .select("date_fin, statut")
+        .eq("proprietaire_id", ownerId)
+        .eq("statut", "actif"),
+    ]);
 
-  const logements = logRes.data ?? [];
+    const logements = logRes.data ?? [];
   const locataires = locRes.data ?? [];
   const quittances = quitRes.data ?? [];
   const baux = bauxRes.data ?? [];
@@ -204,8 +250,6 @@ async function getFinancialAndAlerts(ownerId: string): Promise<{ financial: Fina
   const potentielByMonth = Array.from({ length: 12 }, () => potentielTotal);
   const manqueByMonth = encaissesByMonth.map((v) => Math.max(0, potentielTotal - v));
 
-  const labels = ["Jan", "Fev", "Mar", "Avr", "Mai", "Jun", "Jul", "Aou", "Sep", "Oct", "Nov", "Dec"];
-
   return {
     financial: {
       potentielTotal,
@@ -225,12 +269,19 @@ async function getFinancialAndAlerts(ownerId: string): Promise<{ financial: Fina
       logementsVacants,
     },
     annual: {
-      labels,
+      labels: [...MONTH_LABELS],
       encaisses: encaissesByMonth,
       manque: manqueByMonth,
       potentiel: potentielByMonth,
     },
   };
+  } catch {
+    return {
+      financial: emptyFinancialMetrics(),
+      alerts: emptyAlertMetrics(),
+      annual: emptyAnnualChart(),
+    };
+  }
 }
 
 function StatCard({
@@ -293,45 +344,39 @@ function StatCard({
 }
 
 export default async function Home() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let stats: DashboardStats = { logements: 0, locataires: 0, quittancesEnvoyeesCeMois: 0, bauxActifs: 0 };
+  let stats = emptyDashboardStats();
   let prenom = "";
-  let financial: FinancialMetrics = {
-    potentielTotal: 0,
-    encaisseMois: 0,
-    manque: 0,
-    totalLogements: 0,
-    logementsLouesCeMois: 0,
-    chambresLouees: 0,
-    logementsVacants: 0,
-    chambresDisponibles: 0,
-    tauxRemplissage: 0,
-  };
-  let annual: AnnualChartData = { labels: [], encaisses: [], manque: [], potentiel: [] };
+  let financial = emptyFinancialMetrics();
+  let annual = emptyAnnualChart();
 
-  if (user) {
-    const { data: proprietaire } = await supabase
-      .from("proprietaires")
-      .select("id, prenom")
-      .eq("user_id", user.id)
-      .maybeSingle();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    prenom = (proprietaire?.prenom as string)?.trim() || "";
+    if (user) {
+      const { data: proprietaire } = await supabase
+        .from("proprietaires")
+        .select("id, prenom")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (proprietaire?.id) {
-      const ownerId = proprietaire.id as string;
-      const [dashboardStats, derived] = await Promise.all([
-        getDashboardStats(ownerId),
-        getFinancialAndAlerts(ownerId),
-      ]);
-      stats = dashboardStats;
-      financial = derived.financial;
-      annual = derived.annual;
+      prenom = (proprietaire?.prenom as string)?.trim() || "";
+
+      if (proprietaire?.id) {
+        const ownerId = proprietaire.id as string;
+        const [dashboardStats, derived] = await Promise.all([
+          getDashboardStats(ownerId),
+          getFinancialAndAlerts(ownerId),
+        ]);
+        stats = dashboardStats;
+        financial = derived.financial;
+        annual = derived.annual;
+      }
     }
+  } catch {
+    /* dashboard dégradé : stats / graphique à zéro */
   }
 
   const dateLong = new Intl.DateTimeFormat("fr-FR", {
