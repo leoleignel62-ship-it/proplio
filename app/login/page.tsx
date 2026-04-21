@@ -46,8 +46,7 @@ function LoginForm() {
       }
 
       await ensureProprietaireRow();
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connexion impossible.");
     } finally {
