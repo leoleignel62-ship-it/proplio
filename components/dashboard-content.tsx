@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { DashboardAnnualChart } from "@/components/dashboard-annual-chart";
+// import { DashboardAnnualChart } from "@/components/dashboard-annual-chart";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -307,7 +307,7 @@ export function DashboardContent() {
   const [prenom, setPrenom] = useState("");
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
-  const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
+  const [, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
 
   useEffect(() => {
     let cancelled = false;
@@ -471,12 +471,13 @@ export function DashboardContent() {
           Revenus {new Date().getFullYear()}
         </h2>
         <div className="h-[320px]">
-          <DashboardAnnualChart
+          {/* <DashboardAnnualChart
             labels={annual.labels}
             encaisses={annual.encaisses}
             manque={annual.manque}
             potentiel={annual.potentiel}
-          />
+          /> */}
+          <div>Graphique à venir</div>
         </div>
       </section>
     </>
