@@ -8,6 +8,7 @@ import {
   canCreateBail,
   getMonthlyCreatedCount,
   getOwnerPlan,
+  PLAN_FREE_BAUX_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -257,7 +258,7 @@ export default function BauxPage() {
     const plan = await getOwnerPlan(ownerId);
     setCurrentPlan(plan);
     if (plan === "free") {
-      setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      setPlanLimitMessage(PLAN_FREE_BAUX_BANNER);
       return;
     }
     const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
@@ -384,7 +385,7 @@ export default function BauxPage() {
     if (proprietaireId) {
       const plan = await getOwnerPlan(proprietaireId);
       if (plan === "free") {
-        setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+        setPlanLimitMessage(PLAN_FREE_BAUX_BANNER);
         return;
       }
       const monthlyCount = await getMonthlyCreatedCount("baux", proprietaireId);
@@ -401,6 +402,10 @@ export default function BauxPage() {
   }
 
   function openEditModal(row: Bail) {
+    if (currentPlan === "free") {
+      setError(PLAN_FREE_BAUX_BANNER);
+      return;
+    }
     setEditingRow(row);
     const equipements = [...(row.equipements ?? [])];
     const equipements_details = { ...(row.equipements_details ?? {}) };
@@ -682,8 +687,12 @@ export default function BauxPage() {
         return;
       }
       setProprietaireId(ownerId);
+      const plan = await getOwnerPlan(ownerId);
+      if (plan === "free") {
+        setError(PLAN_FREE_BAUX_BANNER);
+        return;
+      }
       if (!isEditing) {
-        const plan = await getOwnerPlan(ownerId);
         const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
         if (!canCreateBail(plan, monthlyCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
@@ -817,6 +826,10 @@ export default function BauxPage() {
         setError(ownerErr ? formatSubmitError(ownerErr) : "Session propriétaire introuvable.");
         return;
       }
+      if (currentPlan === "free") {
+        setError(PLAN_FREE_BAUX_BANNER);
+        return;
+      }
 
       const { error: deleteError } = await supabase
         .from("baux")
@@ -840,6 +853,10 @@ export default function BauxPage() {
     setError("");
 
     try {
+      if (currentPlan === "free") {
+        setError(PLAN_FREE_BAUX_BANNER);
+        return;
+      }
       const response = await fetch(`/api/baux/${id}/pdf`);
 
       if (!response.ok) {
@@ -871,6 +888,10 @@ export default function BauxPage() {
     setError("");
 
     try {
+      if (currentPlan === "free") {
+        setError(PLAN_FREE_BAUX_BANNER);
+        return;
+      }
       const response = await fetch(`/api/baux/${id}/send`, { method: "POST" });
       const payload = (await response.json().catch(() => ({}))) as { error?: string; to?: string[] };
 
@@ -892,6 +913,8 @@ export default function BauxPage() {
     }
   }
 
+  const freeBauxBlock = currentPlan === "free";
+
   return (
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -903,12 +926,19 @@ export default function BauxPage() {
         </div>
         <select
           value={logementFilter}
+          disabled={freeBauxBlock}
           onChange={(event) => {
             const next = event.target.value;
             router.push(next ? `/baux?logement_id=${encodeURIComponent(next)}` : "/baux");
           }}
           className="rounded-lg px-3 py-2 text-sm"
-          style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          style={{
+            border: `1px solid ${PC.border}`,
+            backgroundColor: PC.card,
+            color: PC.text,
+            opacity: freeBauxBlock ? 0.55 : 1,
+            cursor: freeBauxBlock ? "not-allowed" : undefined,
+          }}
         >
           <option value="">Tous les logements</option>
           {logements.map((logement) => (
@@ -932,7 +962,7 @@ export default function BauxPage() {
       {error ? (
         <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           <p>{error}</p>
-          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+          {error === PLAN_LIMIT_ERROR_MESSAGE || error === PLAN_FREE_BAUX_BANNER ? (
             <p className="mt-2">
               <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
                 Voir les abonnements
@@ -949,11 +979,6 @@ export default function BauxPage() {
               Voir les plans
             </a>
           </div>
-        </div>
-      ) : null}
-      {currentPlan === "free" ? (
-        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}>
-          <p>❌ Cette fonctionnalité n&apos;est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.</p>
         </div>
       ) : null}
       {successToast ? (
@@ -1016,16 +1041,52 @@ export default function BauxPage() {
                         ) : null}
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-primary" onClick={() => onGeneratePdf(row.id)}>
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                          disabled={freeBauxBlock}
+                          style={{
+                            opacity: freeBauxBlock ? 0.5 : 1,
+                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => onGeneratePdf(row.id)}
+                        >
                           PDF
                         </button>
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-success" onClick={() => onSendBailEmail(row.id)}>
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                          disabled={freeBauxBlock}
+                          style={{
+                            opacity: freeBauxBlock ? 0.5 : 1,
+                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => onSendBailEmail(row.id)}
+                        >
                           Envoyer
                         </button>
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-muted" onClick={() => openEditModal(row)}>
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                          disabled={freeBauxBlock}
+                          style={{
+                            opacity: freeBauxBlock ? 0.5 : 1,
+                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => openEditModal(row)}
+                        >
                           Modifier
                         </button>
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-danger" onClick={() => void onDelete(row.id)}>
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                          disabled={freeBauxBlock}
+                          style={{
+                            opacity: freeBauxBlock ? 0.5 : 1,
+                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => void onDelete(row.id)}
+                        >
                           Supprimer
                         </button>
                       </div>

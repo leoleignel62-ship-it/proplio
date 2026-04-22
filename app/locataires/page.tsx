@@ -5,6 +5,8 @@ import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import {
   canCreateLocataire,
+  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
+  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnedCount,
   getLocatairesCumulCount,
   getOwnerPlan,
@@ -272,7 +274,12 @@ export default function LocatairesPage() {
         getLocatairesCumulCount(ownerId),
         getOwnedCount("locataires", ownerId),
       ]);
-      if (!canCreateLocataire(plan, totalCree, existingCount)) return;
+      if (!canCreateLocataire(plan, totalCree, existingCount)) {
+        setError(
+          "Limite atteinte. Passez au plan supérieur pour créer plus de locataires.",
+        );
+        return;
+      }
     }
     setEditingRow(null);
     setValues(defaultValues);
@@ -281,10 +288,13 @@ export default function LocatairesPage() {
 
   function openEditModal(row: Locataire) {
     if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(
-        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
-      );
+      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
       return;
+    }
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
+      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
+        return;
+      }
     }
     setEditingRow(row);
     setValues({
@@ -331,9 +341,9 @@ export default function LocatairesPage() {
         return;
       }
       setProprietaireId(ownerId);
+      const plan = await getOwnerPlan(ownerId);
       if (!isEditing) {
-        const [plan, totalCree, existingCount] = await Promise.all([
-          getOwnerPlan(ownerId),
+        const [totalCree, existingCount] = await Promise.all([
           getLocatairesCumulCount(ownerId),
           getOwnedCount("locataires", ownerId),
         ]);
@@ -399,15 +409,13 @@ export default function LocatairesPage() {
         colocation_chambre_index,
       };
 
+      const updatePayload =
+        plan === "free"
+          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
+          : { ...payload };
+
       const query = isEditing
-        ? supabase
-            .from("locataires")
-            .update({
-              ...payload,
-              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
-            })
-            .eq("id", editingRow!.id)
-            .eq("proprietaire_id", ownerId)
+        ? supabase.from("locataires").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("locataires").insert(payload);
 
       const { error: submitError } = await query;
@@ -656,6 +664,22 @@ export default function LocatairesPage() {
                               <button
                                 type="button"
                                 className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                                disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
+                                title={
+                                  currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                                    ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
+                                    : undefined
+                                }
+                                style={{
+                                  opacity:
+                                    currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                                      ? 0.5
+                                      : 1,
+                                  cursor:
+                                    currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                                      ? "not-allowed"
+                                      : "pointer",
+                                }}
                                 onClick={() => openEditModal(row)}
                               >
                                 Modifier

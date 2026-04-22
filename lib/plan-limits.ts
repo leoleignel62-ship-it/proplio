@@ -10,6 +10,26 @@ type PlanLimits = {
 export const PLAN_LIMIT_ERROR_MESSAGE = "Limite atteinte - Passez au plan supérieur";
 export const PLAN_UPGRADE_PATH = "/parametres/abonnement";
 
+/** Quittances : plan Gratuit, 1 quittance à vie consommée. */
+export const PLAN_FREE_QUITTANCE_LIMIT_MESSAGE =
+  "Vous avez utilisé votre quittance gratuite. Passez au plan Starter pour continuer.";
+
+/** Bannière page Baux (plan Gratuit). */
+export const PLAN_FREE_BAUX_BANNER =
+  "Les baux ne sont pas disponibles en plan Gratuit. Passez au plan Starter.";
+
+/** Bannière page États des lieux (plan Gratuit). */
+export const PLAN_FREE_EDL_BANNER =
+  "Les états des lieux ne sont pas disponibles en plan Gratuit. Passez au plan Starter.";
+
+/** Avant d'ouvrir le formulaire de modification (logement / locataire / quittance) en plan Gratuit. */
+export const FREE_PLAN_EDIT_CONFIRM_MESSAGE =
+  "⚠️ Attention : vous disposez d'1 seule modification (droit à l'erreur) pour le plan Gratuit. Cette action utilisera votre droit à l'erreur.";
+
+/** Infobulle / message bouton Modifier grisé après consommation du droit à l'erreur. */
+export const FREE_PLAN_EDIT_LIMIT_REACHED_HINT =
+  "Limite de modification atteinte. Passez au plan Starter pour modifier sans limite.";
+
 export const PLAN_LIMITS: Record<ProplioPlan, PlanLimits> = {
   free: {
     maxLogements: 1,

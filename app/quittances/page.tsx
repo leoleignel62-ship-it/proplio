@@ -7,8 +7,11 @@ import { EntityFormModal, type EntityField } from "@/components/crud/entity-form
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import {
   canCreateQuittance,
+  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
+  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnerPlan,
   getQuittancesTotalCount,
+  PLAN_FREE_QUITTANCE_LIMIT_MESSAGE,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -174,7 +177,11 @@ export default function QuittancesPage() {
     ]);
     setCurrentPlan(plan);
     if (!canCreateQuittance(plan, totalCount)) {
-      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
+      setPlanLimitMessage(
+        plan === "free"
+          ? PLAN_FREE_QUITTANCE_LIMIT_MESSAGE
+          : "Limite atteinte. Passez au plan supérieur pour créer plus de quittances.",
+      );
       return;
     }
     setPlanLimitMessage("");
@@ -313,7 +320,11 @@ export default function QuittancesPage() {
       const plan = await getOwnerPlan(proprietaireId);
       const totalCount = await getQuittancesTotalCount(proprietaireId);
       if (!canCreateQuittance(plan, totalCount)) {
-        setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
+        setPlanLimitMessage(
+          plan === "free"
+            ? PLAN_FREE_QUITTANCE_LIMIT_MESSAGE
+            : "Limite atteinte. Passez au plan supérieur pour créer plus de quittances.",
+        );
         return;
       }
     }
@@ -325,10 +336,13 @@ export default function QuittancesPage() {
 
   function openEditModal(row: Quittance) {
     if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(
-        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
-      );
+      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
       return;
+    }
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
+      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
+        return;
+      }
     }
     setEditingRow(row);
     setValues({
@@ -420,11 +434,13 @@ export default function QuittancesPage() {
         return;
       }
       setProprietaireId(ownerId);
+      const plan = await getOwnerPlan(ownerId);
       if (!isEditing) {
-        const plan = await getOwnerPlan(ownerId);
         const totalCount = await getQuittancesTotalCount(ownerId);
         if (!canCreateQuittance(plan, totalCount)) {
-          setError(PLAN_LIMIT_ERROR_MESSAGE);
+          setError(
+            plan === "free" ? PLAN_FREE_QUITTANCE_LIMIT_MESSAGE : PLAN_LIMIT_ERROR_MESSAGE,
+          );
           return;
         }
       }
@@ -476,15 +492,13 @@ export default function QuittancesPage() {
         total,
       };
 
+      const updatePayload =
+        plan === "free"
+          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
+          : { ...payload };
+
       const query = isEditing
-        ? supabase
-            .from("quittances")
-            .update({
-              ...payload,
-              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
-            })
-            .eq("id", editingRow!.id)
-            .eq("proprietaire_id", ownerId)
+        ? supabase.from("quittances").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("quittances").insert({ ...payload, envoyee: false, date_envoi: null });
 
       const { error: submitError } = await query;
@@ -716,7 +730,25 @@ export default function QuittancesPage() {
                         <button type="button" onClick={() => void onGeneratePdf(row)} className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
                           PDF
                         </button>
-                        <button type="button" className="rounded-md px-2 py-1.5 text-xs pc-outline-muted" onClick={() => openEditModal(row)}>
+                        <button
+                          type="button"
+                          className="rounded-md px-2 py-1.5 text-xs pc-outline-muted"
+                          disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
+                          title={
+                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                              ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
+                              : "Modifier"
+                          }
+                          style={{
+                            opacity:
+                              currentPlan === "free" && (row.nb_modifications ?? 0) >= 1 ? 0.5 : 1,
+                            cursor:
+                              currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                          onClick={() => openEditModal(row)}
+                        >
                           ✎
                         </button>
                         <button type="button" className="rounded-md px-2 py-1.5 text-xs pc-outline-danger" onClick={() => void onDelete(row.id)}>

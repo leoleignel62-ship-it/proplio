@@ -10,6 +10,7 @@ import {
   canCreateEtatDesLieux,
   getMonthlyCreatedCount,
   getOwnerPlan,
+  PLAN_FREE_EDL_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -184,7 +185,7 @@ export default function EtatsDesLieuxPage() {
     const plan = await getOwnerPlan(proprietaireId);
     setCurrentPlan(plan);
     if (plan === "free") {
-      setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      setPlanLimitMessage(PLAN_FREE_EDL_BANNER);
       setLoading(false);
       return;
     }
@@ -270,7 +271,7 @@ export default function EtatsDesLieuxPage() {
     }
     const plan = await getOwnerPlan(proprietaireId);
     if (plan === "free") {
-      setError("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      setError(PLAN_FREE_EDL_BANNER);
       setSubmitting(false);
       return;
     }
@@ -328,6 +329,10 @@ export default function EtatsDesLieuxPage() {
   async function onSendEmail(id: string) {
     setError("");
     try {
+      if (currentPlan === "free") {
+        setError(PLAN_FREE_EDL_BANNER);
+        return;
+      }
       const res = await fetch(`/api/etats-des-lieux/${id}/send`, { method: "POST" });
       const j = (await res.json()) as { error?: string; to?: string[] };
       if (!res.ok) setError(j.error ?? "Envoi impossible.");
@@ -350,6 +355,11 @@ export default function EtatsDesLieuxPage() {
     const { proprietaireId, error: pe } = await getCurrentProprietaireId();
     if (pe || !proprietaireId) {
       setError(pe ? formatSubmitError(pe) : "Session invalide.");
+      setDeleteSubmitting(false);
+      return;
+    }
+    if (currentPlan === "free") {
+      setError(PLAN_FREE_EDL_BANNER);
       setDeleteSubmitting(false);
       return;
     }
@@ -406,6 +416,8 @@ export default function EtatsDesLieuxPage() {
     [rows, logementFilter],
   );
 
+  const edlFreeBlocked = currentPlan === "free";
+
   return (
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -417,12 +429,19 @@ export default function EtatsDesLieuxPage() {
         </div>
         <select
           value={logementFilter}
+          disabled={edlFreeBlocked}
           onChange={(event) => {
             const next = event.target.value;
             router.push(next ? `/etats-des-lieux?logement_id=${encodeURIComponent(next)}` : "/etats-des-lieux");
           }}
           className="rounded-lg px-3 py-2 text-sm"
-          style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          style={{
+            border: `1px solid ${PC.border}`,
+            backgroundColor: PC.card,
+            color: PC.text,
+            opacity: edlFreeBlocked ? 0.55 : 1,
+            cursor: edlFreeBlocked ? "not-allowed" : undefined,
+          }}
         >
           <option value="">Tous les logements</option>
           {bauxOptions
@@ -466,16 +485,11 @@ export default function EtatsDesLieuxPage() {
           </div>
         </div>
       ) : null}
-      {currentPlan === "free" ? (
-        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}>
-          <p>❌ Cette fonctionnalité n&apos;est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.</p>
-        </div>
-      ) : null}
 
       {error ? (
         <div className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           <p>{error}</p>
-          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+          {error === PLAN_LIMIT_ERROR_MESSAGE || error === PLAN_FREE_EDL_BANNER ? (
             <p className="mt-2">
               <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
                 Voir les abonnements
@@ -542,16 +556,57 @@ export default function EtatsDesLieuxPage() {
                         {r.statut === "termine" ? "Finalisé" : "En cours"}
                       </span>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Link href={`/etats-des-lieux/${r.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-muted">
-                          Voir
-                        </Link>
-                        <a href={`/api/etats-des-lieux/${r.id}/pdf`} target="_blank" rel="noreferrer" className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
-                          PDF
-                        </a>
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-success" onClick={() => void onSendEmail(r.id)}>
+                        {edlFreeBlocked ? (
+                          <span
+                            className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                            style={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Voir
+                          </span>
+                        ) : (
+                          <Link href={`/etats-des-lieux/${r.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-muted">
+                            Voir
+                          </Link>
+                        )}
+                        {edlFreeBlocked ? (
+                          <span
+                            className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                            style={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            PDF
+                          </span>
+                        ) : (
+                          <a
+                            href={`/api/etats-des-lieux/${r.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                          >
+                            PDF
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                          disabled={edlFreeBlocked}
+                          style={{
+                            opacity: edlFreeBlocked ? 0.5 : 1,
+                            cursor: edlFreeBlocked ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => void onSendEmail(r.id)}
+                        >
                           Email
                         </button>
-                        <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-danger" onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}>
+                        <button
+                          type="button"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                          disabled={edlFreeBlocked}
+                          style={{
+                            opacity: edlFreeBlocked ? 0.5 : 1,
+                            cursor: edlFreeBlocked ? "not-allowed" : "pointer",
+                          }}
+                          onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
+                        >
                           Supprimer
                         </button>
                       </div>

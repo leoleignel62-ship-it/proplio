@@ -11,6 +11,8 @@ import {
 } from "@/lib/colocation";
 import {
   canCreateLogement,
+  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
+  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnedCount,
   getLogementsCumulCount,
   getOwnerPlan,
@@ -227,7 +229,12 @@ export default function LogementsPage() {
         getLogementsCumulCount(ownerId),
         getOwnedCount("logements", ownerId),
       ]);
-      if (!canCreateLogement(plan, totalCree, existingCount)) return;
+      if (!canCreateLogement(plan, totalCree, existingCount)) {
+        setError(
+          "Limite atteinte. Passez au plan supérieur pour créer plus de logements.",
+        );
+        return;
+      }
     }
     setEditingRow(null);
     setValues(baseDefaultValues);
@@ -239,10 +246,13 @@ export default function LogementsPage() {
 
   function openEditModal(row: Logement) {
     if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(
-        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
-      );
+      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
       return;
+    }
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
+      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
+        return;
+      }
     }
     setEditingRow(row);
     setValues({
@@ -310,9 +320,9 @@ export default function LogementsPage() {
         return;
       }
       setProprietaireId(ownerId);
+      const plan = await getOwnerPlan(ownerId);
       if (!isEditing) {
-        const [plan, totalCree, existingCount] = await Promise.all([
-          getOwnerPlan(ownerId),
+        const [totalCree, existingCount] = await Promise.all([
           getLogementsCumulCount(ownerId),
           getOwnedCount("logements", ownerId),
         ]);
@@ -363,15 +373,13 @@ export default function LogementsPage() {
         chambres_details: detailsPayload,
       };
 
+      const updatePayload =
+        plan === "free"
+          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
+          : { ...payload };
+
       const query = isEditing
-        ? supabase
-            .from("logements")
-            .update({
-              ...payload,
-              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
-            })
-            .eq("id", editingRow!.id)
-            .eq("proprietaire_id", ownerId)
+        ? supabase.from("logements").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("logements").insert(payload);
 
       const { error: submitError } = await query;
@@ -550,6 +558,20 @@ export default function LogementsPage() {
                       <button
                         type="button"
                         className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-muted sm:w-auto"
+                        disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
+                        title={
+                          currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                            ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
+                            : undefined
+                        }
+                        style={{
+                          opacity:
+                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1 ? 0.5 : 1,
+                          cursor:
+                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
                         onClick={(event) => {
                           event.preventDefault();
                           openEditModal(row);
