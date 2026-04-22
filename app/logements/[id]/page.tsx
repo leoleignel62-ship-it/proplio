@@ -18,6 +18,7 @@ type Logement = {
   surface: number;
   est_colocation: boolean;
   nombre_chambres?: number | null;
+  verrouille?: boolean | null;
 };
 
 type Locataire = {
@@ -53,7 +54,7 @@ export default function LogementDetailPage() {
       const [logRes, locRes, quitRes, bauxRes, edlRes] = await Promise.all([
         supabase
           .from("logements")
-          .select("id, nom, adresse, ville, code_postal, type, surface, est_colocation, nombre_chambres")
+          .select("id, nom, adresse, ville, code_postal, type, surface, est_colocation, nombre_chambres, verrouille")
           .eq("id", logementId)
           .eq("proprietaire_id", proprietaireId)
           .maybeSingle(),
@@ -86,6 +87,13 @@ export default function LogementDetailPage() {
 
   if (loading) return <section className="proplio-page-wrap text-sm" style={{ color: PC.muted }}>Chargement…</section>;
   if (!logement) return <section className="proplio-page-wrap text-sm" style={{ color: PC.muted }}>Logement introuvable.</section>;
+  if (logement.verrouille) {
+    return (
+      <section className="proplio-page-wrap text-sm" style={{ color: PC.warning }}>
+        🔒 Passez à un plan supérieur pour accéder à ce logement.
+      </section>
+    );
+  }
 
   return (
     <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>

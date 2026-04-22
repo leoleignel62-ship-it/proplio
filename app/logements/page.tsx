@@ -9,7 +9,14 @@ import {
   totalLoyersChambres,
   type ChambreDetail,
 } from "@/lib/colocation";
-import { canCreateLogement, getOwnerPlan, PLAN_LIMIT_ERROR_MESSAGE, PLAN_UPGRADE_PATH } from "@/lib/plan-limits";
+import {
+  canCreateLogement,
+  getLogementsCumulCount,
+  getOwnerPlan,
+  incrementLogementsCumul,
+  PLAN_LIMIT_ERROR_MESSAGE,
+  PLAN_UPGRADE_PATH,
+} from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -36,6 +43,7 @@ type Logement = {
   est_colocation: boolean;
   nombre_chambres?: number | null;
   chambres_details?: unknown;
+  verrouille?: boolean | null;
 };
 
 const baseDefaultValues = {
@@ -75,9 +83,10 @@ export default function LogementsPage() {
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
   const isPlanLimitReached = Boolean(planLimitMessage);
 
-  const refreshPlanLimit = useCallback(async (ownerId: string, logementsCount: number) => {
+  const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const plan = await getOwnerPlan(ownerId);
-    if (!canCreateLogement(plan, logementsCount)) {
+    const totalCree = await getLogementsCumulCount(ownerId);
+    if (!canCreateLogement(plan, totalCree)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
       return;
     }
@@ -118,7 +127,7 @@ export default function LogementsPage() {
         counts[id] = (counts[id] ?? 0) + 1;
       }
       setLocatairesByLogement(counts);
-      await refreshPlanLimit(activeOwnerId, nextRows.length);
+      await refreshPlanLimit(activeOwnerId);
     }
 
     setIsLoading(false);
@@ -170,7 +179,7 @@ export default function LogementsPage() {
           counts[id] = (counts[id] ?? 0) + 1;
         }
         setLocatairesByLogement(counts);
-        await refreshPlanLimit(ownerId, nextRows.length);
+        await refreshPlanLimit(ownerId);
       }
 
       setIsLoading(false);
@@ -196,9 +205,10 @@ export default function LogementsPage() {
   async function openCreateModal() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
-      await refreshPlanLimit(ownerId, rows.length);
+      await refreshPlanLimit(ownerId);
       const plan = await getOwnerPlan(ownerId);
-      if (!canCreateLogement(plan, rows.length)) return;
+      const totalCree = await getLogementsCumulCount(ownerId);
+      if (!canCreateLogement(plan, totalCree)) return;
     }
     setEditingRow(null);
     setValues(baseDefaultValues);
@@ -277,7 +287,8 @@ export default function LogementsPage() {
       setProprietaireId(ownerId);
       if (!isEditing) {
         const plan = await getOwnerPlan(ownerId);
-        if (!canCreateLogement(plan, rows.length)) {
+        const totalCree = await getLogementsCumulCount(ownerId);
+        if (!canCreateLogement(plan, totalCree)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -337,6 +348,9 @@ export default function LogementsPage() {
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (!isEditing) {
+        await incrementLogementsCumul(ownerId);
       }
 
       closeModal();
@@ -441,6 +455,7 @@ export default function LogementsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => {
+            const isLocked = Boolean(row.verrouille);
             const activeLocataires = locatairesByLogement[row.id] ?? 0;
             const capacity = row.est_colocation ? Number(row.nombre_chambres || 1) : 1;
             const available = Math.max(0, capacity - activeLocataires);
@@ -451,11 +466,10 @@ export default function LogementsPage() {
                   ? { label: "Complet", bg: PC.successBg20, color: PC.success }
                   : { label: `${available} chambre(s) disponible(s)`, bg: PC.warningBg15, color: PC.warning };
             return (
-              <Link
+              <article
                 key={row.id}
-                href={`/logements/${row.id}`}
-                className="relative rounded-xl p-5 transition hover:translate-y-[-1px]"
-                style={panelCard}
+                className="relative rounded-xl p-5"
+                style={{ ...panelCard, opacity: isLocked ? 0.75 : 1 }}
               >
                 <h3 className="text-lg font-semibold">{row.nom}</h3>
                 <p className="mt-1 text-sm" style={{ color: PC.muted }}>
@@ -468,6 +482,11 @@ export default function LogementsPage() {
                   <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: status.bg, color: status.color }}>
                     {status.label}
                   </span>
+                  {isLocked ? (
+                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
+                      🔒 Verrouillé - Plan insuffisant
+                    </span>
+                  ) : null}
                 </div>
                 <div className="mt-4 space-y-1 text-sm" style={{ color: PC.muted }}>
                   <p>
@@ -478,29 +497,40 @@ export default function LogementsPage() {
                   </p>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      openEditModal(row);
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
-                    disabled={isDeleting}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      void onDelete(row.id);
-                    }}
-                  >
-                    Supprimer
-                  </button>
+                  {isLocked ? (
+                    <p className="text-xs" style={{ color: PC.warning }}>
+                      Passez à un plan supérieur pour accéder à ce logement
+                    </p>
+                  ) : (
+                    <>
+                      <Link href={`/logements/${row.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
+                        Voir détails
+                      </Link>
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          openEditModal(row);
+                        }}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                        disabled={isDeleting}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void onDelete(row.id);
+                        }}
+                      >
+                        Supprimer
+                      </button>
+                    </>
+                  )}
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>

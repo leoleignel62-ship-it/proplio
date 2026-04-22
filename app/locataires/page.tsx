@@ -36,6 +36,7 @@ type Locataire = {
   telephone: string;
   logement_id: string | null;
   colocation_chambre_index: number | null;
+  verrouille?: boolean | null;
 };
 
 const defaultValues = {
@@ -152,7 +153,7 @@ export default function LocatairesPage() {
       const { data, error: fetchError } = await supabase
         .from("locataires")
         .select(
-          "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, created_at",
+          "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, verrouille, created_at",
         )
         .eq("proprietaire_id", activeOwnerId)
         .order("created_at", { ascending: false });
@@ -194,7 +195,7 @@ export default function LocatairesPage() {
       }
 
       const locataireCols =
-        "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, created_at";
+        "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, verrouille, created_at";
 
       const [logRes, locRes] = await Promise.all([
         supabase
@@ -547,10 +548,11 @@ export default function LocatairesPage() {
                 </header>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {group.rows.map((row) => {
+                    const isLocked = Boolean(row.verrouille);
                     const initiales = `${row.prenom?.[0] ?? ""}${row.nom?.[0] ?? ""}`.toUpperCase();
                     const log = row.logement_id ? logementsById.get(row.logement_id) : null;
                     return (
-                      <article key={row.id} className="rounded-xl" style={CARD_STYLE}>
+                      <article key={row.id} className="rounded-xl" style={{ ...CARD_STYLE, opacity: isLocked ? 0.75 : 1 }}>
                         <div className="flex items-center gap-3">
                           <span
                             className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold"
@@ -568,6 +570,14 @@ export default function LocatairesPage() {
                             >
                               Actif
                             </span>
+                            {isLocked ? (
+                              <span
+                                className="ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}
+                              >
+                                🔒 Verrouillé - Plan insuffisant
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                         <p className="mt-3 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
@@ -588,21 +598,29 @@ export default function LocatairesPage() {
                           </span>
                         ) : null}
                         <div className="mt-4 flex gap-2">
-                          <button
-                            type="button"
-                            className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
-                            onClick={() => openEditModal(row)}
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
-                            disabled={isDeleting}
-                            onClick={() => setDeleteTarget(row)}
-                          >
-                            Supprimer
-                          </button>
+                          {isLocked ? (
+                            <p className="text-xs" style={{ color: PC.warning }}>
+                              Passez à un plan supérieur pour accéder à ce locataire
+                            </p>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                                onClick={() => openEditModal(row)}
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                                disabled={isDeleting}
+                                onClick={() => setDeleteTarget(row)}
+                              >
+                                Supprimer
+                              </button>
+                            </>
+                          )}
                         </div>
                       </article>
                     );

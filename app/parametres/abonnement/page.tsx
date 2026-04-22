@@ -49,10 +49,13 @@ function normalizePlan(plan: string | null | undefined): ProplioPlan {
 
 export default function AbonnementPage() {
   const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSwitchingPlan, setIsSwitchingPlan] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [pendingPlan, setPendingPlan] = useState<ProplioPlan | null>(null);
+  const [downgradeInfo, setDowngradeInfo] = useState<{ active: number; max: number; toLock: number } | null>(null);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const isTestMode = siteUrl.includes("vercel.app") || siteUrl.includes("localhost");
 
@@ -66,6 +69,7 @@ export default function AbonnementPage() {
         setLoading(false);
         return;
       }
+      setProprietaireId(proprietaireId);
       const { data } = await supabase.from("proprietaires").select("plan").eq("id", proprietaireId).maybeSingle();
       if (!mounted) return;
       setPlan(normalizePlan((data as { plan?: string | null } | null)?.plan));
@@ -78,37 +82,163 @@ export default function AbonnementPage() {
 
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
 
-  async function switchPlanForTest(nextPlan: ProplioPlan) {
-    if (isSwitchingPlan) return;
-    setError("");
-    setMessage("");
-    setIsSwitchingPlan(true);
+  async function performPlanChange(nextPlan: ProplioPlan) {
+    if (!proprietaireId) return;
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("Erreur récupération utilisateur:", userError);
-      setError("Impossible d'identifier l'utilisateur connecté.");
-      setIsSwitchingPlan(false);
+    const newMax = PLAN_LIMITS[nextPlan].maxLogements;
+    const { data: activeLogements, error: activeError } = await supabase
+      .from("logements")
+      .select("id, created_at")
+      .eq("proprietaire_id", proprietaireId)
+      .eq("verrouille", false)
+      .order("created_at", { ascending: true });
+    if (activeError) {
+      console.error("Erreur lecture logements actifs:", activeError);
+      setError("Impossible d'évaluer le changement de plan.");
       return;
     }
 
-    const { error: updateError } = await supabase
+    const active = activeLogements ?? [];
+    if (newMax != null && active.length > newMax) {
+      const overflow = active.length - newMax;
+      const toLockIds = active.slice(0, overflow).map((l) => String((l as { id: string }).id));
+
+      const { error: lockLogementsError } = await supabase
+        .from("logements")
+        .update({ verrouille: true })
+        .in("id", toLockIds)
+        .eq("proprietaire_id", proprietaireId);
+      if (lockLogementsError) {
+        console.error("Erreur verrouillage logements:", lockLogementsError);
+        setError("Impossible de verrouiller les logements excédentaires.");
+        return;
+      }
+
+      const { error: lockLocatairesError } = await supabase
+        .from("locataires")
+        .update({ verrouille: true })
+        .eq("proprietaire_id", proprietaireId)
+        .in("logement_id", toLockIds);
+      if (lockLocatairesError) {
+        console.error("Erreur verrouillage locataires:", lockLocatairesError);
+        setError("Impossible de verrouiller les locataires associés.");
+        return;
+      }
+    } else {
+      const { data: unlockedRows, error: unlockedReadError } = await supabase
+        .from("logements")
+        .select("id")
+        .eq("proprietaire_id", proprietaireId)
+        .eq("verrouille", false);
+      if (unlockedReadError) {
+        console.error("Erreur lecture logements déverrouillés:", unlockedReadError);
+        setError("Impossible d'appliquer le changement de plan.");
+        return;
+      }
+      const unlockedCount = (unlockedRows ?? []).length;
+      const slots = newMax == null ? Number.MAX_SAFE_INTEGER : Math.max(0, newMax - unlockedCount);
+      if (slots > 0) {
+        const { data: lockedRows, error: lockedReadError } = await supabase
+          .from("logements")
+          .select("id")
+          .eq("proprietaire_id", proprietaireId)
+          .eq("verrouille", true)
+          .order("created_at", { ascending: true })
+          .limit(slots);
+        if (lockedReadError) {
+          console.error("Erreur lecture logements verrouillés:", lockedReadError);
+          setError("Impossible de déverrouiller les logements.");
+          return;
+        }
+        const idsToUnlock = (lockedRows ?? []).map((r) => String((r as { id: string }).id));
+        if (idsToUnlock.length > 0) {
+          const { error: unlockLogementsError } = await supabase
+            .from("logements")
+            .update({ verrouille: false })
+            .in("id", idsToUnlock)
+            .eq("proprietaire_id", proprietaireId);
+          if (unlockLogementsError) {
+            console.error("Erreur déverrouillage logements:", unlockLogementsError);
+            setError("Impossible de déverrouiller les logements.");
+            return;
+          }
+          const { error: unlockLocatairesError } = await supabase
+            .from("locataires")
+            .update({ verrouille: false })
+            .eq("proprietaire_id", proprietaireId)
+            .in("logement_id", idsToUnlock);
+          if (unlockLocatairesError) {
+            console.error("Erreur déverrouillage locataires:", unlockLocatairesError);
+            setError("Impossible de déverrouiller les locataires associés.");
+            return;
+          }
+          setMessage(`🎉 Votre plan a été mis à jour ! ${idsToUnlock.length} logements ont été déverrouillés.`);
+        }
+      }
+    }
+
+    const { error: updatePlanError } = await supabase
       .from("proprietaires")
       .update({ plan: nextPlan })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      console.error("Erreur mise à jour plan:", updateError);
-      setError("Impossible de changer le plan en mode test.");
-      setIsSwitchingPlan(false);
+      .eq("id", proprietaireId);
+    if (updatePlanError) {
+      console.error("Erreur mise à jour plan:", updatePlanError);
+      setError("Impossible de mettre à jour le plan.");
       return;
     }
+  }
+
+  async function switchPlanForTest(nextPlan: ProplioPlan) {
+    if (isSwitchingPlan || !proprietaireId) return;
+    setError("");
+    setMessage("");
+    const newMax = PLAN_LIMITS[nextPlan].maxLogements;
+    if (newMax != null) {
+      const { data: activeRows, error: activeError } = await supabase
+        .from("logements")
+        .select("id")
+        .eq("proprietaire_id", proprietaireId)
+        .eq("verrouille", false);
+      if (activeError) {
+        console.error("Erreur lecture logements actifs:", activeError);
+        setError("Impossible d'évaluer le downgrade.");
+        return;
+      }
+      const activeCount = (activeRows ?? []).length;
+      if (activeCount > newMax) {
+        setPendingPlan(nextPlan);
+        setDowngradeInfo({ active: activeCount, max: newMax, toLock: activeCount - newMax });
+        return;
+      }
+    }
+    setIsSwitchingPlan(true);
+    await performPlanChange(nextPlan);
     alert("Plan changé : " + nextPlan);
     window.location.reload();
+  }
+
+  async function confirmDowngrade() {
+    if (!pendingPlan) return;
+    setIsSwitchingPlan(true);
+    await performPlanChange(pendingPlan);
+    alert("Plan changé : " + pendingPlan);
+    window.location.reload();
+  }
+
+  function closeDowngradeModal() {
+    if (isSwitchingPlan) return;
+    setPendingPlan(null);
+    setDowngradeInfo(null);
+  }
+
+  if (loading) {
+    return (
+      <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+        <div className="rounded-xl p-5" style={panelCard}>
+          <p style={{ color: PC.muted }}>Chargement du plan...</p>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -121,21 +251,13 @@ export default function AbonnementPage() {
       </header>
 
       <div className="rounded-xl p-5" style={panelCard}>
-        {loading ? (
-          <p style={{ color: PC.muted }}>Chargement du plan...</p>
-        ) : (
-          <>
-            <p className="text-sm" style={{ color: PC.muted }}>
-              Plan actuel
-            </p>
-            <p className="mt-1 text-xl font-semibold capitalize">{plan}</p>
-            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-              Limites actuelles : {currentLimits.maxLogements ?? "illimite"} logements, {currentLimits.maxLocataires ?? "illimite"} locataires,{" "}
-              {currentLimits.monthlyQuittances ?? "illimite"} quittances/mois, {currentLimits.monthlyBaux ?? "illimite"} baux/mois,{" "}
-              {currentLimits.monthlyEtatsDesLieux ?? "illimite"} etats des lieux/mois.
-            </p>
-          </>
-        )}
+        <p className="text-sm" style={{ color: PC.muted }}>
+          Plan actuel
+        </p>
+        <p className="mt-1 text-xl font-semibold capitalize">{plan}</p>
+        <p className="mt-3 text-sm" style={{ color: PC.muted }}>
+          Limites actuelles : {currentLimits.maxLogements ?? "illimite"} logements, {currentLimits.maxLocataires ?? "illimite"} locataires.
+        </p>
       </div>
 
       {error ? (
@@ -235,6 +357,25 @@ export default function AbonnementPage() {
         </Link>
         .
       </p>
+
+      {pendingPlan && downgradeInfo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-xl rounded-xl p-6" style={panelCard}>
+            <h2 className="text-lg font-semibold">Confirmation de downgrade</h2>
+            <p className="mt-3 whitespace-pre-line text-sm" style={{ color: PC.muted }}>
+              {`Attention : vous avez ${downgradeInfo.active} logements actifs. Le plan ${pendingPlan} autorise ${downgradeInfo.max} logements maximum. ${downgradeInfo.toLock} logements et leurs locataires associés seront verrouillés et inaccessibles. Vous pourrez y accéder à nouveau en passant à un plan supérieur.`}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={closeDowngradeModal}>
+                Annuler
+              </button>
+              <button type="button" className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary" onClick={() => void confirmDowngrade()}>
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
