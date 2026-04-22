@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { supabaseAuthOptions } from "@/lib/supabase/auth-options";
 
 const PUBLIC_PATHS = ["/landing", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"] as const;
+const PUBLIC_API_PATHS = ["/api/stripe/webhook"] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
 const AUTH_PAGES = ["/login", "/register"] as const;
 
@@ -15,8 +16,12 @@ function isAuthPage(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request });
   const { pathname } = request.nextUrl;
+  if (PUBLIC_API_PATHS.some((path) => pathname === path)) {
+    return NextResponse.next({ request });
+  }
+
+  const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
