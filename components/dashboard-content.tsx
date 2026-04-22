@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -13,6 +14,7 @@ import {
 } from "recharts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
+import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -314,6 +316,7 @@ function StatCard({
 
 export function DashboardContent() {
   const [prenom, setPrenom] = useState("");
+  const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
   const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
@@ -350,7 +353,7 @@ export function DashboardContent() {
 
         const { data: proprietaire, error: propError } = await supabase
           .from("proprietaires")
-          .select("id, prenom")
+          .select("id, prenom, nom, adresse")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -358,6 +361,13 @@ export function DashboardContent() {
 
         const name = (proprietaire?.prenom as string | undefined)?.trim() ?? "";
         if (!cancelled) setPrenom(name);
+
+        const incomplete = isProprietaireOnboardingIncomplete({
+          nom: String(proprietaire?.nom ?? ""),
+          prenom: String(proprietaire?.prenom ?? ""),
+          adresse: String(proprietaire?.adresse ?? ""),
+        });
+        if (!cancelled) setShowProfileOnboardingBanner(incomplete);
 
         const ownerId = proprietaire?.id as string | undefined;
         if (!ownerId || cancelled) return;
@@ -391,6 +401,28 @@ export function DashboardContent() {
 
   return (
     <>
+      {showProfileOnboardingBanner ? (
+        <div
+          className="flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"
+          style={{
+            backgroundColor: PC.primaryBg10,
+            border: `1px solid ${PC.primaryBorder40}`,
+            boxShadow: PC.cardShadow,
+          }}
+        >
+          <p className="text-sm leading-relaxed" style={{ color: PC.text }}>
+            👤 Complétez votre profil propriétaire pour que vos quittances et baux soient générés correctement.
+          </p>
+          <Link
+            href="/parametres"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+            style={{ backgroundColor: PC.primary, color: PC.white }}
+          >
+            Compléter mon profil
+          </Link>
+        </div>
+      ) : null}
+
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1

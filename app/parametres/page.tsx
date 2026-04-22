@@ -7,6 +7,7 @@ import {
   emptyProprietaireProfile,
   fetchProprietaireProfile,
   getCurrentProprietaireId,
+  isProprietaireOnboardingIncomplete,
   saveProprietaireProfile,
   type ProprietaireProfile,
 } from "@/lib/proprietaire-profile";
@@ -170,6 +171,20 @@ export default function ParametresPage() {
         </p>
       </header>
 
+      {!isLoading && isProprietaireOnboardingIncomplete(profile) ? (
+        <div
+          className="rounded-xl px-4 py-3 text-sm"
+          style={{
+            backgroundColor: PC.warningBg15,
+            border: `1px solid ${PC.border}`,
+            color: PC.warning,
+          }}
+        >
+          👤 Votre profil est incomplet (nom, prénom ou adresse manquant). Renseignez les champs ci-dessous pour des
+          quittances et baux conformes.
+        </div>
+      ) : null}
+
       <div className="p-6" style={panelCard}>
         <h2 className="text-lg font-semibold">Mon profil propriétaire</h2>
 
@@ -278,7 +293,7 @@ export default function ParametresPage() {
         )}
       </div>
 
-      <div className="p-6" style={panelCard}>
+      <div id="abonnement" className="p-6 scroll-mt-24" style={panelCard}>
         <h2 className="text-lg font-semibold">Mon abonnement</h2>
         <p className="mt-1 text-sm" style={{ color: PC.muted }}>
           Plan actuel : <span className="font-medium capitalize" style={{ color: PC.text }}>{plan}</span>

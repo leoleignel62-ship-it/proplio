@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSPropertie
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import {
   canCreateBail,
   getMonthlyCreatedCount,
@@ -11,6 +12,7 @@ import {
   PLAN_FREE_BAUX_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
+  type ProplioPlan,
 } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -233,7 +235,7 @@ export default function BauxPage() {
     return locataires.filter((l) => l.logement_id === values.logement_id);
   }, [values.logement_id, locataires]);
   const [successToast, setSuccessToast] = useState("");
-  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
+  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("logement_id") ?? "";
@@ -359,6 +361,15 @@ export default function BauxPage() {
       setProprietaireId(ownerId);
       if (!ownerId) {
         setError("Profil propriétaire introuvable.");
+        setIsLoading(false);
+        return;
+      }
+
+      const plan = await getOwnerPlan(ownerId);
+      if (!isMounted) return;
+      setCurrentPlan(plan);
+      if (plan === "free") {
+        setPlanLimitMessage(PLAN_FREE_BAUX_BANNER);
         setIsLoading(false);
         return;
       }
@@ -911,6 +922,10 @@ export default function BauxPage() {
       setError(`Erreur d'envoi de l'e-mail : ${formatSubmitError(e)}`);
     } finally {
     }
+  }
+
+  if (!isLoading && currentPlan === "free") {
+    return <PlanFreeModuleUpsell variant="baux" />;
   }
 
   const freeBauxBlock = currentPlan === "free";

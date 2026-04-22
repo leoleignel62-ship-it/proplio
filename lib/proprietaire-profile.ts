@@ -26,6 +26,13 @@ export const emptyProprietaireProfile: ProprietaireProfile = {
   siret: "",
 };
 
+/** Profil minimum pour quittances / baux : nom, prénom et adresse (rue). */
+export function isProprietaireOnboardingIncomplete(
+  profile: Pick<ProprietaireProfile, "nom" | "prenom" | "adresse">,
+): boolean {
+  return !profile.nom.trim() || !profile.prenom.trim() || !profile.adresse.trim();
+}
+
 export async function getCurrentProprietaireId() {
   try {
     const {

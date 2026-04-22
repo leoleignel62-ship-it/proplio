@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
@@ -13,6 +14,7 @@ import {
   PLAN_FREE_EDL_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
+  type ProplioPlan,
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -88,7 +90,7 @@ export default function EtatsDesLieuxPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState("");
-  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
+  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -99,6 +101,17 @@ export default function EtatsDesLieuxPage() {
     const { proprietaireId, error: pe } = await getCurrentProprietaireId();
     if (pe || !proprietaireId) {
       setError(pe ? formatSubmitError(pe) : "Session invalide.");
+      setLoading(false);
+      return;
+    }
+
+    const planEarly = await getOwnerPlan(proprietaireId);
+    setCurrentPlan(planEarly);
+    if (planEarly === "free") {
+      setPlanLimitMessage(PLAN_FREE_EDL_BANNER);
+      setRows([]);
+      setLabels({});
+      setBauxOptions([]);
       setLoading(false);
       return;
     }
@@ -182,15 +195,8 @@ export default function EtatsDesLieuxPage() {
       };
     });
     setBauxOptions(bailList);
-    const plan = await getOwnerPlan(proprietaireId);
-    setCurrentPlan(plan);
-    if (plan === "free") {
-      setPlanLimitMessage(PLAN_FREE_EDL_BANNER);
-      setLoading(false);
-      return;
-    }
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+    if (!canCreateEtatDesLieux(planEarly, monthlyCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus d'états des lieux.");
     } else {
       setPlanLimitMessage("");
@@ -415,6 +421,10 @@ export default function EtatsDesLieuxPage() {
     () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
     [rows, logementFilter],
   );
+
+  if (!loading && currentPlan === "free") {
+    return <PlanFreeModuleUpsell variant="etats-des-lieux" />;
+  }
 
   const edlFreeBlocked = currentPlan === "free";
 
