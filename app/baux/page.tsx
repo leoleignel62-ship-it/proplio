@@ -211,6 +211,7 @@ export default function BauxPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<Bail | null>(null);
   const [error, setError] = useState("");
+  const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [logements, setLogements] = useState<LogementEntity[]>([]);
   const [locataires, setLocataires] = useState<LocataireEntity[]>([]);
@@ -231,6 +232,7 @@ export default function BauxPage() {
     return locataires.filter((l) => l.logement_id === values.logement_id);
   }, [values.logement_id, locataires]);
   const [successToast, setSuccessToast] = useState("");
+  const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("logement_id") ?? "";
 
@@ -249,6 +251,16 @@ export default function BauxPage() {
       .filter((l) => map.has(l.id))
       .map((l) => ({ logement: l, rows: map.get(l.id) ?? [] }));
   }, [filteredRows, logements]);
+
+  const refreshPlanLimit = useCallback(async (ownerId: string) => {
+    const plan = await getOwnerPlan(ownerId);
+    const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
+    if (!canCreateBail(plan, monthlyCount)) {
+      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
+      return;
+    }
+    setPlanLimitMessage("");
+  }, []);
 
   const loadRelations = useCallback(async (ownerId: string) => {
     const [logementsResponse, locatairesResponse] = await Promise.all([
@@ -320,8 +332,9 @@ export default function BauxPage() {
       setRows((data as Bail[]) ?? []);
     }
 
+    await refreshPlanLimit(activeOwnerId);
     setIsLoading(false);
-  }, [proprietaireId]);
+  }, [proprietaireId, refreshPlanLimit]);
 
   useEffect(() => {
     let isMounted = true;
@@ -361,7 +374,15 @@ export default function BauxPage() {
     setMeubleNomError("");
   }
 
-  function openCreateModal() {
+  async function openCreateModal() {
+    if (proprietaireId) {
+      const plan = await getOwnerPlan(proprietaireId);
+      const monthlyCount = await getMonthlyCreatedCount("baux", proprietaireId);
+      if (!canCreateBail(plan, monthlyCount)) {
+        setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
+        return;
+      }
+    }
     setEditingRow(null);
     setValues({ ...defaultValues, logement_id: prefillLogementId });
     setNouveauMeubleNom("");
@@ -889,7 +910,9 @@ export default function BauxPage() {
         <button
           type="button"
           className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
-          onClick={openCreateModal}
+          onClick={() => void openCreateModal()}
+          disabled={isPlanLimitReached}
+          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
           <IconPlus className="h-4 w-4" />
           Nouveau bail
@@ -906,6 +929,16 @@ export default function BauxPage() {
               </a>
             </p>
           ) : null}
+        </div>
+      ) : null}
+      {isPlanLimitReached ? (
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+          <div className="flex items-center justify-between gap-3">
+            <p>⚠️ {planLimitMessage}</p>
+            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+              Voir les plans
+            </a>
+          </div>
         </div>
       ) : null}
       {successToast ? (

@@ -62,6 +62,7 @@ export default function LogementsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
@@ -72,6 +73,16 @@ export default function LogementsPage() {
   const totalChambresLoyers = useMemo(() => totalLoyersChambres(chambres.slice(0, nCh)), [chambres, nCh]);
   const loyerGlobal = Number(values.loyer || 0);
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
+  const isPlanLimitReached = Boolean(planLimitMessage);
+
+  const refreshPlanLimit = useCallback(async (ownerId: string, logementsCount: number) => {
+    const plan = await getOwnerPlan(ownerId);
+    if (!canCreateLogement(plan, logementsCount)) {
+      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
+      return;
+    }
+    setPlanLimitMessage("");
+  }, []);
 
   const loadRows = useCallback(async (ownerId?: string | null) => {
     const activeOwnerId = ownerId ?? proprietaireId;
@@ -96,8 +107,10 @@ export default function LogementsPage() {
     if (fetchError) {
       setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
       setRows([]);
+      setPlanLimitMessage("");
     } else {
-      setRows((data as Logement[]) ?? []);
+      const nextRows = (data as Logement[]) ?? [];
+      setRows(nextRows);
       const counts: Record<string, number> = {};
       for (const row of locData ?? []) {
         const id = row.logement_id as string | null;
@@ -105,10 +118,11 @@ export default function LogementsPage() {
         counts[id] = (counts[id] ?? 0) + 1;
       }
       setLocatairesByLogement(counts);
+      await refreshPlanLimit(activeOwnerId, nextRows.length);
     }
 
     setIsLoading(false);
-  }, [proprietaireId]);
+  }, [proprietaireId, refreshPlanLimit]);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,8 +159,10 @@ export default function LogementsPage() {
       if (fetchError) {
         setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
         setRows([]);
+        setPlanLimitMessage("");
       } else {
-        setRows((data as Logement[]) ?? []);
+        const nextRows = (data as Logement[]) ?? [];
+        setRows(nextRows);
         const counts: Record<string, number> = {};
         for (const row of locData ?? []) {
           const id = row.logement_id as string | null;
@@ -154,6 +170,7 @@ export default function LogementsPage() {
           counts[id] = (counts[id] ?? 0) + 1;
         }
         setLocatairesByLogement(counts);
+        await refreshPlanLimit(ownerId, nextRows.length);
       }
 
       setIsLoading(false);
@@ -164,7 +181,7 @@ export default function LogementsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshPlanLimit]);
 
   function syncChambresCount(count: number) {
     const c = Math.max(1, Math.min(10, count));
@@ -176,7 +193,13 @@ export default function LogementsPage() {
     setActiveChambreTab((tab) => Math.min(tab, c - 1));
   }
 
-  function openCreateModal() {
+  async function openCreateModal() {
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (ownerId) {
+      await refreshPlanLimit(ownerId, rows.length);
+      const plan = await getOwnerPlan(ownerId);
+      if (!canCreateLogement(plan, rows.length)) return;
+    }
     setEditingRow(null);
     setValues(baseDefaultValues);
     setNombreChambres("1");
@@ -374,7 +397,9 @@ export default function LogementsPage() {
         <button
           type="button"
           className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
-          onClick={openCreateModal}
+          onClick={() => void openCreateModal()}
+          disabled={isPlanLimitReached}
+          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
           <IconPlus className="h-4 w-4" />
           Nouveau logement
@@ -391,6 +416,17 @@ export default function LogementsPage() {
               </a>
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {isPlanLimitReached ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+          <div className="flex items-center justify-between gap-3">
+            <p>⚠️ {planLimitMessage}</p>
+            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+              Voir les plans
+            </a>
+          </div>
         </div>
       ) : null}
 

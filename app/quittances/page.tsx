@@ -105,6 +105,7 @@ export default function QuittancesPage() {
   const [locataires, setLocataires] = useState<LocataireEntity[]>([]);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [proprietaireProfile, setProprietaireProfile] = useState<ProprietaireProfile | null>(null);
+  const [planLimitMessage, setPlanLimitMessage] = useState("");
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const logementsDetailsMap = useMemo(() => new Map(logements.map((item) => [item.id, item])), [logements]);
@@ -162,6 +163,17 @@ export default function QuittancesPage() {
     [logements, locatairesForSelectedLogement, values.logement_id],
   );
   const [successToast, setSuccessToast] = useState("");
+  const isPlanLimitReached = Boolean(planLimitMessage);
+
+  const refreshPlanLimit = useCallback(async (ownerId: string) => {
+    const plan = await getOwnerPlan(ownerId);
+    const monthlyCount = await getMonthlyCreatedCount("quittances", ownerId);
+    if (!canCreateQuittance(plan, monthlyCount)) {
+      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
+      return;
+    }
+    setPlanLimitMessage("");
+  }, []);
 
   const filteredRows = useMemo(
     () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
@@ -251,8 +263,9 @@ export default function QuittancesPage() {
       setRows((data as Quittance[]) ?? []);
     }
 
+    await refreshPlanLimit(activeOwnerId);
     setIsLoading(false);
-  }, [proprietaireId]);
+  }, [proprietaireId, refreshPlanLimit]);
 
   useEffect(() => {
     let isMounted = true;
@@ -290,7 +303,15 @@ export default function QuittancesPage() {
     };
   }, [loadRelations, loadRows]);
 
-  function openCreateModal() {
+  async function openCreateModal() {
+    if (proprietaireId) {
+      const plan = await getOwnerPlan(proprietaireId);
+      const monthlyCount = await getMonthlyCreatedCount("quittances", proprietaireId);
+      if (!canCreateQuittance(plan, monthlyCount)) {
+        setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
+        return;
+      }
+    }
     setEditingRow(null);
     setValues({ ...defaultValues, annee: defaultYear, logement_id: prefillLogementId });
     setIsModalOpen(true);
@@ -585,7 +606,9 @@ export default function QuittancesPage() {
         <button
           type="button"
           className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
-          onClick={openCreateModal}
+          onClick={() => void openCreateModal()}
+          disabled={isPlanLimitReached}
+          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
           <IconPlus className="h-4 w-4" />
           Nouvelle quittance
@@ -602,6 +625,16 @@ export default function QuittancesPage() {
               </a>
             </p>
           ) : null}
+        </div>
+      ) : null}
+      {isPlanLimitReached ? (
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+          <div className="flex items-center justify-between gap-3">
+            <p>⚠️ {planLimitMessage}</p>
+            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+              Voir les plans
+            </a>
+          </div>
         </div>
       ) : null}
       {successToast ? (

@@ -58,6 +58,7 @@ export default function LocatairesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Locataire | null>(null);
   const [error, setError] = useState("");
+  const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
@@ -76,6 +77,16 @@ export default function LocatairesPage() {
           Number(values.colocation_chambre_index),
         )
       : null;
+  const isPlanLimitReached = Boolean(planLimitMessage);
+
+  const refreshPlanLimit = useCallback(async (ownerId: string, locatairesCount: number) => {
+    const plan = await getOwnerPlan(ownerId);
+    if (!canCreateLocataire(plan, locatairesCount)) {
+      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de locataires.");
+      return;
+    }
+    setPlanLimitMessage("");
+  }, []);
 
   const groupedLocataires = useMemo(() => {
     const groups: Array<{ key: string; title: string; subtitle: string; rows: Locataire[] }> = [];
@@ -149,13 +160,16 @@ export default function LocatairesPage() {
       if (fetchError) {
         setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
         setRows([]);
+        setPlanLimitMessage("");
       } else {
-        setRows((data as Locataire[]) ?? []);
+        const nextRows = (data as Locataire[]) ?? [];
+        setRows(nextRows);
+        await refreshPlanLimit(activeOwnerId, nextRows.length);
       }
 
       setIsLoading(false);
     },
-    [proprietaireId],
+    [proprietaireId, refreshPlanLimit],
   );
 
   useEffect(() => {
@@ -207,8 +221,11 @@ export default function LocatairesPage() {
       if (locRes.error) {
         setError(`Erreur de chargement : ${formatSubmitError(locRes.error)}`);
         setRows([]);
+        setPlanLimitMessage("");
       } else {
-        setRows((locRes.data as Locataire[]) ?? []);
+        const nextRows = (locRes.data as Locataire[]) ?? [];
+        setRows(nextRows);
+        await refreshPlanLimit(ownerId, nextRows.length);
       }
 
       setIsLoading(false);
@@ -219,9 +236,15 @@ export default function LocatairesPage() {
     return () => {
       isMounted = false;
     };
-  }, [loadLogements]);
+  }, [loadLogements, refreshPlanLimit]);
 
-  function openCreateModal() {
+  async function openCreateModal() {
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (ownerId) {
+      await refreshPlanLimit(ownerId, rows.length);
+      const plan = await getOwnerPlan(ownerId);
+      if (!canCreateLocataire(plan, rows.length)) return;
+    }
     setEditingRow(null);
     setValues(defaultValues);
     setIsModalOpen(true);
@@ -464,7 +487,9 @@ export default function LocatairesPage() {
         <button
           type="button"
           className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
-          onClick={openCreateModal}
+          onClick={() => void openCreateModal()}
+          disabled={isPlanLimitReached}
+          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
           <IconPlus className="h-4 w-4" />
           Nouveau locataire
@@ -481,6 +506,17 @@ export default function LocatairesPage() {
               </a>
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {isPlanLimitReached ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+          <div className="flex items-center justify-between gap-3">
+            <p>⚠️ {planLimitMessage}</p>
+            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+              Voir les plans
+            </a>
+          </div>
         </div>
       ) : null}
 

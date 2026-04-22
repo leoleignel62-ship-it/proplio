@@ -83,11 +83,13 @@ export default function EtatsDesLieuxPage() {
   const [dateEtat, setDateEtat] = useState(() => new Date().toISOString().slice(0, 10));
   const [typeLogement, setTypeLogement] = useState<"meuble" | "vide">("vide");
   const [submitting, setSubmitting] = useState(false);
+  const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState("");
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
+  const isPlanLimitReached = Boolean(planLimitMessage);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -178,6 +180,13 @@ export default function EtatsDesLieuxPage() {
       };
     });
     setBauxOptions(bailList);
+    const plan = await getOwnerPlan(proprietaireId);
+    const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
+    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+      setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus d'états des lieux.");
+    } else {
+      setPlanLimitMessage("");
+    }
     setLoading(false);
   }, []);
 
@@ -416,7 +425,10 @@ export default function EtatsDesLieuxPage() {
         <button
           type="button"
           className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+          disabled={isPlanLimitReached}
+          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
           onClick={() => {
+            if (isPlanLimitReached) return;
             const preselected = bauxOptions.find((b) => b.logement_id === prefillLogementId)?.id ?? "";
             setBailId(preselected);
             setTypeEtat("entree");
@@ -431,6 +443,17 @@ export default function EtatsDesLieuxPage() {
           Nouvel état des lieux
         </button>
       </div>
+
+      {isPlanLimitReached ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+          <div className="flex items-center justify-between gap-3">
+            <p>⚠️ {planLimitMessage}</p>
+            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+              Voir les plans
+            </a>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
