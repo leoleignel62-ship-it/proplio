@@ -35,12 +35,15 @@ function NavLink({
   Icon,
   isActive,
   onNavigate,
+  starterOnlyLock = false,
 }: {
   href: string;
   label: string;
   Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   isActive: boolean;
   onNavigate?: () => void;
+  /** Plan Free : lien cliquable vers la page upsell, avec 🔒 + tooltip. */
+  starterOnlyLock?: boolean;
 }) {
   const [hover, setHover] = useState(false);
 
@@ -60,6 +63,7 @@ function NavLink({
       href={href}
       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition"
       style={isActive ? activeStyle : idleStyle}
+      title={starterOnlyLock ? SIDEBAR_STARTER_ONLY_TOOLTIP : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={() => onNavigate?.()}
@@ -68,55 +72,15 @@ function NavLink({
         className="h-5 w-5 shrink-0"
         style={{ color: isActive ? PC.white : PC.secondary }}
       />
-      {label}
+      {starterOnlyLock ? (
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span>{label}</span>
+          <span aria-hidden>🔒</span>
+        </span>
+      ) : (
+        label
+      )}
     </Link>
-  );
-}
-
-function NavLinkLocked({
-  label,
-  Icon,
-  isActive,
-}: {
-  label: string;
-  Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
-  isActive: boolean;
-}) {
-  const [hover, setHover] = useState(false);
-
-  const activeStyle: CSSProperties = {
-    backgroundColor: PC.primary,
-    color: PC.white,
-    boxShadow: "0 4px 14px -2px rgba(124, 58, 237, 0.35)",
-    cursor: "not-allowed",
-    opacity: 0.85,
-  };
-
-  const idleStyle: CSSProperties = {
-    color: PC.muted,
-    backgroundColor: hover ? PC.card : "transparent",
-    cursor: "not-allowed",
-    opacity: 0.75,
-  };
-
-  return (
-    <span
-      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition"
-      style={isActive ? activeStyle : idleStyle}
-      title={SIDEBAR_STARTER_ONLY_TOOLTIP}
-      role="group"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Icon
-        className="h-5 w-5 shrink-0"
-        style={{ color: isActive ? PC.white : PC.muted }}
-      />
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span>{label}</span>
-        <span aria-hidden>🔒</span>
-      </span>
-    </span>
   );
 }
 
@@ -178,16 +142,6 @@ export function NavigationSidebar() {
   }
 
   function renderNavItem(item: (typeof navigationItems)[number], closeMobile?: () => void) {
-    if (isSidebarStarterOnlyLocked(item.href)) {
-      return (
-        <NavLinkLocked
-          key={item.href}
-          label={item.label}
-          Icon={item.icon}
-          isActive={pathname === item.href}
-        />
-      );
-    }
     return (
       <NavLink
         key={item.href}
@@ -196,6 +150,7 @@ export function NavigationSidebar() {
         Icon={item.icon}
         isActive={pathname === item.href}
         onNavigate={closeMobile}
+        starterOnlyLock={isSidebarStarterOnlyLocked(item.href)}
       />
     );
   }
