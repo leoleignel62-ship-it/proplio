@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PC } from "@/lib/proplio-colors";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
+import type { ProplioPlan } from "@/lib/plan-limits";
 import { panelCard } from "@/lib/proplio-field-styles";
 import type { CSSProperties } from "react";
 
@@ -14,12 +15,44 @@ const HERO_CARD: CSSProperties = {
   border: `1px solid ${PC.primaryBorder40}`,
 };
 
-const PRICE_CARD: CSSProperties = {
+const PLAN_CARD: CSSProperties = {
   ...panelCard,
-  padding: 24,
+  padding: 20,
   backgroundColor: PC.bg,
   border: `1px solid ${PC.border}`,
 };
+
+type PaidPlan = Exclude<ProplioPlan, "free">;
+
+const PLAN_ROWS: Array<{
+  id: PaidPlan;
+  label: string;
+  monthlyLine: string;
+  yearlyLine: string;
+  cta: string;
+}> = [
+  {
+    id: "starter",
+    label: "Starter",
+    monthlyLine: "4,90 €/mois",
+    yearlyLine: "49 €/an",
+    cta: "Choisir Starter",
+  },
+  {
+    id: "pro",
+    label: "Pro",
+    monthlyLine: "9,90 €/mois",
+    yearlyLine: "99 €/an",
+    cta: "Choisir Pro",
+  },
+  {
+    id: "expert",
+    label: "Expert",
+    monthlyLine: "19,90 €/mois",
+    yearlyLine: "199 €/an",
+    cta: "Choisir Expert",
+  },
+];
 
 const copy = {
   baux: {
@@ -38,17 +71,18 @@ export type PlanFreeModuleUpsellVariant = keyof typeof copy;
 
 export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsellVariant }) {
   const { kicker, benefits } = copy[variant];
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [loadingPlanId, setLoadingPlanId] = useState<PaidPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState("");
 
-  async function onStarterCheckout() {
+  async function onPlanCheckout(plan: PaidPlan) {
     setCheckoutError("");
-    setCheckoutLoading(true);
+    setLoadingPlanId(plan);
     try {
-      await startStripeCheckout("starter", "monthly");
+      await startStripeCheckout(plan, billing === "monthly" ? "monthly" : "yearly");
     } catch (e) {
       setCheckoutError(e instanceof Error ? e.message : "Impossible de démarrer le paiement.");
-      setCheckoutLoading(false);
+      setLoadingPlanId(null);
     }
   }
 
@@ -70,26 +104,135 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
         <h2 className="text-center text-sm font-semibold" style={{ color: PC.text }}>
           Nos formules
         </h2>
-        <div className="rounded-xl p-5" style={PRICE_CARD}>
-          <p className="text-center text-sm leading-7 sm:text-base" style={{ color: PC.muted }}>
-            <span className="font-semibold" style={{ color: PC.primary }}>
-              Starter
-            </span>{" "}
-            4,90&nbsp;€/mois
-            <span style={{ color: PC.border }}> · </span>
-            <span className="font-semibold" style={{ color: PC.secondary }}>
-              Pro
-            </span>{" "}
-            9,90&nbsp;€/mois
-            <span style={{ color: PC.border }}> · </span>
-            <span className="font-semibold" style={{ color: PC.text }}>
-              Expert
-            </span>{" "}
-            19,90&nbsp;€/mois
+
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-xs font-medium" style={{ color: PC.muted }}>
+            Facturation
           </p>
-          <p className="mt-3 text-center text-xs" style={{ color: PC.muted }}>
-            Tarifs mensuels indicatifs — facturation et engagement sur la page abonnement.
+          <div
+            className="relative grid w-full max-w-[280px] grid-cols-2 rounded-full p-1"
+            style={{
+              backgroundColor: PC.card,
+              border: `1px solid ${PC.border}`,
+              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)",
+            }}
+            role="group"
+            aria-label="Mensuel ou annuel"
+          >
+            <div
+              className="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full transition-[transform,box-shadow] duration-300 ease-out"
+              style={{
+                backgroundColor: PC.primary,
+                boxShadow: "0 2px 8px rgba(124, 58, 237, 0.45)",
+                transform:
+                  billing === "yearly" ? "translateX(calc(100% + 8px))" : "translateX(0)",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setBilling("monthly")}
+              className="relative z-10 rounded-full py-2.5 text-sm font-semibold transition-colors duration-300"
+              style={{ color: billing === "monthly" ? PC.white : PC.muted }}
+            >
+              Mensuel
+            </button>
+            <button
+              type="button"
+              onClick={() => setBilling("yearly")}
+              className="relative z-10 rounded-full py-2.5 text-sm font-semibold transition-colors duration-300"
+              style={{ color: billing === "yearly" ? PC.white : PC.muted }}
+            >
+              Annuel
+            </button>
+          </div>
+
+          {billing === "yearly" ? (
+            <span
+              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-opacity duration-300"
+              style={{
+                backgroundColor: PC.primaryBg25,
+                color: PC.secondary,
+                border: `1px solid ${PC.primaryBorder40}`,
+              }}
+            >
+              Économisez 2 mois 🎉
+            </span>
+          ) : null}
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-center text-xs" style={{ color: PC.muted }}>
+            {billing === "monthly" ? (
+              <>
+                <span className="font-semibold" style={{ color: PC.primary }}>
+                  Starter
+                </span>{" "}
+                4,90&nbsp;€/mois
+                <span style={{ color: PC.border }}> · </span>
+                <span className="font-semibold" style={{ color: PC.secondary }}>
+                  Pro
+                </span>{" "}
+                9,90&nbsp;€/mois
+                <span style={{ color: PC.border }}> · </span>
+                <span className="font-semibold" style={{ color: PC.text }}>
+                  Expert
+                </span>{" "}
+                19,90&nbsp;€/mois
+              </>
+            ) : (
+              <>
+                <span className="font-semibold" style={{ color: PC.primary }}>
+                  Starter
+                </span>{" "}
+                49&nbsp;€/an
+                <span style={{ color: PC.border }}> · </span>
+                <span className="font-semibold" style={{ color: PC.secondary }}>
+                  Pro
+                </span>{" "}
+                99&nbsp;€/an
+                <span style={{ color: PC.border }}> · </span>
+                <span className="font-semibold" style={{ color: PC.text }}>
+                  Expert
+                </span>{" "}
+                199&nbsp;€/an
+              </>
+            )}
           </p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {PLAN_ROWS.map((row) => {
+              const isLoading = loadingPlanId === row.id;
+              const priceLabel = billing === "monthly" ? row.monthlyLine : row.yearlyLine;
+              return (
+                <div
+                  key={row.id}
+                  className="flex flex-col rounded-xl transition-[border-color,box-shadow] duration-300"
+                  style={PLAN_CARD}
+                >
+                  <p className="text-center text-sm font-semibold" style={{ color: PC.text }}>
+                    {row.label}
+                  </p>
+                  <p className="mt-2 text-center text-sm" style={{ color: PC.muted }}>
+                    {priceLabel}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={loadingPlanId !== null}
+                    onClick={() => void onPlanCheckout(row.id)}
+                    className="mt-4 w-full rounded-lg px-3 py-2.5 text-xs font-semibold transition-opacity duration-200 disabled:cursor-not-allowed sm:text-sm"
+                    style={{
+                      backgroundColor: PC.primary,
+                      color: PC.white,
+                      boxShadow: "0 2px 10px rgba(124, 58, 237, 0.35)",
+                      opacity: loadingPlanId !== null && !isLoading ? 0.45 : 1,
+                    }}
+                  >
+                    {isLoading ? "Redirection…" : row.cta}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {checkoutError ? (
@@ -98,24 +241,10 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
           </p>
         ) : null}
 
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            disabled={checkoutLoading}
-            onClick={() => void onStarterCheckout()}
-            className="inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed sm:w-auto"
-            style={{
-              backgroundColor: PC.primary,
-              color: PC.white,
-              boxShadow: "0 4px 14px -2px rgba(124, 58, 237, 0.45)",
-              opacity: checkoutLoading ? 0.75 : 1,
-            }}
-          >
-            {checkoutLoading ? "Redirection vers Stripe…" : "Passer au plan Starter"}
-          </button>
+        <div className="flex justify-center">
           <Link
             href="/parametres/abonnement"
-            className="inline-flex w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium sm:w-auto"
+            className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium transition hover:opacity-90"
             style={{
               border: `1px solid ${PC.border}`,
               color: PC.muted,
