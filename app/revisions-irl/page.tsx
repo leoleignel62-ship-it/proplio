@@ -12,6 +12,7 @@ import {
   getDerniereDateAnniversaireBail,
 } from "@/lib/irl-revision";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
@@ -77,6 +78,7 @@ export default function RevisionsIrlPage() {
   const [pendingLetters, setPendingLetters] = useState<Array<{ bailId: string; revisionId: string; label: string }>>(
     [],
   );
+  const [missingIrlDraft, setMissingIrlDraft] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     setError("");
@@ -177,6 +179,19 @@ export default function RevisionsIrlPage() {
     [baux, irl.valeur, revMeta],
   );
 
+  const bauxSansIrlReference = useMemo(
+    () =>
+      detecterBauxEligibles(baux as never, irl.valeur, {
+        bailIdsAvecRevisionProposee: revMeta.proposee,
+        revisionsPourRefus: revMeta.pourRefus,
+        omitIrlReferenceCheck: true,
+      }).filter((b) => {
+        const n = Number((b as BailRow).irl_reference ?? 0);
+        return !Number.isFinite(n) || n <= 0;
+      }) as BailRow[],
+    [baux, irl.valeur, revMeta],
+  );
+
   const logementsOptions = useMemo(() => {
     const ids = new Set<string>();
     for (const r of revisions) {
@@ -233,6 +248,44 @@ export default function RevisionsIrlPage() {
       }
       invalidateHeaderAlertsCache();
       await loadData();
+    } finally {
+      setActionKey(null);
+    }
+  }
+
+  async function onSaveIrlReference(bailId: string) {
+    const raw = (missingIrlDraft[bailId] ?? "").trim().replace(",", ".");
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) {
+      setError("Indiquez un indice IRL valide (nombre > 0).");
+      return;
+    }
+    setActionKey(`irl-${bailId}`);
+    setError("");
+    try {
+      const { proprietaireId: pid } = await getCurrentProprietaireId();
+      if (!pid) {
+        setError("Session propriétaire introuvable.");
+        return;
+      }
+      const { error: upErr } = await supabase
+        .from("baux")
+        .update({ irl_reference: n })
+        .eq("id", bailId)
+        .eq("proprietaire_id", pid);
+      if (upErr) {
+        setError(formatSubmitError(upErr));
+        return;
+      }
+      setMissingIrlDraft((prev) => {
+        const next = { ...prev };
+        delete next[bailId];
+        return next;
+      });
+      invalidateHeaderAlertsCache();
+      await loadData();
+    } catch (e) {
+      setError(formatSubmitError(e));
     } finally {
       setActionKey(null);
     }
@@ -301,14 +354,62 @@ export default function RevisionsIrlPage() {
           <p className="text-sm" style={{ color: PC.muted }}>
             Chargement…
           </p>
-        ) : eligibles.length === 0 ? (
-          <div className="rounded-xl p-6 text-sm leading-relaxed" style={CARD}>
-            <p style={{ color: PC.muted }}>
-              Aucune révision disponible pour le moment. Les révisions sont proposées automatiquement à chaque date
-              anniversaire de vos baux.
-            </p>
-          </div>
         ) : (
+          <>
+            {bauxSansIrlReference.length > 0 ? (
+              <div className="mb-4 space-y-3">
+                {bauxSansIrlReference.map((bail) => {
+                  const logementNom = logementsMap.get(String(bail.logement_id ?? "")) ?? "Logement";
+                  const locNom = locatairesMap.get(String(bail.locataire_id ?? "")) ?? "Locataire";
+                  const busy = actionKey === `irl-${bail.id}`;
+                  return (
+                    <div key={`irl-${bail.id}`} className="rounded-xl text-sm" style={CARD}>
+                      <p className="font-medium" style={{ color: PC.text }}>
+                        {logementNom}
+                        <span className="font-normal" style={{ color: PC.muted }}>
+                          {" "}
+                          — {locNom}
+                        </span>
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.warning }}>
+                        IRL de référence manquant — renseignez l&apos;indice INSEE à la date de début du bail ci-dessous
+                        puis enregistrez.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="ex. 143.46"
+                          className="min-w-[8rem] max-w-[12rem] rounded-lg border px-2 py-1.5 text-sm outline-none"
+                          style={{ borderColor: PC.border, backgroundColor: PC.inputBg, color: PC.text }}
+                          value={missingIrlDraft[bail.id] ?? ""}
+                          onChange={(e) =>
+                            setMissingIrlDraft((prev) => ({ ...prev, [bail.id]: e.target.value }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          disabled={busy}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-50"
+                          style={{ backgroundColor: PC.primary }}
+                          onClick={() => void onSaveIrlReference(bail.id)}
+                        >
+                          {busy ? "…" : "Enregistrer"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+            {eligibles.length === 0 && bauxSansIrlReference.length === 0 ? (
+              <div className="rounded-xl p-6 text-sm leading-relaxed" style={CARD}>
+                <p style={{ color: PC.muted }}>
+                  Aucune révision disponible pour le moment. Les révisions sont proposées automatiquement à chaque date
+                  anniversaire de vos baux.
+                </p>
+              </div>
+            ) : eligibles.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-1">
             {eligibles.map((bail) => {
               const irlRef = Number(bail.irl_reference ?? 0);
@@ -383,6 +484,8 @@ export default function RevisionsIrlPage() {
               );
             })}
           </div>
+            ) : null}
+          </>
         )}
       </section>
 

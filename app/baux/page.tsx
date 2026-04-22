@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
+import { getIrlPourDate } from "@/lib/irl-historique";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import {
   canCreateBail,
@@ -68,6 +69,8 @@ type Bail = {
   clauses_particulieres?: string | null;
   colocation_chambre_index?: number | null;
   colocation_parties_communes?: string | null;
+  irl_reference?: number | null;
+  loyer_initial?: number | null;
 };
 
 type LogementEntity = {
@@ -202,6 +205,10 @@ const defaultValues = {
   garage_numero: "",
   clauses_particulieres: "",
   colocation_parties_communes: "",
+  irl_reference_value: "",
+  irl_trimestre: "",
+  irl_manual_required: false,
+  irl_field_unlocked: false,
 };
 
 export default function BauxPage() {
@@ -384,7 +391,61 @@ export default function BauxPage() {
     };
   }, [loadRows, loadRelations]);
 
+  const irlEffectGen = useRef(0);
+  const [irlResolving, setIrlResolving] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const d = values.date_debut?.trim() ?? "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      irlEffectGen.current += 1;
+      setIrlResolving(false);
+      setValues((v) => ({
+        ...v,
+        irl_reference_value: "",
+        irl_trimestre: "",
+        irl_manual_required: false,
+        irl_field_unlocked: false,
+      }));
+      return;
+    }
+    const myGen = ++irlEffectGen.current;
+    setIrlResolving(true);
+    const t = window.setTimeout(() => {
+      void (async () => {
+        const r = await getIrlPourDate(new Date(`${d}T12:00:00`));
+        if (myGen !== irlEffectGen.current) return;
+        setValues((v) => {
+          if (v.date_debut.trim() !== d) return v;
+          if (r == null) {
+            return {
+              ...v,
+              irl_manual_required: true,
+              irl_reference_value: "",
+              irl_trimestre: "",
+              irl_field_unlocked: true,
+            };
+          }
+          return {
+            ...v,
+            irl_manual_required: false,
+            irl_reference_value: String(r.valeur),
+            irl_trimestre: r.trimestre,
+            irl_field_unlocked: false,
+          };
+        });
+        setIrlResolving(false);
+      })();
+    }, 400);
+    return () => {
+      window.clearTimeout(t);
+      irlEffectGen.current += 1;
+    };
+  }, [isModalOpen, values.date_debut]);
+
   function closeModal() {
+    irlEffectGen.current += 1;
+    setIrlResolving(false);
     setIsModalOpen(false);
     setEditingRow(null);
     setValues(defaultValues);
@@ -476,6 +537,11 @@ export default function BauxPage() {
       garage_numero: row.garage_numero ?? "",
       clauses_particulieres: row.clauses_particulieres ?? "",
       colocation_parties_communes: row.colocation_parties_communes ?? "",
+      irl_reference_value:
+        row.irl_reference != null && Number(row.irl_reference) > 0 ? String(Number(row.irl_reference)) : "",
+      irl_trimestre: "",
+      irl_manual_required: false,
+      irl_field_unlocked: false,
     });
     setNouveauMeubleNom("");
     setMeubleNomError("");
@@ -719,6 +785,10 @@ export default function BauxPage() {
         setError("Indiquez la date de début du bail.");
         return;
       }
+      if (irlResolving) {
+        setError("Indice IRL en cours de chargement, patientez un instant.");
+        return;
+      }
 
       const dureeMois = Number(values.duree_mois);
       if (!Number.isFinite(dureeMois) || dureeMois <= 0) {
@@ -769,6 +839,22 @@ export default function BauxPage() {
       const finTs = new Date(dateFin).getTime();
       const statut: "actif" | "termine" = finTs >= Date.now() ? "actif" : "termine";
 
+      const irlRefNum = Number(values.irl_reference_value);
+      if (!Number.isFinite(irlRefNum) || irlRefNum <= 0) {
+        setError("Renseignez un IRL de référence valide (nombre > 0).");
+        return;
+      }
+
+      const loyerInitialPatch: { loyer_initial?: number } = {};
+      if (!isEditing) {
+        loyerInitialPatch.loyer_initial = loyer;
+      } else {
+        const prevInit = Number(editingRow?.loyer_initial ?? 0);
+        if (!Number.isFinite(prevInit) || prevInit <= 0) {
+          loyerInitialPatch.loyer_initial = loyer;
+        }
+      }
+
       const payload = {
         proprietaire_id: ownerId,
         logement_id: values.logement_id.trim(),
@@ -807,6 +893,8 @@ export default function BauxPage() {
         dernier_loyer_precedent: Number(values.dernier_loyer_precedent || 0),
         clauses_particulieres: values.clauses_particulieres.trim(),
         statut,
+        irl_reference: irlRefNum,
+        ...loyerInitialPatch,
       };
 
       const query = isEditing
@@ -1214,6 +1302,72 @@ export default function BauxPage() {
                   required
                 />
               </label>
+              <div
+                className="sm:col-span-2 flex flex-col gap-2 rounded-lg p-4 text-sm"
+                style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.cardAlpha90 }}
+              >
+                <span className="font-medium" style={{ color: PC.text }}>
+                  IRL de référence (à la date de début du bail)
+                </span>
+                {irlResolving ? (
+                  <p style={{ color: PC.muted }}>Chargement de l&apos;indice INSEE…</p>
+                ) : values.irl_manual_required ? (
+                  <>
+                    <p className="text-xs leading-relaxed" style={{ color: PC.warning }}>
+                      Date antérieure au 1er janvier 2021 : aucun indice automatique. Saisissez l&apos;IRL de référence
+                      figurant sur le bail ou les sources INSEE.
+                    </p>
+                    <label className="flex flex-col gap-1" style={{ color: PC.muted }}>
+                      <span className="text-xs font-medium">Valeur IRL (manuel)</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="w-full max-w-xs rounded-lg px-3 py-2 outline-none pc-field-focus"
+                        style={fieldInputLg}
+                        value={values.irl_reference_value}
+                        onChange={(e) => onChange("irl_reference_value", e.target.value)}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ color: PC.muted }}>
+                      {values.irl_trimestre
+                        ? `IRL de référence : ${values.irl_reference_value || "—"} (${values.irl_trimestre})`
+                        : values.irl_reference_value
+                          ? `IRL de référence : ${values.irl_reference_value}`
+                          : "Indiquez d'abord la date de début pour calculer l'IRL."}
+                    </p>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <label className="flex flex-col gap-1" style={{ color: PC.muted }}>
+                        <span className="text-xs font-medium">Valeur (modifiable si besoin)</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          readOnly={!values.irl_field_unlocked}
+                          className="w-full max-w-xs rounded-lg px-3 py-2 outline-none pc-field-focus"
+                          style={{
+                            ...fieldInputLg,
+                            opacity: values.irl_field_unlocked ? 1 : 0.85,
+                          }}
+                          value={values.irl_reference_value}
+                          onChange={(e) => onChange("irl_reference_value", e.target.value)}
+                        />
+                      </label>
+                      {!values.irl_field_unlocked ? (
+                        <button
+                          type="button"
+                          className="rounded-lg border px-3 py-2 text-xs font-medium transition"
+                          style={{ borderColor: PC.border, color: PC.text }}
+                          onClick={() => setValues((prev) => ({ ...prev, irl_field_unlocked: true }))}
+                        >
+                          Modifier
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </div>
               <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Durée</span>
                 <select

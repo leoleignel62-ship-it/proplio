@@ -126,6 +126,8 @@ export type DetecterBauxEligiblesOptions = {
   bailIdsAvecRevisionProposee: Set<string>;
   /** Lignes refusee : exclure le bail si refus pour la même date d’anniversaire que le cycle actuel */
   revisionsPourRefus?: RevisionIrlStatutRow[];
+  /** Si true : ne pas exiger irl_reference > 0 (ex. baux à compléter depuis la page Révision IRL) */
+  omitIrlReferenceCheck?: boolean;
 };
 
 /**
@@ -141,8 +143,10 @@ export function detecterBauxEligibles(
   for (const bail of baux) {
     if (String(bail.statut ?? "").toLowerCase() !== "actif") continue;
     if (!bail.date_debut) continue;
-    const irlRef = Number(bail.irl_reference ?? 0);
-    if (!Number.isFinite(irlRef) || irlRef <= 0) continue;
+    if (!options.omitIrlReferenceCheck) {
+      const irlRef = Number(bail.irl_reference ?? 0);
+      if (!Number.isFinite(irlRef) || irlRef <= 0) continue;
+    }
     const loyerInit = Number(bail.loyer_initial ?? 0);
     if (!Number.isFinite(loyerInit) || loyerInit <= 0) continue;
     const loyer = Number(bail.loyer ?? 0);
