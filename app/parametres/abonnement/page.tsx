@@ -49,9 +49,13 @@ function normalizePlan(plan: string | null | undefined): ProplioPlan {
 
 export default function AbonnementPage() {
   const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSwitchingPlan, setIsSwitchingPlan] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const isTestMode = siteUrl.includes("vercel.app") || siteUrl.includes("localhost");
 
   useEffect(() => {
     let mounted = true;
@@ -63,6 +67,7 @@ export default function AbonnementPage() {
         setLoading(false);
         return;
       }
+      setProprietaireId(proprietaireId);
       const { data } = await supabase.from("proprietaires").select("plan").eq("id", proprietaireId).maybeSingle();
       if (!mounted) return;
       setPlan(normalizePlan((data as { plan?: string | null } | null)?.plan));
@@ -74,6 +79,25 @@ export default function AbonnementPage() {
   }, []);
 
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
+
+  async function switchPlanForTest(nextPlan: ProplioPlan) {
+    if (!proprietaireId || isSwitchingPlan) return;
+    setError("");
+    setMessage("");
+    setIsSwitchingPlan(true);
+    const { error: updateError } = await supabase
+      .from("proprietaires")
+      .update({ plan: nextPlan })
+      .eq("id", proprietaireId);
+
+    if (updateError) {
+      setError("Impossible de changer le plan en mode test.");
+      setIsSwitchingPlan(false);
+      return;
+    }
+
+    window.location.reload();
+  }
 
   return (
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
@@ -111,6 +135,37 @@ export default function AbonnementPage() {
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
           {message}
         </p>
+      ) : null}
+
+      {isTestMode ? (
+        <div className="rounded-xl p-4" style={panelCard}>
+          <h2 className="text-sm font-semibold" style={{ color: PC.muted }}>
+            🧪 Mode test — changer de plan
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {([
+              { id: "free", label: "Gratuit" },
+              { id: "starter", label: "Starter" },
+              { id: "pro", label: "Pro" },
+              { id: "expert", label: "Expert" },
+            ] as Array<{ id: ProplioPlan; label: string }>).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={isSwitchingPlan}
+                className="rounded-md px-2.5 py-1 text-xs disabled:opacity-60"
+                style={{
+                  backgroundColor: plan === p.id ? PC.primaryBg20 : PC.card,
+                  color: PC.muted,
+                  border: `1px solid ${PC.border}`,
+                }}
+                onClick={() => void switchPlanForTest(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
