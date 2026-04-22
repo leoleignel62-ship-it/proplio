@@ -459,6 +459,10 @@ export default function LogementsPage() {
             const activeLocataires = locatairesByLogement[row.id] ?? 0;
             const capacity = row.est_colocation ? Number(row.nombre_chambres || 1) : 1;
             const available = Math.max(0, capacity - activeLocataires);
+            const charges = Number(row.charges || 0);
+            const loyerMensuelAffiche = row.est_colocation
+              ? totalLoyersChambres(parseChambresDetails(row.chambres_details)) + charges
+              : Number(row.loyer || 0) + charges;
             const status =
               activeLocataires === 0
                 ? { label: "Vacant", bg: PC.border, color: PC.muted }
@@ -493,7 +497,8 @@ export default function LogementsPage() {
                     Locataires: <strong style={{ color: PC.text }}>{activeLocataires} / {capacity}</strong>
                   </p>
                   <p>
-                    Loyer mensuel: <strong style={{ color: PC.text }}>{Number(row.loyer || 0).toFixed(2)} €</strong>
+                    Loyer mensuel: <strong style={{ color: PC.text }}>{loyerMensuelAffiche.toFixed(2)} €/mois</strong>{" "}
+                    (charges comprises)
                   </p>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
