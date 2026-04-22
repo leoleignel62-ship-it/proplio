@@ -6,6 +6,13 @@ import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import {
+  canCreateEtatDesLieux,
+  getMonthlyCreatedCount,
+  getOwnerPlan,
+  PLAN_LIMIT_ERROR_MESSAGE,
+  PLAN_UPGRADE_PATH,
+} from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -245,6 +252,13 @@ export default function EtatsDesLieuxPage() {
       setSubmitting(false);
       return;
     }
+    const plan = await getOwnerPlan(proprietaireId);
+    const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
+    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+      setError(PLAN_LIMIT_ERROR_MESSAGE);
+      setSubmitting(false);
+      return;
+    }
 
     const typeLogementResolved: "meuble" | "vide" = typeLogement;
     const pieces = createInitialPiecesData(typeLogementResolved === "meuble", 1);
@@ -419,7 +433,16 @@ export default function EtatsDesLieuxPage() {
       </div>
 
       {error ? (
-        <p className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>{error}</p>
+        <div className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
+          <p>{error}</p>
+          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+            <p className="mt-2">
+              <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
+                Voir les abonnements
+              </a>
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {successToast ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>

@@ -9,13 +9,6 @@ import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle } from "@/lib/proplio-field-styles";
 
-function postLoginLocationHref(): string {
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
-  if (site) return `${site}/`;
-  if (typeof window !== "undefined") return `${window.location.origin}/`;
-  return "/";
-}
-
 const CARD: CSSProperties = {
   width: "100%",
   maxWidth: "28rem",
@@ -53,7 +46,7 @@ function LoginForm() {
 
       await ensureProprietaireRow();
       // Navigation complète : garantit l’envoi des cookies au middleware / RSC sur Vercel (évite écran « page introuvable » après soft navigation).
-      window.location.assign(postLoginLocationHref());
+      window.location.assign("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connexion impossible.");
     } finally {

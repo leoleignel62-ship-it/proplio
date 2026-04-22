@@ -4,6 +4,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSPropertie
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
+import {
+  canCreateBail,
+  getMonthlyCreatedCount,
+  getOwnerPlan,
+  PLAN_LIMIT_ERROR_MESSAGE,
+  PLAN_UPGRADE_PATH,
+} from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -644,6 +651,14 @@ export default function BauxPage() {
         return;
       }
       setProprietaireId(ownerId);
+      if (!isEditing) {
+        const plan = await getOwnerPlan(ownerId);
+        const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
+        if (!canCreateBail(plan, monthlyCount)) {
+          setError(PLAN_LIMIT_ERROR_MESSAGE);
+          return;
+        }
+      }
 
       if (!values.logement_id.trim() || !values.locataire_id.trim()) {
         setError("Sélectionnez un logement et un locataire.");
@@ -882,12 +897,16 @@ export default function BauxPage() {
       </div>
 
       {error ? (
-        <p
-          className="mb-4 rounded-lg px-3 py-2 text-sm"
-          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
-        >
-          {error}
-        </p>
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
+          <p>{error}</p>
+          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+            <p className="mt-2">
+              <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
+                Voir les abonnements
+              </a>
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {successToast ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>

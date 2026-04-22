@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
+import { canCreateLocataire, getOwnerPlan, PLAN_LIMIT_ERROR_MESSAGE, PLAN_UPGRADE_PATH } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -271,6 +272,13 @@ export default function LocatairesPage() {
         return;
       }
       setProprietaireId(ownerId);
+      if (!isEditing) {
+        const plan = await getOwnerPlan(ownerId);
+        if (!canCreateLocataire(plan, rows.length)) {
+          setError(PLAN_LIMIT_ERROR_MESSAGE);
+          return;
+        }
+      }
 
       const nom = values.nom.trim();
       const prenom = values.prenom.trim();
@@ -403,12 +411,16 @@ export default function LocatairesPage() {
       </div>
 
       {error ? (
-        <p
-          className="mb-4 rounded-lg px-3 py-2 text-sm"
-          style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}
-        >
-          {error}
-        </p>
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
+          <p>{error}</p>
+          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+            <p className="mt-2">
+              <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
+                Voir les abonnements
+              </a>
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {isLoading ? (

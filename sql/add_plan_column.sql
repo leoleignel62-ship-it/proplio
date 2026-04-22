@@ -1,0 +1,2 @@
+ALTER TABLE proprietaires
+ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free';
