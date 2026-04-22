@@ -71,8 +71,13 @@ export async function GET() {
       expand: ["items.data.price"],
     });
 
+    const lineItem = sub.items.data[0];
+    if (!lineItem) {
+      return NextResponse.json({ subscription: null });
+    }
+
     const payload: StripeSubscriptionPayload = {
-      current_period_end: sub.current_period_end,
+      current_period_end: lineItem.current_period_end,
       cancel_at_period_end: sub.cancel_at_period_end,
       interval: intervalFromSubscription(sub),
       status: sub.status,
