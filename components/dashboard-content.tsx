@@ -217,11 +217,6 @@ async function getFinancialAndAnnual(
     const manque = potentielTotal - encaisseMois;
     const tauxRemplissage = potentielTotal > 0 ? Math.min(100, (encaisseMois / potentielTotal) * 100) : 0;
 
-    console.log("Logements:", logements);
-    console.log("Quittances ce mois:", quittancesCeMois);
-    console.log("Potentiel:", potentielTotal);
-    console.log("Encaissé:", encaisseMois);
-
     const encaissesByMonth = Array.from({ length: 12 }, () => 0);
     for (const q of quittances) {
       if (!q.envoyee || Number(q.annee) !== currentYear) continue;
