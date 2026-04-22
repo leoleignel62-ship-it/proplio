@@ -130,6 +130,96 @@ export type DetecterBauxEligiblesOptions = {
   omitIrlReferenceCheck?: boolean;
 };
 
+/** Première règle non satisfaite, ou inclusion si tout passe (debug / logs). */
+function raisonEligibiliteIrl(
+  bail: BailIrlEligibleInput,
+  options: DetecterBauxEligiblesOptions,
+  today: Date,
+): { inclus: boolean; raison: string } {
+  if (!bail.date_debut || !String(bail.date_debut).trim()) {
+    return { inclus: false, raison: "date_debut absente ou vide" };
+  }
+  if (!options.omitIrlReferenceCheck) {
+    const irlRef = Number(bail.irl_reference ?? 0);
+    if (!Number.isFinite(irlRef) || irlRef <= 0) {
+      return {
+        inclus: false,
+        raison: `irl_reference manquant ou ≤ 0 (valeur : ${JSON.stringify(bail.irl_reference)})`,
+      };
+    }
+  }
+  const loyerInit = Number(bail.loyer_initial ?? 0);
+  if (!Number.isFinite(loyerInit) || loyerInit <= 0) {
+    return {
+      inclus: false,
+      raison: `loyer_initial manquant ou ≤ 0 (valeur : ${JSON.stringify(bail.loyer_initial)})`,
+    };
+  }
+  const loyer = Number(bail.loyer ?? 0);
+  if (!Number.isFinite(loyer) || loyer <= 0) {
+    return { inclus: false, raison: `loyer manquant ou ≤ 0 (valeur : ${JSON.stringify(bail.loyer)})` };
+  }
+  if (!revisionLoyerAutorisee(bail.revision_loyer)) {
+    const raw = (bail.revision_loyer ?? "").trim();
+    if (!raw) return { inclus: false, raison: "revision_loyer vide" };
+    return { inclus: false, raison: "revision_loyer exclut la révision (« non », « aucune » ou valeur incompatible)" };
+  }
+  if (!estDansFenetreRevisionAnnuelle(bail.date_debut, today)) {
+    const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
+    if (!lastAnn) {
+      return {
+        inclus: false,
+        raison: "fenêtre anniversaire : aucun anniversaire d’au moins 1 an encore atteint (bail trop récent ou date invalide)",
+      };
+    }
+    const fin = addMonths(lastAnn, 3);
+    const t0 = startOfDay(today);
+    if (t0 > fin) {
+      return {
+        inclus: false,
+        raison: `fenêtre anniversaire dépassée (anniversaire ${formatDateIsoLocal(lastAnn)}, fin fenêtre ${formatDateIsoLocal(fin)}, aujourd’hui ${formatDateIsoLocal(t0)})`,
+      };
+    }
+    return {
+      inclus: false,
+      raison: `hors fenêtre anniversaire + 3 mois (anniversaire ${formatDateIsoLocal(lastAnn)}, aujourd’hui ${formatDateIsoLocal(t0)})`,
+    };
+  }
+  if (!pasDeRevisionValidee12Mois(bail.date_derniere_revision, today)) {
+    const ddr = String(bail.date_derniere_revision ?? "").slice(0, 10);
+    return {
+      inclus: false,
+      raison: `date_derniere_revision trop récente (révision dans les 12 derniers mois) : ${ddr || "présente"}`,
+    };
+  }
+  if (options.bailIdsAvecRevisionProposee.has(String(bail.id))) {
+    return { inclus: false, raison: "révision IRL avec statut « proposee » déjà enregistrée pour ce bail" };
+  }
+
+  const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
+  const annStr = lastAnn ? formatDateIsoLocal(lastAnn) : null;
+  if (
+    annStr &&
+    options.revisionsPourRefus?.length &&
+    options.revisionsPourRefus.some(
+      (r) =>
+        String(r.bail_id) === String(bail.id) &&
+        String(r.statut ?? "").toLowerCase() === "refusee" &&
+        String(r.date_revision).slice(0, 10) === annStr,
+    )
+  ) {
+    return {
+      inclus: false,
+      raison: `révision « refusee » déjà enregistrée pour ce cycle (date_revision = ${annStr})`,
+    };
+  }
+
+  return {
+    inclus: true,
+    raison: "toutes les conditions d’éligibilité sont satisfaites (fenêtre anniversaire, IRL, loyer, pas de blocage révision)",
+  };
+}
+
 /**
  * irlActuel : réservé pour évolutions (non utilisé dans les règles actuelles).
  */
@@ -138,36 +228,31 @@ export function detecterBauxEligibles(
   _irlActuel: number,
   options: DetecterBauxEligiblesOptions,
 ): BailIrlEligibleInput[] {
+  if (!Array.isArray(baux)) {
+    console.warn("[detecterBauxEligibles] paramètre `baux` invalide (pas un tableau) :", baux);
+    return [];
+  }
+  const n = baux.length;
+  if (n === 0) {
+    console.log("[detecterBauxEligibles] entrée : tableau vide (0 bail) — rien à évaluer");
+    return [];
+  }
+
   const today = new Date();
+  console.log(
+    `[detecterBauxEligibles] entrée : ${n} bail(s), omitIrlReferenceCheck=${Boolean(options.omitIrlReferenceCheck)}, proposee en attente sur ${options.bailIdsAvecRevisionProposee.size} id(s)`,
+  );
+
   const out: BailIrlEligibleInput[] = [];
   for (const bail of baux) {
-    if (!bail.date_debut) continue;
-    if (!options.omitIrlReferenceCheck) {
-      const irlRef = Number(bail.irl_reference ?? 0);
-      if (!Number.isFinite(irlRef) || irlRef <= 0) continue;
-    }
-    const loyerInit = Number(bail.loyer_initial ?? 0);
-    if (!Number.isFinite(loyerInit) || loyerInit <= 0) continue;
-    const loyer = Number(bail.loyer ?? 0);
-    if (!Number.isFinite(loyer) || loyer <= 0) continue;
-    if (!revisionLoyerAutorisee(bail.revision_loyer)) continue;
-    if (!estDansFenetreRevisionAnnuelle(bail.date_debut, today)) continue;
-    if (!pasDeRevisionValidee12Mois(bail.date_derniere_revision, today)) continue;
-    if (options.bailIdsAvecRevisionProposee.has(String(bail.id))) continue;
-
-    const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
-    const annStr = lastAnn ? formatDateIsoLocal(lastAnn) : null;
-    if (annStr && options.revisionsPourRefus?.length) {
-      const refusedHere = options.revisionsPourRefus.some(
-        (r) =>
-          String(r.bail_id) === String(bail.id) &&
-          String(r.statut ?? "").toLowerCase() === "refusee" &&
-          String(r.date_revision).slice(0, 10) === annStr,
-      );
-      if (refusedHere) continue;
-    }
-
-    out.push(bail);
+    const { inclus, raison } = raisonEligibiliteIrl(bail, options, today);
+    const verdict = inclus ? "INCLUS" : "EXCLU";
+    console.log(
+      `[detecterBauxEligibles] ${verdict} id=${String(bail.id)} statut=${String(bail.statut ?? "")} date_debut=${String(bail.date_debut ?? "")} → ${raison}`,
+    );
+    if (inclus) out.push(bail);
   }
+
+  console.log(`[detecterBauxEligibles] sortie : ${out.length} bail(s) éligible(s) sur ${n}`);
   return out;
 }
