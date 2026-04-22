@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
@@ -42,24 +43,6 @@ const PLANS: PlanCard[] = [
     features: ["Illimite logements", "Illimite locataires", "Illimite quittances", "Illimite baux", "Illimite etats des lieux", "Support prioritaire"],
   },
 ];
-
-const STRIPE_PRICE_IDS: Record<
-  Exclude<ProplioPlan, "free">,
-  { monthly: string; yearly: string }
-> = {
-  starter: {
-    monthly: "price_1TP1G8RrlH0LxLdsFPBJq4m2",
-    yearly: "price_1TP1IrRrlH0LxLdsg5KTrDGW",
-  },
-  pro: {
-    monthly: "price_1TP1JcRrlH0LxLdsh1G51cEt",
-    yearly: "price_1TP1JpRrlH0LxLdsVtuG9ArW",
-  },
-  expert: {
-    monthly: "price_1TP1KJRrlH0LxLdsxI7AQzFx",
-    yearly: "price_1TP1KcRrlH0LxLdslGa3Cy34",
-  },
-};
 
 function normalizePlan(plan: string | null | undefined): ProplioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
@@ -118,19 +101,7 @@ export default function AbonnementPage() {
     setError("");
     setMessage("");
     try {
-      const response = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priceId: STRIPE_PRICE_IDS[targetPlan][interval],
-          plan: targetPlan,
-        }),
-      });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error || "Impossible de démarrer le paiement.");
-      }
-      window.location.assign(payload.url);
+      await startStripeCheckout(targetPlan, interval);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur lors de la création de session Stripe.");
     } finally {

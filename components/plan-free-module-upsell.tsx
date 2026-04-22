@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { PC } from "@/lib/proplio-colors";
+import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { panelCard } from "@/lib/proplio-field-styles";
 import type { CSSProperties } from "react";
 
@@ -34,6 +38,19 @@ export type PlanFreeModuleUpsellVariant = keyof typeof copy;
 
 export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsellVariant }) {
   const { kicker, benefits } = copy[variant];
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  async function onStarterCheckout() {
+    setCheckoutError("");
+    setCheckoutLoading(true);
+    try {
+      await startStripeCheckout("starter", "monthly");
+    } catch (e) {
+      setCheckoutError(e instanceof Error ? e.message : "Impossible de démarrer le paiement.");
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <section className="proplio-page-wrap space-y-10" style={{ color: PC.text }}>
@@ -75,18 +92,27 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
           </p>
         </div>
 
+        {checkoutError ? (
+          <p className="text-center text-sm" style={{ color: PC.danger }}>
+            {checkoutError}
+          </p>
+        ) : null}
+
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href={{ pathname: "/parametres", hash: "abonnement" }}
-            className="inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition sm:w-auto"
+          <button
+            type="button"
+            disabled={checkoutLoading}
+            onClick={() => void onStarterCheckout()}
+            className="inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed sm:w-auto"
             style={{
               backgroundColor: PC.primary,
               color: PC.white,
               boxShadow: "0 4px 14px -2px rgba(124, 58, 237, 0.45)",
+              opacity: checkoutLoading ? 0.75 : 1,
             }}
           >
-            Passer au plan Starter
-          </Link>
+            {checkoutLoading ? "Redirection vers Stripe…" : "Passer au plan Starter"}
+          </button>
           <Link
             href="/parametres/abonnement"
             className="inline-flex w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium sm:w-auto"
