@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseAuthOptions } from "@/lib/supabase/auth-options";
 
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"] as const;
+const PUBLIC_PATHS = ["/landing", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
 const AUTH_PAGES = ["/login", "/register"] as const;
 
@@ -47,6 +47,16 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = isPublicPath(pathname);
   const onAuthPage = isAuthPage(pathname);
+
+  if (!user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/landing";
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach(({ name, value }) => {
+      redirectResponse.cookies.set(name, value);
+    });
+    return redirectResponse;
+  }
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

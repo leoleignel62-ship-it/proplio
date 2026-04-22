@@ -6,7 +6,7 @@ import { ContentTopHeader, NavigationSidebar } from "@/components/navigation-sid
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/proplio-colors";
 
-const authPages = ["/login", "/register", "/forgot-password", "/reset-password"];
+const authPages = ["/landing", "/login", "/register", "/forgot-password", "/reset-password"];
 
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 
