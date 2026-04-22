@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import {
+  PLAN_DISPLAY_FEATURES,
+  PLAN_DISPLAY_LABELS,
+  type PlanDisplayId,
+} from "@/lib/plan-display-copy";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
@@ -24,77 +29,60 @@ type PlanMarketing = {
   negatives?: string[];
 };
 
-const PLANS_MARKETING: PlanMarketing[] = [
-  {
-    id: "free",
-    title: "Découverte",
-    subtitle: "Gratuit",
+const ABONNEMENT_PLAN_SUBTITLE: Record<PlanDisplayId, string> = {
+  free: "Gratuit",
+  starter: "Pour les petits propriétaires",
+  pro: "Pour les investisseurs actifs",
+  expert: "Pour les grands patrimoines",
+};
+
+const ABONNEMENT_PRICING: Record<
+  PlanDisplayId,
+  { monthlyPriceLabel: string; yearlyPriceLabel: string; annualSaveBadge: string | null; popular: boolean }
+> = {
+  free: {
     monthlyPriceLabel: "Gratuit",
     yearlyPriceLabel: "Gratuit",
     annualSaveBadge: null,
     popular: false,
-    features: [
-      "1 logement",
-      "1 locataire",
-      "1 quittance envoyée par email (à vie)",
-      "Dashboard financier",
-    ],
-    negatives: ["Baux non inclus", "États des lieux non inclus"],
   },
-  {
-    id: "starter",
-    title: "Starter",
-    subtitle: "Pour les petits propriétaires",
+  starter: {
     monthlyPriceLabel: "4,90€/mois",
     yearlyPriceLabel: "49€/an",
     annualSaveBadge: "Économisez 9,80€/an",
     popular: false,
-    features: [
-      "3 logements",
-      "3 locataires",
-      "3 quittances/mois (PDF + email automatique)",
-      "3 baux/mois (PDF conforme loi ALUR + email)",
-      "3 états des lieux/mois (photos + PDF + email)",
-      "Dashboard financier complet",
-    ],
   },
-  {
-    id: "pro",
-    title: "Pro",
-    subtitle: "Pour les investisseurs actifs",
+  pro: {
     monthlyPriceLabel: "9,90€/mois",
     yearlyPriceLabel: "99€/an",
     annualSaveBadge: "Économisez 19,80€/an",
     popular: true,
-    features: [
-      "10 logements",
-      "10 locataires",
-      "10 quittances/mois",
-      "10 baux/mois",
-      "10 états des lieux/mois",
-      "Dashboard financier avancé",
-      "Support prioritaire",
-    ],
   },
-  {
-    id: "expert",
-    title: "Expert",
-    subtitle: "Pour les grands patrimoines",
+  expert: {
     monthlyPriceLabel: "19,90€/mois",
     yearlyPriceLabel: "199€/an",
     annualSaveBadge: "Économisez 39,80€/an",
     popular: false,
-    features: [
-      "Logements illimités",
-      "Locataires illimités",
-      "Quittances illimitées",
-      "Baux illimités",
-      "États des lieux illimités",
-      "Dashboard complet",
-      "Support prioritaire",
-    ],
   },
-];
+};
+
+const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
+
+const PLANS_MARKETING: PlanMarketing[] = PLAN_ORDER.map((id) => {
+  const copy = PLAN_DISPLAY_FEATURES[id];
+  const price = ABONNEMENT_PRICING[id];
+  return {
+    id,
+    title: PLAN_DISPLAY_LABELS[id],
+    subtitle: ABONNEMENT_PLAN_SUBTITLE[id],
+    monthlyPriceLabel: price.monthlyPriceLabel,
+    yearlyPriceLabel: price.yearlyPriceLabel,
+    annualSaveBadge: price.annualSaveBadge,
+    popular: price.popular,
+    features: copy.positives,
+    negatives: copy.negatives,
+  };
+});
 
 function normalizePlan(plan: string | null | undefined): ProplioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
@@ -377,15 +365,11 @@ export default function AbonnementPage() {
                 ))}
               </ul>
               {!isPaid ? (
-                <button
-                  type="button"
-                  className="proplio-btn-secondary mt-6 w-full py-2.5"
-                  disabled
-                >
+                <button type="button" className="proplio-btn-secondary mt-6 w-full py-2.5" disabled>
                   {isCurrent ? "Plan actuel" : "Plan gratuit"}
                 </button>
               ) : (
-                <div className={`mt-6 grid gap-2 ${p.id === "pro" ? "gap-2.5" : ""}`}>
+                <div className={`mt-6 grid gap-2 ${p.id === "pro" || p.id === "expert" ? "gap-2.5" : ""}`}>
                   <button
                     type="button"
                     className={`proplio-btn-primary w-full disabled:opacity-60 ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}

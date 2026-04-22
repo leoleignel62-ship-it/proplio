@@ -9,6 +9,7 @@ import {
   IconDocument,
   IconHome,
 } from "@/components/proplio-icons";
+import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
 import { PC } from "@/lib/proplio-colors";
 
 type BillingMode = "mensuel" | "annuel";
@@ -67,103 +68,129 @@ const faqItems = [
   },
 ];
 
+const LANDING_PRICING_META: Record<
+  PlanDisplayId,
+  {
+    subtitle: string;
+    monthly: string;
+    yearly: string;
+    yearlySave: string | null;
+    highlight: boolean;
+    popular: boolean;
+    cta: string;
+    ctaHref: string;
+    ctaVariant: "outline" | "primary";
+  }
+> = {
+  free: {
+    subtitle: "Pour tester Proplio",
+    monthly: "Gratuit",
+    yearly: "Gratuit",
+    yearlySave: null,
+    highlight: false,
+    popular: false,
+    cta: "Commencer gratuitement",
+    ctaHref: "/register",
+    ctaVariant: "outline",
+  },
+  starter: {
+    subtitle: "Pour les petits propriétaires",
+    monthly: "4,90€/mois",
+    yearly: "49€/an",
+    yearlySave: "Économisez 9,80€/an",
+    highlight: false,
+    popular: false,
+    cta: "Choisir Starter",
+    ctaHref: "/register",
+    ctaVariant: "primary",
+  },
+  pro: {
+    subtitle: "Pour les investisseurs actifs",
+    monthly: "9,90€/mois",
+    yearly: "99€/an",
+    yearlySave: "Économisez 19,80€/an",
+    highlight: true,
+    popular: true,
+    cta: "Choisir Pro",
+    ctaHref: "/register",
+    ctaVariant: "primary",
+  },
+  expert: {
+    subtitle: "Pour les grands patrimoines",
+    monthly: "19,90€/mois",
+    yearly: "199€/an",
+    yearlySave: "Économisez 39,80€/an",
+    highlight: false,
+    popular: false,
+    cta: "Choisir Expert",
+    ctaHref: "/register",
+    ctaVariant: "primary",
+  },
+};
+
+const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
+
 export default function LandingPage() {
   const [billing, setBilling] = useState<BillingMode>("annuel");
 
   const pricingPlans = useMemo(
-    () => [
-      {
-        id: "free",
-        name: "Découverte",
-        subtitle: "Pour tester Proplio",
-        monthly: "Gratuit",
-        yearly: "Gratuit",
-        yearlySave: null as string | null,
-        highlight: false,
-        popular: false,
-        cta: "Commencer gratuitement",
-        ctaHref: "/register",
-        ctaVariant: "outline" as const,
-        features: [
-          "1 logement",
-          "1 locataire",
-          "1 quittance à vie",
-          "Accès au dashboard",
-          "Baux et états des lieux non inclus",
-        ],
-      },
-      {
-        id: "starter",
-        name: "Starter",
-        subtitle: "Pour les petits propriétaires",
-        monthly: "4,90€/mois",
-        yearly: "49€/an",
-        yearlySave: "Économisez 9,80€/an",
-        highlight: false,
-        popular: false,
-        cta: "Choisir Starter",
-        ctaHref: "/register",
-        ctaVariant: "primary" as const,
-        features: [
-          "3 logements",
-          "3 locataires",
-          "3 quittances/mois (PDF + email automatique)",
-          "3 baux/mois (PDF conforme loi ALUR + email)",
-          "3 états des lieux/mois (photos + PDF + email)",
-          "Dashboard financier complet",
-        ],
-      },
-      {
-        id: "pro",
-        name: "Pro",
-        subtitle: "Pour les investisseurs actifs",
-        monthly: "9,90€/mois",
-        yearly: "99€/an",
-        yearlySave: "Économisez 19,80€/an",
-        highlight: true,
-        popular: true,
-        cta: "Choisir Pro",
-        ctaHref: "/register",
-        ctaVariant: "primary" as const,
-        features: [
-          "10 logements",
-          "10 locataires",
-          "10 quittances/mois",
-          "10 baux/mois",
-          "10 états des lieux/mois",
-          "Dashboard financier avancé",
-          "Support prioritaire",
-        ],
-      },
-      {
-        id: "expert",
-        name: "Expert",
-        subtitle: "Pour les grands patrimoines",
-        monthly: "19,90€/mois",
-        yearly: "199€/an",
-        yearlySave: "Économisez 39,80€/an",
-        highlight: false,
-        popular: false,
-        cta: "Choisir Expert",
-        ctaHref: "/register",
-        ctaVariant: "primary" as const,
-        features: [
-          "Logements illimités",
-          "Locataires illimités",
-          "Quittances illimitées",
-          "Baux illimités",
-          "États des lieux illimités",
-          "Dashboard complet",
-          "Support prioritaire",
-        ],
-      },
-    ],
+    () =>
+      PLAN_ORDER.map((id) => {
+        const meta = LANDING_PRICING_META[id];
+        return {
+          id,
+          name: PLAN_DISPLAY_LABELS[id],
+          subtitle: meta.subtitle,
+          monthly: meta.monthly,
+          yearly: meta.yearly,
+          yearlySave: meta.yearlySave,
+          highlight: meta.highlight,
+          popular: meta.popular,
+          cta: meta.cta,
+          ctaHref: meta.ctaHref,
+          ctaVariant: meta.ctaVariant,
+          featureRows: planDisplayRows(id),
+        };
+      }),
     [],
   );
 
   return (
     <div style={pageBg}>
-      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
+      <header
+        className="sticky top-0 z-[60] border-b"
+        style={{
+          borderColor: PC.border,
+          backgroundColor: "rgba(10, 10, 15, 0.88)",
+          WebkitBackdropFilter: "blur(12px)",
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/landing" className="flex items-center gap-2.5 font-bold tracking-tight" style={{ color: PC.text }}>
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-xl"
+              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
+            >
+              <IconHome className="h-5 w-5" aria-hidden />
+            </span>
+            Proplio
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out"
+            style={{
+              border: `1px solid rgba(124, 58, 237, 0.45)`,
+              color: PC.secondary,
+              backgroundColor: "transparent",
+            }}
+          >
+            Se connecter
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
         {/* HERO */}
         <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
@@ -183,8 +210,8 @@ export default function LandingPage() {
               Sans perdre votre temps.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg" style={{ color: PC.muted }}>
-              Quittances, baux, états des lieux — automatisés en quelques clics. Proplio centralise toute votre gestion
-              locative pour que vous vous concentriez sur l&apos;essentiel : investir.
+              Quittances, baux, états des lieux — tout est centralisé et accessible en quelques clics. Proplio simplifie
+              votre gestion locative pour que vous vous concentriez sur l&apos;essentiel : investir.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -231,8 +258,8 @@ export default function LandingPage() {
           >
             {[
               {
-                n: "15-20h",
-                d: "passées chaque année par logement rien qu'à générer et envoyer les quittances manuellement",
+                n: "2-3h",
+                d: "passées chaque année par logement à générer, imprimer et envoyer les quittances manuellement — pour chaque locataire",
               },
               {
                 n: "3 ans",
@@ -274,8 +301,8 @@ export default function LandingPage() {
           {[
             {
               icon: IconDocument,
-              title: "Quittances en 1 clic, envoyées automatiquement",
-              body: "Renseignez votre loyer une fois, Proplio génère et envoie le PDF par email à votre locataire chaque mois. Suivi d'envoi en temps réel, signature intégrée, conforme loi ALUR.",
+              title: "Quittances en 1 clic, dès réception du loyer",
+              body: "Générez et envoyez vos quittances en 1 clic dès réception du loyer. PDF conforme généré instantanément, envoyé par email à votre locataire en un seul clic.",
               badge: "Disponible sur tous les plans",
               badgeTone: "all" as const,
             },
@@ -444,10 +471,10 @@ export default function LandingPage() {
                     {price}
                   </p>
                   <ul className="mt-6 flex-1 space-y-2.5 text-sm leading-snug" style={{ color: PC.muted }}>
-                    {plan.features.map((line) => (
-                      <li key={line} className="flex gap-2">
-                        <span style={{ color: line.includes("non inclus") ? PC.warning : PC.success }}>{line.includes("non inclus") ? "✗" : "✓"}</span>
-                        <span>{line}</span>
+                    {plan.featureRows.map((row) => (
+                      <li key={row.text} className="flex gap-2">
+                        <span style={{ color: row.included ? PC.success : PC.warning }}>{row.included ? "✓" : "✗"}</span>
+                        <span>{row.text}</span>
                       </li>
                     ))}
                   </ul>
@@ -507,7 +534,7 @@ export default function LandingPage() {
               <tbody>
                 {[
                   ["Coût annuel", "~1 mois loyer", "99€/an"],
-                  ["Quittances", "Inclus", "✓ Automatiques"],
+                  ["Quittances", "Inclus", "✓ PDF + envoi en 1 clic"],
                   ["Baux", "~150-200€", "✓ Inclus"],
                   ["États des lieux", "~150-300€", "✓ Inclus + photos"],
                   ["Disponibilité", "Horaires agence", "✓ 24h/24"],

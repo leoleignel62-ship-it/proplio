@@ -14,6 +14,7 @@ import {
 } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { PLAN_DISPLAY_FEATURES, PLAN_DISPLAY_LABELS, type PlanDisplayId } from "@/lib/plan-display-copy";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
 
@@ -30,56 +31,22 @@ function formatSubscriptionDateFr(unixSeconds: number): string {
   }).format(new Date(unixSeconds * 1000));
 }
 
-const ABONNEMENT_ENTITLEMENTS: Record<
-  string,
-  { label: string; positives: string[]; negatives?: string[] }
-> = {
-  free: {
-    label: "Découverte",
-    positives: [
-      "1 logement",
-      "1 locataire",
-      "1 quittance envoyée par email (à vie)",
-      "Dashboard financier",
-    ],
-    negatives: ["Baux non inclus", "États des lieux non inclus"],
-  },
-  starter: {
-    label: "Starter",
-    positives: [
-      "3 logements",
-      "3 locataires",
-      "3 quittances/mois (PDF + email automatique)",
-      "3 baux/mois (PDF conforme loi ALUR + email)",
-      "3 états des lieux/mois (photos + PDF + email)",
-      "Dashboard financier complet",
-    ],
-  },
-  pro: {
-    label: "Pro",
-    positives: [
-      "10 logements",
-      "10 locataires",
-      "10 quittances/mois",
-      "10 baux/mois",
-      "10 états des lieux/mois",
-      "Dashboard financier avancé",
-      "Support prioritaire",
-    ],
-  },
-  expert: {
-    label: "Expert",
-    positives: [
-      "Logements illimités",
-      "Locataires illimités",
-      "Quittances illimitées",
-      "Baux illimités",
-      "États des lieux illimités",
-      "Dashboard complet",
-      "Support prioritaire",
-    ],
-  },
-};
+const PLAN_IDS: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
+
+const ABONNEMENT_ENTITLEMENTS: Record<string, { label: string; positives: string[]; negatives?: string[] }> =
+  Object.fromEntries(
+    PLAN_IDS.map((id) => {
+      const f = PLAN_DISPLAY_FEATURES[id];
+      return [
+        id,
+        {
+          label: PLAN_DISPLAY_LABELS[id],
+          positives: f.positives,
+          negatives: f.negatives,
+        },
+      ];
+    }),
+  );
 
 type StripeSubscriptionInfo = {
   current_period_end: number;
