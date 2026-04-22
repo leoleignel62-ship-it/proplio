@@ -16,6 +16,9 @@ async function applyPlanUpdate(ownerId: string | null, userId: string | null, pl
 }
 
 export async function POST(request: Request) {
+  console.log("Webhook reçu");
+  console.log("STRIPE_WEBHOOK_SECRET présent:", !!process.env.STRIPE_WEBHOOK_SECRET);
+
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -26,7 +29,13 @@ export async function POST(request: Request) {
   try {
     const payload = await request.text();
     const stripe = getStripeServerClient();
-    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } catch (error) {
+      console.error("Erreur vérification signature Stripe:", error);
+      throw error;
+    }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
