@@ -87,6 +87,7 @@ export default function EtatsDesLieuxPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -181,6 +182,12 @@ export default function EtatsDesLieuxPage() {
     });
     setBauxOptions(bailList);
     const plan = await getOwnerPlan(proprietaireId);
+    setCurrentPlan(plan);
+    if (plan === "free") {
+      setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      setLoading(false);
+      return;
+    }
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
     if (!canCreateEtatDesLieux(plan, monthlyCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus d'états des lieux.");
@@ -262,6 +269,11 @@ export default function EtatsDesLieuxPage() {
       return;
     }
     const plan = await getOwnerPlan(proprietaireId);
+    if (plan === "free") {
+      setError("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      setSubmitting(false);
+      return;
+    }
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
     if (!canCreateEtatDesLieux(plan, monthlyCount)) {
       setError(PLAN_LIMIT_ERROR_MESSAGE);
@@ -452,6 +464,11 @@ export default function EtatsDesLieuxPage() {
               Voir les plans
             </a>
           </div>
+        </div>
+      ) : null}
+      {currentPlan === "free" ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}>
+          <p>❌ Cette fonctionnalité n&apos;est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.</p>
         </div>
       ) : null}
 

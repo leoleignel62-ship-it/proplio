@@ -6,7 +6,9 @@ import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import {
   canCreateLocataire,
   getOwnedCount,
+  getLocatairesCumulCount,
   getOwnerPlan,
+  incrementLocatairesCumul,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -42,6 +44,7 @@ type Locataire = {
   telephone: string;
   logement_id: string | null;
   colocation_chambre_index: number | null;
+  nb_modifications?: number | null;
   verrouille?: boolean | null;
 };
 
@@ -66,6 +69,8 @@ export default function LocatairesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Locataire | null>(null);
   const [error, setError] = useState("");
   const [planLimitMessage, setPlanLimitMessage] = useState("");
+  const [planWarningMessage, setPlanWarningMessage] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
@@ -87,15 +92,25 @@ export default function LocatairesPage() {
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const [plan, locatairesCount] = await Promise.all([
+    const [plan, totalCree, existingCount] = await Promise.all([
       getOwnerPlan(ownerId),
+      getLocatairesCumulCount(ownerId),
       getOwnedCount("locataires", ownerId),
     ]);
-    if (!canCreateLocataire(plan, locatairesCount)) {
+    setCurrentPlan(plan);
+    if (!canCreateLocataire(plan, totalCree, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de locataires.");
+      setPlanWarningMessage("");
       return;
     }
     setPlanLimitMessage("");
+    const max = plan === "free" ? 1 : null;
+    const remaining = max == null ? null : max - Math.max(totalCree, existingCount);
+    setPlanWarningMessage(
+      plan === "free" && remaining === 1
+        ? "ℹ️ Attention : il s'agit de votre dernière création disponible pour le plan Gratuit."
+        : "",
+    );
   }, []);
 
   const groupedLocataires = useMemo(() => {
@@ -162,7 +177,7 @@ export default function LocatairesPage() {
       const { data, error: fetchError } = await supabase
         .from("locataires")
         .select(
-          "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, verrouille, created_at",
+          "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, nb_modifications, verrouille, created_at",
         )
         .eq("proprietaire_id", activeOwnerId)
         .order("created_at", { ascending: false });
@@ -204,7 +219,7 @@ export default function LocatairesPage() {
       }
 
       const locataireCols =
-        "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, verrouille, created_at";
+        "id, proprietaire_id, nom, prenom, email, telephone, logement_id, colocation_chambre_index, nb_modifications, verrouille, created_at";
 
       const [logRes, locRes] = await Promise.all([
         supabase
@@ -252,11 +267,12 @@ export default function LocatairesPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const [plan, locatairesCount] = await Promise.all([
+      const [plan, totalCree, existingCount] = await Promise.all([
         getOwnerPlan(ownerId),
+        getLocatairesCumulCount(ownerId),
         getOwnedCount("locataires", ownerId),
       ]);
-      if (!canCreateLocataire(plan, locatairesCount)) return;
+      if (!canCreateLocataire(plan, totalCree, existingCount)) return;
     }
     setEditingRow(null);
     setValues(defaultValues);
@@ -264,6 +280,12 @@ export default function LocatairesPage() {
   }
 
   function openEditModal(row: Locataire) {
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
+      setError(
+        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
+      );
+      return;
+    }
     setEditingRow(row);
     setValues({
       nom: row.nom ?? "",
@@ -310,11 +332,12 @@ export default function LocatairesPage() {
       }
       setProprietaireId(ownerId);
       if (!isEditing) {
-        const [plan, locatairesCount] = await Promise.all([
+        const [plan, totalCree, existingCount] = await Promise.all([
           getOwnerPlan(ownerId),
+          getLocatairesCumulCount(ownerId),
           getOwnedCount("locataires", ownerId),
         ]);
-        if (!canCreateLocataire(plan, locatairesCount)) {
+        if (!canCreateLocataire(plan, totalCree, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -379,7 +402,10 @@ export default function LocatairesPage() {
       const query = isEditing
         ? supabase
             .from("locataires")
-            .update(payload)
+            .update({
+              ...payload,
+              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
+            })
             .eq("id", editingRow!.id)
             .eq("proprietaire_id", ownerId)
         : supabase.from("locataires").insert(payload);
@@ -389,6 +415,9 @@ export default function LocatairesPage() {
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (!isEditing) {
+        await incrementLocatairesCumul(ownerId);
       }
 
       closeModal();
@@ -533,6 +562,11 @@ export default function LocatairesPage() {
               Voir les plans
             </a>
           </div>
+        </div>
+      ) : null}
+      {planWarningMessage ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.primaryBg10, color: PC.secondary, border: `1px solid ${PC.primaryBorder40}` }}>
+          <p>{planWarningMessage}</p>
         </div>
       ) : null}
 
@@ -794,7 +828,7 @@ export default function LocatairesPage() {
           <div className="mx-auto mt-20 max-w-lg rounded-xl p-6" style={LOCA_MODAL_CARD}>
             <h3 className="text-lg font-semibold">Confirmer la suppression</h3>
             <p className="mt-3 whitespace-pre-line text-sm" style={{ color: PC.muted }}>
-              {"Êtes-vous sûr de vouloir supprimer ce locataire ?\nCette action supprimera également tous les documents liés : quittances, baux et états des lieux associés.\nCette action est irréversible."}
+              {"Êtes-vous sûr de vouloir supprimer ce locataire ?\nCette action supprimera également tous les documents liés : quittances, baux et états des lieux associés.\n⚠️ Ce locataire compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.\nCette action est irréversible."}
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button

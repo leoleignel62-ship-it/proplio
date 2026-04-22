@@ -44,6 +44,7 @@ type Logement = {
   est_colocation: boolean;
   nombre_chambres?: number | null;
   chambres_details?: unknown;
+  nb_modifications?: number | null;
   verrouille?: boolean | null;
 };
 
@@ -72,6 +73,8 @@ export default function LogementsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
   const [planLimitMessage, setPlanLimitMessage] = useState("");
+  const [planWarningMessage, setPlanWarningMessage] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
@@ -90,11 +93,20 @@ export default function LogementsPage() {
       getLogementsCumulCount(ownerId),
       getOwnedCount("logements", ownerId),
     ]);
+    setCurrentPlan(plan);
     if (!canCreateLogement(plan, totalCree, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
+      setPlanWarningMessage("");
       return;
     }
     setPlanLimitMessage("");
+    const max = plan === "free" ? 1 : null;
+    const remaining = max == null ? null : max - Math.max(totalCree, existingCount);
+    setPlanWarningMessage(
+      plan === "free" && remaining === 1
+        ? "ℹ️ Attention : il s'agit de votre dernière création disponible pour le plan Gratuit."
+        : "",
+    );
   }, []);
 
   const loadRows = useCallback(async (ownerId?: string | null) => {
@@ -226,6 +238,12 @@ export default function LogementsPage() {
   }
 
   function openEditModal(row: Logement) {
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
+      setError(
+        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
+      );
+      return;
+    }
     setEditingRow(row);
     setValues({
       nom: row.nom ?? "",
@@ -348,7 +366,10 @@ export default function LogementsPage() {
       const query = isEditing
         ? supabase
             .from("logements")
-            .update(payload)
+            .update({
+              ...payload,
+              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
+            })
             .eq("id", editingRow!.id)
             .eq("proprietaire_id", ownerId)
         : supabase.from("logements").insert(payload);
@@ -451,6 +472,11 @@ export default function LogementsPage() {
               Voir les plans
             </a>
           </div>
+        </div>
+      ) : null}
+      {planWarningMessage ? (
+        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.primaryBg10, color: PC.secondary, border: `1px solid ${PC.primaryBorder40}` }}>
+          <p>{planWarningMessage}</p>
         </div>
       ) : null}
 
@@ -829,6 +855,9 @@ export default function LogementsPage() {
               <br />- Baux actifs ou terminés
               <br />- Quittances générées
               <br />- États des lieux
+              <br />
+              <br />
+              ⚠️ Ce logement compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.
               <br />
               <br />
               Veuillez d&apos;abord supprimer ces éléments depuis leurs sections respectives.

@@ -58,16 +58,23 @@ export function canCreateLogement(
   return max == null || referenceCount < max;
 }
 
-export function canCreateLocataire(plan: ProplioPlan, existingCount: number): boolean {
+export function canCreateLocataire(
+  plan: ProplioPlan,
+  totalCreeCount: number,
+  existingCount = 0,
+): boolean {
   const max = PLAN_LIMITS[plan].maxLocataires;
-  const referenceCount = Number.isFinite(existingCount) ? existingCount : 0;
+  const referenceCount = Math.max(
+    Number.isFinite(totalCreeCount) ? totalCreeCount : 0,
+    Number.isFinite(existingCount) ? existingCount : 0,
+  );
   return max == null || referenceCount < max;
 }
 
-export function canCreateQuittance(_plan: ProplioPlan, _monthlyCount: number): boolean {
-  void _plan;
-  void _monthlyCount;
-  return true;
+export function canCreateQuittance(plan: ProplioPlan, totalCount: number): boolean {
+  if (plan !== "free") return true;
+  const referenceCount = Number.isFinite(totalCount) ? totalCount : 0;
+  return referenceCount < 1;
 }
 
 export function canCreateBail(_plan: ProplioPlan, _monthlyCount: number): boolean {
@@ -108,6 +115,15 @@ export async function getLogementsCumulCount(proprietaireId: string): Promise<nu
   return Number((data as { total_cree?: number | null } | null)?.total_cree ?? 0);
 }
 
+export async function getLocatairesCumulCount(proprietaireId: string): Promise<number> {
+  const { data } = await supabase
+    .from("locataires_cumul")
+    .select("total_cree")
+    .eq("proprietaire_id", proprietaireId)
+    .maybeSingle();
+  return Number((data as { total_cree?: number | null } | null)?.total_cree ?? 0);
+}
+
 export async function getOwnedCount(
   table: "logements" | "locataires",
   proprietaireId: string,
@@ -127,4 +143,22 @@ export async function incrementLogementsCumul(proprietaireId: string): Promise<v
       { proprietaire_id: proprietaireId, total_cree: current + 1 },
       { onConflict: "proprietaire_id" },
     );
+}
+
+export async function incrementLocatairesCumul(proprietaireId: string): Promise<void> {
+  const current = await getLocatairesCumulCount(proprietaireId);
+  await supabase
+    .from("locataires_cumul")
+    .upsert(
+      { proprietaire_id: proprietaireId, total_cree: current + 1 },
+      { onConflict: "proprietaire_id" },
+    );
+}
+
+export async function getQuittancesTotalCount(proprietaireId: string): Promise<number> {
+  const { count } = await supabase
+    .from("quittances")
+    .select("id", { head: true, count: "exact" })
+    .eq("proprietaire_id", proprietaireId);
+  return count ?? 0;
 }

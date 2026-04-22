@@ -7,8 +7,8 @@ import { EntityFormModal, type EntityField } from "@/components/crud/entity-form
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import {
   canCreateQuittance,
-  getMonthlyCreatedCount,
   getOwnerPlan,
+  getQuittancesTotalCount,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -34,6 +34,7 @@ type Quittance = {
   loyer: number;
   charges: number;
   total: number;
+  nb_modifications?: number | null;
   envoyee: boolean;
   date_envoi: string | null;
 };
@@ -106,6 +107,7 @@ export default function QuittancesPage() {
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [proprietaireProfile, setProprietaireProfile] = useState<ProprietaireProfile | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const logementsDetailsMap = useMemo(() => new Map(logements.map((item) => [item.id, item])), [logements]);
@@ -166,9 +168,12 @@ export default function QuittancesPage() {
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const plan = await getOwnerPlan(ownerId);
-    const monthlyCount = await getMonthlyCreatedCount("quittances", ownerId);
-    if (!canCreateQuittance(plan, monthlyCount)) {
+    const [plan, totalCount] = await Promise.all([
+      getOwnerPlan(ownerId),
+      getQuittancesTotalCount(ownerId),
+    ]);
+    setCurrentPlan(plan);
+    if (!canCreateQuittance(plan, totalCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
       return;
     }
@@ -306,8 +311,8 @@ export default function QuittancesPage() {
   async function openCreateModal() {
     if (proprietaireId) {
       const plan = await getOwnerPlan(proprietaireId);
-      const monthlyCount = await getMonthlyCreatedCount("quittances", proprietaireId);
-      if (!canCreateQuittance(plan, monthlyCount)) {
+      const totalCount = await getQuittancesTotalCount(proprietaireId);
+      if (!canCreateQuittance(plan, totalCount)) {
         setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de quittances.");
         return;
       }
@@ -319,6 +324,12 @@ export default function QuittancesPage() {
   }
 
   function openEditModal(row: Quittance) {
+    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
+      setError(
+        "⚠️ Vous avez utilisé votre droit à l'erreur (1 modification autorisée en plan Gratuit). Passez au plan Starter pour modifier sans limite.",
+      );
+      return;
+    }
     setEditingRow(row);
     setValues({
       logement_id: row.logement_id ?? "",
@@ -411,8 +422,8 @@ export default function QuittancesPage() {
       setProprietaireId(ownerId);
       if (!isEditing) {
         const plan = await getOwnerPlan(ownerId);
-        const monthlyCount = await getMonthlyCreatedCount("quittances", ownerId);
-        if (!canCreateQuittance(plan, monthlyCount)) {
+        const totalCount = await getQuittancesTotalCount(ownerId);
+        if (!canCreateQuittance(plan, totalCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -468,7 +479,10 @@ export default function QuittancesPage() {
       const query = isEditing
         ? supabase
             .from("quittances")
-            .update(payload)
+            .update({
+              ...payload,
+              nb_modifications: (editingRow?.nb_modifications ?? 0) + 1,
+            })
             .eq("id", editingRow!.id)
             .eq("proprietaire_id", ownerId)
         : supabase.from("quittances").insert({ ...payload, envoyee: false, date_envoi: null });

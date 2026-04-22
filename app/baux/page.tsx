@@ -232,6 +232,7 @@ export default function BauxPage() {
     return locataires.filter((l) => l.logement_id === values.logement_id);
   }, [values.logement_id, locataires]);
   const [successToast, setSuccessToast] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("logement_id") ?? "";
@@ -254,6 +255,11 @@ export default function BauxPage() {
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const plan = await getOwnerPlan(ownerId);
+    setCurrentPlan(plan);
+    if (plan === "free") {
+      setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+      return;
+    }
     const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
     if (!canCreateBail(plan, monthlyCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
@@ -377,6 +383,10 @@ export default function BauxPage() {
   async function openCreateModal() {
     if (proprietaireId) {
       const plan = await getOwnerPlan(proprietaireId);
+      if (plan === "free") {
+        setPlanLimitMessage("❌ Cette fonctionnalité n'est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.");
+        return;
+      }
       const monthlyCount = await getMonthlyCreatedCount("baux", proprietaireId);
       if (!canCreateBail(plan, monthlyCount)) {
         setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
@@ -939,6 +949,11 @@ export default function BauxPage() {
               Voir les plans
             </a>
           </div>
+        </div>
+      ) : null}
+      {currentPlan === "free" ? (
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}>
+          <p>❌ Cette fonctionnalité n&apos;est pas disponible en plan Gratuit. Passez au plan Starter pour y accéder.</p>
         </div>
       ) : null}
       {successToast ? (
