@@ -501,19 +501,19 @@ export default function LogementsPage() {
                     (charges comprises)
                   </p>
                 </div>
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {isLocked ? (
                     <p className="text-xs" style={{ color: PC.warning }}>
                       Passez à un plan supérieur pour accéder à ce logement
                     </p>
                   ) : (
                     <>
-                      <Link href={`/logements/${row.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
+                      <Link href={`/logements/${row.id}`} className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-primary sm:w-auto">
                         Voir détails
                       </Link>
                       <button
                         type="button"
-                        className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                        className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-muted sm:w-auto"
                         onClick={(event) => {
                           event.preventDefault();
                           openEditModal(row);
@@ -523,7 +523,7 @@ export default function LogementsPage() {
                       </button>
                       <button
                         type="button"
-                        className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                        className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-danger sm:w-auto"
                         disabled={isDeleting}
                         onClick={(event) => {
                           event.preventDefault();
