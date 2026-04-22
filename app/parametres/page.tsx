@@ -30,6 +30,57 @@ function formatSubscriptionDateFr(unixSeconds: number): string {
   }).format(new Date(unixSeconds * 1000));
 }
 
+const ABONNEMENT_ENTITLEMENTS: Record<
+  string,
+  { label: string; positives: string[]; negatives?: string[] }
+> = {
+  free: {
+    label: "Découverte",
+    positives: [
+      "1 logement",
+      "1 locataire",
+      "1 quittance envoyée par email (à vie)",
+      "Dashboard financier",
+    ],
+    negatives: ["Baux non inclus", "États des lieux non inclus"],
+  },
+  starter: {
+    label: "Starter",
+    positives: [
+      "3 logements",
+      "3 locataires",
+      "3 quittances/mois (PDF + email automatique)",
+      "3 baux/mois (PDF conforme loi ALUR + email)",
+      "3 états des lieux/mois (photos + PDF + email)",
+      "Dashboard financier complet",
+    ],
+  },
+  pro: {
+    label: "Pro",
+    positives: [
+      "10 logements",
+      "10 locataires",
+      "10 quittances/mois",
+      "10 baux/mois",
+      "10 états des lieux/mois",
+      "Dashboard financier avancé",
+      "Support prioritaire",
+    ],
+  },
+  expert: {
+    label: "Expert",
+    positives: [
+      "Logements illimités",
+      "Locataires illimités",
+      "Quittances illimitées",
+      "Baux illimités",
+      "États des lieux illimités",
+      "Dashboard complet",
+      "Support prioritaire",
+    ],
+  },
+};
+
 type StripeSubscriptionInfo = {
   current_period_end: number;
   cancel_at_period_end: boolean;
@@ -234,8 +285,8 @@ export default function ParametresPage() {
   return (
     <section className="proplio-page-wrap max-w-4xl space-y-8" style={{ color: PC.text }}>
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Paramètres</h1>
-        <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+        <h1 className="proplio-page-title">Paramètres</h1>
+        <p className="proplio-page-subtitle max-w-2xl">
           Configurez votre profil propriétaire utilisé automatiquement dans les quittances et baux.
         </p>
       </header>
@@ -362,14 +413,28 @@ export default function ParametresPage() {
         )}
       </div>
 
-      <div id="abonnement" className="p-6 scroll-mt-24" style={panelCard}>
-        <h2 className="text-lg font-semibold">Mon abonnement</h2>
+      <div
+        id="abonnement"
+        className="scroll-mt-24 rounded-2xl p-6 sm:p-8"
+        style={{
+          ...panelCard,
+          border:
+            plan !== "free"
+              ? `1px solid rgba(124, 58, 237, 0.45)`
+              : `1px solid ${PC.border}`,
+          boxShadow: plan !== "free" ? PC.activeRing : panelCard.boxShadow,
+        }}
+      >
+        <h2 className="text-lg font-bold tracking-tight">Mon abonnement</h2>
+        <p className="mt-2 text-sm font-medium capitalize" style={{ color: PC.text }}>
+          {ABONNEMENT_ENTITLEMENTS[plan]?.label ?? plan}
+        </p>
         <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-          Plan actuel : <span className="font-medium capitalize" style={{ color: PC.text }}>{plan}</span>
+          Formule : <span className="font-semibold capitalize" style={{ color: PC.text }}>{plan}</span>
         </p>
 
         {plan !== "free" && stripeSubscriptionLoading ? (
-          <p className="mt-2 flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
+          <p className="mt-3 flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
             <span
               className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
               style={{ borderColor: `${PC.border}`, borderTopColor: PC.primary }}
@@ -380,7 +445,7 @@ export default function ParametresPage() {
         ) : null}
 
         {plan !== "free" && !stripeSubscriptionLoading && stripeSubscription ? (
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+          <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
             {stripeSubscription.cancel_at_period_end ? (
               <>
                 <span style={{ color: PC.warning }}>
@@ -413,8 +478,25 @@ export default function ParametresPage() {
           </p>
         ) : null}
 
-        <div className="mt-4">
-          <Link href="/parametres/abonnement" className="proplio-btn-secondary inline-flex items-center justify-center">
+        {ABONNEMENT_ENTITLEMENTS[plan] ? (
+          <ul className="mt-5 space-y-2 text-sm" style={{ color: PC.muted }}>
+            {ABONNEMENT_ENTITLEMENTS[plan].positives.map((line) => (
+              <li key={line} className="flex gap-2">
+                <span style={{ color: PC.success }}>✓</span>
+                <span>{line}</span>
+              </li>
+            ))}
+            {(ABONNEMENT_ENTITLEMENTS[plan].negatives ?? []).map((line) => (
+              <li key={line} className="flex gap-2">
+                <span style={{ color: PC.warning }}>✗</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div className="mt-6">
+          <Link href="/parametres/abonnement" className="proplio-btn-primary inline-flex items-center justify-center px-6">
             Gérer mon abonnement
           </Link>
         </div>

@@ -34,9 +34,9 @@ type EntityFormModalProps = {
 
 const CARD: CSSProperties = {
   backgroundColor: PC.card,
-  border: `1px solid ${PC.border}`,
+  border: `1px solid rgba(255, 255, 255, 0.1)`,
   borderRadius: 12,
-  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 58, 237, 0.08)",
   padding: 24,
   maxWidth: "36rem",
   width: "100%",
@@ -59,8 +59,12 @@ export function EntityFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-safari"
-      style={{ backgroundColor: PC.overlay }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: PC.overlay,
+        WebkitBackdropFilter: "blur(8px)",
+        backdropFilter: "blur(8px)",
+      }}
     >
       <div className="shadow-2xl" style={CARD}>
         <div className="mb-5 flex items-start justify-between gap-4">

@@ -608,10 +608,8 @@ export default function QuittancesPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Quittances</h1>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-            Liste, création et suivi des quittances.
-          </p>
+          <h1 className="proplio-page-title">Quittances</h1>
+          <p className="proplio-page-subtitle max-w-xl">Liste, création et suivi des quittances.</p>
         </div>
         <div className="flex items-center gap-3">
           <select

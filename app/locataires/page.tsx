@@ -532,14 +532,12 @@ export default function LocatairesPage() {
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Locataires</h1>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-            Liste, création et gestion des profils locataires.
-          </p>
+          <h1 className="proplio-page-title">Locataires</h1>
+          <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion des profils locataires.</p>
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
           onClick={() => void openCreateModal()}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}

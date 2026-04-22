@@ -4,8 +4,8 @@ import { PC } from "@/lib/proplio-colors";
 /** Champ texte / textarea (inline, sans utilitaires Tailwind couleur) */
 export const fieldInputStyle: CSSProperties = {
   borderRadius: 12,
-  border: `1px solid ${PC.border}`,
-  backgroundColor: PC.card,
+  border: `1px solid rgba(255, 255, 255, 0.1)`,
+  backgroundColor: PC.inputBg,
   padding: "0.625rem 0.75rem",
   fontSize: "0.875rem",
   color: PC.text,
@@ -22,7 +22,7 @@ export const fieldSelectStyle: CSSProperties = {
 export const edlFieldCardStyle: CSSProperties = {
   borderRadius: 12,
   border: `1px solid ${PC.border}`,
-  backgroundColor: "rgba(15, 15, 19, 0.4)",
+  backgroundColor: "rgba(13, 13, 18, 0.65)",
   padding: 16,
 };
 

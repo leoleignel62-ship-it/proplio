@@ -260,54 +260,48 @@ function StatCard({
   valeur,
   description,
   icon: Icon,
-  cardBg,
-  cardBorder,
-  iconBg,
+  iconTint,
 }: {
   titre: string;
   valeur: number;
   description: string;
   icon: typeof IconBuilding;
-  cardBg: string;
-  cardBorder: string;
-  iconBg: string;
+  iconTint: string;
 }) {
   return (
     <article
-      className="relative overflow-hidden p-5"
+      className="relative overflow-hidden p-5 transition-shadow duration-200 ease-out"
       style={{
-        backgroundColor: cardBg,
-        border: `1px solid ${cardBorder}`,
+        backgroundColor: PC.card,
+        border: `1px solid ${PC.border}`,
         borderRadius: 12,
-        boxShadow: PC.cardShadow,
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
       }}
     >
       <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium" style={{ color: "#FFFFFF" }}>
+        <div className="min-w-0 pr-2">
+          <p className="text-[13px] font-medium leading-snug" style={{ color: PC.muted }}>
             {titre}
           </p>
-          <p
-            className="mt-2 text-2xl font-semibold tabular-nums sm:text-[26px]"
-            style={{ color: "#FFFFFF" }}
-          >
+          <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-[-0.03em] sm:text-[34px]" style={{ color: PC.text }}>
             {valeur}
           </p>
-          <p className="mt-2 text-sm" style={{ color: "#FFFFFF" }}>
+          <p className="mt-2 text-sm font-normal leading-[1.6]" style={{ color: PC.muted }}>
             {description}
           </p>
         </div>
         <span
-          className="flex shrink-0 items-center justify-center shadow-md"
+          className="flex shrink-0 items-center justify-center"
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: iconBg,
-            color: "#FFFFFF",
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: `${iconTint}22`,
+            color: iconTint,
+            border: `1px solid rgba(255,255,255,0.08)`,
           }}
         >
-          <Icon className="!h-4 !w-4 shrink-0" aria-hidden />
+          <Icon className="!h-5 !w-5 shrink-0" aria-hidden />
         </span>
       </div>
     </article>
@@ -425,15 +419,8 @@ export function DashboardContent() {
 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1
-            className="text-2xl font-semibold tracking-tight sm:text-[28px]"
-            style={{ color: PC.text }}
-          >
-            Bonjour{prenom ? ` ${prenom}` : ""}
-          </h1>
-          <p className="mt-1 capitalize text-sm sm:text-base" style={{ color: PC.muted }}>
-            {dateLong}
-          </p>
+          <h1 className="proplio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
+          <p className="proplio-page-subtitle capitalize">{dateLong}</p>
         </div>
       </header>
 
@@ -443,36 +430,28 @@ export function DashboardContent() {
           valeur={stats.logements}
           description="Biens enregistrés sur Proplio."
           icon={IconBuilding}
-          cardBg="#7C3AED"
-          cardBorder="#8B5CF6"
-          iconBg="#6D28D9"
+          iconTint={PC.primaryLight}
         />
         <StatCard
           titre="Locataires actifs"
           valeur={stats.locataires}
           description="Profils locataires suivis."
           icon={IconUsers}
-          cardBg="#6D28D9"
-          cardBorder="#7C3AED"
-          iconBg="#5B21B6"
+          iconTint={PC.secondary}
         />
         <StatCard
           titre="Quittances ce mois"
           valeur={stats.quittancesEnvoyeesCeMois}
           description="Marquées comme envoyées."
           icon={IconDocument}
-          cardBg="#5B21B6"
-          cardBorder="#6D28D9"
-          iconBg="#4C1D95"
+          iconTint={PC.success}
         />
         <StatCard
           titre="Baux actifs"
           valeur={stats.bauxActifs}
           description="Contrats au statut actif."
           icon={IconContract}
-          cardBg="#4C1D95"
-          cardBorder="#5B21B6"
-          iconBg="#3B0764"
+          iconTint={PC.primary}
         />
       </div>
 

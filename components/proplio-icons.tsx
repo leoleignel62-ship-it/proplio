@@ -88,6 +88,16 @@ export function IconTrash({ className, ...p }: IconProps) {
   );
 }
 
+export function IconDeviceCamera({ className, ...p }: IconProps) {
+  return (
+    <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} {...p}>
+      <rect x="5" y="2" width="14" height="20" rx="2" strokeLinejoin="round" />
+      <circle cx="12" cy="14" r="3.25" />
+      <path strokeLinecap="round" d="M9 5.5h6" />
+    </svg>
+  );
+}
+
 export function IconPlus({ className, ...p }: IconProps) {
   return (
     <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} {...p}>

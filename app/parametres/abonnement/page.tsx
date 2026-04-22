@@ -10,37 +10,89 @@ import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
-type PlanCard = {
+type BillingPeriod = "monthly" | "yearly";
+
+type PlanMarketing = {
   id: ProplioPlan;
   title: string;
-  price: string;
+  subtitle: string;
+  monthlyPriceLabel: string;
+  yearlyPriceLabel: string;
+  annualSaveBadge: string | null;
+  popular: boolean;
   features: string[];
+  negatives?: string[];
 };
 
-const PLANS: PlanCard[] = [
+const PLANS_MARKETING: PlanMarketing[] = [
   {
     id: "free",
-    title: "Decouverte",
-    price: "Gratuit",
-    features: ["1 logement", "1 locataire", "1 quittance/mois", "1 bail/mois", "1 etat des lieux/mois"],
+    title: "Découverte",
+    subtitle: "Gratuit",
+    monthlyPriceLabel: "Gratuit",
+    yearlyPriceLabel: "Gratuit",
+    annualSaveBadge: null,
+    popular: false,
+    features: [
+      "1 logement",
+      "1 locataire",
+      "1 quittance envoyée par email (à vie)",
+      "Dashboard financier",
+    ],
+    negatives: ["Baux non inclus", "États des lieux non inclus"],
   },
   {
     id: "starter",
     title: "Starter",
-    price: "4,90EUR/mois ou 49EUR/an",
-    features: ["3 logements", "3 locataires", "3 quittances/mois", "3 baux/mois", "3 etats des lieux/mois"],
+    subtitle: "Pour les petits propriétaires",
+    monthlyPriceLabel: "4,90€/mois",
+    yearlyPriceLabel: "49€/an",
+    annualSaveBadge: "Économisez 9,80€/an",
+    popular: false,
+    features: [
+      "3 logements",
+      "3 locataires",
+      "3 quittances/mois (PDF + email automatique)",
+      "3 baux/mois (PDF conforme loi ALUR + email)",
+      "3 états des lieux/mois (photos + PDF + email)",
+      "Dashboard financier complet",
+    ],
   },
   {
     id: "pro",
     title: "Pro",
-    price: "9,90EUR/mois ou 99EUR/an",
-    features: ["10 logements", "10 locataires", "10 quittances/mois", "10 baux/mois", "10 etats des lieux/mois"],
+    subtitle: "Pour les investisseurs actifs",
+    monthlyPriceLabel: "9,90€/mois",
+    yearlyPriceLabel: "99€/an",
+    annualSaveBadge: "Économisez 19,80€/an",
+    popular: true,
+    features: [
+      "10 logements",
+      "10 locataires",
+      "10 quittances/mois",
+      "10 baux/mois",
+      "10 états des lieux/mois",
+      "Dashboard financier avancé",
+      "Support prioritaire",
+    ],
   },
   {
     id: "expert",
     title: "Expert",
-    price: "19,90EUR/mois ou 199EUR/an",
-    features: ["Illimite logements", "Illimite locataires", "Illimite quittances", "Illimite baux", "Illimite etats des lieux", "Support prioritaire"],
+    subtitle: "Pour les grands patrimoines",
+    monthlyPriceLabel: "19,90€/mois",
+    yearlyPriceLabel: "199€/an",
+    annualSaveBadge: "Économisez 39,80€/an",
+    popular: false,
+    features: [
+      "Logements illimités",
+      "Locataires illimités",
+      "Quittances illimitées",
+      "Baux illimités",
+      "États des lieux illimités",
+      "Dashboard complet",
+      "Support prioritaire",
+    ],
   },
 ];
 
@@ -62,6 +114,7 @@ export default function AbonnementPage() {
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [billing, setBilling] = useState<BillingPeriod>("yearly");
 
   useEffect(() => {
     let mounted = true;
@@ -88,7 +141,6 @@ export default function AbonnementPage() {
     if (searchParams.get("canceled") || searchParams.get("success")) {
       window.history.replaceState({}, "", "/parametres/abonnement");
     }
-    // Intentionnellement au montage uniquement : strip la query checkout sans cycle router Next.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- exécuter une fois avec les params initiaux
   }, []);
 
@@ -143,27 +195,39 @@ export default function AbonnementPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="proplio-page-wrap space-y-10" style={{ color: PC.text }}>
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Abonnement</h1>
-        <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-          Gérez votre plan Proplio et les limites associées.
+        <h1 className="proplio-page-title">Abonnement</h1>
+        <p className="proplio-page-subtitle max-w-2xl">
+          Gérez votre plan Proplio, vos limites et votre facturation sécurisée via Stripe.
         </p>
       </header>
 
-      <div className="rounded-xl p-5" style={panelCard}>
-        <p className="text-sm" style={{ color: PC.muted }}>
+      <div
+        className="rounded-2xl p-6 sm:p-8"
+        style={{
+          ...panelCard,
+          border:
+            plan !== "free"
+              ? `1px solid rgba(124, 58, 237, 0.45)`
+              : `1px solid ${PC.border}`,
+          boxShadow: plan !== "free" ? PC.activeRing : panelCard.boxShadow,
+        }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PC.tertiary }}>
           Plan actuel
         </p>
-        <p className="mt-1 text-xl font-semibold capitalize">{plan}</p>
-        <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-          Limites actuelles : {currentLimits.maxLogements ?? "illimite"} logements, {currentLimits.maxLocataires ?? "illimite"} locataires.
+        <p className="mt-2 text-2xl font-extrabold capitalize tracking-[-0.03em]" style={{ color: PC.text }}>
+          {plan}
+        </p>
+        <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+          Limites : {currentLimits.maxLogements ?? "illimité"} logements, {currentLimits.maxLocataires ?? "illimité"}{" "}
+          locataires.
         </p>
         {plan !== "free" ? (
           <button
             type="button"
-            className="mt-4 rounded-lg px-4 py-2 text-sm font-medium"
-            style={{ backgroundColor: PC.primary, color: PC.white, border: `1px solid ${PC.primary}` }}
+            className="proplio-btn-primary mt-6 inline-flex items-center gap-2 px-5 py-2.5"
             disabled={isOpeningPortal}
             onClick={() => void openPortal()}
           >
@@ -193,35 +257,138 @@ export default function AbonnementPage() {
         </p>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {PLANS.map((p) => {
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-sm font-semibold" style={{ color: PC.muted }}>
+          Fréquence de facturation
+        </p>
+        <div
+          className="inline-flex rounded-full p-1"
+          style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+        >
+          <button
+            type="button"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 ease-out"
+            style={{
+              backgroundColor: billing === "monthly" ? PC.primary : "transparent",
+              color: billing === "monthly" ? PC.white : PC.muted,
+              boxShadow: billing === "monthly" ? PC.activeRing : "none",
+            }}
+            onClick={() => setBilling("monthly")}
+          >
+            Mensuel
+          </button>
+          <button
+            type="button"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 ease-out"
+            style={{
+              backgroundColor: billing === "yearly" ? PC.primary : "transparent",
+              color: billing === "yearly" ? PC.white : PC.muted,
+              boxShadow: billing === "yearly" ? PC.activeRing : "none",
+            }}
+            onClick={() => setBilling("yearly")}
+          >
+            Annuel
+          </button>
+        </div>
+        {billing === "yearly" ? (
+          <>
+            <span
+              className="rounded-full px-3 py-1 text-xs font-bold"
+              style={{ backgroundColor: PC.successBg10, color: PC.success, border: `1px solid ${PC.borderSuccess40}` }}
+            >
+              2 mois offerts 🎉
+            </span>
+            <p className="text-center text-sm" style={{ color: PC.muted }}>
+              Économisez jusqu&apos;à <span style={{ color: PC.primaryLight, fontWeight: 600 }}>39,80€/an</span> avec la
+              facturation annuelle.
+            </p>
+          </>
+        ) : null}
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {PLANS_MARKETING.map((p) => {
           const isCurrent = p.id === plan;
+          const isPaid = isPaidPlan(p.id);
+          const showYearly = billing === "yearly";
+          const priceLine = p.id === "free" ? "Gratuit" : showYearly ? p.yearlyPriceLabel : p.monthlyPriceLabel;
+          const showStrike = isPaid && showYearly;
+
           return (
-            <article key={p.id} className="rounded-xl p-5" style={{ ...panelCard, border: `1px solid ${isCurrent ? PC.primary : PC.border}` }}>
-              <h2 className="text-lg font-semibold">{p.title}</h2>
-              <p className="mt-1 text-sm" style={{ color: PC.secondary }}>
-                {p.price}
+            <article
+              key={p.id}
+              className="relative flex flex-col rounded-2xl p-5 transition duration-200 ease-out"
+              style={{
+                ...panelCard,
+                border:
+                  p.popular || isCurrent
+                    ? `1px solid rgba(124, 58, 237, ${p.popular ? 0.5 : 0.35})`
+                    : `1px solid ${PC.border}`,
+                boxShadow: p.popular ? PC.activeRing : undefined,
+              }}
+            >
+              {p.popular ? (
+                <p
+                  className="absolute -top-3 left-1/2 w-max -translate-x-1/2 rounded-full px-3 py-1 text-[11px] font-bold"
+                  style={{ backgroundColor: PC.primary, color: PC.white }}
+                >
+                  Le plus populaire ⭐
+                </p>
+              ) : null}
+              {showYearly && p.annualSaveBadge ? (
+                <p
+                  className="mb-2 inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style={{ backgroundColor: PC.successBg10, color: PC.success }}
+                >
+                  {p.annualSaveBadge}
+                </p>
+              ) : (
+                <div className="h-6" />
+              )}
+              <h2 className="text-lg font-bold" style={{ color: PC.text }}>
+                {p.title}
+              </h2>
+              <p className="mt-1 text-sm font-medium" style={{ color: PC.muted }}>
+                {p.subtitle}
               </p>
-              <ul className="mt-4 space-y-1.5 text-sm" style={{ color: PC.muted }}>
-                {p.features.map((f) => (
-                  <li key={f}>✓ {f}</li>
+              {showStrike ? (
+                <p className="mt-3 text-sm line-through" style={{ color: PC.tertiary }}>
+                  {p.monthlyPriceLabel}
+                </p>
+              ) : null}
+              <p
+                className={`font-extrabold tracking-[-0.03em] ${p.id === "pro" ? "mt-1 text-3xl" : "mt-3 text-2xl"}`}
+                style={{ color: PC.text }}
+              >
+                {priceLine}
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-sm leading-snug" style={{ color: PC.muted }}>
+                {p.features.map((line) => (
+                  <li key={line} className="flex gap-2">
+                    <span style={{ color: PC.success }}>✓</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+                {(p.negatives ?? []).map((line) => (
+                  <li key={line} className="flex gap-2">
+                    <span style={{ color: PC.warning }}>✗</span>
+                    <span>{line}</span>
+                  </li>
                 ))}
               </ul>
-              {!isPaidPlan(p.id) ? (
+              {!isPaid ? (
                 <button
                   type="button"
-                  className="mt-5 w-full rounded-lg px-4 py-2 text-sm font-medium"
-                  style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                  className="proplio-btn-secondary mt-6 w-full py-2.5"
                   disabled
                 >
                   {isCurrent ? "Plan actuel" : "Plan gratuit"}
                 </button>
               ) : (
-                <div className="mt-5 grid grid-cols-1 gap-2">
+                <div className={`mt-6 grid gap-2 ${p.id === "pro" ? "gap-2.5" : ""}`}>
                   <button
                     type="button"
-                    className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
-                    style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                    className={`proplio-btn-primary w-full disabled:opacity-60 ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
                     disabled={isCurrent || loadingCheckoutKey !== null}
                     onClick={() => {
                       if (isPaidPlan(p.id)) void startCheckout(p.id, "monthly");
@@ -231,8 +398,12 @@ export default function AbonnementPage() {
                   </button>
                   <button
                     type="button"
-                    className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
-                    style={{ backgroundColor: isCurrent ? PC.card : PC.secondary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition duration-200 ease-out disabled:opacity-60"
+                    style={{
+                      backgroundColor: isCurrent ? PC.inputBg : PC.primaryLight,
+                      border: `1px solid ${PC.border}`,
+                      boxShadow: isCurrent ? "none" : PC.activeRing,
+                    }}
                     disabled={isCurrent || loadingCheckoutKey !== null}
                     onClick={() => {
                       if (isPaidPlan(p.id)) void startCheckout(p.id, "yearly");
@@ -247,14 +418,18 @@ export default function AbonnementPage() {
         })}
       </div>
 
-      <div className="rounded-xl p-5" style={panelCard}>
-        <h2 className="text-lg font-semibold">Résiliation</h2>
-        <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+      <p className="text-center text-sm font-medium" style={{ color: PC.muted }}>
+        Paiement sécurisé par Stripe · Résiliation sans engagement · Données hébergées en Europe
+      </p>
+
+      <div className="rounded-2xl p-6" style={panelCard}>
+        <h2 className="text-lg font-bold">Résiliation</h2>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
           Vous pouvez demander la résiliation à tout moment.
         </p>
         <button
           type="button"
-          className="mt-4 rounded-lg px-4 py-2 text-sm font-medium"
+          className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-200 ease-out"
           style={{ backgroundColor: PC.dangerBg15, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}
           onClick={() => {
             const ok = window.confirm("Confirmer la résiliation de votre abonnement ?");
@@ -267,7 +442,7 @@ export default function AbonnementPage() {
       </div>
 
       <p className="text-sm" style={{ color: PC.muted }}>
-        Retourner vers{" "}
+        Retour vers{" "}
         <Link href="/parametres" className="underline" style={{ color: PC.secondary }}>
           Paramètres
         </Link>

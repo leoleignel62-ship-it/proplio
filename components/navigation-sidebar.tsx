@@ -19,15 +19,18 @@ import { supabase } from "@/lib/supabase";
 
 const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
 
-const navigationItems = [
+const navigationMain = [
   { href: "/", label: "Dashboard", icon: IconChart },
   { href: "/logements", label: "Logements", icon: IconBuilding },
   { href: "/locataires", label: "Locataires", icon: IconUsers },
   { href: "/quittances", label: "Quittances", icon: IconDocument },
   { href: "/baux", label: "Baux", icon: IconContract },
   { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
-  { href: "/parametres", label: "Paramètres", icon: IconCog },
 ] as const;
+
+const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;
+
+const navigationItems = [...navigationMain, ...navigationSettings] as const;
 
 function NavLink({
   href,
@@ -48,20 +51,20 @@ function NavLink({
   const [hover, setHover] = useState(false);
 
   const activeStyle: CSSProperties = {
-    backgroundColor: PC.primary,
-    color: PC.white,
-    boxShadow: "0 4px 14px -2px rgba(124, 58, 237, 0.35)",
+    backgroundColor: PC.primaryBg15,
+    color: PC.text,
+    boxShadow: `inset 2px 0 0 0 ${PC.primary}`,
   };
 
   const idleStyle: CSSProperties = {
     color: hover ? PC.text : PC.muted,
-    backgroundColor: hover ? PC.card : "transparent",
+    backgroundColor: hover ? "rgba(255, 255, 255, 0.05)" : "transparent",
   };
 
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition"
+      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-[background-color,color] duration-200 ease-out"
       style={isActive ? activeStyle : idleStyle}
       title={starterOnlyLock ? SIDEBAR_STARTER_ONLY_TOOLTIP : undefined}
       onMouseEnter={() => setHover(true)}
@@ -70,7 +73,7 @@ function NavLink({
     >
       <Icon
         className="h-5 w-5 shrink-0"
-        style={{ color: isActive ? PC.white : PC.secondary }}
+        style={{ color: isActive ? PC.primaryLight : PC.secondary }}
       />
       {starterOnlyLock ? (
         <span className="flex min-w-0 items-center gap-1.5">
@@ -206,8 +209,9 @@ export function NavigationSidebar() {
   };
 
   const avatarRingStyle: CSSProperties = {
-    backgroundColor: PC.primaryBg25,
-    color: PC.secondary,
+    backgroundColor: PC.primary,
+    color: PC.white,
+    fontWeight: 700,
   };
 
   const logoBadgeStyle: CSSProperties = {
@@ -229,7 +233,9 @@ export function NavigationSidebar() {
           </Link>
 
           <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-            {navigationItems.map((item) => renderNavItem(item))}
+            {navigationMain.map((item) => renderNavItem(item))}
+            <div className="my-3 border-t border-white/[0.06]" aria-hidden />
+            {navigationSettings.map((item) => renderNavItem(item))}
           </nav>
 
           <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${PC.border}` }}>
@@ -343,7 +349,9 @@ export function NavigationSidebar() {
               </div>
 
               <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-                {navigationItems.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
+                {navigationMain.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
+                <div className="my-3 border-t border-white/[0.06]" aria-hidden />
+                {navigationSettings.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
               </nav>
 
               <div
@@ -594,7 +602,7 @@ export function ContentTopHeader() {
   return (
     <header
       className="fixed right-0 top-0 z-40 hidden h-[60px] items-center justify-end px-4 md:left-64 md:flex md:px-8"
-      style={{ backgroundColor: "#13131A", borderBottom: "1px solid #2D2D3D" }}
+      style={{ backgroundColor: PC.sidebar, borderBottom: `1px solid ${PC.border}` }}
     >
       <NotificationBellDropdown />
     </header>
@@ -607,12 +615,12 @@ function LogoutRowMuted() {
   return (
     <button
       type="button"
-      className="mt-3 flex w-full items-center gap-2 px-4 py-3 text-left text-sm transition"
+      className="mt-3 flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium transition-colors duration-200 ease-out"
       style={{
-        borderRadius: 8,
-        backgroundColor: h ? "#DC2626" : "#EF4444",
-        color: "#FFFFFF",
-        fontWeight: 700,
+        borderRadius: 10,
+        border: `1px solid ${h ? "rgba(239, 68, 68, 0.45)" : "rgba(239, 68, 68, 0.22)"}`,
+        backgroundColor: h ? "rgba(239, 68, 68, 0.12)" : "transparent",
+        color: h ? "#fca5a5" : "rgba(248, 113, 113, 0.85)",
       }}
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
@@ -625,7 +633,7 @@ function LogoutRowMuted() {
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false">
         <path
           d="M10 5a1 1 0 0 0 0 2h4v10h-4a1 1 0 1 0 0 2h5a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-5Zm-4.293 6.293a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 1 0 1.414-1.414L8.828 13H13a1 1 0 1 0 0-2H8.828l.793-.793a1 1 0 1 0-1.414-1.414l-2.5 2.5Z"
-          fill="#FFFFFF"
+          fill="currentColor"
         />
       </svg>
       Déconnexion

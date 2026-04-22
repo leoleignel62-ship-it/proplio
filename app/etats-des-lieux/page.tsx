@@ -432,8 +432,8 @@ export default function EtatsDesLieuxPage() {
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">États des lieux</h1>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+          <h1 className="proplio-page-title">États des lieux</h1>
+          <p className="proplio-page-subtitle max-w-xl">
             États d&apos;entrée et de sortie, photos, compteurs et PDF Proplio.
           </p>
         </div>

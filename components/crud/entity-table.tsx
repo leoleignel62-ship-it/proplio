@@ -9,7 +9,7 @@ const CARD: CSSProperties = {
   backgroundColor: PC.card,
   border: `1px solid ${PC.border}`,
   borderRadius: 12,
-  boxShadow: PC.cardShadow,
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
 };
 
 type EntityColumn<T> = {
@@ -45,14 +45,14 @@ export function EntityTable<T extends { id: string }>({
   if (rows.length === 0) {
     return (
       <div
-        className="rounded-xl border border-dashed p-8 text-center text-sm"
+        className="rounded-xl border border-dashed p-10 text-center"
         style={{
           borderColor: PC.border,
-          backgroundColor: "rgba(26, 26, 36, 0.5)",
+          backgroundColor: PC.card,
           color: PC.muted,
         }}
       >
-        {emptyMessage}
+        <p className="text-sm leading-relaxed">{emptyMessage}</p>
       </div>
     );
   }
@@ -61,35 +61,41 @@ export function EntityTable<T extends { id: string }>({
     <div className="overflow-hidden" style={CARD}>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse">
-          <thead style={{ backgroundColor: PC.card }}>
-            <tr style={{ borderBottom: `1px solid ${PC.border}` }}>
+          <thead style={{ backgroundColor: PC.sidebar }}>
+            <tr style={{ borderBottom: `1px solid ${PC.borderRow}` }}>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
                   scope="col"
-                  className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: PC.secondary }}
+                  className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: PC.tertiary }}
                 >
                   {column.label}
                 </th>
               ))}
               <th
                 scope="col"
-                className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider"
-                style={{ color: PC.secondary }}
+                className="px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider"
+                style={{ color: PC.tertiary }}
               >
                 Actions
               </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => (
+            {rows.map((row) => (
               <tr
                 key={row.id}
+                className="group border-b transition-colors duration-150 ease-out"
                 style={{
-                  borderBottom: `1px solid ${PC.border}`,
-                  backgroundColor:
-                    rowIndex % 2 === 0 ? "rgba(15, 15, 19, 0.4)" : "rgba(26, 26, 36, 0.6)",
+                  borderColor: PC.borderRow,
+                  backgroundColor: PC.card,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = PC.cardHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = PC.card;
                 }}
               >
                 {columns.map((column) => {
@@ -108,17 +114,17 @@ export function EntityTable<T extends { id: string }>({
                 <td className="px-4 py-3.5 text-right">
                   <div className="flex flex-col items-end gap-2">
                     {statusRenderer ? statusRenderer(row) : null}
-                    <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                    <div className="inline-flex flex-wrap items-center justify-end gap-2 opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
                       {actionsRenderer ? actionsRenderer(row) : null}
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition duration-200 ease-out"
                         style={{
                           border: `1px solid ${PC.border}`,
-                          backgroundColor: PC.card,
+                          backgroundColor: PC.inputBg,
                           color: PC.text,
                           ...(hoverEditId === row.id
-                            ? { borderColor: "rgba(124, 58, 237, 0.5)", backgroundColor: PC.primaryBg10 }
+                            ? { borderColor: "rgba(124, 58, 237, 0.45)", backgroundColor: PC.primaryBg10 }
                             : {}),
                         }}
                         onMouseEnter={() => setHoverEditId(row.id)}
@@ -130,12 +136,12 @@ export function EntityTable<T extends { id: string }>({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60"
                         style={{
-                          border: "1px solid rgba(239, 68, 68, 0.4)",
+                          border: "1px solid rgba(239, 68, 68, 0.35)",
                           backgroundColor: PC.dangerBg10,
                           color: PC.danger,
-                          ...(hoverDelId === row.id ? { backgroundColor: "rgba(239, 68, 68, 0.2)" } : {}),
+                          ...(hoverDelId === row.id ? { backgroundColor: "rgba(239, 68, 68, 0.18)" } : {}),
                         }}
                         onMouseEnter={() => setHoverDelId(row.id)}
                         onMouseLeave={() => setHoverDelId(null)}

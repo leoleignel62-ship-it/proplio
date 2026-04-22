@@ -442,10 +442,8 @@ export default function LogementsPage() {
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Logements</h1>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-            Liste, création et gestion de vos biens.
-          </p>
+          <h1 className="proplio-page-title">Logements</h1>
+          <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion de vos biens.</p>
         </div>
         <button
           type="button"

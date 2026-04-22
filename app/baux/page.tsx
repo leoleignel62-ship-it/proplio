@@ -934,8 +934,8 @@ export default function BauxPage() {
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Baux</h1>
-          <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+          <h1 className="proplio-page-title">Baux</h1>
+          <p className="proplio-page-subtitle max-w-xl">
             Création de baux conformes loi Alur et loi du 6 juillet 1989.
           </p>
         </div>

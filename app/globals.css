@@ -5,14 +5,19 @@
 /* Source unique des couleurs Proplio (variables + composants) */
 :root {
   color-scheme: dark;
-  --proplio-bg: #0f0f13;
-  --proplio-sidebar: #13131a;
-  --proplio-card: #1a1a24;
-  --proplio-border: #2d2d3d;
-  --proplio-text: #f1f1f5;
-  --proplio-muted: #9090a8;
+  --proplio-bg: #0a0a0f;
+  --proplio-sidebar: #0d0d14;
+  --proplio-input: #0d0d14;
+  --proplio-card: #13131a;
+  --proplio-card-hover: #1c1c26;
+  --proplio-border: rgba(255, 255, 255, 0.08);
+  --proplio-border-strong: rgba(255, 255, 255, 0.12);
+  --proplio-text: #f8f8ff;
+  --proplio-muted: #94949f;
+  --proplio-tertiary: #5a5a6a;
   --proplio-primary: #7c3aed;
   --proplio-primary-hover: #6d28d9;
+  --proplio-primary-light: #8b5cf6;
   --proplio-secondary: #a78bfa;
   --proplio-success: #10b981;
   --proplio-danger: #ef4444;
@@ -20,40 +25,44 @@
   --proplio-accent-blue: #6366f1;
   --proplio-white: #ffffff;
   --radius-proplio-card: 12px;
-  --shadow-proplio-card: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
+  --shadow-proplio-card: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --proplio-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --proplio-dur: 200ms;
 }
 
 /* Formulaires & boutons — CSS pur */
 @layer components {
   .proplio-input {
     border-radius: 0.75rem;
-    border: 1px solid var(--proplio-border);
-    background-color: var(--proplio-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--proplio-input);
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
-    line-height: 1.25rem;
+    line-height: 1.7;
+    font-weight: 400;
     color: var(--proplio-text);
     outline: none;
     transition:
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
+      border-color var(--proplio-dur) var(--proplio-ease),
+      box-shadow var(--proplio-dur) var(--proplio-ease);
   }
 
   .proplio-input::placeholder {
-    color: rgba(144, 144, 168, 0.7);
+    color: rgba(148, 148, 159, 0.65);
   }
 
   .proplio-input:focus {
     border-color: var(--proplio-primary);
-    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 4px 20px rgba(124, 58, 237, 0.12);
   }
 
   .proplio-label {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     line-height: 1.25rem;
+    font-weight: 500;
     color: var(--proplio-muted);
   }
 
@@ -64,21 +73,21 @@
   .proplio-select {
     cursor: pointer;
     border-radius: 0.75rem;
-    border: 1px solid var(--proplio-border);
-    background-color: var(--proplio-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--proplio-input);
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
-    line-height: 1.25rem;
+    line-height: 1.7;
     color: var(--proplio-text);
     outline: none;
     transition:
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
+      border-color var(--proplio-dur) var(--proplio-ease),
+      box-shadow var(--proplio-dur) var(--proplio-ease);
   }
 
   .proplio-select:focus {
     border-color: var(--proplio-primary);
-    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 4px 20px rgba(124, 58, 237, 0.12);
   }
 
   .proplio-btn-primary {
@@ -87,14 +96,17 @@
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--proplio-white);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    transition: background-color 0.15s ease;
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.25), 0 4px 24px rgba(124, 58, 237, 0.12);
+    transition:
+      background-color var(--proplio-dur) var(--proplio-ease),
+      box-shadow var(--proplio-dur) var(--proplio-ease);
   }
 
   .proplio-btn-primary:hover:not(:disabled) {
-    background-color: var(--proplio-primary-hover);
+    background-color: var(--proplio-primary-light);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 6px 28px rgba(124, 58, 237, 0.18);
   }
 
   .proplio-btn-primary:disabled {
@@ -104,21 +116,21 @@
 
   .proplio-btn-secondary {
     border-radius: 0.75rem;
-    border: 1px solid var(--proplio-border);
+    border: 1px solid var(--proplio-border-strong);
     background-color: transparent;
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--proplio-text);
     transition:
-      border-color 0.15s ease,
-      background-color 0.15s ease;
+      border-color var(--proplio-dur) var(--proplio-ease),
+      background-color var(--proplio-dur) var(--proplio-ease);
   }
 
   .proplio-btn-secondary:hover:not(:disabled) {
-    border-color: var(--proplio-muted);
-    background-color: var(--proplio-card);
+    border-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   .proplio-card {
@@ -182,23 +194,48 @@
     color: var(--proplio-text);
     text-decoration: underline;
   }
+
+  .proplio-page-title {
+    font-size: clamp(1.75rem, 2.5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: var(--proplio-text);
+  }
+
+  .proplio-page-subtitle {
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.7;
+    color: var(--proplio-muted);
+  }
+
+  .proplio-glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
 }
 
 html {
   color-scheme: dark;
   min-height: 100%;
-  background-color: #0f0f13;
-  color: #f1f1f5;
+  background-color: var(--proplio-bg);
+  color: var(--proplio-text);
 }
 
 body {
   min-height: 100%;
   margin: 0;
-  background-color: #0f0f13;
-  color: #f1f1f5;
+  background-color: var(--proplio-bg);
+  color: var(--proplio-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.7;
 }
 
 @layer utilities {

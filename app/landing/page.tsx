@@ -2,138 +2,362 @@
 
 import Link from "next/link";
 import { useMemo, useState, type CSSProperties } from "react";
-import { IconChart, IconClipboard, IconContract, IconDocument, IconHome, IconUsers } from "@/components/proplio-icons";
+import {
+  IconChart,
+  IconContract,
+  IconDeviceCamera,
+  IconDocument,
+  IconHome,
+} from "@/components/proplio-icons";
 import { PC } from "@/lib/proplio-colors";
 
 type BillingMode = "mensuel" | "annuel";
 
-type Plan = {
-  nom: string;
-  monthlyLabel: string;
-  yearlyLabel: string;
-  yearlyEquivalent: string;
-  oldMonthly?: string;
-  cta: string;
-  highlighted?: boolean;
-  annualDiscountBadge?: string;
-  features: string[];
+const ease = "200ms ease-out";
+
+const glassCard: CSSProperties = {
+  background: PC.glassBg,
+  WebkitBackdropFilter: "blur(12px)",
+  backdropFilter: "blur(12px)",
+  border: `1px solid ${PC.border}`,
+  borderRadius: 16,
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.35)",
 };
 
-const plans: Plan[] = [
-  {
-    nom: "Decouverte",
-    monthlyLabel: "Gratuit",
-    yearlyLabel: "Gratuit",
-    yearlyEquivalent: "1 logement · 1 locataire",
-    cta: "Demarrer",
-    features: ["1 logement", "1 locataire", "1 quittance PDF", "1 bail", "1 etat des lieux"],
-  },
-  {
-    nom: "Starter",
-    monthlyLabel: "4,90EUR/mois",
-    yearlyLabel: "49EUR/an",
-    yearlyEquivalent: "soit 4,08EUR/mois",
-    oldMonthly: "4,90EUR/mois",
-    annualDiscountBadge: "2 mois offerts",
-    cta: "Choisir Starter",
-    features: ["Jusqu'a 3 logements", "Jusqu'a 3 locataires", "Quittances PDF auto", "Baux conformes loi Alur", "Dashboard financier"],
-  },
-  {
-    nom: "Pro",
-    monthlyLabel: "9,90EUR/mois",
-    yearlyLabel: "99EUR/an",
-    yearlyEquivalent: "soit 8,25EUR/mois",
-    oldMonthly: "9,90EUR/mois",
-    annualDiscountBadge: "2 mois offerts",
-    cta: "Choisir Pro",
-    highlighted: true,
-    features: ["Jusqu'a 10 logements", "Jusqu'a 10 locataires", "Quittances PDF auto", "Baux conformes loi Alur", "Etats des lieux", "Dashboard financier avance"],
-  },
-  {
-    nom: "Expert",
-    monthlyLabel: "19,90EUR/mois",
-    yearlyLabel: "199EUR/an",
-    yearlyEquivalent: "soit 16,58EUR/mois",
-    oldMonthly: "19,90EUR/mois",
-    annualDiscountBadge: "2 mois offerts",
-    cta: "Choisir Expert",
-    features: ["Logements illimites", "Locataires illimites", "Documents illimites", "Support prioritaire", "Tous les modules Proplio"],
-  },
-];
+const solidCard: CSSProperties = {
+  backgroundColor: PC.card,
+  border: `1px solid ${PC.border}`,
+  borderRadius: 12,
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
+};
 
-const featureItems = [
-  { title: "Logements", subtitle: "Suivi detaille de tout votre parc", icon: IconHome },
-  { title: "Locataires", subtitle: "Profils, contacts et affectations", icon: IconUsers },
-  { title: "Quittances PDF auto", subtitle: "Generation automatique mensuelle", icon: IconDocument },
-  { title: "Baux conformes loi Alur", subtitle: "Modele clair et securise", icon: IconContract },
-  { title: "Etats des lieux", subtitle: "Entree / sortie digitalises", icon: IconClipboard },
-  { title: "Dashboard financier", subtitle: "Vue revenus, manque et performance", icon: IconChart },
-];
-
-const pageStyle: CSSProperties = {
-  background: `radial-gradient(circle at 20% 0%, rgba(124, 58, 237, 0.18), transparent 45%), ${PC.bg}`,
+const pageBg: CSSProperties = {
+  backgroundColor: PC.bg,
+  backgroundImage: `
+    radial-gradient(ellipse 80% 55% at 100% -10%, rgba(124, 58, 237, 0.14), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(139, 92, 246, 0.06), transparent 45%),
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+  `,
+  backgroundSize: "100% 100%, 100% 100%, 48px 48px, 48px 48px",
   color: PC.text,
   minHeight: "100vh",
 };
 
-const cardBaseStyle: CSSProperties = {
-  backgroundColor: PC.card,
-  border: `1px solid ${PC.border}`,
-  borderRadius: 16,
-  boxShadow: PC.cardShadow,
-};
+const faqItems = [
+  {
+    q: "Est-ce que Proplio est conforme à la loi ALUR ?",
+    a: "Oui, tous les documents générés (baux, quittances, états des lieux) respectent les obligations légales en vigueur.",
+  },
+  {
+    q: "Puis-je résilier à tout moment ?",
+    a: "Oui, sans engagement et sans frais de résiliation. Votre abonnement reste actif jusqu'à la fin de la période payée.",
+  },
+  {
+    q: "Mes données sont-elles sécurisées ?",
+    a: "Absolument. Vos données sont hébergées sur des serveurs européens, chiffrées et ne sont jamais partagées avec des tiers.",
+  },
+  {
+    q: "Puis-je gérer de la colocation ?",
+    a: "Oui, Proplio supporte nativement la colocation avec assignation par chambre.",
+  },
+  {
+    q: "Comment fonctionne l'état des lieux depuis le smartphone ?",
+    a: "Lors de la création d'un état des lieux, vous pouvez photographier chaque pièce directement depuis votre téléphone. Les photos sont intégrées automatiquement au rapport PDF.",
+  },
+];
 
 export default function LandingPage() {
   const [billing, setBilling] = useState<BillingMode>("annuel");
 
-  const renderedPlans = useMemo(() => plans, []);
+  const pricingPlans = useMemo(
+    () => [
+      {
+        id: "free",
+        name: "Découverte",
+        subtitle: "Pour tester Proplio",
+        monthly: "Gratuit",
+        yearly: "Gratuit",
+        yearlySave: null as string | null,
+        highlight: false,
+        popular: false,
+        cta: "Commencer gratuitement",
+        ctaHref: "/register",
+        ctaVariant: "outline" as const,
+        features: [
+          "1 logement",
+          "1 locataire",
+          "1 quittance à vie",
+          "Accès au dashboard",
+          "Baux et états des lieux non inclus",
+        ],
+      },
+      {
+        id: "starter",
+        name: "Starter",
+        subtitle: "Pour les petits propriétaires",
+        monthly: "4,90€/mois",
+        yearly: "49€/an",
+        yearlySave: "Économisez 9,80€/an",
+        highlight: false,
+        popular: false,
+        cta: "Choisir Starter",
+        ctaHref: "/register",
+        ctaVariant: "primary" as const,
+        features: [
+          "3 logements",
+          "3 locataires",
+          "3 quittances/mois (PDF + email automatique)",
+          "3 baux/mois (PDF conforme loi ALUR + email)",
+          "3 états des lieux/mois (photos + PDF + email)",
+          "Dashboard financier complet",
+        ],
+      },
+      {
+        id: "pro",
+        name: "Pro",
+        subtitle: "Pour les investisseurs actifs",
+        monthly: "9,90€/mois",
+        yearly: "99€/an",
+        yearlySave: "Économisez 19,80€/an",
+        highlight: true,
+        popular: true,
+        cta: "Choisir Pro",
+        ctaHref: "/register",
+        ctaVariant: "primary" as const,
+        features: [
+          "10 logements",
+          "10 locataires",
+          "10 quittances/mois",
+          "10 baux/mois",
+          "10 états des lieux/mois",
+          "Dashboard financier avancé",
+          "Support prioritaire",
+        ],
+      },
+      {
+        id: "expert",
+        name: "Expert",
+        subtitle: "Pour les grands patrimoines",
+        monthly: "19,90€/mois",
+        yearly: "199€/an",
+        yearlySave: "Économisez 39,80€/an",
+        highlight: false,
+        popular: false,
+        cta: "Choisir Expert",
+        ctaHref: "/register",
+        ctaVariant: "primary" as const,
+        features: [
+          "Logements illimités",
+          "Locataires illimités",
+          "Quittances illimitées",
+          "Baux illimités",
+          "États des lieux illimités",
+          "Dashboard complet",
+          "Support prioritaire",
+        ],
+      },
+    ],
+    [],
+  );
 
   return (
-    <div style={pageStyle}>
-      <main className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <header className="rounded-2xl p-8 sm:p-12" style={{ ...cardBaseStyle, backgroundColor: PC.cardAlpha90 }}>
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
+    <div style={pageBg}>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
+          <div className="relative z-[1] mx-auto max-w-3xl text-center">
+            <p
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
+              style={{ backgroundColor: PC.primaryBg15, color: PC.secondary, border: `1px solid ${PC.border}` }}
+            >
+              <IconHome className="h-4 w-4" style={{ color: PC.primaryLight }} aria-hidden />
               Proplio
             </p>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-5xl">
-              Gerez vos locations en toute simplicite
+            <h1
+              className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
+              style={{ color: PC.text }}
+            >
+              Gérez vos locations.
+              <br />
+              Sans perdre votre temps.
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base" style={{ color: PC.muted }}>
-              Centralisez logements, locataires, quittances, baux et etats des lieux dans une seule plateforme premium, rapide et fiable.
+            <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg" style={{ color: PC.muted }}>
+              Quittances, baux, états des lieux — automatisés en quelques clics. Proplio centralise toute votre gestion
+              locative pour que vous vous concentriez sur l&apos;essentiel : investir.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/register" className="rounded-lg px-5 py-2.5 text-sm font-semibold" style={{ backgroundColor: PC.primary, color: PC.white }}>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/register"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
+                style={{
+                  backgroundColor: PC.primary,
+                  color: PC.white,
+                  boxShadow: PC.activeRing,
+                  transitionDuration: "200ms",
+                  transitionTimingFunction: "ease-out",
+                }}
+              >
                 Commencer gratuitement
               </Link>
-              <Link href="/login" className="rounded-lg px-5 py-2.5 text-sm font-semibold" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.text }}>
-                Se connecter
+              <Link
+                href="#tarifs"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
+                style={{
+                  border: `1px solid ${PC.borderStrong}`,
+                  color: PC.text,
+                  backgroundColor: "transparent",
+                }}
+              >
+                Voir les tarifs
               </Link>
             </div>
-          </div>
-        </header>
-
-        <section className="mt-14">
-          <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Tout votre pilotage locatif dans Proplio</h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featureItems.map((item) => (
-              <article key={item.title} className="rounded-xl p-5" style={cardBaseStyle}>
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg" style={{ backgroundColor: PC.primaryBg20 }}>
-                  <item.icon className="h-5 w-5" style={{ color: PC.secondary }} />
-                </div>
-                <h3 className="mt-4 text-base font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-                  {item.subtitle}
-                </p>
-              </article>
-            ))}
+            <ul
+              className="mx-auto mt-10 flex max-w-lg flex-col gap-2 text-left text-sm font-medium sm:mx-auto sm:max-w-md sm:text-center"
+              style={{ color: PC.muted }}
+            >
+              <li>✓ Gratuit pour commencer</li>
+              <li>✓ Sans carte bancaire</li>
+              <li>✓ Données sécurisées</li>
+            </ul>
           </div>
         </section>
 
-        <section className="mt-16">
-          <div className="flex flex-col items-center gap-4">
-            <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Des offres claires, sans surprise</h2>
-            <div className="inline-flex rounded-xl p-1" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+        {/* STATS */}
+        <section className="mt-20">
+          <div
+            className="grid gap-8 rounded-2xl px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
+            style={{ ...solidCard, border: `1px solid ${PC.border}` }}
+          >
+            {[
+              {
+                n: "15-20h",
+                d: "passées chaque année par logement rien qu'à générer et envoyer les quittances manuellement",
+              },
+              {
+                n: "3 ans",
+                d: "durée moyenne entre deux locataires — bail + double état des lieux à refaire à chaque fois",
+              },
+              {
+                n: "2-4h",
+                d: "pour réaliser et rédiger un état des lieux d'entrée complet sans outil adapté",
+              },
+              {
+                n: "7-10%",
+                d: "de vos loyers annuels facturés par une agence traditionnelle, soit 1 mois de loyer perdu chaque année",
+              },
+            ].map((s) => (
+              <div key={s.n} className="px-4 text-center lg:px-8">
+                <p className="text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
+                  {s.n}
+                </p>
+                <p className="mt-3 text-sm font-normal leading-[1.7]" style={{ color: PC.muted }}>
+                  {s.d}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-8 text-center text-base font-semibold" style={{ color: PC.primaryLight }}>
+            Avec Proplio, toutes ces tâches prennent moins de 5 minutes.
+          </p>
+        </section>
+
+        {/* FEATURES */}
+        <section className="mt-24 space-y-16">
+          <h2
+            className="text-center text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl"
+            style={{ color: PC.text }}
+          >
+            Une suite complète pour les bailleurs
+          </h2>
+
+          {[
+            {
+              icon: IconDocument,
+              title: "Quittances en 1 clic, envoyées automatiquement",
+              body: "Renseignez votre loyer une fois, Proplio génère et envoie le PDF par email à votre locataire chaque mois. Suivi d'envoi en temps réel, signature intégrée, conforme loi ALUR.",
+              badge: "Disponible sur tous les plans",
+              badgeTone: "all" as const,
+            },
+            {
+              icon: IconContract,
+              title: "Baux légaux générés en quelques minutes",
+              body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Proplio génère un bail complet et conforme, prêt à signer et envoyer par email.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+            },
+            {
+              icon: IconDeviceCamera,
+              title: "États des lieux complets, directement depuis votre smartphone",
+              body: "Réalisez votre état des lieux sur place en prenant des photos pièce par pièce directement depuis l'application. Le rapport PDF complet est généré automatiquement et envoyé aux deux parties.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+            },
+            {
+              icon: IconChart,
+              title: "Vue complète sur vos revenus locatifs",
+              body: "Suivez vos loyers encaissés, vos logements occupés et vos performances financières sur un tableau de bord clair et actualisé en temps réel.",
+              badge: "Disponible sur tous les plans",
+              badgeTone: "all" as const,
+            },
+          ].map((f, i) => (
+            <div
+              key={f.title}
+              className={`flex flex-col gap-8 lg:flex-row lg:items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
+            >
+              <div
+                className="flex flex-1 items-center justify-center rounded-2xl p-10"
+                style={{ ...solidCard, minHeight: 200 }}
+              >
+                <div
+                  className="flex h-24 w-24 items-center justify-center rounded-2xl"
+                  style={{
+                    background: `linear-gradient(145deg, ${PC.primaryBg20}, rgba(124,58,237,0.08))`,
+                    border: `1px solid ${PC.primaryBorder40}`,
+                    color: PC.primaryLight,
+                  }}
+                >
+                  <f.icon className="h-12 w-12" aria-hidden />
+                </div>
+              </div>
+              <div className="flex-1">
+                <span
+                  className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: f.badgeTone === "all" ? PC.successBg10 : PC.primaryBg10,
+                    color: f.badgeTone === "all" ? PC.success : PC.secondary,
+                    border: `1px solid ${f.badgeTone === "all" ? PC.borderSuccess40 : PC.primaryBorder40}`,
+                  }}
+                >
+                  {f.badge}
+                </span>
+                <h3 className="mt-4 text-2xl font-bold tracking-[-0.03em]" style={{ color: PC.text }}>
+                  {f.title}
+                </h3>
+                <p className="mt-4 text-base font-normal leading-[1.7]" style={{ color: PC.muted }}>
+                  {f.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* PRICING */}
+        <section id="tarifs" className="mt-28 scroll-mt-24">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
+              Des tarifs pensés pour les propriétaires
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-[1.7]" style={{ color: PC.muted }}>
+              Commencez gratuitement, évoluez selon vos besoins.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-3">
+            <div
+              className="relative inline-flex rounded-full p-1"
+              style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+            >
               {(["mensuel", "annuel"] as const).map((mode) => {
                 const active = billing === mode;
                 return (
@@ -141,10 +365,12 @@ export default function LandingPage() {
                     key={mode}
                     type="button"
                     onClick={() => setBilling(mode)}
-                    className="rounded-lg px-4 py-2 text-sm font-semibold transition"
+                    className="relative rounded-full px-5 py-2.5 text-sm font-semibold transition"
                     style={{
                       backgroundColor: active ? PC.primary : "transparent",
                       color: active ? PC.white : PC.muted,
+                      boxShadow: active ? PC.activeRing : "none",
+                      transition: ease,
                     }}
                   >
                     {mode === "mensuel" ? "Mensuel" : "Annuel"}
@@ -152,90 +378,227 @@ export default function LandingPage() {
                 );
               })}
             </div>
+            {billing === "annuel" ? (
+              <>
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-bold"
+                  style={{ backgroundColor: PC.successBg10, color: PC.success, border: `1px solid ${PC.borderSuccess40}` }}
+                >
+                  2 mois offerts 🎉
+                </span>
+                <p className="text-center text-sm font-medium" style={{ color: PC.muted }}>
+                  Économisez jusqu&apos;à 39,80€/an avec l&apos;abonnement annuel
+                </p>
+              </>
+            ) : null}
           </div>
 
-          <div className="mt-8 flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-4 md:overflow-visible">
-            {renderedPlans.map((plan) => {
+          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {pricingPlans.map((plan) => {
               const isAnnual = billing === "annuel";
-              const isHighlighted = Boolean(plan.highlighted);
+              const price = plan.id === "free" ? plan.monthly : isAnnual ? plan.yearly : plan.monthly;
+              const showStrike = plan.id !== "free" && isAnnual;
               return (
                 <article
-                  key={plan.nom}
-                  className={`relative min-w-[280px] rounded-2xl p-5 md:min-w-0 ${isHighlighted ? "md:scale-[1.03]" : ""}`}
+                  key={plan.id}
+                  className="relative flex flex-col rounded-2xl p-6 transition"
                   style={{
-                    ...cardBaseStyle,
-                    backgroundColor: isHighlighted ? PC.primary : PC.card,
-                    border: isHighlighted ? `1px solid ${PC.secondary}` : `1px solid ${PC.border}`,
+                    ...solidCard,
+                    border:
+                      plan.popular || plan.highlight
+                        ? `1px solid rgba(124, 58, 237, 0.45)`
+                        : `1px solid ${PC.border}`,
+                    boxShadow: plan.highlight ? PC.activeRing : "0 1px 3px rgba(0, 0, 0, 0.25)",
                   }}
                 >
-                  {isHighlighted ? (
-                    <p className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold" style={{ backgroundColor: PC.secondary, color: "#2B1168" }}>
-                      Le plus populaire
+                  {plan.popular ? (
+                    <p
+                      className="absolute -top-3 left-1/2 w-max -translate-x-1/2 rounded-full px-3 py-1 text-xs font-bold"
+                      style={{ backgroundColor: PC.primary, color: PC.white }}
+                    >
+                      Le plus populaire ⭐
                     </p>
                   ) : null}
-                  {isAnnual && plan.annualDiscountBadge ? (
-                    <p className="mb-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: isHighlighted ? PC.white : PC.primaryBg25, color: isHighlighted ? "#2B1168" : PC.secondary }}>
-                      {plan.annualDiscountBadge}
+                  {isAnnual && plan.yearlySave ? (
+                    <p
+                      className="mb-2 inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                      style={{ backgroundColor: PC.successBg10, color: PC.success }}
+                    >
+                      {plan.yearlySave}
                     </p>
                   ) : (
-                    <div className="mb-3 h-6" />
+                    <div className="h-6" />
                   )}
-
-                  <h3 className="text-lg font-semibold" style={{ color: isHighlighted ? PC.white : PC.text }}>
-                    {plan.nom}
+                  <h3 className="text-lg font-bold uppercase tracking-wide" style={{ color: PC.text }}>
+                    {plan.name}
                   </h3>
-
-                  {isAnnual ? (
-                    <>
-                      <p className="mt-4 text-xs line-through" style={{ color: isHighlighted ? "rgba(255,255,255,0.78)" : PC.muted }}>
-                        {plan.oldMonthly ?? ""}
-                      </p>
-                      <p className="mt-1 text-4xl font-semibold tracking-tight" style={{ color: isHighlighted ? PC.white : PC.text }}>
-                        {plan.yearlyLabel}
-                      </p>
-                      <p className="mt-1 text-xs" style={{ color: isHighlighted ? "rgba(255,255,255,0.86)" : PC.muted }}>
-                        {plan.yearlyEquivalent}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-4 text-4xl font-semibold tracking-tight" style={{ color: isHighlighted ? PC.white : PC.text }}>
-                        {plan.monthlyLabel}
-                      </p>
-                      <p className="mt-1 text-xs" style={{ color: isHighlighted ? "rgba(255,255,255,0.86)" : PC.muted }}>
-                        {plan.yearlyLabel === "Gratuit" ? "sans engagement" : `ou ${plan.yearlyLabel} en annuel`}
-                      </p>
-                    </>
-                  )}
-
-                  <Link
-                    href="/register"
-                    className="mt-5 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold"
-                    style={{
-                      backgroundColor: isHighlighted ? PC.white : PC.primary,
-                      color: isHighlighted ? "#2B1168" : PC.white,
-                    }}
-                  >
-                    {plan.cta}
-                  </Link>
-
-                  <ul className="mt-5 space-y-2.5">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm" style={{ color: isHighlighted ? "rgba(255,255,255,0.92)" : PC.text }}>
-                        <span style={{ color: isHighlighted ? PC.white : PC.success }}>✓</span>
-                        <span>{f}</span>
+                  <p className="mt-1 text-sm font-medium" style={{ color: PC.muted }}>
+                    {plan.subtitle}
+                  </p>
+                  {showStrike ? (
+                    <p className="mt-4 text-sm line-through" style={{ color: PC.tertiary }}>
+                      {plan.monthly}
+                    </p>
+                  ) : null}
+                  <p className={`font-extrabold tracking-[-0.03em] ${plan.id === "pro" ? "mt-2 text-4xl" : "mt-4 text-3xl"}`} style={{ color: PC.text }}>
+                    {price}
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-2.5 text-sm leading-snug" style={{ color: PC.muted }}>
+                    {plan.features.map((line) => (
+                      <li key={line} className="flex gap-2">
+                        <span style={{ color: line.includes("non inclus") ? PC.warning : PC.success }}>{line.includes("non inclus") ? "✗" : "✓"}</span>
+                        <span>{line}</span>
                       </li>
                     ))}
                   </ul>
+                  <Link
+                    href={plan.ctaHref}
+                    className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-center text-sm font-semibold transition ${plan.id === "pro" ? "min-h-[52px] text-base" : "min-h-[48px]"}`}
+                    style={
+                      plan.ctaVariant === "outline"
+                        ? {
+                            border: `1px solid ${PC.borderStrong}`,
+                            color: PC.text,
+                            backgroundColor: "transparent",
+                            transition: ease,
+                          }
+                        : {
+                            backgroundColor: PC.primary,
+                            color: PC.white,
+                            boxShadow: PC.activeRing,
+                            transition: ease,
+                          }
+                    }
+                  >
+                    {plan.cta}
+                  </Link>
                 </article>
               );
             })}
           </div>
+
+          <ul className="mt-12 flex flex-col items-center gap-2 text-center text-sm font-medium sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6" style={{ color: PC.muted }}>
+            <li>✓ Résiliation possible à tout moment</li>
+            <li>✓ Paiement sécurisé par Stripe</li>
+            <li>✓ Données hébergées en Europe</li>
+          </ul>
+        </section>
+
+        {/* COMPARISON */}
+        <section className="mt-28">
+          <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
+            Proplio vs agence traditionnelle
+          </h2>
+          <div className="mt-10 overflow-x-auto rounded-2xl" style={solidCard}>
+            <table className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${PC.borderRow}`, backgroundColor: PC.sidebar }}>
+                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.tertiary }}>
+                    Critère
+                  </th>
+                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.muted }}>
+                    Agence trad.
+                  </th>
+                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.primaryLight }}>
+                    Proplio Pro
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Coût annuel", "~1 mois loyer", "99€/an"],
+                  ["Quittances", "Inclus", "✓ Automatiques"],
+                  ["Baux", "~150-200€", "✓ Inclus"],
+                  ["États des lieux", "~150-300€", "✓ Inclus + photos"],
+                  ["Disponibilité", "Horaires agence", "✓ 24h/24"],
+                  ["Contrôle total", "✗", "✓ Vous décidez"],
+                ].map(([a, b, c]) => (
+                  <tr key={String(a)} style={{ borderBottom: `1px solid ${PC.borderRow}` }}>
+                    <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
+                      {a}
+                    </td>
+                    <td className="px-4 py-3.5" style={{ color: PC.muted }}>
+                      {b}
+                    </td>
+                    <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
+                      {c}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="mt-28 scroll-mt-24">
+          <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
+            Questions fréquentes
+          </h2>
+          <div className="mx-auto mt-10 max-w-3xl space-y-3">
+            {faqItems.map((item) => (
+              <details
+                key={item.q}
+                className="group rounded-xl px-5 py-4 transition"
+                style={{ ...solidCard, cursor: "pointer" }}
+              >
+                <summary
+                  className="list-none font-semibold leading-snug [&::-webkit-details-marker]:hidden"
+                  style={{ color: PC.text }}
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    {item.q}
+                    <span className="text-lg transition group-open:rotate-45" style={{ color: PC.secondary }}>
+                      +
+                    </span>
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm font-normal leading-[1.7]" style={{ color: PC.muted }}>
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 
-      <footer className="border-t px-4 py-6 text-center text-sm sm:px-6" style={{ borderColor: PC.border, color: PC.muted }}>
-        Proplio © {new Date().getFullYear()} — Gestion locative premium.
+      <footer id="footer" className="border-t px-4 py-12 sm:px-6" style={{ borderColor: PC.border, backgroundColor: PC.bg }}>
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
+            >
+              <IconHome className="h-6 w-6" aria-hidden />
+            </span>
+            <span className="text-lg font-bold tracking-tight" style={{ color: PC.text }}>
+              Proplio
+            </span>
+          </div>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
+            <Link href="#tarifs" className="transition hover:text-white" style={{ transition: ease }}>
+              Tarifs
+            </Link>
+            <Link href="/login" className="transition hover:text-white" style={{ transition: ease }}>
+              Connexion
+            </Link>
+            <Link href="/register" className="transition hover:text-white" style={{ transition: ease }}>
+              Créer un compte
+            </Link>
+            <Link href="/landing#footer" className="transition hover:text-white" style={{ transition: ease }}>
+              Mentions légales
+            </Link>
+            <Link href="/landing#footer" className="transition hover:text-white" style={{ transition: ease }}>
+              CGU
+            </Link>
+          </nav>
+        </div>
+        <p className="mx-auto mt-8 max-w-6xl text-center text-sm sm:text-left" style={{ color: PC.tertiary }}>
+          © {new Date().getFullYear()} Proplio. Tous droits réservés.
+        </p>
+        <p className="mx-auto mt-2 max-w-6xl text-center text-xs sm:text-left" style={{ color: PC.tertiary }}>
+          Gestion locative simplifiée pour les propriétaires français.
+        </p>
       </footer>
     </div>
   );
