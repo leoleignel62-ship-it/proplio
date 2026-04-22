@@ -56,6 +56,7 @@ export default function LocatairesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Locataire | null>(null);
   const [error, setError] = useState("");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
 
@@ -372,6 +373,65 @@ export default function LocatairesPage() {
         return;
       }
 
+      const { data: bailRows, error: bauxFetchError } = await supabase
+        .from("baux")
+        .select("id")
+        .eq("proprietaire_id", ownerId)
+        .eq("locataire_id", id);
+
+      if (bauxFetchError) {
+        setError(`Erreur de suppression : ${formatSubmitError(bauxFetchError)}`);
+        return;
+      }
+
+      const bailIds = (bailRows ?? []).map((b) => String((b as { id: string }).id));
+
+      const { error: quittancesDeleteError } = await supabase
+        .from("quittances")
+        .delete()
+        .eq("proprietaire_id", ownerId)
+        .eq("locataire_id", id);
+
+      if (quittancesDeleteError) {
+        setError(`Erreur de suppression : ${formatSubmitError(quittancesDeleteError)}`);
+        return;
+      }
+
+      const { error: bauxDeleteError } = await supabase
+        .from("baux")
+        .delete()
+        .eq("proprietaire_id", ownerId)
+        .eq("locataire_id", id);
+
+      if (bauxDeleteError) {
+        setError(`Erreur de suppression : ${formatSubmitError(bauxDeleteError)}`);
+        return;
+      }
+
+      const { error: edlDeleteByLocError } = await supabase
+        .from("etats_des_lieux")
+        .delete()
+        .eq("proprietaire_id", ownerId)
+        .eq("locataire_id", id);
+
+      if (edlDeleteByLocError) {
+        setError(`Erreur de suppression : ${formatSubmitError(edlDeleteByLocError)}`);
+        return;
+      }
+
+      if (bailIds.length > 0) {
+        const { error: edlDeleteByBauxError } = await supabase
+          .from("etats_des_lieux")
+          .delete()
+          .eq("proprietaire_id", ownerId)
+          .in("bail_id", bailIds);
+
+        if (edlDeleteByBauxError) {
+          setError(`Erreur de suppression : ${formatSubmitError(edlDeleteByBauxError)}`);
+          return;
+        }
+      }
+
       const { error: deleteError } = await supabase
         .from("locataires")
         .delete()
@@ -384,6 +444,7 @@ export default function LocatairesPage() {
       }
 
       await loadRows(ownerId);
+      setDeleteTarget(null);
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -502,7 +563,7 @@ export default function LocatairesPage() {
                             type="button"
                             className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
                             disabled={isDeleting}
-                            onClick={() => void onDelete(row.id)}
+                            onClick={() => setDeleteTarget(row)}
                           >
                             Supprimer
                           </button>
@@ -655,6 +716,35 @@ export default function LocatairesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteTarget ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4">
+          <div className="mx-auto mt-20 max-w-lg rounded-xl p-6" style={LOCA_MODAL_CARD}>
+            <h3 className="text-lg font-semibold">Confirmer la suppression</h3>
+            <p className="mt-3 whitespace-pre-line text-sm" style={{ color: PC.muted }}>
+              {"Êtes-vous sûr de vouloir supprimer ce locataire ?\nCette action supprimera également tous les documents liés : quittances, baux et états des lieux associés.\nCette action est irréversible."}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
+                disabled={isDeleting}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-medium pc-outline-danger"
+                disabled={isDeleting}
+                onClick={() => void onDelete(deleteTarget.id)}
+              >
+                {isDeleting ? "Suppression..." : "Supprimer définitivement"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
