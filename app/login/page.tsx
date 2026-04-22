@@ -28,6 +28,7 @@ function LoginForm() {
 
   const showCheckEmail = searchParams.get("check_email") === "1";
   const showPasswordUpdated = searchParams.get("password_updated") === "1";
+  const showEmailVerified = searchParams.get("verified") === "true";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,6 +76,19 @@ function LoginForm() {
       <p className="text-sm" style={{ color: PC.muted }}>
         Accédez à votre espace de gestion locative.
       </p>
+
+      {showEmailVerified ? (
+        <p
+          className="mt-4 rounded-xl px-4 py-3 text-sm"
+          style={{
+            border: `1px solid rgba(16, 185, 129, 0.3)`,
+            backgroundColor: "rgba(16, 185, 129, 0.1)",
+            color: PC.success,
+          }}
+        >
+          ✅ Email vérifié avec succès ! Vous pouvez maintenant vous connecter.
+        </p>
+      ) : null}
 
       {showCheckEmail ? (
         <p

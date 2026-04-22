@@ -74,6 +74,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && onAuthPage) {
+    if (pathname === "/login" && request.nextUrl.searchParams.get("verified") === "true") {
+      return response;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/";
     const redirectResponse = NextResponse.redirect(url);

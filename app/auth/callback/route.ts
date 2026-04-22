@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
   const nextPath = requestUrl.searchParams.get("next") ?? "/";
   const baseUrl = getAppBaseUrl(request);
   const safeNext = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
+  const afterVerify = safeNext === "/" ? "/login?verified=true" : safeNext;
 
   if (!code) {
     return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
-  const redirectTarget = new URL(safeNext, baseUrl);
-  const response = NextResponse.redirect(redirectTarget);
+  const response = NextResponse.redirect(new URL(afterVerify, baseUrl));
 
   const { url, anonKey } = getSupabasePublicConfig();
 

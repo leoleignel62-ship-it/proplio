@@ -49,7 +49,7 @@ export const PLAN_LIMITS: Record<ProplioPlan, PlanLimits> = {
   },
 };
 
-function normalizePlan(plan: string | null | undefined): ProplioPlan {
+export function normalizePlan(plan: string | null | undefined): ProplioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
   return "free";
 }
