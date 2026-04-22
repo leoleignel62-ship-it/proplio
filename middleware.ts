@@ -2,8 +2,21 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseAuthOptions } from "@/lib/supabase/auth-options";
 
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"] as const;
+const AUTH_PUBLIC_PREFIX = "/auth/";
+const AUTH_PAGES = ["/login", "/register"] as const;
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => pathname === path) || pathname.startsWith(AUTH_PUBLIC_PREFIX);
+}
+
+function isAuthPage(pathname: string): boolean {
+  return AUTH_PAGES.some((path) => pathname === path);
+}
+
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,7 +41,33 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isPublic = isPublicPath(pathname);
+  const onAuthPage = isAuthPage(pathname);
+
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach(({ name, value }) => {
+      redirectResponse.cookies.set(name, value);
+    });
+    return redirectResponse;
+  }
+
+  if (user && onAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach(({ name, value }) => {
+      redirectResponse.cookies.set(name, value);
+    });
+    return redirectResponse;
+  }
+
   return response;
 }
 
