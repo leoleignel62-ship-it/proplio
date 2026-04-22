@@ -236,25 +236,15 @@ export function detecterBauxEligibles(
   }
   const n = baux.length;
   if (n === 0) {
-    console.log("[detecterBauxEligibles] entrée : tableau vide (0 bail) — rien à évaluer");
     return [];
   }
 
   const today = new Date();
-  console.log(
-    `[detecterBauxEligibles] entrée : ${n} bail(s), omitIrlReferenceCheck=${Boolean(options.omitIrlReferenceCheck)}, proposee en attente sur ${options.bailIdsAvecRevisionProposee.size} id(s)`,
-  );
-
   const out: BailIrlEligibleInput[] = [];
   for (const bail of baux) {
-    const { inclus, raison } = raisonEligibiliteIrl(bail, options, today);
-    const verdict = inclus ? "INCLUS" : "EXCLU";
-    console.log(
-      `[detecterBauxEligibles] ${verdict} id=${String(bail.id)} statut=${String(bail.statut ?? "")} date_debut=${String(bail.date_debut ?? "")} → ${raison}`,
-    );
+    const { inclus } = raisonEligibiliteIrl(bail, options, today);
     if (inclus) out.push(bail);
   }
 
-  console.log(`[detecterBauxEligibles] sortie : ${out.length} bail(s) éligible(s) sur ${n}`);
   return out;
 }

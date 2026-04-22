@@ -117,7 +117,6 @@ export default function RevisionsIrlPage() {
     setLocatairesMap(cm);
     const bList = (bRows ?? []) as BailRow[];
     const rList = (rRows ?? []) as RevisionRow[];
-    console.log("[revisions-irl] Baux chargés depuis Supabase :", bList.length, bList);
     setBaux(bList);
     setRevisions(rList);
 
@@ -170,14 +169,14 @@ export default function RevisionsIrlPage() {
     return { proposee, pourRefus };
   }, [revisions]);
 
-  const eligibles = useMemo(() => {
-    const r = detecterBauxEligibles(baux as never, irl.valeur, {
-      bailIdsAvecRevisionProposee: revMeta.proposee,
-      revisionsPourRefus: revMeta.pourRefus,
-    }) as BailRow[];
-    console.log("[revisions-irl] Résultat detecterBauxEligibles :", r.length, r);
-    return r;
-  }, [baux, irl.valeur, revMeta]);
+  const eligibles = useMemo(
+    () =>
+      detecterBauxEligibles(baux as never, irl.valeur, {
+        bailIdsAvecRevisionProposee: revMeta.proposee,
+        revisionsPourRefus: revMeta.pourRefus,
+      }) as BailRow[],
+    [baux, irl.valeur, revMeta],
+  );
 
   const bauxSansIrlReference = useMemo(
     () =>
