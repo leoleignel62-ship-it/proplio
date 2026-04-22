@@ -369,33 +369,16 @@ export default function AbonnementPage() {
                   {isCurrent ? "Plan actuel" : "Plan gratuit"}
                 </button>
               ) : (
-                <div className={`mt-6 grid gap-2 ${p.id === "pro" || p.id === "expert" ? "gap-2.5" : ""}`}>
-                  <button
-                    type="button"
-                    className={`proplio-btn-primary w-full disabled:opacity-60 ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
-                    disabled={isCurrent || loadingCheckoutKey !== null}
-                    onClick={() => {
-                      if (isPaidPlan(p.id)) void startCheckout(p.id, "monthly");
-                    }}
-                  >
-                    {loadingCheckoutKey === `${p.id}-monthly` ? "Redirection..." : "Choisir mensuel"}
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition duration-200 ease-out disabled:opacity-60"
-                    style={{
-                      backgroundColor: isCurrent ? PC.inputBg : PC.primaryLight,
-                      border: `1px solid ${PC.border}`,
-                      boxShadow: isCurrent ? "none" : PC.activeRing,
-                    }}
-                    disabled={isCurrent || loadingCheckoutKey !== null}
-                    onClick={() => {
-                      if (isPaidPlan(p.id)) void startCheckout(p.id, "yearly");
-                    }}
-                  >
-                    {loadingCheckoutKey === `${p.id}-yearly` ? "Redirection..." : "Choisir annuel"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className={`proplio-btn-primary mt-6 w-full disabled:opacity-60 ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
+                  disabled={isCurrent || loadingCheckoutKey !== null}
+                  onClick={() => {
+                    if (isPaidPlan(p.id)) void startCheckout(p.id, billing);
+                  }}
+                >
+                  {loadingCheckoutKey === `${p.id}-${billing}` ? "Redirection..." : "Choisir ce plan"}
+                </button>
               )}
             </article>
           );
