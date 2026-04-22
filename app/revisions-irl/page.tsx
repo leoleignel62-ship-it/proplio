@@ -100,8 +100,7 @@ export default function RevisionsIrlPage() {
         .select(
           "id, logement_id, locataire_id, date_debut, irl_reference, loyer_initial, revision_loyer, loyer, date_derniere_revision, statut",
         )
-        .eq("proprietaire_id", pid)
-        .eq("statut", "actif"),
+        .eq("proprietaire_id", pid),
       supabase.from("logements").select("id, nom").eq("proprietaire_id", pid),
       supabase.from("locataires").select("id, nom, prenom").eq("proprietaire_id", pid),
       supabase.from("revisions_irl").select("*").eq("proprietaire_id", pid).order("created_at", { ascending: false }),
