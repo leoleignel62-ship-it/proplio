@@ -65,6 +65,11 @@ const copy = {
     benefits:
       "Débloquez les états des lieux d’entrée et de sortie : pièces détaillées, photos, compteurs et PDF Proplio, pour une traçabilité complète et des comparaisons entrée / sortie.",
   },
+  "revisions-irl": {
+    kicker: "Révision IRL",
+    benefits:
+      "Calculez la révision annuelle selon l’indice INSEE, validez le nouveau loyer, conservez l’historique et envoyez la lettre officielle en PDF par e-mail au locataire.",
+  },
 } as const;
 
 export type PlanFreeModuleUpsellVariant = keyof typeof copy;

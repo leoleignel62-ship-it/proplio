@@ -105,3 +105,13 @@ export function IconPlus({ className, ...p }: IconProps) {
     </svg>
   );
 }
+
+/** Équivalent visuel lucide-react TrendingUp — révision IRL. */
+export function IconTrendingUp({ className, ...p }: IconProps) {
+  return (
+    <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} {...p}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 17h4l3-6 4 8 3-6h5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 7h6v6" />
+    </svg>
+  );
+}

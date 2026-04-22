@@ -11,8 +11,10 @@ import {
   IconContract,
   IconDocument,
   IconHome,
+  IconTrendingUp,
   IconUsers,
 } from "@/components/proplio-icons";
+import { detecterBauxEligibles } from "@/lib/irl-revision";
 import { normalizePlan, type ProplioPlan } from "@/lib/plan-limits";
 import { PC } from "@/lib/proplio-colors";
 import { supabase } from "@/lib/supabase";
@@ -25,6 +27,7 @@ const navigationMain = [
   { href: "/locataires", label: "Locataires", icon: IconUsers },
   { href: "/quittances", label: "Quittances", icon: IconDocument },
   { href: "/baux", label: "Baux", icon: IconContract },
+  { href: "/revisions-irl", label: "Révision IRL", icon: IconTrendingUp },
   { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
 ] as const;
 
@@ -141,7 +144,10 @@ export function NavigationSidebar() {
   }, []);
 
   function isSidebarStarterOnlyLocked(href: string): boolean {
-    return ownerPlan === "free" && (href === "/baux" || href === "/etats-des-lieux");
+    return (
+      ownerPlan === "free" &&
+      (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux")
+    );
   }
 
   function renderNavItem(item: (typeof navigationItems)[number], closeMobile?: () => void) {
@@ -395,13 +401,16 @@ type HeaderAlertMetrics = {
   quittancesNonEnvoyeesMois: number;
   bauxUrgents: Array<{ id: string; locataireNom: string; dateFin: string }>;
   edlManquants: Array<{ bailId: string; logementNom: string }>;
+  revisionsIrlDisponibles: Array<{ bailId: string; logementNom: string }>;
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [] };
+  if (!user) {
+    return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [], revisionsIrlDisponibles: [] };
+  }
 
   const { data: proprietaire } = await supabase
     .from("proprietaires")
@@ -409,7 +418,9 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     .eq("user_id", user.id)
     .maybeSingle();
   const ownerId = proprietaire?.id as string | undefined;
-  if (!ownerId) return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [] };
+  if (!ownerId) {
+    return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [], revisionsIrlDisponibles: [] };
+  }
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -425,16 +436,20 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     { data: logementsRows },
     { data: locRows },
     { data: edlRows },
+    revRes,
   ] = await Promise.all([
     supabase.from("quittances").select("envoyee, mois, annee").eq("proprietaire_id", ownerId),
     supabase
       .from("baux")
-      .select("id, date_debut, date_fin, statut, locataire_id, logement_id")
+      .select(
+        "id, date_debut, date_fin, statut, locataire_id, logement_id, irl_reference, loyer_initial, revision_loyer, loyer, date_derniere_revision",
+      )
       .eq("proprietaire_id", ownerId)
       .eq("statut", "actif"),
     supabase.from("logements").select("id, nom").eq("proprietaire_id", ownerId),
     supabase.from("locataires").select("id, nom, prenom").eq("proprietaire_id", ownerId),
     supabase.from("etats_des_lieux").select("bail_id, type").eq("proprietaire_id", ownerId),
+    supabase.from("revisions_irl").select("bail_id, statut, date_revision").eq("proprietaire_id", ownerId),
   ]);
 
   const quittancesNonEnvoyeesMois = (qRows ?? []).filter(
@@ -481,7 +496,22 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     }
   }
 
-  return { quittancesNonEnvoyeesMois, bauxUrgents, edlManquants };
+  const revData = revRes.error ? [] : (revRes.data ?? []);
+  const proposeeBailIds = new Set(
+    revData
+      .filter((r) => String(r.statut ?? "").toLowerCase() === "proposee")
+      .map((r) => String(r.bail_id)),
+  );
+  const revisionsIrlDisponibles = detecterBauxEligibles(
+    (bRows ?? []) as never,
+    0,
+    { bailIdsAvecRevisionProposee: proposeeBailIds, revisionsPourRefus: revData as never },
+  ).map((b) => ({
+    bailId: String(b.id),
+    logementNom: logementsMap.get(String(b.logement_id ?? "")) ?? "Logement",
+  }));
+
+  return { quittancesNonEnvoyeesMois, bauxUrgents, edlManquants, revisionsIrlDisponibles };
 }
 
 let headerAlertsCache: HeaderAlertMetrics | null = null;
@@ -497,12 +527,22 @@ function ensureHeaderAlertsLoaded(): Promise<HeaderAlertMetrics> {
       })
       .catch(() => {
         headerAlertsInflight = null;
-        const empty: HeaderAlertMetrics = { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [] };
+        const empty: HeaderAlertMetrics = {
+          quittancesNonEnvoyeesMois: 0,
+          bauxUrgents: [],
+          edlManquants: [],
+          revisionsIrlDisponibles: [],
+        };
         headerAlertsCache = empty;
         return empty;
       });
   }
   return headerAlertsInflight;
+}
+
+export function invalidateHeaderAlertsCache() {
+  headerAlertsCache = null;
+  headerAlertsInflight = null;
 }
 
 function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
@@ -511,6 +551,7 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     quittancesNonEnvoyeesMois: 0,
     bauxUrgents: [],
     edlManquants: [],
+    revisionsIrlDisponibles: [],
   });
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -527,7 +568,11 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  const badgeCount = alerts.quittancesNonEnvoyeesMois + alerts.bauxUrgents.length + alerts.edlManquants.length;
+  const badgeCount =
+    alerts.quittancesNonEnvoyeesMois +
+    alerts.bauxUrgents.length +
+    alerts.edlManquants.length +
+    alerts.revisionsIrlDisponibles.length;
   const hasAnyAlert = badgeCount > 0;
 
   return (
@@ -587,6 +632,18 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                   <Link key={item.bailId} href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
                     <span>📝</span>
                     <span>État des lieux d&apos;entrée manquant pour {item.logementNom}</span>
+                  </Link>
+                ))}
+                {alerts.revisionsIrlDisponibles.map((item) => (
+                  <Link
+                    key={item.bailId}
+                    href="/revisions-irl"
+                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                    onClick={() => setOpen(false)}
+                  >
+                    <span>📈</span>
+                    <span>Révision de loyer disponible pour {item.logementNom}</span>
                   </Link>
                 ))}
               </>
