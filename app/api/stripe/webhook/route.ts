@@ -17,9 +17,6 @@ async function applyPlanUpdate(ownerId: string | null, userId: string | null, pl
 }
 
 export async function POST(request: Request) {
-  console.log("Webhook reçu");
-  console.log("STRIPE_WEBHOOK_SECRET présent:", !!process.env.STRIPE_WEBHOOK_SECRET);
-
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
