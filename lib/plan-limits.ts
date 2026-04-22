@@ -35,6 +35,7 @@ function normalizePlan(plan: string | null | undefined): ProplioPlan {
 }
 
 export async function getOwnerPlan(proprietaireId: string): Promise<ProplioPlan> {
+  if (!proprietaireId) return "free";
   const { data } = await supabase
     .from("proprietaires")
     .select("plan")
@@ -44,14 +45,23 @@ export async function getOwnerPlan(proprietaireId: string): Promise<ProplioPlan>
   return normalizePlan((data as { plan?: string | null } | null)?.plan);
 }
 
-export function canCreateLogement(plan: ProplioPlan, totalCreeCount: number): boolean {
+export function canCreateLogement(
+  plan: ProplioPlan,
+  totalCreeCount: number,
+  existingLogementsCount = 0,
+): boolean {
   const max = PLAN_LIMITS[plan].maxLogements;
-  return max == null || totalCreeCount < max;
+  const referenceCount = Math.max(
+    Number.isFinite(totalCreeCount) ? totalCreeCount : 0,
+    Number.isFinite(existingLogementsCount) ? existingLogementsCount : 0,
+  );
+  return max == null || referenceCount < max;
 }
 
 export function canCreateLocataire(plan: ProplioPlan, existingCount: number): boolean {
   const max = PLAN_LIMITS[plan].maxLocataires;
-  return max == null || existingCount < max;
+  const referenceCount = Number.isFinite(existingCount) ? existingCount : 0;
+  return max == null || referenceCount < max;
 }
 
 export function canCreateQuittance(_plan: ProplioPlan, _monthlyCount: number): boolean {
@@ -96,6 +106,17 @@ export async function getLogementsCumulCount(proprietaireId: string): Promise<nu
     .eq("proprietaire_id", proprietaireId)
     .maybeSingle();
   return Number((data as { total_cree?: number | null } | null)?.total_cree ?? 0);
+}
+
+export async function getOwnedCount(
+  table: "logements" | "locataires",
+  proprietaireId: string,
+): Promise<number> {
+  const { count } = await supabase
+    .from(table)
+    .select("id", { head: true, count: "exact" })
+    .eq("proprietaire_id", proprietaireId);
+  return count ?? 0;
 }
 
 export async function incrementLogementsCumul(proprietaireId: string): Promise<void> {

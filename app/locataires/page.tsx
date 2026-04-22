@@ -3,7 +3,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
-import { canCreateLocataire, getOwnerPlan, PLAN_LIMIT_ERROR_MESSAGE, PLAN_UPGRADE_PATH } from "@/lib/plan-limits";
+import {
+  canCreateLocataire,
+  getOwnedCount,
+  getOwnerPlan,
+  PLAN_LIMIT_ERROR_MESSAGE,
+  PLAN_UPGRADE_PATH,
+} from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -80,8 +86,11 @@ export default function LocatairesPage() {
       : null;
   const isPlanLimitReached = Boolean(planLimitMessage);
 
-  const refreshPlanLimit = useCallback(async (ownerId: string, locatairesCount: number) => {
-    const plan = await getOwnerPlan(ownerId);
+  const refreshPlanLimit = useCallback(async (ownerId: string) => {
+    const [plan, locatairesCount] = await Promise.all([
+      getOwnerPlan(ownerId),
+      getOwnedCount("locataires", ownerId),
+    ]);
     if (!canCreateLocataire(plan, locatairesCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de locataires.");
       return;
@@ -165,7 +174,7 @@ export default function LocatairesPage() {
       } else {
         const nextRows = (data as Locataire[]) ?? [];
         setRows(nextRows);
-        await refreshPlanLimit(activeOwnerId, nextRows.length);
+        await refreshPlanLimit(activeOwnerId);
       }
 
       setIsLoading(false);
@@ -226,7 +235,7 @@ export default function LocatairesPage() {
       } else {
         const nextRows = (locRes.data as Locataire[]) ?? [];
         setRows(nextRows);
-        await refreshPlanLimit(ownerId, nextRows.length);
+        await refreshPlanLimit(ownerId);
       }
 
       setIsLoading(false);
@@ -242,9 +251,12 @@ export default function LocatairesPage() {
   async function openCreateModal() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
-      await refreshPlanLimit(ownerId, rows.length);
-      const plan = await getOwnerPlan(ownerId);
-      if (!canCreateLocataire(plan, rows.length)) return;
+      await refreshPlanLimit(ownerId);
+      const [plan, locatairesCount] = await Promise.all([
+        getOwnerPlan(ownerId),
+        getOwnedCount("locataires", ownerId),
+      ]);
+      if (!canCreateLocataire(plan, locatairesCount)) return;
     }
     setEditingRow(null);
     setValues(defaultValues);
@@ -298,8 +310,11 @@ export default function LocatairesPage() {
       }
       setProprietaireId(ownerId);
       if (!isEditing) {
-        const plan = await getOwnerPlan(ownerId);
-        if (!canCreateLocataire(plan, rows.length)) {
+        const [plan, locatairesCount] = await Promise.all([
+          getOwnerPlan(ownerId),
+          getOwnedCount("locataires", ownerId),
+        ]);
+        if (!canCreateLocataire(plan, locatairesCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }

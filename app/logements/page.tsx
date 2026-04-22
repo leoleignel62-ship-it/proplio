@@ -11,6 +11,7 @@ import {
 } from "@/lib/colocation";
 import {
   canCreateLogement,
+  getOwnedCount,
   getLogementsCumulCount,
   getOwnerPlan,
   incrementLogementsCumul,
@@ -84,9 +85,12 @@ export default function LogementsPage() {
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const plan = await getOwnerPlan(ownerId);
-    const totalCree = await getLogementsCumulCount(ownerId);
-    if (!canCreateLogement(plan, totalCree)) {
+    const [plan, totalCree, existingCount] = await Promise.all([
+      getOwnerPlan(ownerId),
+      getLogementsCumulCount(ownerId),
+      getOwnedCount("logements", ownerId),
+    ]);
+    if (!canCreateLogement(plan, totalCree, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
       return;
     }
@@ -206,9 +210,12 @@ export default function LogementsPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const plan = await getOwnerPlan(ownerId);
-      const totalCree = await getLogementsCumulCount(ownerId);
-      if (!canCreateLogement(plan, totalCree)) return;
+      const [plan, totalCree, existingCount] = await Promise.all([
+        getOwnerPlan(ownerId),
+        getLogementsCumulCount(ownerId),
+        getOwnedCount("logements", ownerId),
+      ]);
+      if (!canCreateLogement(plan, totalCree, existingCount)) return;
     }
     setEditingRow(null);
     setValues(baseDefaultValues);
@@ -286,9 +293,12 @@ export default function LogementsPage() {
       }
       setProprietaireId(ownerId);
       if (!isEditing) {
-        const plan = await getOwnerPlan(ownerId);
-        const totalCree = await getLogementsCumulCount(ownerId);
-        if (!canCreateLogement(plan, totalCree)) {
+        const [plan, totalCree, existingCount] = await Promise.all([
+          getOwnerPlan(ownerId),
+          getLogementsCumulCount(ownerId),
+          getOwnedCount("logements", ownerId),
+        ]);
+        if (!canCreateLogement(plan, totalCree, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
