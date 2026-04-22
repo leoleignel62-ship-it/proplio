@@ -4,7 +4,7 @@ export const IRL_HISTORIQUE = [
   { trimestre: "T4 2024", valeur: 143.46 },
   { trimestre: "T3 2024", valeur: 142.37 },
   { trimestre: "T2 2024", valeur: 141.79 },
-  { trimestre: "T1 2024", valeur: 141.4 }, // 141,40 INSEE
+  { trimestre: "T1 2024", valeur: 141.4 },
   { trimestre: "T4 2023", valeur: 140.59 },
   { trimestre: "T3 2023", valeur: 141.41 },
   { trimestre: "T2 2023", valeur: 140.29 },
