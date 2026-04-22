@@ -141,7 +141,6 @@ export function detecterBauxEligibles(
   const today = new Date();
   const out: BailIrlEligibleInput[] = [];
   for (const bail of baux) {
-    if (String(bail.statut ?? "").toLowerCase() !== "actif") continue;
     if (!bail.date_debut) continue;
     if (!options.omitIrlReferenceCheck) {
       const irlRef = Number(bail.irl_reference ?? 0);
