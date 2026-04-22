@@ -66,6 +66,10 @@ function normalizePlan(plan: string | null | undefined): ProplioPlan {
   return "free";
 }
 
+function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
+  return plan === "starter" || plan === "pro" || plan === "expert";
+}
+
 export default function AbonnementPage() {
   const searchParams = useSearchParams();
   const [plan, setPlan] = useState<ProplioPlan>("free");
@@ -409,7 +413,7 @@ export default function AbonnementPage() {
                   <li key={f}>✓ {f}</li>
                 ))}
               </ul>
-              {p.id === "free" ? (
+              {!isPaidPlan(p.id) ? (
                 <button
                   type="button"
                   className="mt-5 w-full rounded-lg px-4 py-2 text-sm font-medium"
