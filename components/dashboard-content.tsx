@@ -179,18 +179,18 @@ async function getFinancialAndAnnual(
       if (!isColocation) return sum + Number(row.loyer ?? 0) + charges;
       const chambres = Array.isArray(row.chambres_details) ? row.chambres_details : [];
       const loyerChambres = chambres.reduce((acc, ch) => acc + Number((ch as { loyer?: number }).loyer ?? 0), 0);
-      return sum + loyerChambres + charges;
+      const loyerFallback = Number(row.loyer ?? 0);
+      const totalColocation = loyerChambres > 0 ? loyerChambres : loyerFallback;
+      return sum + totalColocation + charges;
     }, 0);
 
-    const encaisseMois = quittances
-      .filter((q) => q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear)
-      .reduce((sum, q) => sum + Number(q.total ?? 0), 0);
-
-    const quittancesEnvoyeesMois = quittances.filter(
+    const quittancesCeMois = quittances.filter(
       (q) => q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear,
     );
+    const encaisseMois = quittancesCeMois.reduce((sum, q) => sum + Number(q.total ?? 0), 0);
+
     const logementsLouesCeMois = new Set(
-      quittancesEnvoyeesMois.map((q) => (q as { logement_id?: string | null }).logement_id).filter(Boolean),
+      quittancesCeMois.map((q) => (q as { logement_id?: string | null }).logement_id).filter(Boolean),
     ).size;
 
     let chambresDisponibles = 0;
@@ -214,8 +214,13 @@ async function getFinancialAndAnnual(
       const assigned = locatairesByLogement.get(logementId) ?? [];
       return assigned.length === 0;
     }).length;
-    const manque = Math.max(0, potentielTotal - encaisseMois);
+    const manque = potentielTotal - encaisseMois;
     const tauxRemplissage = potentielTotal > 0 ? Math.min(100, (encaisseMois / potentielTotal) * 100) : 0;
+
+    console.log("Logements:", logements);
+    console.log("Quittances ce mois:", quittancesCeMois);
+    console.log("Potentiel:", potentielTotal);
+    console.log("Encaissé:", encaisseMois);
 
     const encaissesByMonth = Array.from({ length: 12 }, () => 0);
     for (const q of quittances) {
