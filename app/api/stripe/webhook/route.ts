@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getStripeServerClient } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 async function applyPlanUpdate(ownerId: string | null, userId: string | null, plan: string) {
