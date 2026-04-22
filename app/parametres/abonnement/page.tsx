@@ -49,7 +49,6 @@ function normalizePlan(plan: string | null | undefined): ProplioPlan {
 
 export default function AbonnementPage() {
   const [plan, setPlan] = useState<ProplioPlan>("free");
-  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSwitchingPlan, setIsSwitchingPlan] = useState(false);
   const [error, setError] = useState("");
@@ -67,7 +66,6 @@ export default function AbonnementPage() {
         setLoading(false);
         return;
       }
-      setProprietaireId(proprietaireId);
       const { data } = await supabase.from("proprietaires").select("plan").eq("id", proprietaireId).maybeSingle();
       if (!mounted) return;
       setPlan(normalizePlan((data as { plan?: string | null } | null)?.plan));
@@ -81,24 +79,36 @@ export default function AbonnementPage() {
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
 
   async function switchPlanForTest(nextPlan: ProplioPlan) {
-    if (!proprietaireId || isSwitchingPlan) return;
+    if (isSwitchingPlan) return;
     setError("");
     setMessage("");
     setIsSwitchingPlan(true);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Erreur récupération utilisateur:", userError);
+      setError("Impossible d'identifier l'utilisateur connecté.");
+      setIsSwitchingPlan(false);
+      return;
+    }
+
     const { error: updateError } = await supabase
       .from("proprietaires")
       .update({ plan: nextPlan })
-      .eq("id", proprietaireId);
+      .eq("user_id", user.id);
 
     if (updateError) {
+      console.error("Erreur mise à jour plan:", updateError);
       setError("Impossible de changer le plan en mode test.");
       setIsSwitchingPlan(false);
       return;
     }
-    setMessage(`Plan changé : ${nextPlan}`);
-    window.setTimeout(() => {
-      window.location.reload();
-    }, 350);
+    alert("Plan changé : " + nextPlan);
+    window.location.reload();
   }
 
   return (
