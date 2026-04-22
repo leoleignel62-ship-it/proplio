@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
@@ -42,16 +43,37 @@ const PLANS: PlanCard[] = [
   },
 ];
 
+const STRIPE_PRICE_IDS: Record<
+  Exclude<ProplioPlan, "free">,
+  { monthly: string; yearly: string }
+> = {
+  starter: {
+    monthly: "price_1TP1G8RrlH0LxLdsFPBJq4m2",
+    yearly: "price_1TP1IrRrlH0LxLdsg5KTrDGW",
+  },
+  pro: {
+    monthly: "price_1TP1JcRrlH0LxLdsh1G51cEt",
+    yearly: "price_1TP1JpRrlH0LxLdsVtuG9ArW",
+  },
+  expert: {
+    monthly: "price_1TP1KJRrlH0LxLdsxI7AQzFx",
+    yearly: "price_1TP1KcRrlH0LxLdslGa3Cy34",
+  },
+};
+
 function normalizePlan(plan: string | null | undefined): ProplioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
   return "free";
 }
 
 export default function AbonnementPage() {
+  const searchParams = useSearchParams();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSwitchingPlan, setIsSwitchingPlan] = useState(false);
+  const [loadingCheckoutKey, setLoadingCheckoutKey] = useState<string | null>(null);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [pendingPlan, setPendingPlan] = useState<ProplioPlan | null>(null);
@@ -80,7 +102,57 @@ export default function AbonnementPage() {
     };
   }, []);
 
+  const hasCheckoutSuccess = searchParams.get("success") === "true";
+  const hasCheckoutCanceled = searchParams.get("canceled") === "true";
+
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
+
+  async function startCheckout(targetPlan: Exclude<ProplioPlan, "free">, interval: "monthly" | "yearly") {
+    if (!proprietaireId) return;
+    const key = `${targetPlan}-${interval}`;
+    setLoadingCheckoutKey(key);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId: STRIPE_PRICE_IDS[targetPlan][interval],
+          plan: targetPlan,
+        }),
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || "Impossible de démarrer le paiement.");
+      }
+      window.location.assign(payload.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors de la création de session Stripe.");
+    } finally {
+      setLoadingCheckoutKey(null);
+    }
+  }
+
+  async function openPortal() {
+    setIsOpeningPortal(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/stripe/portal", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || "Impossible d'ouvrir le portail Stripe.");
+      }
+      window.location.assign(payload.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors de l'ouverture du portail.");
+    } finally {
+      setIsOpeningPortal(false);
+    }
+  }
 
   async function performPlanChange(nextPlan: ProplioPlan) {
     if (!proprietaireId) return;
@@ -258,11 +330,32 @@ export default function AbonnementPage() {
         <p className="mt-3 text-sm" style={{ color: PC.muted }}>
           Limites actuelles : {currentLimits.maxLogements ?? "illimite"} logements, {currentLimits.maxLocataires ?? "illimite"} locataires.
         </p>
+        {plan !== "free" ? (
+          <button
+            type="button"
+            className="mt-4 rounded-lg px-4 py-2 text-sm font-medium"
+            style={{ backgroundColor: PC.primary, color: PC.white, border: `1px solid ${PC.primary}` }}
+            disabled={isOpeningPortal}
+            onClick={() => void openPortal()}
+          >
+            {isOpeningPortal ? "Ouverture..." : "Gérer mon abonnement"}
+          </button>
+        ) : null}
       </div>
 
       {error ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           {error}
+        </p>
+      ) : null}
+      {hasCheckoutSuccess ? (
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
+          Paiement validé. Votre abonnement va être mis à jour automatiquement.
+        </p>
+      ) : null}
+      {hasCheckoutCanceled ? (
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning }}>
+          Paiement annulé. Aucun changement n&apos;a été appliqué.
         </p>
       ) : null}
       {message ? (
@@ -316,16 +409,37 @@ export default function AbonnementPage() {
                   <li key={f}>✓ {f}</li>
                 ))}
               </ul>
-              <button
-                type="button"
-                className="mt-5 w-full rounded-lg px-4 py-2 text-sm font-medium"
-                style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
-                onClick={() => {
-                  setMessage("Disponible prochainement — paiement en ligne bientôt disponible");
-                }}
-              >
-                {isCurrent ? "Plan actuel" : "Passer à ce plan"}
-              </button>
+              {p.id === "free" ? (
+                <button
+                  type="button"
+                  className="mt-5 w-full rounded-lg px-4 py-2 text-sm font-medium"
+                  style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                  disabled
+                >
+                  {isCurrent ? "Plan actuel" : "Plan gratuit"}
+                </button>
+              ) : (
+                <div className="mt-5 grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+                    style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                    disabled={isCurrent || loadingCheckoutKey !== null}
+                    onClick={() => void startCheckout(p.id, "monthly")}
+                  >
+                    {loadingCheckoutKey === `${p.id}-monthly` ? "Redirection..." : "Choisir mensuel"}
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+                    style={{ backgroundColor: isCurrent ? PC.card : PC.secondary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
+                    disabled={isCurrent || loadingCheckoutKey !== null}
+                    onClick={() => void startCheckout(p.id, "yearly")}
+                  >
+                    {loadingCheckoutKey === `${p.id}-yearly` ? "Redirection..." : "Choisir annuel"}
+                  </button>
+                </div>
+              )}
             </article>
           );
         })}
