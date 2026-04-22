@@ -32,6 +32,7 @@ type BailRow = {
   loyer_initial: number | null;
   revision_loyer: string | null;
   loyer: number;
+  charges: number | null;
   date_derniere_revision: string | null;
   statut: string;
 };
@@ -98,7 +99,7 @@ export default function RevisionsIrlPage() {
       supabase
         .from("baux")
         .select(
-          "id, logement_id, locataire_id, date_debut, irl_reference, loyer_initial, revision_loyer, loyer, date_derniere_revision, statut",
+          "id, logement_id, locataire_id, date_debut, irl_reference, loyer_initial, revision_loyer, loyer, charges, date_derniere_revision, statut",
         )
         .eq("proprietaire_id", pid),
       supabase.from("logements").select("id, nom").eq("proprietaire_id", pid),
@@ -413,6 +414,9 @@ export default function RevisionsIrlPage() {
             {eligibles.map((bail) => {
               const irlRef = Number(bail.irl_reference ?? 0);
               const calc = calculerNouveauLoyer(Number(bail.loyer ?? 0), irlRef, irl.valeur);
+              const chargesBail = Number(bail.charges ?? 0);
+              const chargesOk = Number.isFinite(chargesBail) && chargesBail >= 0 ? chargesBail : 0;
+              const totalAvecCharges = calc.nouveauLoyer + chargesOk;
               const anniv = getDerniereDateAnniversaireBail(String(bail.date_debut ?? ""));
               const logementNom = logementsMap.get(String(bail.logement_id ?? "")) ?? "Logement";
               const locNom = locatairesMap.get(String(bail.locataire_id ?? "")) ?? "Locataire";
@@ -446,6 +450,16 @@ export default function RevisionsIrlPage() {
                         {calc.variationEuro >= 0 ? "+" : ""}
                         {formatMoney(calc.variationEuro)} / {formatPct(calc.variationPct)}
                       </span>
+                    </div>
+                    <div>
+                      Total avec charges :{" "}
+                      <span style={{ color: PC.text }}>{formatMoney(totalAvecCharges)}</span>
+                      {chargesOk > 0 ? (
+                        <span>
+                          {" "}
+                          (dont {formatMoney(chargesOk)} de charges)
+                        </span>
+                      ) : null}
                     </div>
                     <div>
                       IRL référence → IRL actuel : {irlRef.toFixed(2)} → {irl.valeur.toFixed(2)}
