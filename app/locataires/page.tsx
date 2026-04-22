@@ -286,6 +286,10 @@ export default function LocatairesPage() {
       }
 
       const logementId = values.logement_id.trim() || null;
+      if (!logementId) {
+        setError("Veuillez sélectionner un logement");
+        return;
+      }
       const log = logementId ? logementsById.get(logementId) : undefined;
       const colocIdxRaw = values.colocation_chambre_index.trim();
 
@@ -563,14 +567,15 @@ export default function LocatairesPage() {
               </label>
 
               <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                <span className="font-medium">Logement lié (optionnel)</span>
+                <span className="font-medium">Logement lié</span>
                 <select
+                  required
                   className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
                   style={fieldSelectLg}
                   value={values.logement_id}
                   onChange={(e) => onFieldChange("logement_id", e.target.value)}
                 >
-                  <option value="">— Aucun —</option>
+                  <option value="">Choisir un logement</option>
                   {logements.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.nom || l.adresse || l.id}
@@ -578,6 +583,11 @@ export default function LocatairesPage() {
                     </option>
                   ))}
                 </select>
+                {error === "Veuillez sélectionner un logement" ? (
+                  <p className="text-xs" style={{ color: PC.danger }}>
+                    Veuillez sélectionner un logement
+                  </p>
+                ) : null}
               </label>
 
               {isColocLogement ? (
