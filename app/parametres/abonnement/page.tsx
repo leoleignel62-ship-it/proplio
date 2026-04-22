@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { startTransition, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
@@ -54,7 +54,9 @@ function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
 }
 
 export default function AbonnementPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [checkoutFlash, setCheckoutFlash] = useState<{ success: boolean; canceled: boolean } | null>(null);
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,8 +86,18 @@ export default function AbonnementPage() {
     };
   }, []);
 
-  const hasCheckoutSuccess = searchParams.get("success") === "true";
-  const hasCheckoutCanceled = searchParams.get("canceled") === "true";
+  useEffect(() => {
+    const success = searchParams.get("success") === "true";
+    const canceled = searchParams.get("canceled") === "true";
+    if (!success && !canceled) return;
+    startTransition(() => {
+      setCheckoutFlash({ success, canceled });
+    });
+    router.replace("/parametres/abonnement");
+  }, [searchParams, router]);
+
+  const hasCheckoutSuccess = checkoutFlash ? checkoutFlash.success : searchParams.get("success") === "true";
+  const hasCheckoutCanceled = checkoutFlash ? checkoutFlash.canceled : searchParams.get("canceled") === "true";
 
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
 
