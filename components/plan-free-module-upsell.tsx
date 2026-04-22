@@ -77,7 +77,7 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
 
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link
-            href="/parametres#abonnement"
+            href={{ pathname: "/parametres", hash: "abonnement" }}
             className="inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition sm:w-auto"
             style={{
               backgroundColor: PC.primary,

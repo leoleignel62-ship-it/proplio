@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   emptyProprietaireProfile,
   fetchProprietaireProfile,
@@ -16,7 +17,13 @@ import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
 
+function scrollAbonnementIntoView() {
+  if (typeof window === "undefined" || window.location.hash !== "#abonnement") return;
+  document.getElementById("abonnement")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export default function ParametresPage() {
+  const pathname = usePathname();
   const [profile, setProfile] = useState<ProprietaireProfile>(emptyProprietaireProfile);
   const [plan, setPlan] = useState("free");
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +79,18 @@ export default function ParametresPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (pathname !== "/parametres") return;
+    scrollAbonnementIntoView();
+    const onHashChange = () => scrollAbonnementIntoView();
+    window.addEventListener("hashchange", onHashChange);
+    const t = window.setTimeout(scrollAbonnementIntoView, 150);
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      window.clearTimeout(t);
+    };
+  }, [pathname]);
 
   function onChange(field: keyof ProprietaireProfile, value: string) {
     setProfile((prev) => ({ ...prev, [field]: value }));
