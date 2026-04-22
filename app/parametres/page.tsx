@@ -22,6 +22,21 @@ function scrollAbonnementIntoView() {
   document.getElementById("abonnement")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function formatSubscriptionDateFr(unixSeconds: number): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(unixSeconds * 1000));
+}
+
+type StripeSubscriptionInfo = {
+  current_period_end: number;
+  cancel_at_period_end: boolean;
+  interval: "month" | "year" | null;
+  status: string;
+};
+
 export default function ParametresPage() {
   const pathname = usePathname();
   const [profile, setProfile] = useState<ProprietaireProfile>(emptyProprietaireProfile);
@@ -32,6 +47,8 @@ export default function ParametresPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [stripeSubscription, setStripeSubscription] = useState<StripeSubscriptionInfo | null>(null);
+  const [stripeSubscriptionLoading, setStripeSubscriptionLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -91,6 +108,39 @@ export default function ParametresPage() {
       window.clearTimeout(t);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (plan === "free") {
+      // Réinitialiser l’affichage Stripe quand le plan en base repasse à gratuit.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronisation dérivée du plan chargé
+      setStripeSubscription(null);
+      setStripeSubscriptionLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setStripeSubscriptionLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch("/api/stripe/subscription");
+        const data = (await res.json()) as { subscription?: StripeSubscriptionInfo | null };
+        if (!cancelled) {
+          setStripeSubscription(data.subscription ?? null);
+        }
+      } catch {
+        if (!cancelled) setStripeSubscription(null);
+      } finally {
+        if (!cancelled) setStripeSubscriptionLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [plan, isLoading]);
 
   function onChange(field: keyof ProprietaireProfile, value: string) {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -317,6 +367,52 @@ export default function ParametresPage() {
         <p className="mt-1 text-sm" style={{ color: PC.muted }}>
           Plan actuel : <span className="font-medium capitalize" style={{ color: PC.text }}>{plan}</span>
         </p>
+
+        {plan !== "free" && stripeSubscriptionLoading ? (
+          <p className="mt-2 flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
+            <span
+              className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
+              style={{ borderColor: `${PC.border}`, borderTopColor: PC.primary }}
+              aria-hidden
+            />
+            Mise à jour des informations d&apos;abonnement…
+          </p>
+        ) : null}
+
+        {plan !== "free" && !stripeSubscriptionLoading && stripeSubscription ? (
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+            {stripeSubscription.cancel_at_period_end ? (
+              <>
+                <span style={{ color: PC.warning }}>
+                  ⚠️ Abonnement résilié — Accès jusqu&apos;au :{" "}
+                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                </span>
+              </>
+            ) : stripeSubscription.interval === "month" ? (
+              <>
+                Prochain renouvellement :{" "}
+                <span className="font-medium" style={{ color: PC.secondary }}>
+                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                </span>
+              </>
+            ) : stripeSubscription.interval === "year" ? (
+              <>
+                Abonnement valide jusqu&apos;au :{" "}
+                <span className="font-medium" style={{ color: PC.secondary }}>
+                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                </span>
+              </>
+            ) : (
+              <>
+                Prochaine échéance :{" "}
+                <span className="font-medium" style={{ color: PC.secondary }}>
+                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                </span>
+              </>
+            )}
+          </p>
+        ) : null}
+
         <div className="mt-4">
           <Link href="/parametres/abonnement" className="proplio-btn-secondary inline-flex items-center justify-center">
             Gérer mon abonnement
