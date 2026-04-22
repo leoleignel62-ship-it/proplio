@@ -429,7 +429,9 @@ export default function AbonnementPage() {
                     className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
                     style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
                     disabled={isCurrent || loadingCheckoutKey !== null}
-                    onClick={() => void startCheckout(p.id, "monthly")}
+                    onClick={() => {
+                      if (isPaidPlan(p.id)) void startCheckout(p.id, "monthly");
+                    }}
                   >
                     {loadingCheckoutKey === `${p.id}-monthly` ? "Redirection..." : "Choisir mensuel"}
                   </button>
@@ -438,7 +440,9 @@ export default function AbonnementPage() {
                     className="w-full rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
                     style={{ backgroundColor: isCurrent ? PC.card : PC.secondary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
                     disabled={isCurrent || loadingCheckoutKey !== null}
-                    onClick={() => void startCheckout(p.id, "yearly")}
+                    onClick={() => {
+                      if (isPaidPlan(p.id)) void startCheckout(p.id, "yearly");
+                    }}
                   >
                     {loadingCheckoutKey === `${p.id}-yearly` ? "Redirection..." : "Choisir annuel"}
                   </button>
