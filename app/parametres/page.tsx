@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   emptyProprietaireProfile,
   fetchProprietaireProfile,
@@ -16,6 +17,7 @@ import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
 
 export default function ParametresPage() {
   const [profile, setProfile] = useState<ProprietaireProfile>(emptyProprietaireProfile);
+  const [plan, setPlan] = useState("free");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
@@ -51,6 +53,13 @@ export default function ParametresPage() {
             .createSignedUrl(existingProfile.signature_path, 3600);
           setSignatureUrl(data?.signedUrl ?? null);
         }
+        const { data: planData } = await supabase
+          .from("proprietaires")
+          .select("plan")
+          .eq("id", existingProfile.id)
+          .maybeSingle();
+        const rawPlan = (planData as { plan?: string | null } | null)?.plan;
+        setPlan(rawPlan && rawPlan.trim() ? rawPlan : "free");
       }
 
       setIsLoading(false);
@@ -267,6 +276,18 @@ export default function ParametresPage() {
             </div>
           </form>
         )}
+      </div>
+
+      <div className="p-6" style={panelCard}>
+        <h2 className="text-lg font-semibold">Mon abonnement</h2>
+        <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+          Plan actuel : <span className="font-medium capitalize" style={{ color: PC.text }}>{plan}</span>
+        </p>
+        <div className="mt-4">
+          <Link href="/parametres/abonnement" className="proplio-btn-secondary inline-flex items-center justify-center">
+            Gérer mon abonnement
+          </Link>
+        </div>
       </div>
 
       <div className="p-6" style={panelCard}>
