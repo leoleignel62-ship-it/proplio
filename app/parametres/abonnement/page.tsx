@@ -95,8 +95,10 @@ export default function AbonnementPage() {
       setIsSwitchingPlan(false);
       return;
     }
-
-    window.location.reload();
+    setMessage(`Plan changé : ${nextPlan}`);
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 350);
   }
 
   return (
@@ -187,8 +189,7 @@ export default function AbonnementPage() {
                 className="mt-5 w-full rounded-lg px-4 py-2 text-sm font-medium"
                 style={{ backgroundColor: isCurrent ? PC.card : PC.primary, color: isCurrent ? PC.muted : PC.white, border: `1px solid ${PC.border}` }}
                 onClick={() => {
-                  window.location.href = `mailto:contact@proplio.fr?subject=Changement%20de%20plan%20Proplio&body=Bonjour%2C%20je%20souhaite%20passer%20au%20plan%20${encodeURIComponent(p.id)}.`;
-                  setMessage("Fonctionnalité bientôt disponible");
+                  setMessage("Disponible prochainement — paiement en ligne bientôt disponible");
                 }}
               >
                 {isCurrent ? "Plan actuel" : "Passer à ce plan"}
