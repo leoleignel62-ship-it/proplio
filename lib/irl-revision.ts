@@ -72,13 +72,30 @@ export function getDerniereDateAnniversaireBail(dateDebutStr: string, today = ne
   return last;
 }
 
-/** Fenêtre : anniversaire atteint et aujourd’hui dans les 3 mois suivant cet anniversaire. */
+/**
+ * Fenêtre révision IRL : dernier anniversaire (≥ 1 an de bail) passé,
+ * tombé dans les 12 derniers mois glissants (le propriétaire peut rattraper après l’échéance).
+ */
 export function estDansFenetreRevisionAnnuelle(dateDebutStr: string, today = new Date()): boolean {
   const last = getDerniereDateAnniversaireBail(dateDebutStr, today);
   if (!last) return false;
   const t0 = startOfDay(today);
-  const fin = addMonths(last, 3);
-  return last <= t0 && t0 <= fin;
+  const limite = startOfDay(addMonths(t0, -12));
+  return last <= t0 && last >= limite;
+}
+
+/** Aucune révision validée depuis l’anniversaire courant (date_derniere_revision < jour anniversaire). */
+function pasDeRevisionValideeDepuisAnniversaire(
+  dateDerniereRevision: string | null | undefined,
+  lastAnn: Date | null,
+): boolean {
+  if (!lastAnn) return true;
+  if (dateDerniereRevision == null || String(dateDerniereRevision).trim() === "") return true;
+  const d = parseLocalDate(String(dateDerniereRevision));
+  if (!d) return true;
+  const ann0 = startOfDay(lastAnn);
+  const d0 = startOfDay(d);
+  return d0 < ann0;
 }
 
 function revisionLoyerAutorisee(revisionLoyer: string | null | undefined): boolean {
@@ -86,14 +103,6 @@ function revisionLoyerAutorisee(revisionLoyer: string | null | undefined): boole
   if (!t) return false;
   if (t === "non" || t === "aucune") return false;
   return true;
-}
-
-function pasDeRevisionValidee12Mois(dateDerniereRevision: string | null | undefined, today = new Date()): boolean {
-  if (dateDerniereRevision == null || String(dateDerniereRevision).trim() === "") return true;
-  const d = parseLocalDate(String(dateDerniereRevision));
-  if (!d) return true;
-  const lim = addMonths(startOfDay(today), -12);
-  return d < lim;
 }
 
 export function calculerNouveauLoyer(
@@ -164,42 +173,35 @@ function raisonEligibiliteIrl(
     if (!raw) return { inclus: false, raison: "revision_loyer vide" };
     return { inclus: false, raison: "revision_loyer exclut la révision (« non », « aucune » ou valeur incompatible)" };
   }
-  if (!estDansFenetreRevisionAnnuelle(bail.date_debut, today)) {
-    const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
-    if (!lastAnn) {
-      return {
-        inclus: false,
-        raison: "fenêtre anniversaire : aucun anniversaire d’au moins 1 an encore atteint (bail trop récent ou date invalide)",
-      };
-    }
-    const fin = addMonths(lastAnn, 3);
-    const t0 = startOfDay(today);
-    if (t0 > fin) {
-      return {
-        inclus: false,
-        raison: `fenêtre anniversaire dépassée (anniversaire ${formatDateIsoLocal(lastAnn)}, fin fenêtre ${formatDateIsoLocal(fin)}, aujourd’hui ${formatDateIsoLocal(t0)})`,
-      };
-    }
+
+  const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
+  const t0 = startOfDay(today);
+  if (!lastAnn) {
     return {
       inclus: false,
-      raison: `hors fenêtre anniversaire + 3 mois (anniversaire ${formatDateIsoLocal(lastAnn)}, aujourd’hui ${formatDateIsoLocal(t0)})`,
+      raison: "fenêtre anniversaire : aucun anniversaire d’au moins 1 an encore atteint (bail trop récent ou date invalide)",
     };
   }
-  if (!pasDeRevisionValidee12Mois(bail.date_derniere_revision, today)) {
+  if (!estDansFenetreRevisionAnnuelle(bail.date_debut, today)) {
+    const limite = startOfDay(addMonths(t0, -12));
+    return {
+      inclus: false,
+      raison: `fenêtre 12 mois : dernier anniversaire ${formatDateIsoLocal(lastAnn)} hors fenêtre (requis ≥ ${formatDateIsoLocal(limite)}, aujourd’hui ${formatDateIsoLocal(t0)})`,
+    };
+  }
+  if (!pasDeRevisionValideeDepuisAnniversaire(bail.date_derniere_revision, lastAnn)) {
     const ddr = String(bail.date_derniere_revision ?? "").slice(0, 10);
     return {
       inclus: false,
-      raison: `date_derniere_revision trop récente (révision dans les 12 derniers mois) : ${ddr || "présente"}`,
+      raison: `révision déjà validée depuis l’anniversaire courant (date_derniere_revision ${ddr}, anniversaire ${formatDateIsoLocal(lastAnn)})`,
     };
   }
   if (options.bailIdsAvecRevisionProposee.has(String(bail.id))) {
     return { inclus: false, raison: "révision IRL avec statut « proposee » déjà enregistrée pour ce bail" };
   }
 
-  const lastAnn = getDerniereDateAnniversaireBail(bail.date_debut, today);
-  const annStr = lastAnn ? formatDateIsoLocal(lastAnn) : null;
+  const annStr = formatDateIsoLocal(lastAnn);
   if (
-    annStr &&
     options.revisionsPourRefus?.length &&
     options.revisionsPourRefus.some(
       (r) =>
@@ -216,7 +218,7 @@ function raisonEligibiliteIrl(
 
   return {
     inclus: true,
-    raison: "toutes les conditions d’éligibilité sont satisfaites (fenêtre anniversaire, IRL, loyer, pas de blocage révision)",
+    raison: "toutes les conditions d’éligibilité sont satisfaites (fenêtre 12 mois après anniversaire, IRL, loyer, pas de révision depuis cet anniversaire)",
   };
 }
 
