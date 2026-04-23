@@ -23,7 +23,7 @@ import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
 
 const SaisonnierReservationsPlanningCalendar = dynamic(
   () =>
-    import("./saisonnier-reservations-planning-calendar").then((m) => ({
+    import("@/components/saisonnier-reservations-planning-calendar").then((m) => ({
       default: m.SaisonnierReservationsPlanningCalendar,
     })),
   {
@@ -712,7 +712,7 @@ export default function ReservationsSaisonnierPage() {
         </p>
       ) : null}
 
-      {showIcalPrixInfo ? (
+      {viewMode === "liste" && showIcalPrixInfo ? (
         <div
           className="flex gap-3 rounded-xl p-4 text-sm leading-relaxed"
           style={{
