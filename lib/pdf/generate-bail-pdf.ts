@@ -1,28 +1,31 @@
 import { PDFDocument, PDFPage, StandardFonts, rgb, type PDFFont, type PDFImage } from "pdf-lib";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
+import {
+  PDF_ARTICLE_BAR_BG as ARTICLE_TITLE_BG,
+  PDF_BORDER as BORDER_LIGHT,
+  PDF_INFO_BLOCK_BG,
+  PDF_MARGIN_X as MARGIN,
+  PDF_PAGE_H as PAGE_H,
+  PDF_PAGE_W as PAGE_W,
+  PDF_TABLE_ALT as TABLE_ROW_ALT,
+  PDF_TABLE_HIGHLIGHT_BG,
+  PDF_TEXT_MAIN as TEXT_BODY,
+  PDF_TEXT_SECONDARY as TEXT_MUTED,
+  PDF_VIOLET as PRIMARY,
+  PDF_VIOLET_LINE as SECONDARY,
+  PDF_WHITE as WHITE,
+  drawProplioPdfFooterOnAllPages,
+  drawProplioPdfHeader,
+  pdfContentMinY,
+  pdfContentTopAfterHeader,
+} from "@/lib/pdf/proplio-pdf-theme";
 
-const PAGE_W = 595.28;
-const PAGE_H = 841.89;
-const MARGIN = 50;
-/** Ligne grise au-dessus du pied de page */
-const FOOTER_LINE_TOP = 52;
-/** Baseline du texte du pied de page */
-const FOOTER_TEXT_BASELINE = 34;
 /** Marge réservée sous le corps du document */
-const CONTENT_BOTTOM = FOOTER_LINE_TOP + 22;
+const CONTENT_BOTTOM = pdfContentMinY();
 
-/** #1e3a5f */
-const PRIMARY = rgb(30 / 255, 58 / 255, 95 / 255);
-/** #4a90d9 */
-const SECONDARY = rgb(74 / 255, 144 / 255, 217 / 255);
-/** #e8f0fe */
-const ARTICLE_TITLE_BG = rgb(232 / 255, 240 / 255, 254 / 255);
-const WHITE = rgb(1, 1, 1);
-const TEXT_BODY = rgb(0.12, 0.14, 0.18);
-const TEXT_MUTED = rgb(0.38, 0.4, 0.44);
-const BORDER_LIGHT = rgb(0.86, 0.89, 0.93);
+const BAIL_HEADER_TITLE = "CONTRAT DE BAIL\nD'HABITATION";
+
 const TABLE_HEADER = PRIMARY;
-const TABLE_ROW_ALT = rgb(0.98, 0.99, 1);
 
 const BODY_PT = 10;
 const BODY_GAP = 15;
@@ -115,13 +118,20 @@ function drawPartyBoxDetailed(
 ) {
   const innerW = colW - 20;
   page.drawRectangle({
+    x: x + 3,
+    y: boxY,
+    width: colW - 3,
+    height: boxH,
+    color: PDF_INFO_BLOCK_BG,
+    borderColor: BORDER_LIGHT,
+    borderWidth: 0.6,
+  });
+  page.drawRectangle({
     x,
     y: boxY,
-    width: colW,
+    width: 3,
     height: boxH,
-    color: WHITE,
-    borderColor: SECONDARY,
-    borderWidth: 1.2,
+    color: PRIMARY,
   });
   page.drawText(title, {
     x: x + 10,
@@ -203,7 +213,8 @@ type PdfCtx = {
 
 function newPage(ctx: PdfCtx) {
   ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
-  ctx.y = PAGE_H - MARGIN;
+  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, BAIL_HEADER_TITLE);
+  ctx.y = pdfContentTopAfterHeader();
 }
 
 /** Évite de commencer un bloc avec moins de ~3 lignes utiles en bas de page */
@@ -216,56 +227,6 @@ function ensureSpace(ctx: PdfCtx, needPt: number) {
 /** Hauteur minimale réservée en bas de page (3 lignes) */
 function ensureSpaceMinLines(ctx: PdfCtx, lines = 3) {
   ensureSpace(ctx, lines * BODY_GAP + BODY_PT);
-}
-
-function drawFooterOnAllPages(
-  doc: PDFDocument,
-  font: PDFFont,
-  opts: { bailleur: string; preneur: string },
-) {
-  const pages = doc.getPages();
-  const total = pages.length;
-  const grayRule = rgb(0.72, 0.74, 0.78);
-  pages.forEach((page, i) => {
-    const w = page.getWidth();
-    page.drawLine({
-      start: { x: MARGIN, y: FOOTER_LINE_TOP },
-      end: { x: w - MARGIN, y: FOOTER_LINE_TOP },
-      thickness: 0.35,
-      color: grayRule,
-    });
-    const pageStr = `Page ${i + 1} / ${total}`;
-    const cw = font.widthOfTextAtSize(pageStr, 7);
-    const centerX = (w - cw) / 2;
-    const gutter = 10;
-    const sideMax = Math.max(40, (w - MARGIN * 2 - cw - 2 * gutter) / 2);
-    const leftFull = `Bailleur : ${opts.bailleur}`;
-    const rightFull = `Preneur : ${opts.preneur}`;
-    const left = truncateOneLine(leftFull, font, 7, sideMax);
-    const right = truncateOneLine(rightFull, font, 7, sideMax);
-    page.drawText(left, {
-      x: MARGIN,
-      y: FOOTER_TEXT_BASELINE,
-      size: 7,
-      font,
-      color: TEXT_MUTED,
-    });
-    page.drawText(pageStr, {
-      x: centerX,
-      y: FOOTER_TEXT_BASELINE,
-      size: 7,
-      font,
-      color: TEXT_MUTED,
-    });
-    const rw = font.widthOfTextAtSize(right, 7);
-    page.drawText(right, {
-      x: w - MARGIN - rw,
-      y: FOOTER_TEXT_BASELINE,
-      size: 7,
-      font,
-      color: TEXT_MUTED,
-    });
-  });
 }
 
 function drawArticleTitle(ctx: PdfCtx, num: number, title: string) {
@@ -524,41 +485,32 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   const dateDocFr = formatDateFrLong(new Date());
 
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  let y = PAGE_H - MARGIN;
+  drawProplioPdfHeader(page, font, fontBold, BAIL_HEADER_TITLE);
+  let y = pdfContentTopAfterHeader();
 
-  const bandH = isColocIndividuel ? 78 : 68;
-  const bandBottom = PAGE_H - bandH;
-  page.drawRectangle({ x: 0, y: bandBottom, width: PAGE_W, height: bandH, color: PRIMARY });
-
-  const mainTitle = "CONTRAT DE BAIL D'HABITATION";
-  page.drawText(mainTitle, {
-    x: (PAGE_W - fontBold.widthOfTextAtSize(mainTitle, 17)) / 2,
-    y: bandBottom + bandH - 32,
-    size: 17,
-    font: fontBold,
-    color: WHITE,
-  });
   const subLaw =
     "Conforme à la loi n° 89-462 du 6 juillet 1989 et à la loi Alur du 24 mars 2014";
   page.drawText(subLaw, {
     x: (PAGE_W - font.widthOfTextAtSize(subLaw, 8.5)) / 2,
-    y: bandBottom + bandH - 50,
+    y,
     size: 8.5,
     font,
-    color: rgb(0.9, 0.92, 0.97),
+    color: TEXT_MUTED,
   });
+  y -= 14;
   if (isColocIndividuel) {
     const colocLine = "Bail individuel — colocation";
     page.drawText(colocLine, {
       x: (PAGE_W - fontBold.widthOfTextAtSize(colocLine, 9)) / 2,
-      y: bandBottom + bandH - 64,
+      y,
       size: 9,
       font: fontBold,
-      color: rgb(0.92, 0.94, 0.99),
+      color: TEXT_MUTED,
     });
+    y -= 16;
   }
 
-  y = bandBottom - 18;
+  y -= 8;
   const refLine = `Réf. ${bailRef}   ·   Établi le ${dateDocFr}`;
   page.drawText(refLine, {
     x: (PAGE_W - font.widthOfTextAtSize(refLine, 8)) / 2,
@@ -1121,10 +1073,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   ctx.y = dateBaseline - 28;
 
-  drawFooterOnAllPages(doc, font, {
-    bailleur: bailleurNomPrenomOrder,
-    preneur: preneurFooterName,
-  });
+  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }

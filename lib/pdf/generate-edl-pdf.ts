@@ -19,15 +19,21 @@ import {
   formatEtatLabel,
   normalizeEtatNiveau,
 } from "@/lib/etat-des-lieux/types";
-
-const PAGE_W = 595.28;
-const PAGE_H = 841.89;
-const MARGIN = 48;
-const PRIMARY = rgb(124 / 255, 58 / 255, 237 / 255);
-const BODY = rgb(0.12, 0.14, 0.18);
-const MUTED = rgb(0.38, 0.4, 0.44);
-const BAR_BG = rgb(0.93, 0.91, 0.98);
-const BORDER = rgb(0.75, 0.78, 0.85);
+import {
+  PDF_BORDER as BORDER,
+  PDF_MARGIN_X as MARGIN,
+  PDF_PAGE_H as PAGE_H,
+  PDF_PAGE_W as PAGE_W,
+  PDF_TABLE_ALT as ROW_ALT_BG,
+  PDF_TEXT_MAIN as BODY,
+  PDF_TEXT_SECONDARY as MUTED,
+  PDF_VIOLET as PRIMARY,
+  PDF_WHITE as WHITE,
+  drawProplioPdfFooterOnAllPages,
+  drawProplioPdfHeader,
+  pdfContentMinY,
+  pdfContentTopAfterHeader,
+} from "@/lib/pdf/proplio-pdf-theme";
 
 /** Deux colonnes égales (largeur utile = page − marges), séparateur fin au milieu */
 const USABLE_W = PAGE_W - 2 * MARGIN;
@@ -37,10 +43,11 @@ const ROW_FIX_H = 70;
 const CELL_PHOTO_W = 80;
 const CELL_PHOTO_H = 60;
 const CELL_PAD = 4;
-const ROW_ALT_BG = rgb(0.96, 0.97, 0.98);
-const EMPTY_PHOTO_BG = rgb(0.92, 0.93, 0.94);
+const EMPTY_PHOTO_BG = rgb(0.96, 0.96, 0.98);
 const PHOTO_BORDER_W = 0.5;
-const PHOTO_BORDER_COLOR = rgb(0.78, 0.78, 0.78);
+const PHOTO_BORDER_COLOR = BORDER;
+/** Bandeau titre de pièce (léger violet) */
+const BAR_BG = rgb(244 / 255, 241 / 255, 252 / 255);
 
 function hexToRgb01(hex: string) {
   const h = hex.replace("#", "").slice(0, 6);
@@ -169,33 +176,29 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     }
   }
 
+  const edlHeaderTitle =
+    "ÉTAT DES LIEUX\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
+
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  let y = PAGE_H - MARGIN;
+  drawProplioPdfHeader(page, font, fontBold, edlHeaderTitle);
+  let y = pdfContentTopAfterHeader();
   /** À partir des compteurs : réserver le bas de page pour les signatures (pas de page vide dédiée). */
   let reserveForSig = false;
   /**
    * Limite basse (y PDF) au-dessus de laquelle le contenu ne doit pas s’étendre :
    * le bloc signatures occupe tout en dessous jusqu’au pied de page.
    */
-  const SIG_BLOCK_PEAK_Y = MARGIN + 192;
+  const SIG_BLOCK_PEAK_Y = pdfContentMinY() + 178;
 
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    y = PAGE_H - MARGIN;
+    drawProplioPdfHeader(page, font, fontBold, edlHeaderTitle);
+    y = pdfContentTopAfterHeader();
   };
 
-  const contentBreakFloor = () => (reserveForSig ? SIG_BLOCK_PEAK_Y + ROW_FIX_H : MARGIN + 40);
+  const contentBreakFloor = () => (reserveForSig ? SIG_BLOCK_PEAK_Y + ROW_FIX_H : pdfContentMinY() + 28);
 
-  const title = "ÉTAT DES LIEUX — " + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
-  page.drawRectangle({ x: 0, y: PAGE_H - 72, width: PAGE_W, height: 72, color: PRIMARY });
-  page.drawText(title, {
-    x: MARGIN,
-    y: PAGE_H - 46,
-    size: 16,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
-  y = PAGE_H - 88;
+  y -= 6;
 
   const line = (label: string, value: string) => {
     const t = `${label} : ${value}`;
@@ -236,7 +239,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     while (true) {
       const rowBottom = y - headerH;
       const need =
-        reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < MARGIN + 40;
+        reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < pdfContentMinY() + 24;
       if (!need) break;
       newPage();
     }
@@ -247,7 +250,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       y: rowBottom,
       width: USABLE_W,
       height: headerH,
-      color: rgb(0.93, 0.94, 0.96),
+      color: PRIMARY,
       borderColor: BORDER,
       borderWidth: 0.4,
     });
@@ -257,14 +260,14 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       y: rowTop - 11,
       size: 7,
       font: fontBold,
-      color: MUTED,
+      color: WHITE,
     });
     page.drawText(hdr, {
       x: MARGIN + COL_W + COL_SEP + CELL_PAD,
       y: rowTop - 11,
       size: 7,
       font: fontBold,
-      color: MUTED,
+      color: WHITE,
     });
     page.drawLine({
       start: { x: MARGIN + COL_W, y: rowBottom },
@@ -364,7 +367,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     while (true) {
       const rowBottom = y - ROW_FIX_H;
       const need =
-        reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < MARGIN + 32;
+        reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < pdfContentMinY() + 16;
       if (!need) break;
       newPage();
     }
@@ -378,7 +381,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       width: COL_W,
       height: ROW_FIX_H,
       color: bg,
-      borderColor: rgb(0.88, 0.89, 0.91),
+      borderColor: BORDER,
       borderWidth: 0.35,
     });
     page.drawRectangle({
@@ -387,7 +390,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       width: COL_W,
       height: ROW_FIX_H,
       color: bg,
-      borderColor: rgb(0.88, 0.89, 0.91),
+      borderColor: BORDER,
       borderWidth: 0.35,
     });
 
@@ -406,7 +409,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   const drawRoom = (room: RoomEdl) => {
     if (room.enabled === false) return;
-    if (y < MARGIN + 120) newPage();
+    if (y < pdfContentMinY() + 96) newPage();
     page.drawRectangle({
       x: MARGIN,
       y: y - 22,
@@ -463,7 +466,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   /* Compteurs */
   reserveForSig = true;
-  if (y < MARGIN + 100) newPage();
+  if (y < pdfContentMinY() + 72) newPage();
   page.drawText("Compteurs & remises", {
     x: MARGIN,
     y,
@@ -507,7 +510,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     y -= reserveForSig && y < SIG_BLOCK_PEAK_Y + 80 ? 9 : 12;
     const obsStep = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 8 : 11;
     for (const ln of wrapLines(params.compteursExtra.observationsGenerales, font, 9, PAGE_W - 2 * MARGIN)) {
-      if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 50 : MARGIN + 24)) newPage();
+      if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 50 : pdfContentMinY() + 12)) newPage();
       page.drawText(ln, { x: MARGIN, y, size: 9, font, color: MUTED });
       y -= obsStep;
     }
@@ -519,12 +522,12 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     newPage();
     page.drawText("Comparatif avec l'état d'entrée (éléments dégradés)", {
       x: MARGIN,
-      y: PAGE_H - MARGIN - 20,
+      y,
       size: 12,
       font: fontBold,
       color: rgb(0.9, 0.3, 0.3),
     });
-    y = PAGE_H - MARGIN - 44;
+    y -= 28;
     for (const room of pieces.rooms) {
       if (room.enabled === false) continue;
       const er = entry.rooms.find((r) => r.id === room.id);
@@ -537,7 +540,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
         const txt = `${room.label} — ${label} : entrée ${formatEtatPdf(eEl.state)} → sortie ${formatEtatPdf(sEl.state)}`;
         const cmpStep = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 8 : 11;
         for (const ln of wrapLines(txt, font, 9, PAGE_W - 2 * MARGIN)) {
-          if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 45 : MARGIN + 30)) newPage();
+          if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 45 : pdfContentMinY() + 8)) newPage();
           page.drawText(ln, { x: MARGIN, y, size: 9, font, color: rgb(0.95, 0.35, 0.35) });
           y -= cmpStep;
         }
@@ -547,8 +550,14 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   /* Signatures — ancrées en bas de la dernière page (jamais de page vide dédiée) */
   const mid = PAGE_W / 2;
-  const footerTop = MARGIN + 26;
+  const footerTop = pdfContentMinY() + 4;
   let cursorUp = footerTop + 10;
+  page.drawLine({
+    start: { x: MARGIN, y: cursorUp - 4 },
+    end: { x: PAGE_W - MARGIN, y: cursorUp - 4 },
+    thickness: 0.35,
+    color: BORDER,
+  });
   page.drawText("Date : _______________", { x: mid + 20, y: cursorUp, size: 9, font, color: MUTED });
   cursorUp += 14;
   let sigImgH = 0;
@@ -567,22 +576,12 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   page.drawText(params.bailleurNom, { x: MARGIN, y: cursorUp, size: 10, font: fontBold, color: BODY });
   page.drawText(params.preneurNom, { x: mid + 20, y: cursorUp, size: 10, font: fontBold, color: BODY });
   cursorUp += 22;
-  page.drawText("Le Bailleur", { x: MARGIN, y: cursorUp, size: 10, font: fontBold, color: BODY });
-  page.drawText("Le Preneur", { x: mid + 20, y: cursorUp, size: 10, font: fontBold, color: BODY });
+  page.drawText("Le Bailleur", { x: MARGIN, y: cursorUp, size: 9, font, color: MUTED });
+  page.drawText("Le Preneur", { x: mid + 20, y: cursorUp, size: 9, font, color: MUTED });
   cursorUp += 20;
   page.drawText("Signatures", { x: MARGIN, y: cursorUp, size: 12, font: fontBold, color: PRIMARY });
 
-  const total = doc.getPages().length;
-  doc.getPages().forEach((p, i) => {
-    const footer = `Proplio — État des lieux — Page ${i + 1} / ${total}`;
-    p.drawText(footer, {
-      x: MARGIN,
-      y: 28,
-      size: 8,
-      font,
-      color: MUTED,
-    });
-  });
+  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }

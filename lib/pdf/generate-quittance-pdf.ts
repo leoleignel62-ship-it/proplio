@@ -1,0 +1,430 @@
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
+import {
+  PDF_BORDER,
+  PDF_INFO_BLOCK_BG,
+  PDF_MARGIN_X,
+  PDF_PAGE_H,
+  PDF_PAGE_W,
+  PDF_TABLE_ALT,
+  PDF_TABLE_HIGHLIGHT_BG,
+  PDF_TEXT_MAIN,
+  PDF_TEXT_SECONDARY,
+  PDF_VIOLET,
+  PDF_WHITE,
+  drawProplioPdfFooterOnAllPages,
+  drawProplioPdfHeader,
+  pdfContentMinY,
+  pdfContentTopAfterHeader,
+} from "@/lib/pdf/proplio-pdf-theme";
+
+const MONTHS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+
+function getLastDayOfMonth(month: number, year: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function formatFrenchDate(date: Date) {
+  return date.toLocaleDateString("fr-FR");
+}
+
+export type QuittancePdfParty = Record<string, unknown>;
+export type QuittancePdfLogement = Record<string, unknown>;
+
+export type QuittancePdfInput = {
+  proprietaire: QuittancePdfParty;
+  locataire: QuittancePdfParty;
+  logement: QuittancePdfLogement;
+  quittance: {
+    id?: string;
+    mois: number;
+    annee: number;
+    loyer: number;
+    charges: number;
+    total: number;
+  };
+  signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
+};
+
+function wrapLegal(text: string, maxLen: number): string[] {
+  const m = text.match(new RegExp(`.{1,${maxLen}}(\\s|$)`, "g"));
+  return m ?? [text];
+}
+
+export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Promise<Uint8Array> {
+  const { proprietaire, locataire, logement, quittance, signatureImage } = input;
+
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+
+  const pageWidth = page.getWidth();
+  const pageHeight = page.getHeight();
+  const left = PDF_MARGIN_X;
+  const right = pageWidth - PDF_MARGIN_X;
+  const lineHeight = 18;
+  const pageBottom = pdfContentMinY();
+
+  drawProplioPdfHeader(page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth);
+
+  let y = pdfContentTopAfterHeader(pageHeight);
+
+  const monthLabel = MONTHS_FR[Number(quittance.mois) - 1] ?? String(quittance.mois);
+  const lastDay = getLastDayOfMonth(Number(quittance.mois), Number(quittance.annee));
+  const quittanceNumber = quittance.id?.slice(0, 8).toUpperCase() ?? "N/A";
+  const subtitle = `N° ${quittanceNumber} • Période ${monthLabel} ${quittance.annee}`;
+  const sw = font.widthOfTextAtSize(subtitle, 10);
+  page.drawText(subtitle, {
+    x: (pageWidth - sw) / 2,
+    y,
+    size: 10,
+    font,
+    color: PDF_TEXT_SECONDARY,
+  });
+  y -= 28;
+
+  const colsTop = y;
+  const colsHeight = 138;
+  const gap = 12;
+  const colWidth = (right - left - gap) / 2;
+  const leftColX = left;
+  const rightColX = left + colWidth + gap;
+
+  const drawInfoColumn = (x: number, boxTop: number, boxH: number, w: number, title: string, drawLines: (yy: number) => number) => {
+    page.drawRectangle({
+      x: x + 3,
+      y: boxTop - boxH,
+      width: w - 3,
+      height: boxH,
+      color: PDF_INFO_BLOCK_BG,
+      borderColor: PDF_BORDER,
+      borderWidth: 0.5,
+    });
+    page.drawRectangle({
+      x,
+      y: boxTop - boxH,
+      width: 3,
+      height: boxH,
+      color: PDF_VIOLET,
+    });
+    let cy = boxTop - 18;
+    page.drawText(title, {
+      x: x + 14,
+      y: cy,
+      size: 9,
+      font: fontBold,
+      color: PDF_TEXT_SECONDARY,
+    });
+    cy -= lineHeight;
+    cy = drawLines(cy);
+    return cy;
+  };
+
+  drawInfoColumn(leftColX, colsTop, colsHeight, colWidth, "Propriétaire", (leftY) => {
+    let ly = leftY;
+    page.drawText(`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim(), {
+      x: leftColX + 14,
+      y: ly,
+      size: 10.5,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    ly -= lineHeight;
+    page.drawText(`${proprietaire.adresse || ""}`.trim(), {
+      x: leftColX + 14,
+      y: ly,
+      size: 10,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    ly -= 14;
+    page.drawText(`${proprietaire.code_postal || ""} ${proprietaire.ville || ""}`.trim(), {
+      x: leftColX + 14,
+      y: ly,
+      size: 10,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    ly -= 16;
+    page.drawText(`Email: ${proprietaire.email || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_MAIN });
+    ly -= 13;
+    page.drawText(`Tél: ${proprietaire.telephone || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_MAIN });
+    return ly;
+  });
+
+  drawInfoColumn(rightColX, colsTop, colsHeight, colWidth, "Locataire", (rightY) => {
+    let ry = rightY;
+    page.drawText(`${locataire.prenom || ""} ${locataire.nom || ""}`.trim(), {
+      x: rightColX + 14,
+      y: ry,
+      size: 10.5,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    ry -= lineHeight;
+    page.drawText(`Email: ${locataire.email || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_MAIN });
+    ry -= 13;
+    page.drawText(`Tél: ${locataire.telephone || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_MAIN });
+    return ry;
+  });
+
+  y = colsTop - colsHeight - 24;
+  const homeTitle = "Logement";
+  page.drawText(homeTitle, {
+    x: pageWidth / 2 - fontBold.widthOfTextAtSize(homeTitle, 12) / 2,
+    y,
+    size: 12,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= lineHeight;
+  const logementLine = `${logement.nom || ""} - ${logement.adresse || ""}`.trim();
+  page.drawText(logementLine, {
+    x: pageWidth / 2 - font.widthOfTextAtSize(logementLine, 10.5) / 2,
+    y,
+    size: 10.5,
+    font,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= 14;
+  const logementCity = `${logement.code_postal || ""} ${logement.ville || ""}`.trim();
+  page.drawText(logementCity, {
+    x: pageWidth / 2 - font.widthOfTextAtSize(logementCity, 10) / 2,
+    y,
+    size: 10,
+    font,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= 20;
+  page.drawLine({
+    start: { x: left, y },
+    end: { x: right, y },
+    thickness: 0.5,
+    color: PDF_BORDER,
+  });
+  y -= 16;
+
+  page.drawText(`Période: ${monthLabel} ${quittance.annee}`, {
+    x: left,
+    y,
+    size: 12,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= lineHeight + 6;
+
+  const tableX = left;
+  const tableW = right - left;
+  const tableHeaderH = 22;
+  const tableRowH = 22;
+  const tableColSplit = tableX + tableW * 0.72;
+
+  page.drawRectangle({
+    x: tableX,
+    y: y - tableHeaderH,
+    width: tableW,
+    height: tableHeaderH,
+    color: PDF_VIOLET,
+  });
+  page.drawText("Désignation", {
+    x: tableX + 10,
+    y: y - 15,
+    size: 10.5,
+    font: fontBold,
+    color: PDF_WHITE,
+  });
+  page.drawText("Montant", {
+    x: tableColSplit + 10,
+    y: y - 15,
+    size: 10.5,
+    font: fontBold,
+    color: PDF_WHITE,
+  });
+  y -= tableHeaderH;
+
+  page.drawRectangle({
+    x: tableX,
+    y: y - tableRowH,
+    width: tableW,
+    height: tableRowH,
+    color: PDF_WHITE,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  page.drawText("Loyer nu", { x: tableX + 10, y: y - 15, size: 10.5, font, color: PDF_TEXT_MAIN });
+  page.drawText(`${Number(quittance.loyer).toFixed(2)} €`, {
+    x: tableColSplit + 10,
+    y: y - 15,
+    size: 10.5,
+    font,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= tableRowH;
+
+  page.drawRectangle({
+    x: tableX,
+    y: y - tableRowH,
+    width: tableW,
+    height: tableRowH,
+    color: PDF_TABLE_ALT,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  page.drawText("Charges", { x: tableX + 10, y: y - 15, size: 10.5, font, color: PDF_TEXT_MAIN });
+  page.drawText(`${Number(quittance.charges).toFixed(2)} €`, {
+    x: tableColSplit + 10,
+    y: y - 15,
+    size: 10.5,
+    font,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= tableRowH;
+
+  page.drawRectangle({
+    x: tableX,
+    y: y - tableRowH,
+    width: tableW,
+    height: tableRowH,
+    color: PDF_TABLE_HIGHLIGHT_BG,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  page.drawText("Total", {
+    x: tableX + 10,
+    y: y - 15,
+    size: 11.5,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  page.drawText(`${Number(quittance.total).toFixed(2)} €`, {
+    x: tableColSplit + 10,
+    y: y - 15,
+    size: 11.5,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  y -= tableRowH + 16;
+
+  page.drawLine({
+    start: { x: left, y },
+    end: { x: right, y },
+    thickness: 0.5,
+    color: PDF_BORDER,
+  });
+  y -= 20;
+
+  const legalText = `Je soussigné ${proprietaire.nom || ""}, bailleur, déclare avoir reçu de ${
+    `${locataire.prenom || ""} ${locataire.nom || ""}`.trim()
+  }, locataire, la somme de ${Number(quittance.total).toFixed(
+    2,
+  )} € au titre du loyer et des charges du logement situé ${logement.adresse || ""} pour la période du 1er ${monthLabel} ${
+    quittance.annee
+  } au ${lastDay} ${monthLabel} ${quittance.annee}.`;
+
+  const legalLines = wrapLegal(legalText, 95);
+  const legalBoxTop = y;
+  const legalBoxHeight = 86;
+  page.drawRectangle({
+    x: left,
+    y: legalBoxTop - legalBoxHeight,
+    width: right - left,
+    height: legalBoxHeight,
+    color: PDF_WHITE,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  page.drawRectangle({
+    x: left,
+    y: legalBoxTop - legalBoxHeight,
+    width: 3,
+    height: legalBoxHeight,
+    color: PDF_VIOLET,
+  });
+  page.drawText("Mention légale", {
+    x: left + 10,
+    y: legalBoxTop - 16,
+    size: 11,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  let legalY = legalBoxTop - 32;
+  legalLines.slice(0, 4).forEach((line) => {
+    page.drawText(line.trim(), {
+      x: left + 10,
+      y: legalY,
+      size: 8.8,
+      font: fontItalic,
+      color: PDF_TEXT_SECONDARY,
+    });
+    legalY -= 12;
+  });
+
+  const doneText = `Fait le ${formatFrenchDate(new Date())} à ${proprietaire.ville || "—"}`;
+  const rightBlockX = right - 190;
+  let signatureCursorY = pageBottom + 130;
+
+  page.drawText(doneText, { x: rightBlockX, y: signatureCursorY, size: 10.5, font, color: PDF_TEXT_MAIN });
+  signatureCursorY -= 18;
+
+  page.drawText("Le propriétaire", {
+    x: rightBlockX,
+    y: signatureCursorY,
+    size: 10,
+    font,
+    color: PDF_TEXT_SECONDARY,
+  });
+  signatureCursorY -= 14;
+
+  let img: PDFImage | null = null;
+  if (signatureImage?.bytes?.length) {
+    try {
+      img = signatureImage.isPng ? await pdfDoc.embedPng(signatureImage.bytes) : await pdfDoc.embedJpg(signatureImage.bytes);
+    } catch {
+      img = null;
+    }
+  }
+  if (img) {
+    const maxWidth = 150;
+    const maxHeight = 80;
+    const widthRatio = maxWidth / img.width;
+    const heightRatio = maxHeight / img.height;
+    const ratio = Math.min(widthRatio, heightRatio, 1);
+    const dims = img.scale(ratio);
+    const signatureImageY = signatureCursorY - dims.height;
+    page.drawImage(img, {
+      x: rightBlockX,
+      y: signatureImageY,
+      width: dims.width,
+      height: dims.height,
+    });
+    signatureCursorY = signatureImageY - 12;
+  } else {
+    signatureCursorY -= 40;
+  }
+
+  page.drawText(`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim(), {
+    x: rightBlockX,
+    y: signatureCursorY,
+    size: 11,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+
+  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+
+  return pdfDoc.save();
+}

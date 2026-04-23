@@ -1,31 +1,27 @@
 import { PDFDocument, PDFPage, StandardFonts, rgb, type PDFFont, type PDFImage } from "pdf-lib";
+import {
+  PDF_BORDER as BORDER_TAB,
+  PDF_INFO_BLOCK_BG,
+  PDF_MARGIN_X as MARGIN,
+  PDF_PAGE_H as PAGE_H,
+  PDF_PAGE_W as PAGE_W,
+  PDF_TABLE_ALT as TABLE_ALT,
+  PDF_TABLE_HIGHLIGHT_BG as VIOLET_ROW_BG,
+  PDF_TEXT_MAIN as TEXT_MAIN,
+  PDF_TEXT_SECONDARY as TEXT_SEC,
+  PDF_VIOLET as VIOLET,
+  drawProplioPdfFooterOnAllPages,
+  drawProplioPdfHeader,
+  pdfContentMinY,
+  pdfContentTopAfterHeader,
+} from "@/lib/pdf/proplio-pdf-theme";
 
-const PAGE_W = 595.28;
-const PAGE_H = 841.89;
-const MARGIN = 40;
-const HEADER_H = 76;
-const FOOTER_STRIP_H = 26;
-const FOOTER_TEXT_BASELINE = 12;
-/** Espace réservé sous le corps avant le pied de page */
-const CONTENT_BOTTOM = FOOTER_STRIP_H + 36;
-
-const VIOLET = rgb(124 / 255, 58 / 255, 237 / 255);
-/** Fond lignes tableau mises en avant (~#7c3aed15 sur blanc) */
-const VIOLET_ROW_BG = rgb(244 / 255, 239 / 255, 254 / 255);
-const TABLE_ALT = rgb(249 / 255, 249 / 255, 249 / 255);
-const WHITE = rgb(1, 1, 1);
-/** Sous-titre header sur bandeau violet */
-const HEADER_SUB = rgb(0.93, 0.9, 0.98);
-const TEXT_MAIN = rgb(26 / 255, 26 / 255, 26 / 255);
-const TEXT_SEC = rgb(107 / 255, 107 / 255, 128 / 255);
-const BORDER_TAB = rgb(229 / 255, 229 / 255, 229 / 255);
-const LINE_SEP = rgb(0.88, 0.88, 0.9);
+const CONTENT_BOTTOM = pdfContentMinY();
+const LINE_SEP = BORDER_TAB;
 
 const BODY_PT = 10.5;
 const BODY_LEAD = 14;
 const SMALL_PT = 9;
-
-const FOOTER_SITE = "proplio-red.vercel.app";
 
 export type RevisionIrlLetterPdfInput = {
   villeSignature: string;
@@ -66,78 +62,7 @@ function wrapToWidth(text: string, font: PDFFont, size: number, maxW: number): s
   return lines.length ? lines : [""];
 }
 
-function drawFooterOnPage(
-  page: PDFPage,
-  pageIndex: number,
-  totalPages: number,
-  font: PDFFont,
-  fontBold: PDFFont,
-) {
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: PAGE_W,
-    height: FOOTER_STRIP_H,
-    color: VIOLET,
-  });
-  const line = `Document généré par Proplio — ${FOOTER_SITE}`;
-  const w = font.widthOfTextAtSize(line, 8);
-  page.drawText(line, {
-    x: (PAGE_W - w) / 2,
-    y: FOOTER_TEXT_BASELINE,
-    size: 8,
-    font,
-    color: WHITE,
-  });
-  if (totalPages > 1) {
-    const pg = `Page ${pageIndex + 1} / ${totalPages}`;
-    const pw = fontBold.widthOfTextAtSize(pg, 8);
-    page.drawText(pg, {
-      x: PAGE_W - MARGIN - pw,
-      y: FOOTER_TEXT_BASELINE,
-      size: 8,
-      font: fontBold,
-      color: WHITE,
-    });
-  }
-}
-
-function drawHeader(page: PDFPage, font: PDFFont, fontBold: PDFFont) {
-  page.drawRectangle({
-    x: 0,
-    y: PAGE_H - HEADER_H,
-    width: PAGE_W,
-    height: HEADER_H,
-    color: VIOLET,
-  });
-
-  const padX = MARGIN;
-  const topY = PAGE_H - 22;
-  page.drawText("Proplio", {
-    x: padX,
-    y: topY,
-    size: 20,
-    font: fontBold,
-    color: WHITE,
-  });
-  page.drawText("Gestion locative", {
-    x: padX,
-    y: topY - 22,
-    size: 10,
-    font,
-    color: HEADER_SUB,
-  });
-
-  const rightTitle = "LETTRE DE RÉVISION DE LOYER";
-  const tw = fontBold.widthOfTextAtSize(rightTitle, 11);
-  page.drawText(rightTitle, {
-    x: PAGE_W - MARGIN - tw,
-    y: PAGE_H - 28,
-    size: 11,
-    font: fontBold,
-    color: WHITE,
-  });
-}
+const REVISION_HEADER_TITLE = "LETTRE DE RÉVISION";
 
 function measureColHeight(
   lines: { text: string; bold?: boolean; size?: number }[],
@@ -193,8 +118,16 @@ function drawTwoColumnBlock(
     y: boxBottom,
     width: innerW,
     height: boxH,
+    color: PDF_INFO_BLOCK_BG,
     borderColor: BORDER_TAB,
     borderWidth: 0.5,
+  });
+  page.drawRectangle({
+    x: MARGIN,
+    y: boxBottom,
+    width: 3,
+    height: boxH,
+    color: VIOLET,
   });
   page.drawLine({
     start: { x: sepX, y: boxBottom },
@@ -237,7 +170,6 @@ function drawTableRevision(
 ): number {
   const innerW = PAGE_W - 2 * MARGIN;
   const labelW = innerW * 0.48;
-  const valW = innerW - labelW;
   const rowH = 26;
   let y = yTop;
   const x0 = MARGIN;
@@ -325,17 +257,17 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const dateLine = `${input.villeSignature}, le ${input.dateLettre}`;
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawHeader(page, font, fontBold);
+  drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
 
-  let y = PAGE_H - HEADER_H - 28;
+  let y = pdfContentTopAfterHeader() - 8;
 
   y = drawTwoColumnBlock(page, y, font, fontBold, leftCol, rightCol, dateLine);
 
   const ensureSpace = (needed: number) => {
     if (y < CONTENT_BOTTOM + needed) {
       page = doc.addPage([PAGE_W, PAGE_H]);
-      drawHeader(page, font, fontBold);
-      y = PAGE_H - HEADER_H - 36;
+      drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+      y = pdfContentTopAfterHeader() - 12;
     }
   };
 
@@ -465,11 +397,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
     color: TEXT_SEC,
   });
 
-  const pages = doc.getPages();
-  const n = pages.length;
-  for (let i = 0; i < n; i++) {
-    drawFooterOnPage(pages[i]!, i, n, font, fontBold);
-  }
+  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }
