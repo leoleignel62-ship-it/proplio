@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { ContentTopHeader, NavigationSidebar } from "@/components/navigation-sidebar";
+import { NavigationSidebar } from "@/components/navigation-sidebar";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/proplio-colors";
 
@@ -33,7 +33,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen" style={shellStyle}>
       <NavigationSidebar />
-      <ContentTopHeader />
       <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
     </div>
   );

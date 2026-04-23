@@ -61,16 +61,19 @@ function ModeLocationPill({
   mode,
   onSelectClassique,
   onSelectSaisonnier,
+  className = "",
 }: {
   mode: ModeLocation;
   onSelectClassique: () => void;
   onSelectSaisonnier: () => void;
+  /** Ex. "max-w-[280px]" pour le header centré */
+  className?: string;
 }) {
   const pillInactive = PC.cardHover;
   const pillActive = "#7c3aed";
   return (
     <div
-      className="mb-6 w-full rounded-full p-1"
+      className={`w-full rounded-full p-1 ${className}`.trim()}
       style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
       role="group"
       aria-label="Mode de location"
@@ -332,12 +335,6 @@ export function NavigationSidebar() {
             </span>
           </Link>
 
-          <ModeLocationPill
-            mode={ownerPlan === "free" ? "classique" : mode}
-            onSelectClassique={selectClassiqueMode}
-            onSelectSaisonnier={selectSaisonnierMode}
-          />
-
           <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
             {navigationMain.map((item) => renderNavItem(item))}
             <div className="my-3 border-t border-white/[0.06]" aria-hidden />
@@ -411,9 +408,29 @@ export function NavigationSidebar() {
         </div>
       ) : null}
 
-      {/* Barre mobile : hamburger | logo | cloche — fixe en haut au scroll */}
+      {/* Header desktop : gauche vide | centre toggle | droite cloche */}
+      <header
+        className="fixed left-0 right-0 top-0 z-40 hidden h-[60px] md:left-64 md:flex md:items-center md:px-6"
+        style={{ backgroundColor: PC.sidebar, borderBottom: `1px solid ${PC.border}` }}
+      >
+        <div className="flex w-full max-w-full items-center gap-3">
+          <div className="min-w-0 flex-1" aria-hidden />
+          <div className="flex w-full max-w-[min(100%,320px)] shrink-0 justify-center px-2">
+            <ModeLocationPill
+              mode={ownerPlan === "free" ? "classique" : mode}
+              onSelectClassique={selectClassiqueMode}
+              onSelectSaisonnier={selectSaisonnierMode}
+            />
+          </div>
+          <div className="flex min-w-0 flex-1 justify-end">
+            <NotificationBellDropdown />
+          </div>
+        </div>
+      </header>
+
+      {/* Barre mobile : hamburger | toggle centré | cloche */}
       <div
-        className="fixed left-0 right-0 top-0 z-[45] flex min-h-[52px] items-center justify-between gap-2 px-3 py-2 md:hidden"
+        className="fixed left-0 right-0 top-0 z-[45] flex min-h-[52px] items-center gap-2 px-2 py-2 md:hidden"
         style={mobileBarStyle}
       >
         <div className="flex w-11 shrink-0 items-center justify-start">
@@ -435,16 +452,15 @@ export function NavigationSidebar() {
           </button>
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-center px-1">
-          <Link href="/" className="flex max-w-full items-center justify-center gap-2">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={logoBadgeStyle}>
-              <IconHome className="h-5 w-5" style={{ color: PC.primary }} />
-            </span>
-            <span className="truncate text-center font-semibold" style={{ color: PC.text }}>
-              Proplio
-            </span>
-          </Link>
+          <div className="w-full max-w-[min(100%,260px)]">
+            <ModeLocationPill
+              mode={ownerPlan === "free" ? "classique" : mode}
+              onSelectClassique={selectClassiqueMode}
+              onSelectSaisonnier={selectSaisonnierMode}
+            />
+          </div>
         </div>
-        <div className="flex h-11 min-w-[44px] shrink-0 items-center justify-end">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-end">
           <NotificationBellDropdown panelZClass="z-[110]" />
         </div>
       </div>
@@ -494,16 +510,6 @@ export function NavigationSidebar() {
                   <CloseIcon />
                 </button>
               </div>
-
-              <ModeLocationPill
-                mode={ownerPlan === "free" ? "classique" : mode}
-                onSelectClassique={() => {
-                  selectClassiqueMode();
-                }}
-                onSelectSaisonnier={() => {
-                  selectSaisonnierMode();
-                }}
-              />
 
               <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
                 {navigationMain.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
@@ -803,17 +809,6 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
         </div>
       ) : null}
     </div>
-  );
-}
-
-export function ContentTopHeader() {
-  return (
-    <header
-      className="fixed right-0 top-0 z-40 hidden h-[60px] items-center justify-end px-4 md:left-64 md:flex md:px-8"
-      style={{ backgroundColor: PC.sidebar, borderBottom: `1px solid ${PC.border}` }}
-    >
-      <NotificationBellDropdown />
-    </header>
   );
 }
 
