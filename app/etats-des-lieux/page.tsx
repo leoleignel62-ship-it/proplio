@@ -136,11 +136,12 @@ export default function EtatsDesLieuxPage() {
     const locIds = [...new Set(list.map((r) => r.locataire_id).filter(Boolean))] as string[];
     const map: Record<string, string> = {};
 
+    /** Tous les baux du propriétaire : ne pas filtrer sur `statut` seul à `actif`
+     *  (données legacy, variante de casse, ou valeurs hors enum excluaient toute la liste). */
     const bauxQuery = supabase
       .from("baux")
       .select("id, logement_id, locataire_id, statut, type_bail")
-      .eq("proprietaire_id", proprietaireId)
-      .eq("statut", "actif");
+      .eq("proprietaire_id", proprietaireId);
 
     const [logsRes, locsRes, bauxRes] = await Promise.all([
       logIds.length
