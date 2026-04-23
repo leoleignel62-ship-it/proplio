@@ -158,6 +158,7 @@ export default function ReservationsSaisonnierPage() {
       setLoading(false);
       return;
     }
+    setError("");
     const [r1, r2, r3] = await Promise.all([
       supabase
         .from("reservations")
@@ -169,11 +170,14 @@ export default function ReservationsSaisonnierPage() {
         .select(
           "id, nom, tarifs_creneaux, tarif_nuit_defaut, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url, type_location",
         )
-        .eq("proprietaire_id", proprietaireId)
-        .in("type_location", ["saisonnier", "les_deux"]),
+        .eq("proprietaire_id", proprietaireId),
       supabase.from("voyageurs").select("id, prenom, nom, email").eq("proprietaire_id", proprietaireId).order("nom"),
     ]);
-    if (r1.error) setError(formatSubmitError(r1.error));
+    const errParts: string[] = [];
+    if (r1.error) errParts.push(formatSubmitError(r1.error));
+    if (r2.error) errParts.push(formatSubmitError(r2.error));
+    if (r3.error) errParts.push(formatSubmitError(r3.error));
+    if (errParts.length) setError(errParts.join(" — "));
     const raw = (r1.data ?? []) as Record<string, unknown>[];
     const normalized: ReservationRow[] = raw.map((r) => {
       const lg = r.logements;
@@ -213,19 +217,26 @@ export default function ReservationsSaisonnierPage() {
       };
     });
     setRows(normalized);
+    const logRowsRaw = (r2.data ?? []) as Record<string, unknown>[];
+    const logSaisonnier = logRowsRaw.filter((row) => {
+      const t = (row.type_location as string | null | undefined) ?? "classique";
+      return t === "saisonnier" || t === "les_deux";
+    });
     setLogements(
-      ((r2.data ?? []) as Record<string, unknown>[]).map((row) => ({
-        id: String(row.id),
-        nom: String(row.nom ?? ""),
-        tarifs_creneaux: row.tarifs_creneaux ?? [],
-        tarif_nuit_defaut: row.tarif_nuit_defaut != null ? Number(row.tarif_nuit_defaut) : null,
-        tarif_nuit_moyenne: row.tarif_nuit_moyenne != null ? Number(row.tarif_nuit_moyenne) : null,
-        tarif_menage: row.tarif_menage != null ? Number(row.tarif_menage) : null,
-        tarif_caution: row.tarif_caution != null ? Number(row.tarif_caution) : null,
-        taxe_sejour_nuit: row.taxe_sejour_nuit != null ? Number(row.taxe_sejour_nuit) : null,
-        ical_airbnb_url: (row.ical_airbnb_url as string | null) ?? null,
-        ical_booking_url: (row.ical_booking_url as string | null) ?? null,
-      })),
+      logSaisonnier
+        .map((row) => ({
+          id: String(row.id),
+          nom: String(row.nom ?? "").trim() || "Logement sans nom",
+          tarifs_creneaux: row.tarifs_creneaux ?? [],
+          tarif_nuit_defaut: row.tarif_nuit_defaut != null ? Number(row.tarif_nuit_defaut) : null,
+          tarif_nuit_moyenne: row.tarif_nuit_moyenne != null ? Number(row.tarif_nuit_moyenne) : null,
+          tarif_menage: row.tarif_menage != null ? Number(row.tarif_menage) : null,
+          tarif_caution: row.tarif_caution != null ? Number(row.tarif_caution) : null,
+          taxe_sejour_nuit: row.taxe_sejour_nuit != null ? Number(row.taxe_sejour_nuit) : null,
+          ical_airbnb_url: (row.ical_airbnb_url as string | null) ?? null,
+          ical_booking_url: (row.ical_booking_url as string | null) ?? null,
+        }))
+        .sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" })),
     );
     setVoyageurs((r3.data as Array<{ id: string; prenom: string; nom: string; email: string | null }>) ?? []);
     setLoading(false);
@@ -253,6 +264,15 @@ export default function ReservationsSaisonnierPage() {
     const r = rows.find((x) => x.id === detailId);
     if (r) setDetailPrixReel(String(r.tarif_total));
   }, [detailId, rows]);
+
+  /** Évite un <select> contrôlé avec une valeur absente des options (affichage vide). */
+  useEffect(() => {
+    if (!modalOpen || logements.length === 0) return;
+    setForm((f) => {
+      if (logements.some((l) => l.id === f.logement_id)) return f;
+      return { ...f, logement_id: logements[0]!.id };
+    });
+  }, [modalOpen, logements]);
 
   const showIcalPrixInfo = useMemo(
     () =>
@@ -284,9 +304,9 @@ export default function ReservationsSaisonnierPage() {
   }, [form, logements, acomptePct, tarifManuelAirbnb]);
 
   function openModal() {
-    const lg = logements[0];
+    const first = logements[0];
     setForm({
-      logement_id: lg?.id ?? "",
+      logement_id: first?.id ?? "",
       voyageur_id: "",
       date_arrivee: "",
       date_depart: "",
@@ -727,7 +747,15 @@ export default function ReservationsSaisonnierPage() {
             <form onSubmit={onCreateSubmit} className="mt-4 space-y-3">
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                 Logement
-                <select required style={fieldSelectStyle} value={form.logement_id} onChange={(e) => onLogementPick(e.target.value)}>
+                <select
+                  required
+                  style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+                  value={form.logement_id}
+                  onChange={(e) => onLogementPick(e.target.value)}
+                >
+                  <option value="" disabled>
+                    — Sélectionner un logement —
+                  </option>
                   {logements.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.nom}
