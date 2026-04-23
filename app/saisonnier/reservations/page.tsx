@@ -622,7 +622,7 @@ export default function ReservationsSaisonnierPage() {
                   {(() => {
                     const isOta = row.source === "airbnb" || row.source === "booking";
                     const canDirectActions = !isOta;
-                    const isDirectSource = row.source === "direct";
+                    const canDeletePermanently = row.source === "direct" || row.source === "autre";
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
                         <button
@@ -639,13 +639,9 @@ export default function ReservationsSaisonnierPage() {
                               Confirmer
                             </ResaActionPill>
                           ) : null}
-                          {canDirectActions && isDirectSource ? (
+                          {canDirectActions && canDeletePermanently ? (
                             <ResaActionPill variant="red" onClick={() => setDeleteConfirmId(row.id)}>
                               Supprimer
-                            </ResaActionPill>
-                          ) : canDirectActions && !isDirectSource && row.statut !== "annulee" ? (
-                            <ResaActionPill variant="red" onClick={() => void setStatut(row.id, "annulee")}>
-                              Annuler
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
