@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   FormEvent,
   useCallback,
@@ -19,6 +20,24 @@ import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
 import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
+
+const SaisonnierReservationsPlanningCalendar = dynamic(
+  () =>
+    import("./saisonnier-reservations-planning-calendar").then((m) => ({
+      default: m.SaisonnierReservationsPlanningCalendar,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="rounded-xl p-6 text-sm"
+        style={{ backgroundColor: "#0d0d14", border: "1px solid #ffffff08", color: "#a1a1aa" }}
+      >
+        Chargement du calendrier…
+      </div>
+    ),
+  },
+);
 
 type LogementOption = {
   id: string;
@@ -111,6 +130,12 @@ function daysBetween(a: string, b: string): number {
   return Math.round((db - da) / 86400000);
 }
 
+function addOneDayIso(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function logementTarifPayload(lg: LogementOption) {
   return {
     tarifs_creneaux: lg.tarifs_creneaux,
@@ -160,6 +185,9 @@ export default function ReservationsSaisonnierPage() {
     delai_solde_jours: "30",
   });
   const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
+  const [viewMode, setViewMode] = useState<"liste" | "calendrier">("liste");
+  const [proprietaireIdForCalendar, setProprietaireIdForCalendar] = useState<string | null>(null);
+  const [reservationRevision, setReservationRevision] = useState(0);
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -239,6 +267,8 @@ export default function ReservationsSaisonnierPage() {
       };
     });
     setRows(normalized);
+    setProprietaireIdForCalendar(proprietaireId);
+    setReservationRevision((n) => n + 1);
     const logRowsRaw = (r2.data ?? []) as Record<string, unknown>[];
     const logSaisonnier = logRowsRaw.filter((row) => {
       const t = (row.type_location as string | null | undefined) ?? "classique";
@@ -333,6 +363,25 @@ export default function ReservationsSaisonnierPage() {
       voyageur_id: "",
       date_arrivee: "",
       date_depart: "",
+      heure_arrivee: "15:00",
+      heure_depart: "11:00",
+      nb_voyageurs: "1",
+      source: "direct",
+      notes: "",
+      menage_inclus: true,
+      delai_solde_jours: "30",
+    });
+    setTarifManuelAirbnb("");
+    setModalOpen(true);
+  }
+
+  function openModalFromPlanning(logementId: string, dateArrivee: string) {
+    const lgId = logements.some((l) => l.id === logementId) ? logementId : (logements[0]?.id ?? "");
+    setForm({
+      logement_id: lgId,
+      voyageur_id: "",
+      date_arrivee: dateArrivee,
+      date_depart: addOneDayIso(dateArrivee),
       heure_arrivee: "15:00",
       heure_depart: "11:00",
       nb_voyageurs: "1",
@@ -620,9 +669,33 @@ export default function ReservationsSaisonnierPage() {
   return (
     <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="proplio-page-title">Réservations</h1>
           <p className="proplio-page-subtitle">Location saisonnière — liste des réservations.</p>
+          <div className="mt-3 inline-flex rounded-lg p-0.5" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold transition"
+              style={{
+                backgroundColor: viewMode === "liste" ? PC.primary : "transparent",
+                color: viewMode === "liste" ? "#fff" : PC.muted,
+              }}
+              onClick={() => setViewMode("liste")}
+            >
+              Liste
+            </button>
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold transition"
+              style={{
+                backgroundColor: viewMode === "calendrier" ? PC.primary : "transparent",
+                color: viewMode === "calendrier" ? "#fff" : PC.muted,
+              }}
+              onClick={() => setViewMode("calendrier")}
+            >
+              Calendrier
+            </button>
+          </div>
         </div>
         <button type="button" className="proplio-btn-primary px-4 py-2 text-sm" onClick={openModal} disabled={logements.length === 0}>
           Nouvelle réservation
@@ -672,10 +745,17 @@ export default function ReservationsSaisonnierPage() {
         </div>
       ) : null}
 
-      <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}`, color: PC.muted }}>
-        Vue calendrier disponible prochainement
-      </div>
+      {viewMode === "calendrier" && proprietaireIdForCalendar ? (
+        <SaisonnierReservationsPlanningCalendar
+          proprietaireId={proprietaireIdForCalendar}
+          logements={logements.map((l) => ({ id: l.id, nom: l.nom }))}
+          reservationRevision={reservationRevision}
+          onOpenDetail={(id) => setDetailId(id)}
+          onEmptyCellClick={(logementId, dateIso) => openModalFromPlanning(logementId, dateIso)}
+        />
+      ) : null}
 
+      {viewMode === "liste" ? (
       <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
         <table className="w-full min-w-[1000px] text-left text-sm">
           <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
@@ -891,6 +971,7 @@ export default function ReservationsSaisonnierPage() {
           </tbody>
         </table>
       </div>
+      ) : null}
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4">
