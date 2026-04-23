@@ -36,14 +36,14 @@ const navigationMainClassique = [
 ] as const;
 
 const navigationMainSaisonnier = [
-  { href: "/", label: "Dashboard", icon: IconChart },
-  { href: "/logements", label: "Logements", icon: IconBuilding },
+  { href: "/saisonnier/dashboard", label: "Dashboard", icon: IconChart },
+  { href: "/saisonnier/logements", label: "Logements", icon: IconBuilding },
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
   { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
   { href: "/saisonnier/menage", label: "Ménage", icon: IconSparkles },
-  { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
+  { href: "/saisonnier/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
 ] as const;
 
 const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;

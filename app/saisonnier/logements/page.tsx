@@ -48,7 +48,33 @@ type Logement = {
   chambres_details?: unknown;
   nb_modifications?: number | null;
   verrouille?: boolean | null;
+  type_location?: string | null;
+  capacite_max?: number | null;
+  tarif_nuit_basse?: number | null;
+  tarif_nuit_moyenne?: number | null;
+  tarif_nuit_haute?: number | null;
+  tarif_menage?: number | null;
+  tarif_caution?: number | null;
+  taxe_sejour_nuit?: number | null;
+  equipements_saisonnier?: string[] | null;
+  reglement_interieur?: string | null;
+  instructions_acces?: string | null;
+  ical_airbnb_url?: string | null;
+  ical_booking_url?: string | null;
 };
+
+const EQUIPEMENTS_SAISONNIER_OPTS = [
+  "Wifi",
+  "Parking",
+  "Piscine",
+  "Climatisation",
+  "Lave-linge",
+  "Lave-vaisselle",
+  "Terrasse",
+  "Jardin",
+  "Barbecue",
+  "TV",
+] as const;
 
 const baseDefaultValues = {
   nom: "",
@@ -62,7 +88,9 @@ const baseDefaultValues = {
   est_colocation: "non",
 };
 
-export default function LogementsPage() {
+export default function LogementsSaisonniersPage() {
+  /** Espace saisonnier : formulaires et chargements alignés sur l’ancien mode « saisonnier ». */
+  const isSaisonnier = true;
   const [rows, setRows] = useState<Logement[]>([]);
   const [values, setValues] = useState<Record<string, string>>(baseDefaultValues);
   const [nombreChambres, setNombreChambres] = useState("1");
@@ -81,6 +109,22 @@ export default function LogementsPage() {
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
   const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
+  const [modalTab, setModalTab] = useState<"general" | "saisonnier">("general");
+  const [typeLocation, setTypeLocation] = useState("saisonnier");
+  const [capaciteMax, setCapaciteMax] = useState("");
+  const [tarifNuitBasse, setTarifNuitBasse] = useState("");
+  const [tarifNuitMoyenne, setTarifNuitMoyenne] = useState("");
+  const [tarifNuitHaute, setTarifNuitHaute] = useState("");
+  const [tarifMenage, setTarifMenage] = useState("");
+  const [tarifCaution, setTarifCaution] = useState("");
+  const [taxeSejourNuit, setTaxeSejourNuit] = useState("");
+  const [equipementsSaisonnier, setEquipementsSaisonnier] = useState<string[]>([]);
+  const [reglementInterieur, setReglementInterieur] = useState("");
+  const [instructionsAcces, setInstructionsAcces] = useState("");
+  const [icalAirbnbUrl, setIcalAirbnbUrl] = useState("");
+  const [icalBookingUrl, setIcalBookingUrl] = useState("");
+  const [icalSyncMessage, setIcalSyncMessage] = useState("");
+  const [icalSyncLoading, setIcalSyncLoading] = useState(false);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const isColocation = values.est_colocation === "oui";
@@ -89,6 +133,15 @@ export default function LogementsPage() {
   const loyerGlobal = Number(values.loyer || 0);
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
   const isPlanLimitReached = Boolean(planLimitMessage);
+
+  const displayedRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        const t = r.type_location ?? "classique";
+        return t === "saisonnier" || t === "les_deux";
+      }),
+    [rows],
+  );
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const [plan, totalCree, existingCount] = await Promise.all([
@@ -221,6 +274,40 @@ export default function LogementsPage() {
     setActiveChambreTab((tab) => Math.min(tab, c - 1));
   }
 
+  function resetSaisonnierFields() {
+    setModalTab("general");
+    setTypeLocation("saisonnier");
+    setCapaciteMax("");
+    setTarifNuitBasse("");
+    setTarifNuitMoyenne("");
+    setTarifNuitHaute("");
+    setTarifMenage("");
+    setTarifCaution("");
+    setTaxeSejourNuit("");
+    setEquipementsSaisonnier([]);
+    setReglementInterieur("");
+    setInstructionsAcces("");
+    setIcalAirbnbUrl("");
+    setIcalBookingUrl("");
+    setIcalSyncMessage("");
+  }
+
+  function loadSaisonnierFromRow(row: Logement) {
+    setTypeLocation(row.type_location === "les_deux" ? "les_deux" : "saisonnier");
+    setCapaciteMax(row.capacite_max != null ? String(row.capacite_max) : "");
+    setTarifNuitBasse(row.tarif_nuit_basse != null ? String(row.tarif_nuit_basse) : "");
+    setTarifNuitMoyenne(row.tarif_nuit_moyenne != null ? String(row.tarif_nuit_moyenne) : "");
+    setTarifNuitHaute(row.tarif_nuit_haute != null ? String(row.tarif_nuit_haute) : "");
+    setTarifMenage(row.tarif_menage != null ? String(row.tarif_menage) : "");
+    setTarifCaution(row.tarif_caution != null ? String(row.tarif_caution) : "");
+    setTaxeSejourNuit(row.taxe_sejour_nuit != null ? String(row.taxe_sejour_nuit) : "");
+    setEquipementsSaisonnier(Array.isArray(row.equipements_saisonnier) ? [...row.equipements_saisonnier] : []);
+    setReglementInterieur(row.reglement_interieur ?? "");
+    setInstructionsAcces(row.instructions_acces ?? "");
+    setIcalAirbnbUrl(row.ical_airbnb_url ?? "");
+    setIcalBookingUrl(row.ical_booking_url ?? "");
+  }
+
   async function openCreateModal() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
@@ -242,6 +329,7 @@ export default function LogementsPage() {
     setNombreChambres("1");
     setChambres([defaultChambre()]);
     setActiveChambreTab(0);
+    resetSaisonnierFields();
     setIsModalOpen(true);
   }
 
@@ -276,6 +364,8 @@ export default function LogementsPage() {
         : [...parsed, ...Array.from({ length: nc - parsed.length }, () => defaultChambre())];
     setChambres(filled.slice(0, nc));
     setActiveChambreTab(0);
+    setModalTab("general");
+    loadSaisonnierFromRow(row);
     setIsModalOpen(true);
   }
 
@@ -286,6 +376,7 @@ export default function LogementsPage() {
     setNombreChambres("1");
     setChambres([defaultChambre()]);
     setActiveChambreTab(0);
+    resetSaisonnierFields();
   }
 
   function onChange(name: string, value: string) {
@@ -359,7 +450,7 @@ export default function LogementsPage() {
       const nc = coloc ? Math.max(1, Math.min(10, Number(nombreChambres) || 1)) : 0;
       const detailsPayload = coloc ? chambres.slice(0, nc).map((c) => ({ ...c })) : [];
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         proprietaire_id: ownerId,
         nom,
         adresse,
@@ -373,6 +464,47 @@ export default function LogementsPage() {
         nombre_chambres: nc,
         chambres_details: detailsPayload,
       };
+
+      if (isSaisonnier) {
+        payload.type_location = typeLocation;
+        if (typeLocation === "saisonnier" || typeLocation === "les_deux") {
+          const cap = Number(capaciteMax);
+          if (!Number.isFinite(cap) || cap <= 0) {
+            setError("Renseignez une capacité maximum (personnes) valide pour la location saisonnière.");
+            return;
+          }
+          const tm = tarifNuitMoyenne.trim() ? Number(tarifNuitMoyenne) : NaN;
+          if (!Number.isFinite(tm) || tm < 0) {
+            setError("Renseignez un tarif nuit moyenne saison valide (€).");
+            return;
+          }
+          payload.capacite_max = cap;
+          payload.tarif_nuit_basse = tarifNuitBasse.trim() ? Number(tarifNuitBasse) : null;
+          payload.tarif_nuit_moyenne = tm;
+          payload.tarif_nuit_haute = tarifNuitHaute.trim() ? Number(tarifNuitHaute) : null;
+          payload.tarif_menage = tarifMenage.trim() ? Number(tarifMenage) : null;
+          payload.tarif_caution = tarifCaution.trim() ? Number(tarifCaution) : null;
+          payload.taxe_sejour_nuit = taxeSejourNuit.trim() ? Number(taxeSejourNuit) : null;
+          payload.equipements_saisonnier = equipementsSaisonnier;
+          payload.reglement_interieur = reglementInterieur.trim() || null;
+          payload.instructions_acces = instructionsAcces.trim() || null;
+          payload.ical_airbnb_url = icalAirbnbUrl.trim() || null;
+          payload.ical_booking_url = icalBookingUrl.trim() || null;
+        } else {
+          payload.capacite_max = null;
+          payload.tarif_nuit_basse = null;
+          payload.tarif_nuit_moyenne = null;
+          payload.tarif_nuit_haute = null;
+          payload.tarif_menage = null;
+          payload.tarif_caution = null;
+          payload.taxe_sejour_nuit = null;
+          payload.equipements_saisonnier = null;
+          payload.reglement_interieur = null;
+          payload.instructions_acces = null;
+          payload.ical_airbnb_url = null;
+          payload.ical_booking_url = null;
+        }
+      }
 
       const updatePayload =
         plan === "free"
@@ -439,12 +571,44 @@ export default function LogementsPage() {
     }
   }
 
+  async function syncIcalForLogement(logementId: string) {
+    setIcalSyncLoading(true);
+    setIcalSyncMessage("");
+    try {
+      const res = await fetch("/api/saisonnier/ical-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logement_id: logementId }),
+      });
+      const data = (await res.json()) as { error?: string; imported?: number; updated?: number };
+      if (!res.ok) {
+        setIcalSyncMessage(data.error ?? "Échec synchronisation.");
+        return;
+      }
+      setIcalSyncMessage(
+        `Synchronisation : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`,
+      );
+    } catch (e) {
+      setIcalSyncMessage(formatSubmitError(e));
+    } finally {
+      setIcalSyncLoading(false);
+    }
+  }
+
+  const showSaisonnierTab = typeLocation === "saisonnier" || typeLocation === "les_deux";
+
   return (
     <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Logements</h1>
-          <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion de vos biens.</p>
+          <h1 className="proplio-page-title">Logements saisonniers</h1>
+          <p className="proplio-page-subtitle max-w-xl">
+            Biens en location saisonnière ou « les deux ». Pour les logements uniquement classiques, utilisez{" "}
+            <Link href="/logements" className="underline" style={{ color: PC.primary }}>
+              Logements (mode classique)
+            </Link>
+            .
+          </p>
         </div>
         <button
           type="button"
@@ -495,9 +659,17 @@ export default function LogementsPage() {
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Aucun logement enregistré.
         </div>
+      ) : displayedRows.length === 0 ? (
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Aucun logement saisonnier pour l’instant. Définissez le type « saisonnier » ou « les deux » depuis{" "}
+          <Link href="/logements" className="underline" style={{ color: PC.primary }}>
+            les logements en mode classique
+          </Link>
+          , ou créez un bien ici avec type saisonnier.
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {rows.map((row) => {
+          {displayedRows.map((row) => {
             const isLocked = Boolean(row.verrouille);
             const activeLocataires = locatairesByLogement[row.id] ?? 0;
             const capacity = row.est_colocation ? Number(row.nombre_chambres || 1) : 1;
@@ -625,6 +797,35 @@ export default function LogementsPage() {
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
+              {isSaisonnier ? (
+                <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
+                  <button
+                    type="button"
+                    className="flex-1 rounded-md px-3 py-2 text-sm font-medium transition duration-200"
+                    style={{
+                      backgroundColor: modalTab === "general" ? PC.primary : "transparent",
+                      color: modalTab === "general" ? PC.white : PC.muted,
+                    }}
+                    onClick={() => setModalTab("general")}
+                  >
+                    Général
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 rounded-md px-3 py-2 text-sm font-medium transition duration-200"
+                    style={{
+                      backgroundColor: modalTab === "saisonnier" ? PC.primary : "transparent",
+                      color: modalTab === "saisonnier" ? PC.white : PC.muted,
+                    }}
+                    onClick={() => setModalTab("saisonnier")}
+                  >
+                    Paramètres saisonniers
+                  </button>
+                </div>
+              ) : null}
+
+              {modalTab === "general" || !isSaisonnier ? (
+              <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                   <span className="font-medium">Nom du logement</span>
@@ -866,6 +1067,146 @@ export default function LogementsPage() {
                   </div>
                 </div>
               ) : null}
+              </>
+              ) : (
+                <div className="space-y-4">
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Type de location</span>
+                    <select
+                      style={fieldSelectStyle}
+                      value={typeLocation === "les_deux" ? "les_deux" : "saisonnier"}
+                      onChange={(e) => setTypeLocation(e.target.value)}
+                    >
+                      <option value="saisonnier">Saisonnier</option>
+                      <option value="les_deux">Les deux (classique + saisonnier)</option>
+                    </select>
+                  </label>
+
+                  {showSaisonnierTab ? (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Capacité max (personnes)</span>
+                          <input
+                            type="number"
+                            min={1}
+                            style={fieldInputStyle}
+                            value={capaciteMax}
+                            onChange={(e) => setCapaciteMax(e.target.value)}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Tarif / nuit basse saison (€)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitBasse} onChange={(e) => setTarifNuitBasse(e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Tarif / nuit moyenne saison (€)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitMoyenne} onChange={(e) => setTarifNuitMoyenne(e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Tarif / nuit haute saison (€)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitHaute} onChange={(e) => setTarifNuitHaute(e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Tarif ménage (€)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={tarifMenage} onChange={(e) => setTarifMenage(e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">Tarif caution (€)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={tarifCaution} onChange={(e) => setTarifCaution(e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+                          <span className="font-medium">Taxe de séjour (€ / personne / nuit)</span>
+                          <input type="number" step="0.01" style={fieldInputStyle} value={taxeSejourNuit} onChange={(e) => setTaxeSejourNuit(e.target.value)} />
+                        </label>
+                      </div>
+
+                      <div>
+                        <p className="mb-2 text-sm font-medium" style={{ color: PC.text }}>
+                          Équipements
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {EQUIPEMENTS_SAISONNIER_OPTS.map((label) => (
+                            <label key={label} className="flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                              <input
+                                type="checkbox"
+                                checked={equipementsSaisonnier.includes(label)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEquipementsSaisonnier((prev) => [...prev, label]);
+                                  } else {
+                                    setEquipementsSaisonnier((prev) => prev.filter((x) => x !== label));
+                                  }
+                                }}
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <span className="font-medium">Règlement intérieur</span>
+                        <textarea className="min-h-24 rounded-lg px-3 py-2 text-sm" style={fieldInputMd} value={reglementInterieur} onChange={(e) => setReglementInterieur(e.target.value)} />
+                      </label>
+                      <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <span className="font-medium">Instructions d&apos;accès</span>
+                        <textarea className="min-h-24 rounded-lg px-3 py-2 text-sm" style={fieldInputMd} value={instructionsAcces} onChange={(e) => setInstructionsAcces(e.target.value)} />
+                      </label>
+
+                      <div className="rounded-xl p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.bg }}>
+                        <h4 className="text-sm font-semibold" style={{ color: PC.text }}>
+                          Synchronisation calendrier
+                        </h4>
+                        <label className="mt-3 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">URL iCal Airbnb</span>
+                          <input style={fieldInputStyle} value={icalAirbnbUrl} onChange={(e) => setIcalAirbnbUrl(e.target.value)} placeholder="https://..." />
+                        </label>
+                        <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                          📋 Comment récupérer votre lien Airbnb :<br />
+                          1. Airbnb → Calendrier → Disponibilités
+                          <br />
+                          2. Exporter le calendrier
+                          <br />
+                          3. Copier et coller le lien ici
+                        </p>
+                        <label className="mt-4 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <span className="font-medium">URL iCal Booking</span>
+                          <input style={fieldInputStyle} value={icalBookingUrl} onChange={(e) => setIcalBookingUrl(e.target.value)} placeholder="https://..." />
+                        </label>
+                        <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                          Même démarche sur Booking.com : extranet → synchronisation du calendrier → lien iCal.
+                        </p>
+                        <button
+                          type="button"
+                          className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                          style={{ backgroundColor: PC.primary, color: PC.white }}
+                          disabled={icalSyncLoading || !isEditing}
+                          onClick={() => {
+                            if (editingRow) void syncIcalForLogement(editingRow.id);
+                          }}
+                        >
+                          {icalSyncLoading ? "Synchronisation…" : "Synchroniser maintenant"}
+                        </button>
+                        {!isEditing ? (
+                          <p className="mt-2 text-xs" style={{ color: PC.warning }}>
+                            Enregistrez le logement avant de synchroniser les calendriers.
+                          </p>
+                        ) : null}
+                        {icalSyncMessage ? (
+                          <p className="mt-2 text-xs" style={{ color: PC.muted }}>
+                            {icalSyncMessage}
+                          </p>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm" style={{ color: PC.muted }}>
+                      Passez le type sur « Saisonnier » ou « Les deux » pour afficher tarifs, équipements et iCal.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" className="proplio-btn-secondary" onClick={closeModal}>
