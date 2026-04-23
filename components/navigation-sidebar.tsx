@@ -184,6 +184,7 @@ function CloseIcon() {
 
 export function NavigationSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { mode, setMode } = useModeLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
@@ -251,6 +252,7 @@ export function NavigationSidebar() {
 
   function selectClassiqueMode() {
     setMode("classique");
+    router.push("/");
   }
 
   function selectSaisonnierMode() {
@@ -259,6 +261,7 @@ export function NavigationSidebar() {
       return;
     }
     setMode("saisonnier");
+    router.push("/saisonnier/dashboard");
   }
 
   useEffect(() => {
