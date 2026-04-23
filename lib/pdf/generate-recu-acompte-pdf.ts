@@ -5,12 +5,24 @@ import {
   PDF_PAGE_H,
   PDF_PAGE_W,
   PDF_TEXT_MAIN,
-  PDF_TEXT_SECONDARY,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
+import { drawSignatureBlock } from "@/lib/pdf/pdf-utils";
+
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/\u2192/g, "->") // →
+    .replace(/\u202f/g, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\u2019/g, "'")
+    .replace(/\u2018/g, "'")
+    .replace(/\u201c/g, '"')
+    .replace(/\u201d/g, '"')
+    .replace(/\u2013/g, "-")
+    .replace(/\u2014/g, "-");
+}
 
 export type RecuAcomptePdfInput = {
   proprietaire: Record<string, unknown>;
@@ -39,16 +51,16 @@ export async function generateRecuAcomptePdfBuffer(input: RecuAcomptePdfInput): 
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const lines = [
-    `Propriétaire : ${sanitizePdfText(`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim())}`,
-    `Voyageur : ${sanitizePdfText(`${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim())}`,
-    `Logement : ${sanitizePdfText(String(logement.nom ?? ""))}`,
+    `Propriétaire : ${`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim()}`,
+    `Voyageur : ${`${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim()}`,
+    `Logement : ${String(logement.nom ?? "")}`,
     `Séjour : ${reservation.date_arrivee} → ${reservation.date_depart}`,
     `Acompte reçu : ${reservation.montant_acompte.toFixed(2)} €`,
     `Solde restant dû : ${reservation.solde_restant.toFixed(2)} €`,
     `Date limite paiement du solde : ${reservation.date_limite_solde}`,
   ];
   for (const line of lines) {
-    page.drawText(line, { x: PDF_MARGIN_X, y, size: 11, font, color: PDF_TEXT_MAIN });
+    page.drawText(sanitizePdfText(line), { x: PDF_MARGIN_X, y, size: 11, font, color: PDF_TEXT_MAIN });
     y -= 18;
   }
 
@@ -64,9 +76,9 @@ export async function generateRecuAcomptePdfBuffer(input: RecuAcomptePdfInput): 
   drawSignatureBlock(page, {
     font,
     fontBold,
-    ville,
-    dateStr: new Date().toLocaleDateString("fr-FR"),
-    proprietaireNom: `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—",
+    ville: sanitizePdfText(ville),
+    dateStr: sanitizePdfText(new Date().toLocaleDateString("fr-FR")),
+    proprietaireNom: sanitizePdfText(`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—"),
     signatureImage: img,
     pageWidth: pageW,
     blockBottomY: PDF_FOOTER_HEIGHT,

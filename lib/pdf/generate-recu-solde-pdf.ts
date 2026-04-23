@@ -10,7 +10,20 @@ import {
   drawProplioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
+import { drawSignatureBlock } from "@/lib/pdf/pdf-utils";
+
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/\u2192/g, "->") // →
+    .replace(/\u202f/g, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\u2019/g, "'")
+    .replace(/\u2018/g, "'")
+    .replace(/\u201c/g, '"')
+    .replace(/\u201d/g, '"')
+    .replace(/\u2013/g, "-")
+    .replace(/\u2014/g, "-");
+}
 
 export type RecuSoldePdfInput = {
   proprietaire: Record<string, unknown>;
@@ -41,9 +54,9 @@ export async function generateRecuSoldePdfBuffer(input: RecuSoldePdfInput): Prom
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const lines = [
-    `Propriétaire : ${sanitizePdfText(`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim())}`,
-    `Voyageur : ${sanitizePdfText(`${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim())}`,
-    `Logement : ${sanitizePdfText(String(logement.nom ?? ""))}`,
+    `Propriétaire : ${`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim()}`,
+    `Voyageur : ${`${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim()}`,
+    `Logement : ${String(logement.nom ?? "")}`,
     `Séjour : ${reservation.date_arrivee} → ${reservation.date_depart}`,
     `Loyer / nuitées : ${reservation.tarif_total.toFixed(2)} €`,
     `Ménage : ${reservation.tarif_menage.toFixed(2)} €`,
@@ -52,17 +65,20 @@ export async function generateRecuSoldePdfBuffer(input: RecuSoldePdfInput): Prom
     `Total TTC payé : ${reservation.total_ttc.toFixed(2)} €`,
   ];
   for (const line of lines) {
-    page.drawText(line, { x: PDF_MARGIN_X, y, size: 10, font, color: PDF_TEXT_MAIN });
+    page.drawText(sanitizePdfText(line), { x: PDF_MARGIN_X, y, size: 10, font, color: PDF_TEXT_MAIN });
     y -= 16;
   }
   y -= 6;
-  page.drawText("La caution sera restituée après l'état des lieux de sortie, déduction faite des sommes dues.", {
-    x: PDF_MARGIN_X,
-    y,
-    size: 9,
-    font,
-    color: PDF_TEXT_SECONDARY,
-  });
+  page.drawText(
+    sanitizePdfText("La caution sera restituée après l'état des lieux de sortie, déduction faite des sommes dues."),
+    {
+      x: PDF_MARGIN_X,
+      y,
+      size: 9,
+      font,
+      color: PDF_TEXT_SECONDARY,
+    },
+  );
 
   let img: PDFImage | null = null;
   if (signatureImage?.bytes?.length) {
@@ -76,9 +92,9 @@ export async function generateRecuSoldePdfBuffer(input: RecuSoldePdfInput): Prom
   drawSignatureBlock(page, {
     font,
     fontBold,
-    ville,
-    dateStr: new Date().toLocaleDateString("fr-FR"),
-    proprietaireNom: `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—",
+    ville: sanitizePdfText(ville),
+    dateStr: sanitizePdfText(new Date().toLocaleDateString("fr-FR")),
+    proprietaireNom: sanitizePdfText(`${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—"),
     signatureImage: img,
     pageWidth: pageW,
     blockBottomY: PDF_FOOTER_HEIGHT,
