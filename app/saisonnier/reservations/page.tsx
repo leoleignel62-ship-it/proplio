@@ -45,6 +45,7 @@ type ReservationRow = {
   tarif_nuit: number;
   tarif_total: number;
   tarif_menage: number;
+  menage_inclus: boolean;
   tarif_caution: number;
   montant_acompte: number;
   taxe_sejour_total: number;
@@ -143,6 +144,7 @@ export default function ReservationsSaisonnierPage() {
     nb_voyageurs: "1",
     source: "direct",
     notes: "",
+    menage_inclus: true,
   });
   const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
 
@@ -199,6 +201,7 @@ export default function ReservationsSaisonnierPage() {
         tarif_nuit: Number(r.tarif_nuit ?? 0),
         tarif_total: Number(r.tarif_total ?? 0),
         tarif_menage: Number(r.tarif_menage ?? 0),
+        menage_inclus: (r as { menage_inclus?: boolean }).menage_inclus !== false,
         tarif_caution: Number(r.tarif_caution ?? 0),
         montant_acompte: Number(r.montant_acompte ?? 0),
         taxe_sejour_total: Number(r.taxe_sejour_total ?? 0),
@@ -292,7 +295,8 @@ export default function ReservationsSaisonnierPage() {
       form.source === "direct" && lg
         ? calculerMontantReservation(logementTarifPayload(lg), arr, dep)
         : Math.max(0, Number(tarifManuelAirbnb) || 0) * nuits;
-    const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
+    const menageLogement = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
+    const menage = form.menage_inclus ? menageLogement : 0;
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
@@ -315,6 +319,7 @@ export default function ReservationsSaisonnierPage() {
       nb_voyageurs: "1",
       source: "direct",
       notes: "",
+      menage_inclus: true,
     });
     setTarifManuelAirbnb("");
     setModalOpen(true);
@@ -351,7 +356,8 @@ export default function ReservationsSaisonnierPage() {
       setError("Logement introuvable.");
       return;
     }
-    const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
+    const menageFromLogement = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
+    const menageFacture = form.menage_inclus ? menageFromLogement : 0;
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
@@ -370,8 +376,8 @@ export default function ReservationsSaisonnierPage() {
       tarifTotal = nuits * tn;
     }
     const taxeTotal = taxeN * nv * nuits;
-    const totalTtc = tarifTotal + menage + taxeTotal + caution;
-    const baseAcompte = tarifTotal + menage + taxeTotal;
+    const totalTtc = tarifTotal + menageFacture + taxeTotal + caution;
+    const baseAcompte = tarifTotal + menageFacture + taxeTotal;
     const acompte = (baseAcompte * acomptePct) / 100;
 
     const { data: ins, error: iErr } = await supabase
@@ -387,7 +393,8 @@ export default function ReservationsSaisonnierPage() {
         nb_voyageurs: nv,
         tarif_nuit: tn,
         tarif_total: tarifTotal,
-        tarif_menage: menage,
+        tarif_menage: menageFacture,
+        menage_inclus: form.menage_inclus,
         tarif_caution: caution,
         montant_acompte: Math.round(acompte * 100) / 100,
         taxe_sejour_total: taxeTotal,
@@ -857,12 +864,63 @@ export default function ReservationsSaisonnierPage() {
                 Acompte demandé (%)
                 <input type="number" min={0} max={100} style={fieldInputStyle} value={acomptePct} onChange={(e) => setAcomptePct(Number(e.target.value) || 0)} />
               </label>
+              {(() => {
+                const lgM = logements.find((l) => l.id === form.logement_id);
+                const tarifMenageLogement = lgM?.tarif_menage != null ? Number(lgM.tarif_menage) : 0;
+                return (
+                  <fieldset className="space-y-2 rounded-lg p-3 text-sm" style={{ border: `1px solid ${PC.border}` }}>
+                    <legend className="px-1 font-medium" style={{ color: PC.text }}>
+                      Ménage
+                    </legend>
+                    <p className="text-xs" style={{ color: PC.muted }}>
+                      Tarif ménage (logement)&nbsp;: {tarifMenageLogement.toFixed(2)} €
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex cursor-pointer items-start gap-2" style={{ color: PC.text }}>
+                        <input
+                          type="radio"
+                          name="menage_mode"
+                          checked={form.menage_inclus}
+                          onChange={() => setForm((f) => ({ ...f, menage_inclus: true }))}
+                          className="mt-1 accent-[#7c3aed]"
+                        />
+                        <span>Inclus dans la réservation (payant)</span>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-2" style={{ color: PC.text }}>
+                        <input
+                          type="radio"
+                          name="menage_mode"
+                          checked={!form.menage_inclus}
+                          onChange={() => setForm((f) => ({ ...f, menage_inclus: false }))}
+                          className="mt-1 accent-[#7c3aed]"
+                        />
+                        <span>À la charge du voyageur (fait par lui-même)</span>
+                      </label>
+                    </div>
+                    {!form.menage_inclus ? (
+                      <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                        Le tarif ménage n&apos;est pas facturé. Le voyageur remet le logement en état.
+                      </p>
+                    ) : null}
+                  </fieldset>
+                );
+              })()}
               <div className="rounded-lg p-3 text-sm" style={{ backgroundColor: PC.primaryBg10, border: `1px solid ${PC.border}` }}>
                 <p>Nuits : {preview.nuits}</p>
                 <p>Total nuitées (hébergement) : {preview.nuitees.toFixed(2)} €</p>
-                <p>Ménage + taxe + caution inclus : total TTC {preview.total.toFixed(2)} €</p>
+                {form.menage_inclus ? (
+                  <p>Frais de ménage : {preview.menage.toFixed(2)} €</p>
+                ) : (
+                  <p style={{ color: PC.muted }}>Ménage : à la charge du voyageur (non facturé)</p>
+                )}
+                <p>Taxe de séjour : {preview.taxe.toFixed(2)} €</p>
+                <p>Caution : {preview.caution.toFixed(2)} €</p>
+                <p className="font-medium" style={{ color: PC.text }}>
+                  Total TTC : {preview.total.toFixed(2)} €
+                </p>
                 <p className="text-xs" style={{ color: PC.muted }}>
-                  Acompte ({acomptePct}%) sur nuitées + taxe + ménage (hors caution)
+                  Acompte ({acomptePct}%) sur nuitées + taxe
+                  {form.menage_inclus ? " + ménage" : ""} (hors caution)
                 </p>
                 <p>Acompte ({acomptePct}%) : {preview.acompte.toFixed(2)} €</p>
               </div>

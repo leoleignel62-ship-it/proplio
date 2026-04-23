@@ -85,6 +85,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
         tarif_nuit: Number(reservation.tarif_nuit ?? 0),
         tarif_total: Number(reservation.tarif_total ?? 0),
         tarif_menage: Number(reservation.tarif_menage ?? 0),
+        menage_inclus: (reservation as { menage_inclus?: boolean }).menage_inclus !== false,
         tarif_caution: Number(reservation.tarif_caution ?? 0),
         taxe_sejour_total: Number(reservation.taxe_sejour_total ?? 0),
         montant_acompte: Number((reservation as { montant_acompte?: number }).montant_acompte ?? 0),

@@ -237,6 +237,8 @@ export type ContratSejourPdfInput = {
     tarif_nuit: number;
     tarif_total: number;
     tarif_menage: number;
+    /** false = ménage à la charge du voyageur (tarif_menage attendu à 0 en base) */
+    menage_inclus?: boolean;
     tarif_caution: number;
     taxe_sejour_total: number;
     montant_acompte: number;
@@ -295,7 +297,9 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
       ? "—"
       : `${nv} pers. × ${nn} nuit(s) × ${taxeUnit.toFixed(2)} €`;
 
-  const baseLocative = reservation.tarif_total + reservation.tarif_menage + taxe;
+  const menageInclus = reservation.menage_inclus !== false;
+  const tarifMenagePourTotal = menageInclus ? reservation.tarif_menage : 0;
+  const baseLocative = reservation.tarif_total + tarifMenagePourTotal + taxe;
   const totalTtc = baseLocative + reservation.tarif_caution;
   const acompte = reservation.montant_acompte;
   const acomptePct =
@@ -365,9 +369,21 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   const nuitsTarifStr = `${nn} nuit(s) × ${reservation.tarif_nuit.toFixed(2)} €`;
   drawTarifRow(ctx, "Hébergement", nuitsTarifStr, formatEuro(reservation.tarif_total));
   drawTarifRow(ctx, "Taxe de séjour", taxeDetailStr, formatEuro(taxe));
-  drawTarifRow(ctx, "Frais de ménage", "", formatEuro(reservation.tarif_menage));
+  if (menageInclus) {
+    drawTarifRow(ctx, "Frais de ménage", "", formatEuro(tarifMenagePourTotal));
+  } else {
+    drawTarifRow(ctx, "Ménage", "À la charge du preneur", "—");
+  }
   drawTarifRow(ctx, "Caution", "(remboursable)", formatEuro(reservation.tarif_caution));
   drawTarifRow(ctx, "TOTAL TTC", "", formatEuro(totalTtc), { bold: true, highlight: true });
+
+  if (!menageInclus) {
+    drawParagraph(
+      ctx,
+      "Le ménage est à la charge du preneur. Le logement devra être rendu propre et en ordre.",
+      9,
+    );
+  }
 
   drawSectionTitle(ctx, "MODALITÉS DE PAIEMENT");
   drawParagraph(

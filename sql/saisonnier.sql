@@ -194,3 +194,6 @@ ALTER TABLE public.reservations
 ADD COLUMN IF NOT EXISTS heure_arrivee text DEFAULT '15:00';
 ALTER TABLE public.reservations
 ADD COLUMN IF NOT EXISTS heure_depart text DEFAULT '11:00';
+
+ALTER TABLE public.reservations
+ADD COLUMN IF NOT EXISTS menage_inclus boolean DEFAULT true;
