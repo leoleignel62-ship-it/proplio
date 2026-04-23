@@ -34,6 +34,11 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
+import {
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+  drawSignatureBlock,
+} from "@/lib/pdf/pdf-utils";
 
 /** Deux colonnes égales (largeur utile = page − marges), séparateur fin au milieu */
 const USABLE_W = PAGE_W - 2 * MARGIN;
@@ -188,7 +193,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
    * Limite basse (y PDF) au-dessus de laquelle le contenu ne doit pas s’étendre :
    * le bloc signatures occupe tout en dessous jusqu’au pied de page.
    */
-  const SIG_BLOCK_PEAK_Y = pdfContentMinY() + 178;
+  const SIG_BLOCK_PEAK_Y = pdfContentMinY() + PDF_SIGNATURE_FOOTER_RESERVE - 20;
 
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
@@ -548,38 +553,55 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     }
   }
 
-  /* Signatures — ancrées en bas de la dernière page (jamais de page vide dédiée) */
-  const mid = PAGE_W / 2;
-  const footerTop = pdfContentMinY() + 4;
-  let cursorUp = footerTop + 10;
-  page.drawLine({
-    start: { x: MARGIN, y: cursorUp - 4 },
-    end: { x: PAGE_W - MARGIN, y: cursorUp - 4 },
-    thickness: 0.35,
-    color: BORDER,
-  });
-  page.drawText("Date : _______________", { x: mid + 20, y: cursorUp, size: 9, font, color: MUTED });
-  cursorUp += 14;
-  let sigImgH = 0;
-  if (params.signatureImage) {
-    const img = params.signatureImage.isPng
-      ? await doc.embedPng(params.signatureImage.bytes)
-      : await doc.embedJpg(params.signatureImage.bytes);
-    const ratio = Math.min(140 / img.width, 48 / img.height, 1);
-    const d = img.scale(ratio);
-    sigImgH = d.height;
-    page.drawImage(img, { x: MARGIN, y: cursorUp, width: d.width, height: d.height });
-    cursorUp += sigImgH + 8;
-  } else {
-    cursorUp += 6;
+  /* Signatures — bloc standardisé, même page que le contenu (réserve déjà gérée par SIG_BLOCK_PEAK_Y) */
+  const villeEdl =
+    params.logementAdresse
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .pop() || "—";
+  const dateEtatFr = (() => {
+    const x = new Date(
+      params.dateEtat.includes("T") ? params.dateEtat : `${params.dateEtat}T12:00:00`,
+    );
+    if (Number.isNaN(x.getTime())) return params.dateEtat || "—";
+    return x.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  })();
+
+  let sigImg: PDFImage | null = null;
+  if (params.signatureImage?.bytes?.length) {
+    try {
+      sigImg = params.signatureImage.isPng
+        ? await doc.embedPng(params.signatureImage.bytes)
+        : await doc.embedJpg(params.signatureImage.bytes);
+    } catch {
+      sigImg = null;
+    }
   }
-  page.drawText(params.bailleurNom, { x: MARGIN, y: cursorUp, size: 10, font: fontBold, color: BODY });
-  page.drawText(params.preneurNom, { x: mid + 20, y: cursorUp, size: 10, font: fontBold, color: BODY });
-  cursorUp += 22;
-  page.drawText("Le Bailleur", { x: MARGIN, y: cursorUp, size: 9, font, color: MUTED });
-  page.drawText("Le Preneur", { x: mid + 20, y: cursorUp, size: 9, font, color: MUTED });
-  cursorUp += 20;
-  page.drawText("Signatures", { x: MARGIN, y: cursorUp, size: 12, font: fontBold, color: PRIMARY });
+
+  if (y < PDF_SIGNATURE_FOOTER_RESERVE + 24) {
+    newPage();
+    page.drawText("Signatures", {
+      x: MARGIN,
+      y,
+      size: 11,
+      font: fontBold,
+      color: PRIMARY,
+    });
+    y -= 22;
+  }
+
+  drawSignatureBlock(page, {
+    font,
+    fontBold,
+    ville: villeEdl,
+    dateStr: dateEtatFr,
+    proprietaireNom: params.bailleurNom,
+    signatureImage: sigImg,
+    marginX: MARGIN,
+    pageWidth: PAGE_W,
+    blockBottomY: PDF_FOOTER_HEIGHT,
+  });
 
   drawProplioPdfFooterOnAllPages(doc, font, fontBold);
 

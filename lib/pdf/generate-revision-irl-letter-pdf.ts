@@ -15,9 +15,14 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
+import {
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+  drawSignatureBlock,
+  sanitizePdfText,
+} from "@/lib/pdf/pdf-utils";
 
 const CONTENT_BOTTOM = pdfContentMinY();
-const LINE_SEP = BORDER_TAB;
 
 const BODY_PT = 10.5;
 const BODY_LEAD = 14;
@@ -45,18 +50,6 @@ export type RevisionIrlLetterPdfInput = {
   dateEffetRevision: string;
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
 };
-
-function sanitizePdfText(text: string): string {
-  return text
-    .replace(/\u202f/g, " ") // espace fine insécable → espace normale
-    .replace(/\u00a0/g, " ") // espace insécable → espace normale
-    .replace(/\u2019/g, "'") // apostrophe typographique → apostrophe
-    .replace(/\u2018/g, "'") // guillemet → apostrophe
-    .replace(/\u201c/g, '"') // guillemet ouvrant → guillemet droit
-    .replace(/\u201d/g, '"') // guillemet fermant → guillemet droit
-    .replace(/\u2013/g, "-") // tiret demi-cadratin → tiret
-    .replace(/\u2014/g, "-"); // tiret cadratin → tiret
-}
 
 function wrapToWidth(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -283,6 +276,14 @@ export async function generateRevisionIrlLetterPdfBuffer(
       y = pdfContentTopAfterHeader() - 12;
     }
   };
+  /** Dernière page : réserve signature + pied. */
+  const ensureSpaceFinal = (needed: number) => {
+    if (y < PDF_SIGNATURE_FOOTER_RESERVE + needed) {
+      page = doc.addPage([PAGE_W, PAGE_H]);
+      drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+      y = pdfContentTopAfterHeader() - 12;
+    }
+  };
 
   const drawParagraph = (text: string, opts?: { bold?: boolean; size?: number; color?: ReturnType<typeof rgb> }) => {
     const sz = opts?.size ?? BODY_PT;
@@ -358,57 +359,29 @@ export async function generateRevisionIrlLetterPdfBuffer(
   );
   y -= 28;
 
-  ensureSpace(120);
-  page.drawLine({
-    start: { x: MARGIN, y: y + 8 },
-    end: { x: PAGE_W - MARGIN, y: y + 8 },
-    thickness: 0.5,
-    color: LINE_SEP,
-  });
-  y -= 8;
+  ensureSpaceFinal(PDF_SIGNATURE_FOOTER_RESERVE + 8);
 
-  page.drawText(sanitizePdfText("Le propriétaire"), {
-    x: MARGIN,
-    y,
-    size: 10,
-    font,
-    color: TEXT_SEC,
-  });
-  y -= BODY_LEAD;
-  page.drawText(sanitizePdfText(input.proprietaireNom), {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: TEXT_MAIN,
-  });
-  y -= BODY_LEAD + 4;
-
+  let sigImg: PDFImage | null = null;
   if (input.signatureImage?.bytes?.length) {
     try {
-      let img: PDFImage;
-      if (input.signatureImage.isPng) {
-        img = await doc.embedPng(input.signatureImage.bytes);
-      } else {
-        img = await doc.embedJpg(input.signatureImage.bytes);
-      }
-      const maxW = 140;
-      const scale = maxW / img.width;
-      const h = img.height * scale;
-      ensureSpace(h + 24);
-      page.drawImage(img, { x: MARGIN, y: y - h, width: maxW, height: h });
-      y -= h + 12;
+      sigImg = input.signatureImage.isPng
+        ? await doc.embedPng(input.signatureImage.bytes)
+        : await doc.embedJpg(input.signatureImage.bytes);
     } catch {
-      /* signature optionnelle */
+      sigImg = null;
     }
   }
 
-  page.drawText(sanitizePdfText(input.dateLettre), {
-    x: MARGIN,
-    y,
-    size: 9,
+  drawSignatureBlock(page, {
     font,
-    color: TEXT_SEC,
+    fontBold,
+    ville: input.villeSignature || "—",
+    dateStr: input.dateLettre || "—",
+    proprietaireNom: input.proprietaireNom,
+    signatureImage: sigImg,
+    marginX: MARGIN,
+    pageWidth: PAGE_W,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
   drawProplioPdfFooterOnAllPages(doc, font, fontBold);

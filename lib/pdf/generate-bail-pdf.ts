@@ -19,6 +19,11 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
+import {
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+  drawSignatureBlock,
+} from "@/lib/pdf/pdf-utils";
 
 /** Marge réservée sous le corps du document */
 const CONTENT_BOTTOM = pdfContentMinY();
@@ -944,8 +949,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   const villeSign = String(proprietaire.ville ?? "").trim() || "…………………";
   const dateSignFr = formatDateFrLong(new Date());
-  const SIG_BLOCK = 260;
-  if (ctx.y < CONTENT_BOTTOM + SIG_BLOCK) {
+  const sigIntroReserve = 88;
+  if (ctx.y < PDF_SIGNATURE_FOOTER_RESERVE + sigIntroReserve) {
     newPage(ctx);
     ctx.page.drawText("SIGNATURES", {
       x: MARGIN,
@@ -962,116 +967,32 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     );
   }
 
-  ensureSpace(ctx, SIG_BLOCK);
-  const faitText = `Fait en deux exemplaires originaux à ${villeSign}, le ${dateSignFr}`;
-  for (const line of wrapLines(faitText, fontBold, 11, PAGE_W - MARGIN * 2)) {
-    ctx.page.drawText(line, { x: MARGIN, y: ctx.y, size: 11, font: fontBold, color: PRIMARY });
-    ctx.y -= 16;
-  }
-  ctx.y -= 10;
-
-  const colSigW = (PAGE_W - MARGIN * 2 - 28) / 2;
-  const leftX = MARGIN;
-  const rightX = MARGIN + colSigW + 28;
-  const sigTop = ctx.y;
-  const SIG_ZONE_H = 92;
-  const dateLabel = "Date : ___________";
-
-  ctx.page.drawText("Le Bailleur", {
-    x: leftX,
-    y: sigTop,
-    size: 10,
-    font: ctx.fontBold,
-    color: PRIMARY,
-  });
-  ctx.page.drawText("Le Preneur", {
-    x: rightX,
-    y: sigTop,
-    size: 10,
-    font: ctx.fontBold,
-    color: PRIMARY,
-  });
-
-  const nameRowY = sigTop - 22;
-  ctx.page.drawText(bailleurNomPrenomOrder, {
-    x: leftX,
-    y: nameRowY,
-    size: 10,
-    font: ctx.fontBold,
-    color: TEXT_BODY,
-  });
-
-  let preneurLineY = nameRowY;
-  const preneurNameStr =
-    locatairesOrdered
-      .map((l, idx) => {
-        const n = `${String(l.nom ?? "").trim()} ${String(l.prenom ?? "").trim()}`.trim();
-        return n || `Preneur ${idx + 1}`;
-      })
-      .join(", ") || "—";
-  for (const line of wrapLines(preneurNameStr, ctx.fontBold, 10, colSigW)) {
-    ctx.page.drawText(line, {
-      x: rightX,
-      y: preneurLineY,
-      size: 10,
-      font: ctx.fontBold,
-      color: TEXT_BODY,
-    });
-    preneurLineY -= 14;
-  }
-
-  const lastPreneurBaseline = preneurLineY + 14;
-  const lowestNameBaseline = Math.min(nameRowY, lastPreneurBaseline);
-  const belowNamesY = lowestNameBaseline - 12;
-  const sigZoneBottom = belowNamesY - SIG_ZONE_H;
+  ensureSpace(ctx, PDF_SIGNATURE_FOOTER_RESERVE + 16);
 
   let img: PDFImage | null = null;
   if (signatureImage) {
-    img = signatureImage.isPng
-      ? await doc.embedPng(signatureImage.bytes)
-      : await doc.embedJpg(signatureImage.bytes);
-  }
-  if (img) {
-    const ratio = Math.min(colSigW / img.width, (SIG_ZONE_H - 4) / img.height, 1);
-    const dims = img.scale(ratio);
-    const imgBottom = sigZoneBottom + 2;
-    ctx.page.drawImage(img, {
-      x: leftX,
-      y: imgBottom,
-      width: dims.width,
-      height: dims.height,
-    });
+    try {
+      img = signatureImage.isPng
+        ? await doc.embedPng(signatureImage.bytes)
+        : await doc.embedJpg(signatureImage.bytes);
+    } catch {
+      img = null;
+    }
   }
 
-  ctx.page.drawRectangle({
-    x: rightX,
-    y: sigZoneBottom,
-    width: colSigW,
-    height: SIG_ZONE_H,
-    borderWidth: 1.1,
-    borderColor: TEXT_MUTED,
-    borderDashArray: [4, 3],
-    borderDashPhase: 0,
-    color: rgb(1, 1, 1),
+  drawSignatureBlock(ctx.page, {
+    font,
+    fontBold,
+    ville: villeSign,
+    dateStr: dateSignFr,
+    proprietaireNom: bailleurNomPrenomOrder,
+    signatureImage: img,
+    marginX: MARGIN,
+    pageWidth: PAGE_W,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  const dateBaseline = sigZoneBottom - 18;
-  ctx.page.drawText(dateLabel, {
-    x: leftX,
-    y: dateBaseline,
-    size: 9,
-    font,
-    color: TEXT_BODY,
-  });
-  ctx.page.drawText(dateLabel, {
-    x: rightX,
-    y: dateBaseline,
-    size: 9,
-    font,
-    color: TEXT_BODY,
-  });
-
-  ctx.y = dateBaseline - 28;
+  ctx.y = PDF_FOOTER_HEIGHT;
 
   drawProplioPdfFooterOnAllPages(doc, font, fontBold);
 

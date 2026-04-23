@@ -13,9 +13,14 @@ import {
   PDF_WHITE,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
-  pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
+import {
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_BLOCK_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+  drawSignatureBlock,
+} from "@/lib/pdf/pdf-utils";
 
 const MONTHS_FR = [
   "janvier",
@@ -77,7 +82,6 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   const left = PDF_MARGIN_X;
   const right = pageWidth - PDF_MARGIN_X;
   const lineHeight = 18;
-  const pageBottom = pdfContentMinY();
 
   drawProplioPdfHeader(page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth);
 
@@ -337,7 +341,12 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
 
   const legalLines = wrapLegal(legalText, 95);
   const legalBoxTop = y;
-  const legalBoxHeight = 86;
+  const reserveForSigFooter = PDF_FOOTER_HEIGHT + PDF_SIGNATURE_BLOCK_HEIGHT + 20;
+  let legalBoxHeight = 86;
+  if (y - legalBoxHeight < reserveForSigFooter) {
+    legalBoxHeight = Math.max(52, y - reserveForSigFooter - 6);
+  }
+  const legalLineGap = y - legalBoxHeight < reserveForSigFooter + 50 ? 10 : 12;
   page.drawRectangle({
     x: left,
     y: legalBoxTop - legalBoxHeight,
@@ -370,24 +379,8 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
       font: fontItalic,
       color: PDF_TEXT_SECONDARY,
     });
-    legalY -= 12;
+    legalY -= legalLineGap;
   });
-
-  const doneText = `Fait le ${formatFrenchDate(new Date())} à ${proprietaire.ville || "—"}`;
-  const rightBlockX = right - 190;
-  let signatureCursorY = pageBottom + 130;
-
-  page.drawText(doneText, { x: rightBlockX, y: signatureCursorY, size: 10.5, font, color: PDF_TEXT_MAIN });
-  signatureCursorY -= 18;
-
-  page.drawText("Le propriétaire", {
-    x: rightBlockX,
-    y: signatureCursorY,
-    size: 10,
-    font,
-    color: PDF_TEXT_SECONDARY,
-  });
-  signatureCursorY -= 14;
 
   let img: PDFImage | null = null;
   if (signatureImage?.bytes?.length) {
@@ -397,31 +390,20 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
       img = null;
     }
   }
-  if (img) {
-    const maxWidth = 150;
-    const maxHeight = 80;
-    const widthRatio = maxWidth / img.width;
-    const heightRatio = maxHeight / img.height;
-    const ratio = Math.min(widthRatio, heightRatio, 1);
-    const dims = img.scale(ratio);
-    const signatureImageY = signatureCursorY - dims.height;
-    page.drawImage(img, {
-      x: rightBlockX,
-      y: signatureImageY,
-      width: dims.width,
-      height: dims.height,
-    });
-    signatureCursorY = signatureImageY - 12;
-  } else {
-    signatureCursorY -= 40;
-  }
 
-  page.drawText(`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim(), {
-    x: rightBlockX,
-    y: signatureCursorY,
-    size: 11,
-    font: fontBold,
-    color: PDF_TEXT_MAIN,
+  const villeQuittance = String(proprietaire.ville || "—").trim() || "—";
+  const dateQuittance = formatFrenchDate(new Date());
+
+  drawSignatureBlock(page, {
+    font,
+    fontBold,
+    ville: villeQuittance,
+    dateStr: dateQuittance,
+    proprietaireNom: `${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim() || "—",
+    signatureImage: img,
+    marginX: left,
+    pageWidth,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
   drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);

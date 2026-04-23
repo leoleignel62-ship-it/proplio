@@ -2,14 +2,22 @@
  * Charte graphique commune aux PDF Proplio (quittances, baux, EDL, lettre IRL).
  */
 import { type PDFDocument, type PDFPage, rgb, type PDFFont } from "pdf-lib";
+import {
+  drawFooter,
+  drawFooterOnAllPages,
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_BLOCK_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+} from "@/lib/pdf/pdf-utils";
 
 export const PDF_PAGE_W = 595.28;
 export const PDF_PAGE_H = 841.89;
 export const PDF_MARGIN_X = 40;
 export const PDF_MARGIN_Y = 30;
 export const PDF_HEADER_H = 76;
-export const PDF_FOOTER_H = 26;
-export const PDF_FOOTER_TEXT_BASELINE = 12;
+/** @deprecated alias — utiliser PDF_FOOTER_HEIGHT depuis pdf-utils */
+export const PDF_FOOTER_H = PDF_FOOTER_HEIGHT;
+export { PDF_FOOTER_HEIGHT, PDF_SIGNATURE_BLOCK_HEIGHT, PDF_SIGNATURE_FOOTER_RESERVE };
 
 export const PDF_VIOLET = rgb(124 / 255, 58 / 255, 237 / 255);
 /** Accents / filets (violet adouci) */
@@ -28,11 +36,17 @@ export const PDF_HEADER_SUBTITLE = rgb(0.93, 0.9, 0.98);
 /** Barre sous titres d’article (léger violet) */
 export const PDF_ARTICLE_BAR_BG = rgb(244 / 255, 241 / 255, 252 / 255);
 
-const FOOTER_CENTER = "Document généré par Proplio — proplio-red.vercel.app";
-
-/** Bas de zone utile au-dessus du bandeau pied de page */
+/** Bas de zone utile pour le corps (pages intermédiaires : pied seulement). */
 export function pdfContentMinY(): number {
-  return PDF_FOOTER_H + PDF_MARGIN_Y + 16;
+  return PDF_FOOTER_HEIGHT + PDF_MARGIN_Y + 16;
+}
+
+/**
+ * Ordonnée minimale du bas du corps sur la dernière page lorsqu’un bloc signature
+ * standard (130 pt) + pied (30 pt) suit — au-dessus de cette ligne le contenu ne doit pas passer.
+ */
+export function pdfContentMinYWithSignature(): number {
+  return PDF_SIGNATURE_FOOTER_RESERVE + PDF_MARGIN_Y;
 }
 
 /** Ordonnée du haut du corps sous le bandeau d’en-tête (origine bas-gauche). */
@@ -102,38 +116,9 @@ export function drawProplioPdfFooter(
   fontBold: PDFFont,
   pageWidth = PDF_PAGE_W,
 ) {
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: pageWidth,
-    height: PDF_FOOTER_H,
-    color: PDF_VIOLET,
-  });
-  const tw = font.widthOfTextAtSize(FOOTER_CENTER, 8);
-  page.drawText(FOOTER_CENTER, {
-    x: (pageWidth - tw) / 2,
-    y: PDF_FOOTER_TEXT_BASELINE,
-    size: 8,
-    font,
-    color: PDF_WHITE,
-  });
-  if (totalPages > 1) {
-    const pg = `Page ${pageIndex + 1} / ${totalPages}`;
-    const pw = fontBold.widthOfTextAtSize(pg, 8);
-    page.drawText(pg, {
-      x: pageWidth - PDF_MARGIN_X - pw,
-      y: PDF_FOOTER_TEXT_BASELINE,
-      size: 8,
-      font: fontBold,
-      color: PDF_WHITE,
-    });
-  }
+  drawFooter(page, { pageIndex, totalPages, font, fontBold, pageWidth });
 }
 
 export function drawProplioPdfFooterOnAllPages(doc: PDFDocument, font: PDFFont, fontBold: PDFFont) {
-  const pages = doc.getPages();
-  const n = pages.length;
-  for (let i = 0; i < n; i++) {
-    drawProplioPdfFooter(pages[i]!, i, n, font, fontBold);
-  }
+  drawFooterOnAllPages(doc, font, fontBold);
 }
