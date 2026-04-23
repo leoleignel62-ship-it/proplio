@@ -408,23 +408,22 @@ export function NavigationSidebar() {
         </div>
       ) : null}
 
-      {/* Header desktop : gauche vide | centre toggle | droite cloche */}
+      {/* Header desktop : gauche vide | toggle centré (absolu) | droite cloche */}
       <header
-        className="fixed left-0 right-0 top-0 z-40 hidden h-[60px] md:left-64 md:flex md:items-center md:px-6"
+        className="fixed left-0 right-0 top-0 z-40 hidden h-[60px] md:left-64 md:block md:px-6"
         style={{ backgroundColor: PC.sidebar, borderBottom: `1px solid ${PC.border}` }}
       >
-        <div className="flex w-full max-w-full items-center gap-3">
-          <div className="min-w-0 flex-1" aria-hidden />
-          <div className="flex w-full max-w-[min(100%,320px)] shrink-0 justify-center px-2">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 w-[min(100%-120px,320px)] -translate-x-1/2 -translate-y-1/2 px-2">
+          <div className="pointer-events-auto">
             <ModeLocationPill
               mode={ownerPlan === "free" ? "classique" : mode}
               onSelectClassique={selectClassiqueMode}
               onSelectSaisonnier={selectSaisonnierMode}
             />
           </div>
-          <div className="flex min-w-0 flex-1 justify-end">
-            <NotificationBellDropdown />
-          </div>
+        </div>
+        <div className="flex h-full items-center justify-end pr-1">
+          <NotificationBellDropdown />
         </div>
       </header>
 
