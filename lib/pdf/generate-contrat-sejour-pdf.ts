@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import {
   PDF_MARGIN_X,
   PDF_FOOTER_HEIGHT,
@@ -6,6 +6,9 @@ import {
   PDF_PAGE_W,
   PDF_TEXT_MAIN,
   PDF_TEXT_SECONDARY,
+  PDF_VIOLET,
+  PDF_BORDER,
+  PDF_TABLE_HIGHLIGHT_BG,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
   pdfContentTopAfterHeader,
@@ -28,6 +31,198 @@ function wrapLines(text: string, font: PDFFont, size: number, maxW: number): str
   return lines;
 }
 
+function formatDateFr(isoDate: string): string {
+  const d = new Date(isoDate + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatHeure(h: string): string {
+  const t = h.trim();
+  if (t.length >= 5) return t.slice(0, 5);
+  return t || "—";
+}
+
+function formatEuro(n: number): string {
+  return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+}
+
+type PdfCtx = {
+  doc: PDFDocument;
+  page: PDFPage;
+  y: number;
+  font: PDFFont;
+  fontBold: PDFFont;
+};
+
+const HEADER_RIGHT =
+  "CONTRAT DE LOCATION SAISONNIÈRE\nArticles L.324-1 et suivants\ndu Code du tourisme";
+
+function startPage(ctx: PdfCtx): void {
+  ctx.page = ctx.doc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
+  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
+}
+
+function ensureSpace(ctx: PdfCtx, minYNeeded: number): void {
+  if (ctx.y >= PDF_FOOTER_HEIGHT + minYNeeded) return;
+  startPage(ctx);
+}
+
+function drawSectionTitle(ctx: PdfCtx, title: string, size = 11): void {
+  ensureSpace(ctx, 36);
+  ctx.page.drawText(sanitizePdfText(title), {
+    x: PDF_MARGIN_X,
+    y: ctx.y,
+    size,
+    font: ctx.fontBold,
+    color: PDF_VIOLET,
+  });
+  ctx.y -= size + 8;
+}
+
+function drawParagraph(ctx: PdfCtx, text: string, size = 9, bold = false): void {
+  const maxW = PDF_PAGE_W - 2 * PDF_MARGIN_X;
+  const font = bold ? ctx.fontBold : ctx.font;
+  const lines = wrapLines(text, font, size, maxW);
+  for (const ln of lines) {
+    ensureSpace(ctx, 16);
+    ctx.page.drawText(ln, {
+      x: PDF_MARGIN_X,
+      y: ctx.y,
+      size,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    ctx.y -= size + 3;
+  }
+  ctx.y -= 4;
+}
+
+function drawTwoColBlock(
+  ctx: PdfCtx,
+  leftTitle: string,
+  leftLines: string[],
+  rightTitle: string,
+  rightLines: string[],
+): void {
+  ensureSpace(ctx, 120);
+  const mid = PDF_PAGE_W / 2;
+  const gap = 12;
+  const colW = (PDF_PAGE_W - 2 * PDF_MARGIN_X - gap) / 2;
+  const xL = PDF_MARGIN_X;
+  const xR = mid + gap / 2;
+  let yTop = ctx.y;
+
+  ctx.page.drawText(sanitizePdfText(leftTitle), { x: xL, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
+  ctx.page.drawText(sanitizePdfText(rightTitle), { x: xR, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
+  yTop -= 14;
+
+  const drawCol = (x: number, lines: string[], maxWidth: number) => {
+    let yy = yTop;
+    for (const line of lines) {
+      for (const ln of wrapLines(line, ctx.font, 8.5, maxWidth)) {
+        if (yy < PDF_FOOTER_HEIGHT + 24) return yy;
+        ctx.page.drawText(ln, { x, y: yy, size: 8.5, font: ctx.font, color: PDF_TEXT_SECONDARY });
+        yy -= 10;
+      }
+    }
+    return yy;
+  };
+
+  const yEndL = drawCol(xL, leftLines, colW - 4);
+  const yEndR = drawCol(xR, rightLines, colW - 4);
+  ctx.y = Math.min(yEndL, yEndR) - 12;
+}
+
+/** Ligne simple : label | valeur (2 colonnes) */
+function drawKeyValueRow(ctx: PdfCtx, label: string, value: string, rowH = 18): void {
+  ensureSpace(ctx, rowH + 4);
+  ctx.page.drawRectangle({
+    x: PDF_MARGIN_X,
+    y: ctx.y - rowH + 2,
+    width: PDF_PAGE_W - 2 * PDF_MARGIN_X,
+    height: rowH,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.4,
+    color: rgb(1, 1, 1),
+  });
+  ctx.page.drawText(sanitizePdfText(label), {
+    x: PDF_MARGIN_X + 6,
+    y: ctx.y - 12,
+    size: 9,
+    font: ctx.fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  const v = sanitizePdfText(value);
+  const vw = ctx.font.widthOfTextAtSize(v, 9);
+  ctx.page.drawText(v, {
+    x: PDF_PAGE_W - PDF_MARGIN_X - vw - 6,
+    y: ctx.y - 12,
+    size: 9,
+    font: ctx.font,
+    color: PDF_TEXT_MAIN,
+  });
+  ctx.y -= rowH + 2;
+}
+
+/** Tableau 3 colonnes : libellé | détail | montant */
+function drawTarifRow(
+  ctx: PdfCtx,
+  col1: string,
+  col2: string,
+  col3: string,
+  opts?: { bold?: boolean; highlight?: boolean },
+): void {
+  const rowH = 20;
+  ensureSpace(ctx, rowH + 4);
+  const w = PDF_PAGE_W - 2 * PDF_MARGIN_X;
+  const w1 = w * 0.34;
+  const w2 = w * 0.38;
+  const w3 = w - w1 - w2;
+  const yRect = ctx.y - rowH + 2;
+  ctx.page.drawRectangle({
+    x: PDF_MARGIN_X,
+    y: yRect,
+    width: w,
+    height: rowH,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.4,
+    color: opts?.highlight ? PDF_TABLE_HIGHLIGHT_BG : rgb(1, 1, 1),
+  });
+  const font = opts?.bold ? ctx.fontBold : ctx.font;
+  const fs = opts?.bold ? 9.5 : 9;
+  ctx.page.drawText(sanitizePdfText(col1), {
+    x: PDF_MARGIN_X + 5,
+    y: ctx.y - 13,
+    size: fs,
+    font,
+    color: PDF_TEXT_MAIN,
+  });
+  ctx.page.drawText(sanitizePdfText(col2), {
+    x: PDF_MARGIN_X + w1 + 5,
+    y: ctx.y - 13,
+    size: 9,
+    font: ctx.font,
+    color: PDF_TEXT_SECONDARY,
+  });
+  const c3 = sanitizePdfText(col3);
+  const tw = ctx.fontBold.widthOfTextAtSize(c3, fs);
+  ctx.page.drawText(c3, {
+    x: PDF_MARGIN_X + w1 + w2 + w3 - tw - 5,
+    y: ctx.y - 13,
+    size: fs,
+    font: opts?.bold ? ctx.fontBold : ctx.font,
+    color: PDF_TEXT_MAIN,
+  });
+  ctx.y -= rowH + 2;
+}
+
+function drawArticle(ctx: PdfCtx, num: number, title: string, body: string): void {
+  drawSectionTitle(ctx, `Article ${num} - ${title}`, 10);
+  drawParagraph(ctx, body, 9);
+}
+
 export type ContratSejourPdfInput = {
   proprietaire: Record<string, unknown>;
   voyageur: Record<string, unknown>;
@@ -35,6 +230,8 @@ export type ContratSejourPdfInput = {
   reservation: {
     date_arrivee: string;
     date_depart: string;
+    heure_arrivee: string;
+    heure_depart: string;
     nb_voyageurs: number;
     nb_nuits: number;
     tarif_nuit: number;
@@ -42,6 +239,7 @@ export type ContratSejourPdfInput = {
     tarif_menage: number;
     tarif_caution: number;
     taxe_sejour_total: number;
+    montant_acompte: number;
   };
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
 };
@@ -49,62 +247,200 @@ export type ContratSejourPdfInput = {
 export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInput): Promise<Uint8Array> {
   const { proprietaire, voyageur, logement, reservation, signatureImage } = input;
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const pageW = page.getWidth();
-  const pageH = page.getHeight();
-  const right = pageW - PDF_MARGIN_X;
-  const maxW = right - PDF_MARGIN_X;
-
-  drawProplioPdfHeader(page, font, fontBold, "CONTRAT DE LOCATION\nSAISONNIÈRE", pageH, pageW);
-  let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const pNom = `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim();
+  const pAdresse = [proprietaire.adresse, [proprietaire.code_postal, proprietaire.ville].filter(Boolean).join(" ")]
+    .filter((x) => String(x ?? "").trim())
+    .join(", ");
+  const pEmail = String(proprietaire.email ?? "").trim();
+  const pTel = String(proprietaire.telephone ?? "").trim();
+
   const vNom = `${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim();
-  const logLabel = String(logement.nom ?? "");
+  const vEmail = String(voyageur.email ?? "").trim();
+  const vTel = String(voyageur.telephone ?? "").trim();
+  const vNat = String(voyageur.nationalite ?? "").trim() || "—";
 
-  const blocks: string[] = [
-    `Propriétaire : ${pNom}`,
-    `Voyageur : ${vNom}`,
-    `Logement : ${logLabel}`,
-    `Séjour du ${reservation.date_arrivee} au ${reservation.date_depart} — ${reservation.nb_nuits} nuit(s) — ${reservation.nb_voyageurs} personne(s).`,
-    `Tarif nuit : ${reservation.tarif_nuit.toFixed(2)} € — Total nuitées : ${reservation.tarif_total.toFixed(2)} €`,
-    `Ménage : ${reservation.tarif_menage.toFixed(2)} € — Caution : ${reservation.tarif_caution.toFixed(2)} € — Taxe de séjour : ${reservation.taxe_sejour_total.toFixed(2)} €`,
-  ];
+  const logAdresse = [logement.adresse, [logement.code_postal, logement.ville].filter(Boolean).join(" ")]
+    .filter((x) => String(x ?? "").trim())
+    .join(", ");
+  const logType = String(logement.type ?? "").trim();
+  const surface = logement.surface != null && Number(logement.surface) > 0 ? `${Number(logement.surface)} m²` : "";
+  const typeSurface =
+    logType && surface ? `${logType} — ${surface}` : logType || surface || "—";
+  const capMax =
+    logement.capacite_max != null && Number(logement.capacite_max) > 0
+      ? String(logement.capacite_max)
+      : "—";
+  const equipementsArr = Array.isArray(logement.equipements_saisonnier)
+    ? (logement.equipements_saisonnier as unknown[]).filter((e): e is string => typeof e === "string")
+    : [];
+  const equipementsStr = equipementsArr.length > 0 ? equipementsArr.join(", ") : "Non renseigné";
+  const reglement = String(logement.reglement_interieur ?? "").trim();
 
-  for (const line of blocks) {
-    page.drawText(sanitizePdfText(line), { x: PDF_MARGIN_X, y, size: 10, font, color: PDF_TEXT_MAIN });
-    y -= 16;
-  }
-  y -= 8;
+  const hArr = formatHeure(reservation.heure_arrivee);
+  const hDep = formatHeure(reservation.heure_depart);
+  const dArr = formatDateFr(reservation.date_arrivee);
+  const dDep = formatDateFr(reservation.date_depart);
 
-  const legal =
-    "Le présent contrat est conclu pour une location saisonnière au sens des articles L. 324-1 et suivants du Code du tourisme. " +
-    "Durée maximale du séjour : 90 jours. Le voyageur s'engage à occuper les lieux en bon père de famille. " +
-    "Les parties reconnaissent avoir pris connaissance des conditions générales et du règlement intérieur éventuellement annexé. " +
-    "En cas de litige, compétence des tribunaux du lieu de situation du bien.";
+  const nv = Math.max(1, reservation.nb_voyageurs);
+  const nn = Math.max(0, reservation.nb_nuits);
+  const taxe = reservation.taxe_sejour_total;
+  const taxeDetailDenom = nv * nn;
+  const taxeUnit =
+    taxeDetailDenom > 0 && taxe > 0 ? taxe / taxeDetailDenom : 0;
+  const taxeDetailStr =
+    taxe <= 0
+      ? "—"
+      : `${nv} pers. × ${nn} nuit(s) × ${taxeUnit.toFixed(2)} €`;
 
-  for (const ln of wrapLines(legal, font, 9, maxW)) {
-    if (y < PDF_FOOTER_HEIGHT + 140) break;
-    page.drawText(ln, { x: PDF_MARGIN_X, y, size: 9, font, color: PDF_TEXT_SECONDARY });
-    y -= 11;
-  }
+  const baseLocative = reservation.tarif_total + reservation.tarif_menage + taxe;
+  const totalTtc = baseLocative + reservation.tarif_caution;
+  const acompte = reservation.montant_acompte;
+  const acomptePct =
+    baseLocative > 0 ? Math.round((acompte / baseLocative) * 1000) / 10 : 0;
+  const soldeAvantArrivee = Math.max(0, totalTtc - acompte);
 
-  const ville = String(proprietaire.ville ?? proprietaire.adresse ?? "").split(",")[0]?.trim() || "—";
-  const dateStr = new Date().toLocaleDateString("fr-FR");
-  const mid = pageW / 2;
-  let sigY = PDF_FOOTER_HEIGHT + 118;
-  page.drawText(sanitizePdfText(`Fait à ${ville}, le ${dateStr}`), {
-    x: PDF_MARGIN_X,
-    y: sigY + 28,
-    size: 10,
+  const villeBailleur = String(proprietaire.ville ?? "").trim() || String(proprietaire.adresse ?? "").split(",")[0]?.trim() || "—";
+  const dateStr = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+  const ctx: PdfCtx = { doc: pdfDoc, page: pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]), y: 0, font, fontBold };
+  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
+
+  /* Titre corps */
+  const titleMain = "CONTRAT DE LOCATION SAISONNIÈRE";
+  const twm = fontBold.widthOfTextAtSize(titleMain, 14);
+  ctx.page.drawText(titleMain, {
+    x: (PDF_PAGE_W - twm) / 2,
+    y: ctx.y,
+    size: 14,
+    font: fontBold,
+    color: PDF_TEXT_MAIN,
+  });
+  ctx.y -= 18;
+  const sub = "Articles L.324-1 et suivants du Code du tourisme";
+  const sw = font.widthOfTextAtSize(sub, 9);
+  ctx.page.drawText(sub, {
+    x: (PDF_PAGE_W - sw) / 2,
+    y: ctx.y,
+    size: 9,
     font,
     color: PDF_TEXT_SECONDARY,
   });
-  page.drawText("Signature du voyageur", { x: PDF_MARGIN_X, y: sigY, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
-  page.drawText(sanitizePdfText(vNom || "—"), { x: PDF_MARGIN_X, y: sigY - 16, size: 10, font, color: PDF_TEXT_MAIN });
-  page.drawText("Signature du propriétaire", { x: mid, y: sigY, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
+  ctx.y -= 22;
+
+  drawTwoColBlock(
+    ctx,
+    "LE BAILLEUR",
+    [
+      pNom || "—",
+      pAdresse || "—",
+      pEmail ? `E-mail : ${pEmail}` : "",
+      pTel ? `Tél. : ${pTel}` : "",
+    ].filter(Boolean),
+    "LE PRENEUR",
+    [
+      vNom || "—",
+      vEmail ? `E-mail : ${vEmail}` : "",
+      vTel ? `Tél. : ${vTel}` : "",
+      `Nationalité : ${vNat}`,
+    ].filter(Boolean),
+  );
+
+  drawSectionTitle(ctx, "DÉSIGNATION DU BIEN");
+  drawParagraph(ctx, `Adresse : ${logAdresse || "—"}`);
+  drawParagraph(ctx, `Type et surface : ${typeSurface}`);
+  drawParagraph(ctx, `Capacité maximale : ${capMax} personne(s).`);
+  drawParagraph(ctx, `Équipements : ${equipementsStr}`);
+
+  drawSectionTitle(ctx, "CONDITIONS DE LOCATION");
+  drawKeyValueRow(ctx, "Arrivée", `${dArr} à ${hArr}`);
+  drawKeyValueRow(ctx, "Départ", `${dDep} à ${hDep}`);
+  drawKeyValueRow(ctx, "Durée", `${nn} nuit(s)`);
+  drawKeyValueRow(ctx, "Personnes", `${nv}`);
+
+  drawSectionTitle(ctx, "TARIFS");
+  const nuitsTarifStr = `${nn} nuit(s) × ${reservation.tarif_nuit.toFixed(2)} €`;
+  drawTarifRow(ctx, "Hébergement", nuitsTarifStr, formatEuro(reservation.tarif_total));
+  drawTarifRow(ctx, "Taxe de séjour", taxeDetailStr, formatEuro(taxe));
+  drawTarifRow(ctx, "Frais de ménage", "", formatEuro(reservation.tarif_menage));
+  drawTarifRow(ctx, "Caution", "(remboursable)", formatEuro(reservation.tarif_caution));
+  drawTarifRow(ctx, "TOTAL TTC", "", formatEuro(totalTtc), { bold: true, highlight: true });
+
+  drawSectionTitle(ctx, "MODALITÉS DE PAIEMENT");
+  drawParagraph(
+    ctx,
+    `Acompte : ${acomptePct}% soit ${formatEuro(acompte)} à la signature.`,
+  );
+  drawParagraph(ctx, `Solde : ${formatEuro(soldeAvantArrivee)} dû avant l'arrivée.`);
+  drawParagraph(
+    ctx,
+    `Caution : ${formatEuro(reservation.tarif_caution)} restituée sous 7 jours après départ sous réserve d'état des lieux.`,
+  );
+
+  drawSectionTitle(ctx, "CONDITIONS GÉNÉRALES");
+  drawArticle(
+    ctx,
+    1,
+    "OBJET ET DURÉE",
+    "Le présent contrat a pour objet la location saisonnière du bien désigné ci-dessus, conformément aux articles L.324-1 et suivants du Code du tourisme. La durée de la location ne peut excéder 90 jours consécutifs.",
+  );
+  drawArticle(
+    ctx,
+    2,
+    "OCCUPATION",
+    "Le bien est destiné exclusivement à un usage d'habitation temporaire. La sous-location est interdite. Le nombre d'occupants ne peut dépasser la capacité maximale indiquée.",
+  );
+  drawArticle(
+    ctx,
+    3,
+    "ÉTAT DES LIEUX",
+    "Un état des lieux sera établi contradictoirement à l'entrée et à la sortie. Les dégradations constatées pourront être imputées sur la caution.",
+  );
+  drawArticle(
+    ctx,
+    4,
+    "ASSURANCE",
+    "Le preneur est invité à vérifier que son assurance habitation couvre les risques locatifs pendant son séjour.",
+  );
+  if (reglement) {
+    drawArticle(ctx, 5, "RÈGLEMENT INTÉRIEUR", reglement);
+    drawArticle(
+      ctx,
+      6,
+      "RÉSILIATION",
+      "En cas d'annulation par le preneur, l'acompte versé reste acquis au bailleur. En cas d'annulation par le bailleur, les sommes versées sont intégralement remboursées.",
+    );
+  } else {
+    drawArticle(
+      ctx,
+      5,
+      "RÉSILIATION",
+      "En cas d'annulation par le preneur, l'acompte versé reste acquis au bailleur. En cas d'annulation par le bailleur, les sommes versées sont intégralement remboursées.",
+    );
+  }
+
+  /* Signatures */
+  ensureSpace(ctx, 200);
+  drawSectionTitle(ctx, "SIGNATURES");
+  ctx.y -= 4;
+
+  const pageW = PDF_PAGE_W;
+  const mid = pageW / 2;
+  const colGap = 16;
+  const colW = (pageW - 2 * PDF_MARGIN_X - colGap) / 2;
+  const xL = PDF_MARGIN_X;
+  const xR = mid + colGap / 2;
+  const sigTop = ctx.y;
+
+  ctx.page.drawText("Le Bailleur", { x: xL, y: sigTop, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
+  ctx.page.drawText("Le Preneur", { x: xR, y: sigTop, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
+
+  let yNames = sigTop - 16;
+  ctx.page.drawText(sanitizePdfText(pNom || "—"), { x: xL, y: yNames, size: 10, font, color: PDF_TEXT_MAIN });
+  ctx.page.drawText(sanitizePdfText(vNom || "—"), { x: xR, y: yNames, size: 10, font, color: PDF_TEXT_MAIN });
 
   let img: PDFImage | null = null;
   if (signatureImage?.bytes?.length) {
@@ -114,18 +450,45 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
       img = null;
     }
   }
+
+  const boxH = 48;
+  const boxY = yNames - 14 - boxH;
+  ctx.page.drawRectangle({
+    x: xL,
+    y: boxY,
+    width: colW - 8,
+    height: boxH,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+    color: rgb(1, 1, 1),
+  });
+  ctx.page.drawRectangle({
+    x: xR,
+    y: boxY,
+    width: colW - 8,
+    height: boxH,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+    color: rgb(1, 1, 1),
+  });
+
   if (img) {
-    const maxWImg = pageW / 2 - PDF_MARGIN_X - 12;
-    const maxH = 40;
+    const maxWImg = colW - 20;
+    const maxH = boxH - 8;
     const ratio = Math.min(maxWImg / img.width, maxH / img.height, 1);
-    page.drawImage(img, {
-      x: mid,
-      y: sigY - 8 - img.height * ratio,
-      width: img.width * ratio,
-      height: img.height * ratio,
+    const dw = img.width * ratio;
+    const dh = img.height * ratio;
+    ctx.page.drawImage(img, {
+      x: xL + 4,
+      y: boxY + (boxH - dh) / 2,
+      width: dw,
+      height: dh,
     });
   }
-  page.drawText(sanitizePdfText(pNom || "—"), { x: mid, y: sigY - 52, size: 10, font, color: PDF_TEXT_MAIN });
+
+  const fait = sanitizePdfText(`Fait à ${villeBailleur}, le ${dateStr}`);
+  ctx.page.drawText(fait, { x: xL, y: boxY - 16, size: 9, font, color: PDF_TEXT_SECONDARY });
+  ctx.page.drawText("Lu et approuvé", { x: xR, y: boxY - 16, size: 9, font, color: PDF_TEXT_SECONDARY });
 
   drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();

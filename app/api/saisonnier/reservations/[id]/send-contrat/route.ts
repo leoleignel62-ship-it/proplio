@@ -78,6 +78,8 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
       reservation: {
         date_arrivee: String(reservation.date_arrivee),
         date_depart: String(reservation.date_depart),
+        heure_arrivee: String((reservation as { heure_arrivee?: string }).heure_arrivee ?? "15:00"),
+        heure_depart: String((reservation as { heure_depart?: string }).heure_depart ?? "11:00"),
         nb_voyageurs: Number(reservation.nb_voyageurs ?? 1),
         nb_nuits: nbNuits,
         tarif_nuit: Number(reservation.tarif_nuit ?? 0),
@@ -85,6 +87,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
         tarif_menage: Number(reservation.tarif_menage ?? 0),
         tarif_caution: Number(reservation.tarif_caution ?? 0),
         taxe_sejour_total: Number(reservation.taxe_sejour_total ?? 0),
+        montant_acompte: Number((reservation as { montant_acompte?: number }).montant_acompte ?? 0),
       },
       signatureImage,
     });

@@ -188,3 +188,9 @@ ALTER TABLE public.logements
 ADD COLUMN IF NOT EXISTS tarifs_creneaux jsonb DEFAULT '[]';
 ALTER TABLE public.logements
 ADD COLUMN IF NOT EXISTS tarif_nuit_defaut numeric;
+
+-- Heures arrivée / départ (contrat et affichage)
+ALTER TABLE public.reservations
+ADD COLUMN IF NOT EXISTS heure_arrivee text DEFAULT '15:00';
+ALTER TABLE public.reservations
+ADD COLUMN IF NOT EXISTS heure_depart text DEFAULT '11:00';

@@ -38,6 +38,8 @@ type ReservationRow = {
   voyageur_id: string | null;
   date_arrivee: string;
   date_depart: string;
+  heure_arrivee: string;
+  heure_depart: string;
   nb_voyageurs: number;
   nb_nuits: number | null;
   tarif_nuit: number;
@@ -51,7 +53,7 @@ type ReservationRow = {
   notes: string | null;
   contrat_envoye: boolean | null;
   logements?: { nom: string } | null;
-  voyageurs?: { prenom: string; nom: string } | null;
+  voyageurs?: { prenom: string; nom: string; email: string | null } | null;
 };
 
 const STATUT_COLOR: Record<string, string> = {
@@ -112,7 +114,7 @@ export default function ReservationsSaisonnierPage() {
   const [error, setError] = useState("");
   const [rows, setRows] = useState<ReservationRow[]>([]);
   const [logements, setLogements] = useState<LogementOption[]>([]);
-  const [voyageurs, setVoyageurs] = useState<Array<{ id: string; prenom: string; nom: string }>>([]);
+  const [voyageurs, setVoyageurs] = useState<Array<{ id: string; prenom: string; nom: string; email: string | null }>>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [acomptePct, setAcomptePct] = useState(30);
@@ -124,12 +126,20 @@ export default function ReservationsSaisonnierPage() {
   const [detailSaving, setDetailSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [sendConfirm, setSendConfirm] = useState<{
+    kind: "contrat" | "acompte" | "solde";
+    id: string;
+    email: string;
+  } | null>(null);
+  const [sendSubmitting, setSendSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     logement_id: "",
     voyageur_id: "",
     date_arrivee: "",
     date_depart: "",
+    heure_arrivee: "15:00",
+    heure_depart: "11:00",
     nb_voyageurs: "1",
     source: "direct",
     notes: "",
@@ -151,7 +161,7 @@ export default function ReservationsSaisonnierPage() {
     const [r1, r2, r3] = await Promise.all([
       supabase
         .from("reservations")
-        .select("*, logements(nom), voyageurs(prenom, nom)")
+        .select("*, logements(nom), voyageurs(prenom, nom, email)")
         .eq("proprietaire_id", proprietaireId)
         .order("date_arrivee", { ascending: true }),
       supabase
@@ -161,7 +171,7 @@ export default function ReservationsSaisonnierPage() {
         )
         .eq("proprietaire_id", proprietaireId)
         .in("type_location", ["saisonnier", "les_deux"]),
-      supabase.from("voyageurs").select("id, prenom, nom").eq("proprietaire_id", proprietaireId).order("nom"),
+      supabase.from("voyageurs").select("id, prenom, nom, email").eq("proprietaire_id", proprietaireId).order("nom"),
     ]);
     if (r1.error) setError(formatSubmitError(r1.error));
     const raw = (r1.data ?? []) as Record<string, unknown>[];
@@ -169,13 +179,17 @@ export default function ReservationsSaisonnierPage() {
       const lg = r.logements;
       const vg = r.voyageurs;
       const logementsJoin = Array.isArray(lg) ? (lg[0] as { nom?: string }) ?? null : (lg as { nom?: string } | null);
-      const voyageursJoin = Array.isArray(vg) ? (vg[0] as { prenom?: string; nom?: string }) ?? null : (vg as { prenom?: string; nom?: string } | null);
+      const voyageursJoin = Array.isArray(vg)
+        ? (vg[0] as { prenom?: string; nom?: string; email?: string | null }) ?? null
+        : (vg as { prenom?: string; nom?: string; email?: string | null } | null);
       return {
         id: String(r.id),
         logement_id: String(r.logement_id),
         voyageur_id: (r.voyageur_id as string | null) ?? null,
         date_arrivee: String(r.date_arrivee),
         date_depart: String(r.date_depart),
+        heure_arrivee: String((r as { heure_arrivee?: string }).heure_arrivee ?? "15:00"),
+        heure_depart: String((r as { heure_depart?: string }).heure_depart ?? "11:00"),
         nb_voyageurs: Number(r.nb_voyageurs ?? 1),
         nb_nuits: r.nb_nuits != null ? Number(r.nb_nuits) : null,
         tarif_nuit: Number(r.tarif_nuit ?? 0),
@@ -189,7 +203,13 @@ export default function ReservationsSaisonnierPage() {
         notes: (r.notes as string | null) ?? null,
         contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
         logements: logementsJoin ? { nom: String(logementsJoin.nom ?? "") } : null,
-        voyageurs: voyageursJoin ? { prenom: String(voyageursJoin.prenom ?? ""), nom: String(voyageursJoin.nom ?? "") } : null,
+        voyageurs: voyageursJoin
+          ? {
+              prenom: String(voyageursJoin.prenom ?? ""),
+              nom: String(voyageursJoin.nom ?? ""),
+              email: (voyageursJoin.email as string | null) ?? null,
+            }
+          : null,
       };
     });
     setRows(normalized);
@@ -207,7 +227,7 @@ export default function ReservationsSaisonnierPage() {
         ical_booking_url: (row.ical_booking_url as string | null) ?? null,
       })),
     );
-    setVoyageurs((r3.data as Array<{ id: string; prenom: string; nom: string }>) ?? []);
+    setVoyageurs((r3.data as Array<{ id: string; prenom: string; nom: string; email: string | null }>) ?? []);
     setLoading(false);
   }, []);
 
@@ -270,6 +290,8 @@ export default function ReservationsSaisonnierPage() {
       voyageur_id: "",
       date_arrivee: "",
       date_depart: "",
+      heure_arrivee: "15:00",
+      heure_depart: "11:00",
       nb_voyageurs: "1",
       source: "direct",
       notes: "",
@@ -340,6 +362,8 @@ export default function ReservationsSaisonnierPage() {
         voyageur_id: voyageurId,
         date_arrivee: form.date_arrivee,
         date_depart: form.date_depart,
+        heure_arrivee: form.heure_arrivee || "15:00",
+        heure_depart: form.heure_depart || "11:00",
         nb_voyageurs: nv,
         tarif_nuit: tn,
         tarif_total: tarifTotal,
@@ -459,12 +483,33 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }
 
-  async function sendApi(kind: "contrat" | "acompte" | "solde", id: string) {
+  async function sendApi(kind: "contrat" | "acompte" | "solde", id: string): Promise<boolean> {
     setError("");
     const res = await fetch(`/api/saisonnier/reservations/${id}/send-${kind}`, { method: "POST" });
-    const j = await res.json();
-    if (!res.ok) setError(j.error ?? "Erreur envoi");
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      setError(typeof j.error === "string" ? j.error : "Erreur envoi");
+      return false;
+    }
     void load();
+    return true;
+  }
+
+  function requestSendConfirm(kind: "contrat" | "acompte" | "solde", row: ReservationRow) {
+    const email = row.voyageurs?.email?.trim();
+    if (!email) {
+      setError("Le voyageur doit avoir une adresse e-mail.");
+      return;
+    }
+    setSendConfirm({ kind, id: row.id, email });
+  }
+
+  async function confirmSendReservation() {
+    if (!sendConfirm) return;
+    setSendSubmitting(true);
+    const ok = await sendApi(sendConfirm.kind, sendConfirm.id);
+    setSendSubmitting(false);
+    if (ok) setSendConfirm(null);
   }
 
   async function markMenageDone(reservationId: string, logementId: string) {
@@ -647,17 +692,17 @@ export default function ReservationsSaisonnierPage() {
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violet" onClick={() => void sendApi("contrat", row.id)}>
+                            <ResaActionPill variant="violet" onClick={() => requestSendConfirm("contrat", row)}>
                               Contrat
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violetOutline" onClick={() => void sendApi("acompte", row.id)}>
+                            <ResaActionPill variant="violetOutline" onClick={() => requestSendConfirm("acompte", row)}>
                               Acompte
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violetOutline" onClick={() => void sendApi("solde", row.id)}>
+                            <ResaActionPill variant="violetOutline" onClick={() => requestSendConfirm("solde", row)}>
                               Solde
                             </ResaActionPill>
                           ) : null}
@@ -720,6 +765,26 @@ export default function ReservationsSaisonnierPage() {
                 <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                   Départ
                   <input required type="date" style={fieldInputStyle} value={form.date_depart} onChange={(e) => setForm((f) => ({ ...f, date_depart: e.target.value }))} />
+                </label>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                  Heure d&apos;arrivée
+                  <input
+                    type="time"
+                    style={fieldInputStyle}
+                    value={form.heure_arrivee}
+                    onChange={(e) => setForm((f) => ({ ...f, heure_arrivee: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                  Heure de départ
+                  <input
+                    type="time"
+                    style={fieldInputStyle}
+                    value={form.heure_depart}
+                    onChange={(e) => setForm((f) => ({ ...f, heure_depart: e.target.value }))}
+                  />
                 </label>
               </div>
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
@@ -803,7 +868,7 @@ export default function ReservationsSaisonnierPage() {
                   <ul className="mt-3 space-y-2 text-sm" style={{ color: PC.muted }}>
                     <li>Logement : {row.logements?.nom}</li>
                     <li>
-                      Dates : {row.date_arrivee} → {row.date_depart}
+                      Dates : {row.date_arrivee} ({row.heure_arrivee}) → {row.date_depart} ({row.heure_depart})
                     </li>
                     <li>Source : {row.source}</li>
                     <li>Montant (hébergement) : {row.tarif_total.toFixed(2)} €</li>
@@ -842,6 +907,47 @@ export default function ReservationsSaisonnierPage() {
                 </>
               );
             })()}
+          </div>
+        </div>
+      ) : null}
+
+      {sendConfirm ? (
+        <div
+          className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="send-resa-title"
+        >
+          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+            <h3 id="send-resa-title" className="text-lg font-semibold" style={{ color: PC.text }}>
+              Confirmation d&apos;envoi
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              {sendConfirm.kind === "contrat"
+                ? `Envoyer le contrat de séjour à ${sendConfirm.email} ?`
+                : sendConfirm.kind === "acompte"
+                  ? `Envoyer le reçu d'acompte à ${sendConfirm.email} ?`
+                  : `Envoyer le reçu de solde à ${sendConfirm.email} ?`}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="proplio-btn-secondary px-4 py-2 text-sm"
+                disabled={sendSubmitting}
+                onClick={() => setSendConfirm(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: "#7c3aed" }}
+                disabled={sendSubmitting}
+                onClick={() => void confirmSendReservation()}
+              >
+                {sendSubmitting ? "Envoi…" : "Envoyer"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
