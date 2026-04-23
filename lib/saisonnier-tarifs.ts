@@ -33,12 +33,19 @@ export function dateIsoToMmDd(isoDate: string): string {
   return `${mo}-${d}`;
 }
 
-/** Inclusif sur debut et fin ; si debut > fin (ex. 12-15 → 01-05), fenêtre à cheval sur l’année. */
+/**
+ * Appartenance d’un jour (MM-DD) à un créneau récurrent.
+ * - Début **inclusif**, fin **exclusive** : [debut, fin) sur l’année civile (ordre lexicographique MM-DD).
+ *   Ex. Normal 01-01 → 03-01 n’inclut pas le 01/03 ; le créneau suivant commençant le 01/03 s’applique dès cette date.
+ * - Si debut === fin : un seul jour calendaire (inclusif).
+ * - Si debut > fin : période à cheval sur le 31/12 — [debut, 31-12] ∪ [01-01, fin), fin toujours exclusive.
+ */
 export function isMdInCreneau(md: string, debut: string, fin: string): boolean {
   const a = normalizeMmDd(debut);
   const b = normalizeMmDd(fin);
-  if (a <= b) return md >= a && md <= b;
-  return md >= a || md <= b;
+  if (a === b) return md === a;
+  if (a < b) return md >= a && md < b;
+  return md >= a || md < b;
 }
 
 export function parseTarifsCreneauxJson(raw: unknown): TarifCreneau[] {

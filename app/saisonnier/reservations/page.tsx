@@ -257,8 +257,9 @@ export default function ReservationsSaisonnierPage() {
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
     const taxe = taxeN * nv * nuits;
-    const total = nuitees + menage + taxe + caution;
-    const acompte = (total * acomptePct) / 100;
+    const baseAcompte = nuitees + menage + taxe;
+    const total = baseAcompte + caution;
+    const acompte = (baseAcompte * acomptePct) / 100;
     return { nuits, nuitees, menage, taxe, caution, total, acompte };
   }, [form, logements, acomptePct, tarifManuelAirbnb]);
 
@@ -328,7 +329,8 @@ export default function ReservationsSaisonnierPage() {
     }
     const taxeTotal = taxeN * nv * nuits;
     const totalTtc = tarifTotal + menage + taxeTotal + caution;
-    const acompte = (totalTtc * acomptePct) / 100;
+    const baseAcompte = tarifTotal + menage + taxeTotal;
+    const acompte = (baseAcompte * acomptePct) / 100;
 
     const { data: ins, error: iErr } = await supabase
       .from("reservations")
@@ -766,6 +768,9 @@ export default function ReservationsSaisonnierPage() {
                 <p>Nuits : {preview.nuits}</p>
                 <p>Total nuitées (hébergement) : {preview.nuitees.toFixed(2)} €</p>
                 <p>Ménage + taxe + caution inclus : total TTC {preview.total.toFixed(2)} €</p>
+                <p className="text-xs" style={{ color: PC.muted }}>
+                  Acompte ({acomptePct}%) sur nuitées + taxe + ménage (hors caution)
+                </p>
                 <p>Acompte ({acomptePct}%) : {preview.acompte.toFixed(2)} €</p>
               </div>
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
