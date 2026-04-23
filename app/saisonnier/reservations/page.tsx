@@ -611,7 +611,7 @@ export default function ReservationsSaisonnierPage() {
                               Confirmer
                             </ResaActionPill>
                           ) : null}
-                          {row.statut !== "annulee" ? (
+                          {canDirectActions && row.statut !== "annulee" ? (
                             <ResaActionPill variant="red" onClick={() => void setStatut(row.id, "annulee")}>
                               Annuler
                             </ResaActionPill>
