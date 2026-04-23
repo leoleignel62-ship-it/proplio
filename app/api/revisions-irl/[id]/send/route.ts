@@ -56,9 +56,6 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (String(revision.statut ?? "").toLowerCase() !== "validee") {
       return NextResponse.json({ error: "Seules les révisions validées peuvent faire l'objet d'un envoi." }, { status: 400 });
     }
-    if (revision.lettre_envoyee) {
-      return NextResponse.json({ error: "Lettre déjà envoyée." }, { status: 400 });
-    }
 
     const bailId = revision.bail_id as string;
     const { data: bail, error: bailErr } = await supabase

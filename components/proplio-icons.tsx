@@ -116,6 +116,19 @@ export function IconTrendingUp({ className, ...p }: IconProps) {
   );
 }
 
+/** Rafraîchir / renvoyer (flèches circulaires). */
+export function IconArrowPath({ className, ...p }: IconProps) {
+  return (
+    <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} {...p}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7m0 0V9.5m0 0v4.992m0 0h-4.992"
+      />
+    </svg>
+  );
+}
+
 export function IconFolder({ className, ...p }: IconProps) {
   return (
     <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} {...p}>
