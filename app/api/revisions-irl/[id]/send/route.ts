@@ -83,6 +83,13 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       .eq("proprietaire_id", proprio.id)
       .maybeSingle();
 
+    const { data: logement } = await supabase
+      .from("logements")
+      .select("nom, adresse, code_postal, ville")
+      .eq("id", bail.logement_id as string)
+      .eq("proprietaire_id", proprio.id)
+      .maybeSingle();
+
     const tenantEmail = String(locataire?.email ?? "").trim();
     if (!tenantEmail) {
       return NextResponse.json(
@@ -108,31 +115,58 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
     const locNom = `${locataire?.prenom ?? ""} ${locataire?.nom ?? ""}`.trim() || "Locataire";
 
-    let signaturePng: Uint8Array | null = null;
+    let signatureImage: { bytes: Uint8Array; isPng: boolean } | null = null;
     const sigPath = proprio.signature_path as string | undefined;
     if (sigPath) {
       const { data: blob } = await supabaseAdmin.storage.from("signatures").download(sigPath);
       if (blob) {
         const bytes = new Uint8Array(await blob.arrayBuffer());
         const isPng = blob.type === "image/png" || sigPath.toLowerCase().endsWith(".png");
-        if (isPng) signaturePng = bytes;
+        signatureImage = { bytes, isPng };
       }
     }
+
+    const locAdr: string[] = [];
+    const logAddr = String((logement as { adresse?: string } | null)?.adresse ?? "").trim();
+    const logCp = String((logement as { code_postal?: string } | null)?.code_postal ?? "").trim();
+    const logVille = String((logement as { ville?: string } | null)?.ville ?? "").trim();
+    const logNom = String((logement as { nom?: string } | null)?.nom ?? "").trim();
+    if (logAddr) locAdr.push(logAddr);
+    if (logCp || logVille) locAdr.push([logCp, logVille].filter(Boolean).join(" "));
+    if (locAdr.length === 0) locAdr.push("Adresse du logement (à compléter)");
+    if (logNom) locAdr.push(`Logement : ${logNom}`);
+
+    const fmtEuro = (n: number) =>
+      Number.isFinite(n)
+        ? n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : "0,00";
+    const fmtIrl = (n: number) =>
+      Number.isFinite(n)
+        ? n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : "—";
+    const loyerApresN = Number(revision.loyer_apres ?? 0);
+    const chargesN = Number((bail as { charges?: number }).charges ?? 0);
 
     const pdfBytes = await generateRevisionIrlLetterPdfBuffer({
       villeSignature: v || "………………",
       dateLettre: formatFrDate(new Date().toISOString().slice(0, 10)),
       proprietaireNom: proprioNom,
       proprietaireAdresseLignes: adr,
+      proprietaireEmail: String(proprio.email ?? "").trim() || undefined,
+      proprietaireTelephone: String(proprio.telephone ?? "").trim() || undefined,
       locataireNom: locNom,
+      locataireAdresseLignes: locAdr,
       dateDebutBail: formatFrDate(String(bail.date_debut ?? "")),
       trimestreIrl: irl.trimestre,
-      valeurIrl: String(irl.valeur),
-      irlReferenceBail: String(revision.irl_ancien ?? ""),
-      loyerAvant: String(revision.loyer_avant ?? ""),
-      loyerApres: String(revision.loyer_apres ?? ""),
+      trimestreIrlReference: "référence à la date du bail",
+      valeurIrl: fmtIrl(Number(irl.valeur)),
+      irlReferenceBail: fmtIrl(Number(revision.irl_ancien ?? 0)),
+      loyerAvant: fmtEuro(Number(revision.loyer_avant ?? 0)),
+      loyerApres: fmtEuro(loyerApresN),
+      chargesMensuelles: fmtEuro(chargesN),
+      totalMensuel: fmtEuro(loyerApresN + chargesN),
       dateEffetRevision: dateEffet,
-      signaturePngBytes: signaturePng,
+      signatureImage,
     });
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
