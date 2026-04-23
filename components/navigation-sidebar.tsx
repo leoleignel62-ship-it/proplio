@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   IconBank,
   IconBuilding,
@@ -25,9 +33,22 @@ import { supabase } from "@/lib/supabase";
 
 const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
 
-const navigationMainClassique = [
+/** Ligne de séparation sidebar (#ffffff08). */
+const SIDEBAR_SEP_COLOR = "#ffffff08";
+
+const sectionLabelStyle: CSSProperties = {
+  color: "#5a5a6a",
+  fontSize: "10px",
+  fontWeight: 500,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  padding: "8px 16px",
+};
+
+const logementsNavItem = { href: "/logements", label: "Logements", icon: IconBuilding } as const;
+
+const navigationModeClassique = [
   { href: "/", label: "Dashboard", icon: IconChart },
-  { href: "/logements", label: "Logements", icon: IconBuilding },
   { href: "/locataires", label: "Locataires", icon: IconUsers },
   { href: "/quittances", label: "Quittances", icon: IconDocument },
   { href: "/baux", label: "Baux", icon: IconContract },
@@ -35,9 +56,8 @@ const navigationMainClassique = [
   { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
 ] as const;
 
-const navigationMainSaisonnier = [
+const navigationModeSaisonnier = [
   { href: "/saisonnier/dashboard", label: "Dashboard", icon: IconChart },
-  { href: "/logements", label: "Logements", icon: IconBuilding },
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
@@ -48,9 +68,21 @@ const navigationMainSaisonnier = [
 
 const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;
 
-type NavMainItem = (typeof navigationMainClassique)[number] | (typeof navigationMainSaisonnier)[number];
+type NavModeItem = (typeof navigationModeClassique)[number] | (typeof navigationModeSaisonnier)[number];
 type NavSettingsItem = (typeof navigationSettings)[number];
-type NavItem = NavMainItem | NavSettingsItem;
+type NavSidebarItem = NavModeItem | NavSettingsItem | typeof logementsNavItem;
+
+function NavSectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="m-0" style={sectionLabelStyle}>
+      {children}
+    </p>
+  );
+}
+
+function NavSeparatorLine({ className = "" }: { className?: string }) {
+  return <div className={`w-full ${className}`.trim()} style={{ borderTop: `1px solid ${SIDEBAR_SEP_COLOR}` }} aria-hidden />;
+}
 
 function pathIsActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -225,7 +257,7 @@ export function NavigationSidebar() {
     }
   }, [ownerPlan, mode, setMode]);
 
-  const navigationMain = mode === "saisonnier" ? navigationMainSaisonnier : navigationMainClassique;
+  const navigationModeItems = mode === "saisonnier" ? navigationModeSaisonnier : navigationModeClassique;
 
   function isSidebarStarterOnlyLocked(href: string): boolean {
     if (ownerPlan !== "free") return false;
@@ -234,7 +266,7 @@ export function NavigationSidebar() {
     return false;
   }
 
-  function renderNavItem(item: NavItem, closeMobile?: () => void) {
+  function renderNavItem(item: NavSidebarItem, closeMobile?: () => void) {
     const locked = isSidebarStarterOnlyLocked(item.href);
     const href = locked && item.href.startsWith("/saisonnier") ? PLAN_UPGRADE_PATH : item.href;
     return (
@@ -325,11 +357,65 @@ export function NavigationSidebar() {
     color: PC.primary,
   };
 
+  function sidebarScrollableNav(closeMobile?: () => void) {
+    return (
+      <>
+        <NavSectionLabel>Mes biens</NavSectionLabel>
+        {renderNavItem(logementsNavItem, closeMobile)}
+        <NavSeparatorLine className="my-2" />
+
+        <NavSectionLabel>{mode === "saisonnier" ? "Gestion saisonnière" : "Gestion classique"}</NavSectionLabel>
+        <div className="space-y-1">
+          {navigationModeItems.map((item) => renderNavItem(item, closeMobile))}
+        </div>
+      </>
+    );
+  }
+
+  function sidebarZoneFooter(closeMobile?: () => void) {
+    return (
+      <div
+        className="shrink-0 pt-4"
+        style={{
+          borderTop: `1px solid ${SIDEBAR_SEP_COLOR}`,
+          paddingBottom: closeMobile ? "calc(env(safe-area-inset-bottom, 20px) + 16px)" : undefined,
+        }}
+      >
+        <div className="space-y-1">
+          {navigationSettings.map((item) => renderNavItem(item, closeMobile))}
+        </div>
+        <div className="mt-5">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+              style={avatarRingStyle}
+            >
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              {ownerName ? (
+                <p className="truncate text-sm font-medium" style={{ color: PC.text }}>
+                  {ownerName}
+                </p>
+              ) : null}
+              {email ? (
+                <p className="truncate text-xs" style={{ color: PC.muted }}>
+                  {email}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <LogoutRowMuted />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <aside className="hidden flex-col md:flex" style={asideStyle}>
-        <div className="flex h-full flex-col p-5">
-          <Link href="/" className="mb-6 flex items-center gap-2.5">
+        <div className="flex h-full min-h-0 flex-col p-5">
+          <Link href="/" className="mb-6 flex shrink-0 items-center gap-2.5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={logoBadgeStyle}>
               <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
             </span>
@@ -338,34 +424,9 @@ export function NavigationSidebar() {
             </span>
           </Link>
 
-          <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-            {navigationMain.map((item) => renderNavItem(item))}
-            <div className="my-3 border-t border-white/[0.06]" aria-hidden />
-            {navigationSettings.map((item) => renderNavItem(item))}
-          </nav>
-
-          <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${PC.border}` }}>
-            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                style={avatarRingStyle}
-              >
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                {ownerName ? (
-                  <p className="truncate text-sm font-medium" style={{ color: PC.text }}>
-                    {ownerName}
-                  </p>
-                ) : null}
-                {email ? (
-                  <p className="truncate text-xs" style={{ color: PC.muted }}>
-                    {email}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            <LogoutRowMuted />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">{sidebarScrollableNav()}</nav>
+            {sidebarZoneFooter()}
           </div>
         </div>
       </aside>
@@ -484,8 +545,8 @@ export function NavigationSidebar() {
               boxShadow: "8px 0 32px rgba(0, 0, 0, 0.45)",
             }}
           >
-            <div className="flex h-full flex-col p-5">
-              <div className="mb-6 flex items-center justify-between gap-2">
+            <div className="flex h-full min-h-0 flex-col p-5">
+              <div className="mb-6 flex shrink-0 items-center justify-between gap-2">
                 <Link
                   href="/"
                   className="flex min-w-0 items-center gap-2.5"
@@ -513,40 +574,11 @@ export function NavigationSidebar() {
                 </button>
               </div>
 
-              <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-                {navigationMain.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
-                <div className="my-3 border-t border-white/[0.06]" aria-hidden />
-                {navigationSettings.map((item) => renderNavItem(item, () => setMobileOpen(false)))}
-              </nav>
-
-              <div
-                className="mt-5 pt-5"
-                style={{
-                  borderTop: `1px solid ${PC.border}`,
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 20px) + 16px)",
-                }}
-              >
-                <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={profileCardStyle}>
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                    style={avatarRingStyle}
-                  >
-                    {initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {ownerName ? (
-                      <p className="truncate text-sm font-medium" style={{ color: PC.text }}>
-                        {ownerName}
-                      </p>
-                    ) : null}
-                    {email ? (
-                      <p className="truncate text-xs" style={{ color: PC.muted }}>
-                        {email}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                <LogoutRowMuted />
+              <div className="flex min-h-0 flex-1 flex-col">
+                <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+                  {sidebarScrollableNav(() => setMobileOpen(false))}
+                </nav>
+                {sidebarZoneFooter(() => setMobileOpen(false))}
               </div>
             </div>
           </aside>
