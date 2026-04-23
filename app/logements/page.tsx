@@ -80,6 +80,7 @@ export default function LogementsPage() {
   const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
+  const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const isColocation = values.est_colocation === "oui";
@@ -511,48 +512,64 @@ export default function LogementsPage() {
                 : available === 0
                   ? { label: "Complet", bg: PC.successBg20, color: PC.success }
                   : { label: `${available} chambre(s) disponible(s)`, bg: PC.warningBg15, color: PC.warning };
+            const isHovered = hoveredLogementId === row.id;
             return (
               <article
                 key={row.id}
-                className="relative rounded-xl p-5"
-                style={{ ...panelCard, opacity: isLocked ? 0.75 : 1 }}
+                className="relative overflow-hidden rounded-xl transition-[box-shadow,border-color] duration-200"
+                style={{
+                  ...panelCard,
+                  opacity: isLocked ? 0.75 : 1,
+                  cursor: isLocked ? "default" : "pointer",
+                  borderColor: isHovered ? "#ffffff15" : undefined,
+                  boxShadow: isHovered ? "0 10px 40px -12px rgba(124, 58, 237, 0.22)" : panelCard.boxShadow,
+                }}
+                onMouseEnter={() => setHoveredLogementId(row.id)}
+                onMouseLeave={() => setHoveredLogementId(null)}
               >
-                <h3 className="text-lg font-semibold">{row.nom}</h3>
-                <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-                  {row.adresse}, {row.code_postal} {row.ville}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
-                    {row.type}
-                  </span>
-                  <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: status.bg, color: status.color }}>
-                    {status.label}
-                  </span>
-                  {isLocked ? (
-                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
-                      🔒 Verrouillé - Plan insuffisant
+                {!isLocked ? (
+                  <Link
+                    href={`/logements/${row.id}`}
+                    className="absolute inset-0 z-[1] block rounded-xl"
+                    aria-label={`Ouvrir le logement ${row.nom}`}
+                    tabIndex={-1}
+                  />
+                ) : null}
+                <div className="relative z-[2] space-y-3 p-5 pointer-events-none">
+                  <h3 className="text-lg font-semibold">{row.nom}</h3>
+                  <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                    {row.adresse}, {row.code_postal} {row.ville}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
+                      {row.type}
                     </span>
-                  ) : null}
+                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: status.bg, color: status.color }}>
+                      {status.label}
+                    </span>
+                    {isLocked ? (
+                      <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
+                        🔒 Verrouillé - Plan insuffisant
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-4 space-y-1 text-sm" style={{ color: PC.muted }}>
+                    <p>
+                      Locataires: <strong style={{ color: PC.text }}>{activeLocataires} / {capacity}</strong>
+                    </p>
+                    <p>
+                      Loyer mensuel: <strong style={{ color: PC.text }}>{loyerMensuelAffiche.toFixed(2)} €/mois</strong>{" "}
+                      (charges comprises)
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-4 space-y-1 text-sm" style={{ color: PC.muted }}>
-                  <p>
-                    Locataires: <strong style={{ color: PC.text }}>{activeLocataires} / {capacity}</strong>
-                  </p>
-                  <p>
-                    Loyer mensuel: <strong style={{ color: PC.text }}>{loyerMensuelAffiche.toFixed(2)} €/mois</strong>{" "}
-                    (charges comprises)
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="relative z-[3] flex flex-wrap items-center gap-2 p-5 pt-0 pointer-events-auto">
                   {isLocked ? (
                     <p className="text-xs" style={{ color: PC.warning }}>
                       Passez à un plan supérieur pour accéder à ce logement
                     </p>
                   ) : (
                     <>
-                      <Link href={`/logements/${row.id}`} className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-primary sm:w-auto">
-                        Voir détails
-                      </Link>
                       <button
                         type="button"
                         className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-muted sm:w-auto"
@@ -571,7 +588,7 @@ export default function LogementsPage() {
                               : "pointer",
                         }}
                         onClick={(event) => {
-                          event.preventDefault();
+                          event.stopPropagation();
                           openEditModal(row);
                         }}
                       >
@@ -582,7 +599,7 @@ export default function LogementsPage() {
                         className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-danger sm:w-auto"
                         disabled={isDeleting}
                         onClick={(event) => {
-                          event.preventDefault();
+                          event.stopPropagation();
                           void onDelete(row.id);
                         }}
                       >
