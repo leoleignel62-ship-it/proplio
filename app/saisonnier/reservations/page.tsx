@@ -748,10 +748,25 @@ export default function ReservationsSaisonnierPage() {
       </div>
 
       {modalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="my-8 w-full max-w-lg rounded-2xl p-6" style={{ ...panelCard, backgroundColor: PC.card }}>
-            <h3 className="text-lg font-semibold">Nouvelle réservation</h3>
-            <form onSubmit={onCreateSubmit} className="mt-4 space-y-3">
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4">
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="nouvelle-resa-title"
+            className="flex h-full max-h-[100dvh] min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-2xl"
+            style={{ ...panelCard, backgroundColor: PC.card }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 pb-8 sm:px-6 sm:pb-8"
+              style={{
+                paddingTop: "max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))",
+              }}
+            >
+              <h3 id="nouvelle-resa-title" className="sr-only">
+                Nouvelle réservation — formulaire
+              </h3>
+              <form onSubmit={onCreateSubmit} className="space-y-3">
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                 Logement
                 <select
@@ -937,6 +952,7 @@ export default function ReservationsSaisonnierPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       ) : null}
