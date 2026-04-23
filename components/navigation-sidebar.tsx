@@ -27,6 +27,12 @@ import {
 } from "@/components/proplio-icons";
 import { detecterBauxEligibles } from "@/lib/irl-revision";
 import { useModeLocation, type ModeLocation } from "@/lib/mode-location";
+import {
+  bellAlertAcompte,
+  bellAlertSolde,
+  montantSoldeRestant,
+  type SaisonnierRappelReservationRow,
+} from "@/lib/saisonnier-rappel-conditions";
 import { normalizePlan, PLAN_UPGRADE_PATH, type ProplioPlan } from "@/lib/plan-limits";
 import { PC } from "@/lib/proplio-colors";
 import { supabase } from "@/lib/supabase";
@@ -586,6 +592,20 @@ type HeaderAlertMetrics = {
   bauxUrgents: Array<{ id: string; locataireNom: string; dateFin: string }>;
   edlManquants: Array<{ bailId: string; logementNom: string }>;
   revisionsIrlDisponibles: Array<{ bailId: string; logementNom: string }>;
+  rappelsAcompteSaisonnier: Array<{
+    reservationId: string;
+    montant: number;
+    voyageur: string;
+    logement: string;
+    dates: string;
+  }>;
+  rappelsSoldeSaisonnier: Array<{
+    reservationId: string;
+    montant: number;
+    voyageur: string;
+    logement: string;
+    dates: string;
+  }>;
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
@@ -593,17 +613,32 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [], revisionsIrlDisponibles: [] };
+    return {
+      quittancesNonEnvoyeesMois: 0,
+      bauxUrgents: [],
+      edlManquants: [],
+      revisionsIrlDisponibles: [],
+      rappelsAcompteSaisonnier: [],
+      rappelsSoldeSaisonnier: [],
+    };
   }
 
   const { data: proprietaire } = await supabase
     .from("proprietaires")
-    .select("id")
+    .select("id, plan")
     .eq("user_id", user.id)
     .maybeSingle();
   const ownerId = proprietaire?.id as string | undefined;
+  const ownerPlan = normalizePlan((proprietaire as { plan?: string | null } | null)?.plan);
   if (!ownerId) {
-    return { quittancesNonEnvoyeesMois: 0, bauxUrgents: [], edlManquants: [], revisionsIrlDisponibles: [] };
+    return {
+      quittancesNonEnvoyeesMois: 0,
+      bauxUrgents: [],
+      edlManquants: [],
+      revisionsIrlDisponibles: [],
+      rappelsAcompteSaisonnier: [],
+      rappelsSoldeSaisonnier: [],
+    };
   }
 
   const now = new Date();
@@ -695,7 +730,83 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     logementNom: logementsMap.get(String(b.logement_id ?? "")) ?? "Logement",
   }));
 
-  return { quittancesNonEnvoyeesMois, bauxUrgents, edlManquants, revisionsIrlDisponibles };
+  const todayIso = new Date().toISOString().slice(0, 10);
+  let rappelsAcompteSaisonnier: HeaderAlertMetrics["rappelsAcompteSaisonnier"] = [];
+  let rappelsSoldeSaisonnier: HeaderAlertMetrics["rappelsSoldeSaisonnier"] = [];
+
+  if (ownerPlan !== "free") {
+    const { data: resaRows } = await supabase
+      .from("reservations")
+      .select(
+        "id, voyageur_id, date_arrivee, date_depart, montant_acompte, tarif_total, tarif_menage, taxe_sejour_total, delai_solde_jours, acompte_recu, solde_recu, voyageurs(prenom, nom), logements(nom)",
+      )
+      .eq("proprietaire_id", ownerId)
+      .eq("source", "direct")
+      .eq("statut", "confirmee")
+      .not("voyageur_id", "is", null)
+      .gte("date_arrivee", todayIso);
+
+    for (const raw of resaRows ?? []) {
+      const rec = raw as Record<string, unknown>;
+      const vg = rec.voyageurs;
+      const lg = rec.logements;
+      const vj = Array.isArray(vg)
+        ? (vg[0] as { prenom?: string; nom?: string })
+        : (vg as { prenom?: string; nom?: string } | null);
+      const lj = Array.isArray(lg) ? (lg[0] as { nom?: string }) : (lg as { nom?: string } | null);
+      const row: SaisonnierRappelReservationRow = {
+        id: String(rec.id),
+        proprietaire_id: ownerId,
+        source: "direct",
+        statut: "confirmee",
+        voyageur_id: rec.voyageur_id ? String(rec.voyageur_id) : null,
+        date_arrivee: String(rec.date_arrivee),
+        date_depart: String(rec.date_depart),
+        heure_arrivee: null,
+        heure_depart: null,
+        nb_voyageurs: null,
+        tarif_total: Number(rec.tarif_total),
+        tarif_menage: Number(rec.tarif_menage ?? 0),
+        taxe_sejour_total: Number(rec.taxe_sejour_total ?? 0),
+        montant_acompte: Number(rec.montant_acompte ?? 0),
+        delai_solde_jours: rec.delai_solde_jours != null ? Number(rec.delai_solde_jours) : null,
+        acompte_recu: rec.acompte_recu === true ? true : false,
+        solde_recu: rec.solde_recu === true ? true : false,
+        rappel_acompte_envoye: null,
+        rappel_solde_envoye: null,
+      };
+      const voyageurLabel = `${vj?.prenom ?? ""} ${vj?.nom ?? ""}`.trim() || "Voyageur";
+      const logementNom = String(lj?.nom ?? "Logement");
+      const dates = `${row.date_arrivee} → ${row.date_depart}`;
+      if (bellAlertAcompte(row)) {
+        rappelsAcompteSaisonnier.push({
+          reservationId: row.id,
+          montant: Number(rec.montant_acompte ?? 0),
+          voyageur: voyageurLabel,
+          logement: logementNom,
+          dates,
+        });
+      }
+      if (bellAlertSolde(row)) {
+        rappelsSoldeSaisonnier.push({
+          reservationId: row.id,
+          montant: montantSoldeRestant(row),
+          voyageur: voyageurLabel,
+          logement: logementNom,
+          dates,
+        });
+      }
+    }
+  }
+
+  return {
+    quittancesNonEnvoyeesMois,
+    bauxUrgents,
+    edlManquants,
+    revisionsIrlDisponibles,
+    rappelsAcompteSaisonnier,
+    rappelsSoldeSaisonnier,
+  };
 }
 
 let headerAlertsCache: HeaderAlertMetrics | null = null;
@@ -716,6 +827,8 @@ function ensureHeaderAlertsLoaded(): Promise<HeaderAlertMetrics> {
           bauxUrgents: [],
           edlManquants: [],
           revisionsIrlDisponibles: [],
+          rappelsAcompteSaisonnier: [],
+          rappelsSoldeSaisonnier: [],
         };
         headerAlertsCache = empty;
         return empty;
@@ -729,6 +842,14 @@ export function invalidateHeaderAlertsCache() {
   headerAlertsInflight = null;
 }
 
+export async function refreshHeaderAlerts(): Promise<HeaderAlertMetrics> {
+  invalidateHeaderAlertsCache();
+  const data = await loadHeaderAlerts();
+  headerAlertsCache = data;
+  headerAlertsInflight = Promise.resolve(data);
+  return data;
+}
+
 function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<HeaderAlertMetrics>({
@@ -736,6 +857,8 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     bauxUrgents: [],
     edlManquants: [],
     revisionsIrlDisponibles: [],
+    rappelsAcompteSaisonnier: [],
+    rappelsSoldeSaisonnier: [],
   });
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -756,7 +879,9 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     alerts.quittancesNonEnvoyeesMois +
     alerts.bauxUrgents.length +
     alerts.edlManquants.length +
-    alerts.revisionsIrlDisponibles.length;
+    alerts.revisionsIrlDisponibles.length +
+    alerts.rappelsAcompteSaisonnier.length +
+    alerts.rappelsSoldeSaisonnier.length;
   const hasAnyAlert = badgeCount > 0;
 
   return (
@@ -829,6 +954,78 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     <span>📈</span>
                     <span>Révision de loyer disponible pour {item.logementNom}</span>
                   </Link>
+                ))}
+                {alerts.rappelsAcompteSaisonnier.map((item) => (
+                  <div
+                    key={`acompte-${item.reservationId}`}
+                    className="mb-1 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span>💰</span>
+                      <span>
+                        Acompte attendu de{" "}
+                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
+                        {item.voyageur} · {item.logement} · {item.dates}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs font-semibold"
+                      style={{ backgroundColor: "#7c3aed", color: "#fff" }}
+                      onClick={() => {
+                        void (async () => {
+                          const res = await fetch("/api/saisonnier/send-rappel-acompte", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reservation_id: item.reservationId }),
+                          });
+                          if (res.ok) {
+                            const fresh = await refreshHeaderAlerts();
+                            setAlerts(fresh);
+                          }
+                        })();
+                      }}
+                    >
+                      Envoyer le rappel
+                    </button>
+                  </div>
+                ))}
+                {alerts.rappelsSoldeSaisonnier.map((item) => (
+                  <div
+                    key={`solde-${item.reservationId}`}
+                    className="mb-1 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span>💳</span>
+                      <span>
+                        Solde attendu de{" "}
+                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
+                        {item.voyageur} · {item.logement} · {item.dates}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs font-semibold"
+                      style={{ backgroundColor: "#7c3aed", color: "#fff" }}
+                      onClick={() => {
+                        void (async () => {
+                          const res = await fetch("/api/saisonnier/send-rappel-solde", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reservation_id: item.reservationId }),
+                          });
+                          if (res.ok) {
+                            const fresh = await refreshHeaderAlerts();
+                            setAlerts(fresh);
+                          }
+                        })();
+                      }}
+                    >
+                      Envoyer le rappel
+                    </button>
+                  </div>
                 ))}
               </>
             )}

@@ -197,3 +197,11 @@ ADD COLUMN IF NOT EXISTS heure_depart text DEFAULT '11:00';
 
 ALTER TABLE public.reservations
 ADD COLUMN IF NOT EXISTS menage_inclus boolean DEFAULT true;
+
+-- Rappels acompte / solde (réservations directes)
+ALTER TABLE public.reservations
+ADD COLUMN IF NOT EXISTS acompte_recu boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS solde_recu boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS delai_solde_jours integer DEFAULT 30,
+ADD COLUMN IF NOT EXISTS rappel_acompte_envoye boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS rappel_solde_envoye boolean DEFAULT false;

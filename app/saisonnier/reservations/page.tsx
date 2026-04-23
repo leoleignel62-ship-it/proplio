@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -53,6 +54,9 @@ type ReservationRow = {
   source: string;
   notes: string | null;
   contrat_envoye: boolean | null;
+  acompte_recu: boolean;
+  solde_recu: boolean;
+  delai_solde_jours: number;
   logements?: { nom: string } | null;
   voyageurs?: { prenom: string; nom: string; email: string | null } | null;
 };
@@ -136,7 +140,7 @@ export default function ReservationsSaisonnierPage() {
   const [deleteBlocageConfirmId, setDeleteBlocageConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [sendConfirm, setSendConfirm] = useState<{
-    kind: "contrat" | "acompte" | "solde";
+    kind: "contrat";
     id: string;
     email: string;
   } | null>(null);
@@ -153,6 +157,7 @@ export default function ReservationsSaisonnierPage() {
     source: "direct",
     notes: "",
     menage_inclus: true,
+    delai_solde_jours: "30",
   });
   const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
 
@@ -217,6 +222,12 @@ export default function ReservationsSaisonnierPage() {
         source: String(r.source ?? "direct"),
         notes: (r.notes as string | null) ?? null,
         contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
+        acompte_recu: (r as { acompte_recu?: boolean }).acompte_recu === true,
+        solde_recu: (r as { solde_recu?: boolean }).solde_recu === true,
+        delai_solde_jours:
+          (r as { delai_solde_jours?: number }).delai_solde_jours != null
+            ? Number((r as { delai_solde_jours?: number }).delai_solde_jours)
+            : 30,
         logements: logementsJoin ? { nom: String(logementsJoin.nom ?? "") } : null,
         voyageurs: voyageursJoin
           ? {
@@ -328,6 +339,7 @@ export default function ReservationsSaisonnierPage() {
       source: "direct",
       notes: "",
       menage_inclus: true,
+      delai_solde_jours: "30",
     });
     setTarifManuelAirbnb("");
     setModalOpen(true);
@@ -387,6 +399,7 @@ export default function ReservationsSaisonnierPage() {
     const totalTtc = tarifTotal + menageFacture + taxeTotal + caution;
     const baseAcompte = tarifTotal + menageFacture + taxeTotal;
     const acompte = (baseAcompte * acomptePct) / 100;
+    const delaiSolde = Math.max(0, Math.floor(Number(form.delai_solde_jours) || 30));
 
     const { data: ins, error: iErr } = await supabase
       .from("reservations")
@@ -409,6 +422,7 @@ export default function ReservationsSaisonnierPage() {
         statut: form.source === "direct" ? "confirmee" : "en_attente",
         source: form.source,
         notes: form.notes.trim() || null,
+        delai_solde_jours: delaiSolde,
       })
       .select("id")
       .single();
@@ -493,6 +507,22 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }
 
+  async function toggleAcompteSoldeRecu(field: "acompte_recu" | "solde_recu", id: string, next: boolean) {
+    const { proprietaireId, error: e } = await getCurrentProprietaireId();
+    if (e || !proprietaireId) return;
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ [field]: next })
+      .eq("id", id)
+      .eq("proprietaire_id", proprietaireId);
+    if (uErr) {
+      setError(formatSubmitError(uErr));
+      return;
+    }
+    invalidateHeaderAlertsCache();
+    void load();
+  }
+
   async function deleteReservationPermanently(id: string): Promise<boolean> {
     setDeleteSubmitting(true);
     setError("");
@@ -534,7 +564,7 @@ export default function ReservationsSaisonnierPage() {
     if (ok) setDeleteBlocageConfirmId(null);
   }
 
-  async function sendApi(kind: "contrat" | "acompte" | "solde", id: string): Promise<boolean> {
+  async function sendApi(kind: "contrat", id: string): Promise<boolean> {
     setError("");
     const res = await fetch(`/api/saisonnier/reservations/${id}/send-${kind}`, { method: "POST" });
     const j = (await res.json().catch(() => ({}))) as { error?: string };
@@ -546,7 +576,7 @@ export default function ReservationsSaisonnierPage() {
     return true;
   }
 
-  function requestSendConfirm(kind: "contrat" | "acompte" | "solde", row: ReservationRow) {
+  function requestSendConfirm(kind: "contrat", row: ReservationRow) {
     const email = row.voyageurs?.email?.trim();
     if (!email) {
       setError("Le voyageur doit avoir une adresse e-mail.");
@@ -708,6 +738,30 @@ export default function ReservationsSaisonnierPage() {
                         </>
                       )}
                     </div>
+                  ) : row.source === "direct" ? (
+                    <div className="flex flex-col gap-1">
+                      <span>{row.tarif_total.toFixed(0)} €</span>
+                      <div className="flex flex-wrap gap-1">
+                        <span
+                          className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            backgroundColor: row.acompte_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
+                            color: row.acompte_recu ? "#16a34a" : "#ea580c",
+                          }}
+                        >
+                          {row.acompte_recu ? "Acompte ✓" : "Acompte ⏳"}
+                        </span>
+                        <span
+                          className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            backgroundColor: row.solde_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
+                            color: row.solde_recu ? "#16a34a" : "#ea580c",
+                          }}
+                        >
+                          {row.solde_recu ? "Solde ✓" : "Solde ⏳"}
+                        </span>
+                      </div>
+                    </div>
                   ) : (
                     `${row.tarif_total.toFixed(0)} €`
                   )}
@@ -780,15 +834,35 @@ export default function ReservationsSaisonnierPage() {
                               Contrat
                             </ResaActionPill>
                           ) : null}
-                          {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violetOutline" onClick={() => requestSendConfirm("acompte", row)}>
-                              Acompte
-                            </ResaActionPill>
-                          ) : null}
-                          {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violetOutline" onClick={() => requestSendConfirm("solde", row)}>
-                              Solde
-                            </ResaActionPill>
+                          {canDirectActions && row.voyageurs && row.source === "direct" ? (
+                            <div className="col-span-2 flex flex-col gap-1">
+                              <button
+                                type="button"
+                                className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
+                                style={{
+                                  backgroundColor: row.acompte_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
+                                  color: row.acompte_recu ? "#fff" : PC.muted,
+                                  border: "none",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => void toggleAcompteSoldeRecu("acompte_recu", row.id, !row.acompte_recu)}
+                              >
+                                Acompte reçu ✓
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
+                                style={{
+                                  backgroundColor: row.solde_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
+                                  color: row.solde_recu ? "#fff" : PC.muted,
+                                  border: "none",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => void toggleAcompteSoldeRecu("solde_recu", row.id, !row.solde_recu)}
+                              >
+                                Solde reçu ✓
+                              </button>
+                            </div>
                           ) : null}
                           {isOta ? (
                             <ResaActionPill
@@ -950,6 +1024,19 @@ export default function ReservationsSaisonnierPage() {
                 Acompte demandé (%)
                 <input type="number" min={0} max={100} style={fieldInputStyle} value={acomptePct} onChange={(e) => setAcomptePct(Number(e.target.value) || 0)} />
               </label>
+              <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                Solde dû — jours avant l&apos;arrivée
+                <input
+                  type="number"
+                  min={0}
+                  style={fieldInputStyle}
+                  value={form.delai_solde_jours}
+                  onChange={(e) => setForm((f) => ({ ...f, delai_solde_jours: e.target.value }))}
+                />
+                <span className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                  0 = solde à régler à l&apos;arrivée
+                </span>
+              </label>
               {(() => {
                 const lgM = logements.find((l) => l.id === form.logement_id);
                 const tarifMenageLogement = lgM?.tarif_menage != null ? Number(lgM.tarif_menage) : 0;
@@ -1109,11 +1196,7 @@ export default function ReservationsSaisonnierPage() {
               Confirmation d&apos;envoi
             </h3>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              {sendConfirm.kind === "contrat"
-                ? `Envoyer le contrat de séjour à ${sendConfirm.email} ?`
-                : sendConfirm.kind === "acompte"
-                  ? `Envoyer le reçu d'acompte à ${sendConfirm.email} ?`
-                  : `Envoyer le reçu de solde à ${sendConfirm.email} ?`}
+              {`Envoyer le contrat de séjour à ${sendConfirm.email} ?`}
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button
