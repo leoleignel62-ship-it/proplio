@@ -512,23 +512,27 @@ async function getSaisonnierDashboardSnapshot(
   }
 }
 
-async function getLogementsModeFlags(
-  supabase: SupabaseClient,
-  ownerId: string,
-): Promise<{ hasClassique: boolean; hasSaisonnier: boolean }> {
+type PortfolioKind = "onlyClassique" | "onlySaisonnier" | "mixed";
+
+async function getPortfolioKind(supabase: SupabaseClient, ownerId: string): Promise<PortfolioKind> {
   try {
     const { data, error } = await supabase.from("logements").select("type_location").eq("proprietaire_id", ownerId);
-    if (error || !data?.length) return { hasClassique: true, hasSaisonnier: false };
-    let hasClassique = false;
-    let hasSaisonnier = false;
+    if (error || !data?.length) return "onlyClassique";
+    let hasPureC = false;
+    let hasPureS = false;
+    let hasLesDeux = false;
     for (const row of data) {
       const t = (row.type_location as string | null) ?? "classique";
-      if (t === "classique" || t === "les_deux") hasClassique = true;
-      if (t === "saisonnier" || t === "les_deux") hasSaisonnier = true;
+      if (t === "les_deux") hasLesDeux = true;
+      else if (t === "saisonnier") hasPureS = true;
+      else hasPureC = true;
     }
-    return { hasClassique, hasSaisonnier };
+    if (hasLesDeux || (hasPureC && hasPureS)) return "mixed";
+    if (hasPureS && !hasPureC) return "onlySaisonnier";
+    if (hasPureC && !hasPureS) return "onlyClassique";
+    return "mixed";
   } catch {
-    return { hasClassique: true, hasSaisonnier: false };
+    return "onlyClassique";
   }
 }
 
@@ -586,14 +590,14 @@ function StatCard({
 }
 
 export function DashboardContent() {
-  const { mode, setMode, isSaisonnier } = useModeLocation();
+  const { setMode, isSaisonnier } = useModeLocation();
   const [prenom, setPrenom] = useState("");
   const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
   const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
   const [saisonnier, setSaisonnier] = useState<SaisonnierDashData>(emptySaisonnierDash);
-  const [hasBothModes, setHasBothModes] = useState(false);
+  const [portfolioKind, setPortfolioKind] = useState<PortfolioKind>("onlyClassique");
   /** Évite ResponsiveContainer avec taille -1 au prérendu SSR / build statique. */
   const [chartMounted, setChartMounted] = useState(false);
 
@@ -646,11 +650,11 @@ export function DashboardContent() {
         const ownerId = proprietaire?.id as string | undefined;
         if (!ownerId || cancelled) return;
 
-        const [dashboardStats, derived, snap, flags] = await Promise.all([
+        const [dashboardStats, derived, snap, kind] = await Promise.all([
           getDashboardStats(supabase, ownerId),
           getFinancialAndAnnual(supabase, ownerId),
           getSaisonnierDashboardSnapshot(supabase, ownerId),
-          getLogementsModeFlags(supabase, ownerId),
+          getPortfolioKind(supabase, ownerId),
         ]);
 
         if (cancelled) return;
@@ -658,7 +662,7 @@ export function DashboardContent() {
         setFinancial(derived.financial);
         setAnnual(derived.annual);
         setSaisonnier(snap);
-        setHasBothModes(flags.hasClassique && flags.hasSaisonnier);
+        setPortfolioKind(kind);
       } catch {
         /* garder zéros */
       }
@@ -692,6 +696,10 @@ export function DashboardContent() {
     year: "numeric",
   }).format(new Date());
 
+  const showVueGlobale = portfolioKind === "mixed";
+  const showSaisonnierDash = portfolioKind === "onlySaisonnier" || (portfolioKind === "mixed" && isSaisonnier);
+  const showClassicDash = portfolioKind === "onlyClassique" || (portfolioKind === "mixed" && !isSaisonnier);
+
   return (
     <>
       {showProfileOnboardingBanner ? (
@@ -723,7 +731,7 @@ export function DashboardContent() {
         </div>
       </header>
 
-      {hasBothModes ? (
+      {showVueGlobale ? (
         <section
           className="space-y-4 p-5 sm:p-6"
           style={{
@@ -780,7 +788,7 @@ export function DashboardContent() {
         </section>
       ) : null}
 
-      {isSaisonnier ? (
+      {showSaisonnierDash ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
@@ -911,7 +919,7 @@ export function DashboardContent() {
         </>
       ) : null}
 
-      {!isSaisonnier ? (
+      {showClassicDash ? (
         <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

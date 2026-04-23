@@ -64,6 +64,12 @@ type Logement = {
   ical_booking_url?: string | null;
 };
 
+function logementVisibleInMode(type_location: string | null | undefined, saisonnier: boolean): boolean {
+  const t = type_location ?? "classique";
+  if (saisonnier) return t === "saisonnier" || t === "les_deux";
+  return t === "classique" || t === "les_deux";
+}
+
 const EQUIPEMENTS_SAISONNIER_OPTS = [
   "Wifi",
   "Parking",
@@ -133,6 +139,11 @@ export default function LogementsPage() {
   const loyerGlobal = Number(values.loyer || 0);
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
   const isPlanLimitReached = Boolean(planLimitMessage);
+
+  const displayedRows = useMemo(
+    () => rows.filter((r) => logementVisibleInMode(r.type_location, isSaisonnier)),
+    [rows, isSaisonnier],
+  );
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const [plan, totalCree, existingCount] = await Promise.all([
@@ -644,9 +655,13 @@ export default function LogementsPage() {
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Aucun logement enregistré.
         </div>
+      ) : displayedRows.length === 0 ? (
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Aucun logement dans ce mode. Changez le mode (classique / saisonnier) dans la barre latérale ou le type de location du bien (classique, saisonnier, les deux).
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {rows.map((row) => {
+          {displayedRows.map((row) => {
             const isLocked = Boolean(row.verrouille);
             const activeLocataires = locatairesByLogement[row.id] ?? 0;
             const capacity = row.est_colocation ? Number(row.nombre_chambres || 1) : 1;

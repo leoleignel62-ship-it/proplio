@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
@@ -39,6 +40,18 @@ const STATUT_COLOR: Record<string, string> = {
   annulee: PC.danger,
 };
 
+const CalendrierPlanning = dynamic(
+  () => import("@/components/saisonnier/calendrier-planning"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl p-6 text-sm" style={{ color: PC.muted }}>
+        Chargement du planning…
+      </div>
+    ),
+  },
+);
+
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T12:00:00");
   d.setDate(d.getDate() + days);
@@ -62,7 +75,6 @@ export default function ReservationsSaisonnierPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [acomptePct, setAcomptePct] = useState(30);
-  const timelineRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; deltaDays: number; arr0: string; dep0: string } | null>(null);
 
   const [form, setForm] = useState({
@@ -488,61 +500,19 @@ export default function ReservationsSaisonnierPage() {
           </table>
         </div>
       ) : (
-        <div className="space-y-4 overflow-x-auto" ref={timelineRef}>
-          <p className="text-xs" style={{ color: PC.muted }}>
-            Glisser une réservation pour décaler les dates (même durée). Mois courant.
-          </p>
-          {logements.map((lg) => (
-            <div key={lg.id} className="min-w-[800px]">
-              <p className="mb-2 text-sm font-medium">{lg.nom}</p>
-              <div className="relative flex" style={{ height: 40, border: `1px solid ${PC.border}` }}>
-                {monthDays.map((d) => (
-                  <div
-                    key={d.toISOString()}
-                    className="shrink-0 border-r text-[10px] leading-tight"
-                    style={{ width: pxPerDay, borderColor: PC.border, color: PC.muted }}
-                  >
-                    {d.getDate()}
-                  </div>
-                ))}
-                {rows
-                  .filter((r) => r.logement_id === lg.id && r.date_depart >= monthStartStr && r.date_arrivee <= monthEndStr)
-                  .map((row) => {
-                    const mStart = new Date(`${monthStartStr}T12:00:00`);
-                    const mEnd = new Date(`${monthEndStr}T12:00:00`);
-                    const rStart = new Date(`${row.date_arrivee}T12:00:00`);
-                    const rEnd = new Date(`${row.date_depart}T12:00:00`);
-                    const visStart = rStart > mStart ? rStart : mStart;
-                    const visEnd = rEnd < mEnd ? rEnd : mEnd;
-                    const left = Math.max(0, Math.round((visStart.getTime() - mStart.getTime()) / 86400000)) * pxPerDay;
-                    const width = Math.max(pxPerDay, Math.round((visEnd.getTime() - visStart.getTime()) / 86400000) * pxPerDay);
-                    return (
-                      <button
-                        key={row.id}
-                        type="button"
-                        className="absolute top-1 cursor-grab rounded px-1 text-left text-[10px] font-medium active:cursor-grabbing"
-                        style={{
-                          left,
-                          width,
-                          backgroundColor: `${STATUT_COLOR[row.statut] ?? PC.primary}55`,
-                          color: PC.text,
-                          border: `1px solid ${STATUT_COLOR[row.statut] ?? PC.primary}`,
-                          height: 28,
-                          overflow: "hidden",
-                        }}
-                        onPointerDown={(e) => onPointerDownBar(e, row)}
-                        onPointerMove={onPointerMoveBar}
-                        onPointerUp={() => void onPointerUpBar()}
-                        onPointerCancel={() => void onPointerUpBar()}
-                      >
-                        {row.voyageurs?.nom ?? row.notes ?? "Résa"}
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          ))}
-        </div>
+        <CalendrierPlanning
+          logements={logements}
+          rows={rows}
+          monthDays={monthDays}
+          monthStartStr={monthStartStr}
+          monthEndStr={monthEndStr}
+          pxPerDay={pxPerDay}
+          onPointerDownBar={(e, row) => onPointerDownBar(e, row as ReservationRow)}
+          onPointerMoveBar={onPointerMoveBar}
+          onPointerUpBar={() => {
+            void onPointerUpBar();
+          }}
+        />
       )}
 
       {modalOpen ? (
