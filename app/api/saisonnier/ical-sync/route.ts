@@ -6,7 +6,23 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-type Source = "airbnb" | "booking";
+type JobSource = "airbnb" | "booking";
+
+const BLOCAGE_SUMMARY_MARKERS = [
+  "blocked",
+  "not available",
+  "unavailable",
+  "airbnb (not available)",
+  "owner",
+  "propriétaire",
+  "perso",
+  "personnel",
+] as const;
+
+function isBlocagePersonnelFromSummary(summary: string): boolean {
+  const s = summary.toLowerCase();
+  return BLOCAGE_SUMMARY_MARKERS.some((m) => s.includes(m.toLowerCase()));
+}
 
 export async function POST(request: Request) {
   try {
@@ -59,7 +75,7 @@ export async function POST(request: Request) {
     const tarifCautionRow = Number(logement.tarif_caution ?? 0);
     const taxeNuit = Number(logement.taxe_sejour_nuit ?? 0);
 
-    const jobs: Array<{ url: string; source: Source }> = [];
+    const jobs: Array<{ url: string; source: JobSource }> = [];
     const airbnb = String(logement.ical_airbnb_url ?? "").trim();
     const booking = String(logement.ical_booking_url ?? "").trim();
     if (airbnb) jobs.push({ url: airbnb, source: "airbnb" });
@@ -91,9 +107,13 @@ export async function POST(request: Request) {
         );
         if (nbNuits <= 0) continue;
 
-        const tarifTotal = calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
-        const tarifNuit = nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
-        const taxeTotal = taxeNuit * nbNuits * 1;
+        const isBlocage = isBlocagePersonnelFromSummary(ev.summary);
+        const source = isBlocage ? "blocage" : job.source;
+        const tarifTotal = isBlocage ? 0 : calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
+        const tarifNuit = isBlocage ? 0 : nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
+        const taxeTotal = isBlocage ? 0 : taxeNuit * nbNuits * 1;
+        const menageRow = isBlocage ? 0 : tarifMenage;
+        const cautionRow = isBlocage ? 0 : tarifCautionRow;
         const { data: existing } = await supabase
           .from("reservations")
           .select("id, notes")
@@ -112,11 +132,11 @@ export async function POST(request: Request) {
           nb_voyageurs: 1,
           tarif_nuit: tarifNuit,
           tarif_total: tarifTotal,
-          tarif_menage: tarifMenage,
-          tarif_caution: tarifCautionRow,
+          tarif_menage: menageRow,
+          tarif_caution: cautionRow,
           taxe_sejour_total: taxeTotal,
           statut: "confirmee",
-          source: job.source,
+          source,
           notes: ev.summary,
         };
 
@@ -126,11 +146,11 @@ export async function POST(request: Request) {
             .update({
               tarif_nuit: tarifNuit,
               tarif_total: tarifTotal,
-              tarif_menage: tarifMenage,
-              tarif_caution: tarifCautionRow,
+              tarif_menage: menageRow,
+              tarif_caution: cautionRow,
               taxe_sejour_total: taxeTotal,
               statut: "confirmee",
-              source: job.source,
+              source,
               notes: ev.summary,
             })
             .eq("id", existing.id)

@@ -659,7 +659,9 @@ export default function ReservationsSaisonnierPage() {
                 <td className="px-3 py-2">{row.date_depart}</td>
                 <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
                 <td className="px-3 py-2 align-top">
-                  {row.source === "airbnb" || row.source === "booking" ? (
+                  {row.source === "blocage" ? (
+                    <span style={{ color: PC.muted }}>—</span>
+                  ) : row.source === "airbnb" || row.source === "booking" ? (
                     <div className="flex flex-col gap-0.5">
                       {editingMontantId === row.id ? (
                         <input
@@ -702,12 +704,25 @@ export default function ReservationsSaisonnierPage() {
                     {row.statut}
                   </span>
                 </td>
-                <td className="px-3 py-2">{row.source}</td>
+                <td className="px-3 py-2">
+                  {row.source === "blocage" ? (
+                    <span
+                      className="rounded px-2 py-0.5 text-xs"
+                      style={{ backgroundColor: "rgba(148, 163, 184, 0.12)", color: PC.muted }}
+                    >
+                      Blocage personnel
+                    </span>
+                  ) : (
+                    row.source
+                  )}
+                </td>
                 <td className="px-3 py-2 align-top">
                   {(() => {
                     const isOta = row.source === "airbnb" || row.source === "booking";
-                    const canDirectActions = !isOta;
-                    const canDeletePermanently = row.source === "direct" || row.source === "autre";
+                    const isBlocage = row.source === "blocage";
+                    const canDirectActions = !isOta && !isBlocage;
+                    const canDeletePermanently =
+                      row.source === "direct" || row.source === "autre" || row.source === "blocage";
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
                         <button
@@ -763,9 +778,11 @@ export default function ReservationsSaisonnierPage() {
                               Solde
                             </ResaActionPill>
                           ) : null}
-                          <ResaActionPill variant="grey" onClick={() => void markMenageDone(row.id, row.logement_id)}>
-                            Ménage ✓
-                          </ResaActionPill>
+                          {!isBlocage ? (
+                            <ResaActionPill variant="grey" onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                              Ménage ✓
+                            </ResaActionPill>
+                          ) : null}
                         </div>
                       </div>
                     );
@@ -994,6 +1011,7 @@ export default function ReservationsSaisonnierPage() {
               const row = rows.find((r) => r.id === detailId);
               if (!row) return null;
               const isOta = row.source === "airbnb" || row.source === "booking";
+              const isBlocage = row.source === "blocage";
               return (
                 <>
                   <h3 className="text-lg font-semibold">Détail réservation</h3>
@@ -1002,8 +1020,20 @@ export default function ReservationsSaisonnierPage() {
                     <li>
                       Dates : {row.date_arrivee} ({row.heure_arrivee}) → {row.date_depart} ({row.heure_depart})
                     </li>
-                    <li>Source : {row.source}</li>
-                    <li>Montant (hébergement) : {row.tarif_total.toFixed(2)} €</li>
+                    <li className="flex flex-wrap items-center gap-2">
+                      Source :{" "}
+                      {isBlocage ? (
+                        <span
+                          className="rounded px-2 py-0.5 text-xs"
+                          style={{ backgroundColor: "rgba(148, 163, 184, 0.12)", color: PC.muted }}
+                        >
+                          Blocage personnel
+                        </span>
+                      ) : (
+                        row.source
+                      )}
+                    </li>
+                    <li>Montant (hébergement) : {isBlocage ? "—" : `${row.tarif_total.toFixed(2)} €`}</li>
                     <li>Statut : {row.statut}</li>
                     <li>Notes : {row.notes ?? "—"}</li>
                   </ul>
@@ -1132,11 +1162,9 @@ export default function ReservationsSaisonnierPage() {
             <h3 id="delete-ota-proplio-title" className="text-lg font-semibold" style={{ color: PC.text }}>
               Supprimer de Proplio
             </h3>
-            <div className="mt-3 space-y-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              <p className="m-0">Supprimer cette réservation de Proplio ?</p>
-              <p className="m-0">Elle restera visible sur Airbnb/Booking.</p>
-              <p className="m-0">Cette action est irréversible.</p>
-            </div>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Supprimer cette réservation de Proplio ? Elle restera sur Airbnb/Booking.
+            </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
