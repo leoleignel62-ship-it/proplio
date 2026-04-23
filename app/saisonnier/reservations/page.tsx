@@ -122,6 +122,8 @@ export default function ReservationsSaisonnierPage() {
   const montantInputRef = useRef<HTMLInputElement | null>(null);
   const [detailPrixReel, setDetailPrixReel] = useState("");
   const [detailSaving, setDetailSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     logement_id: "",
@@ -430,6 +432,31 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }
 
+  async function confirmDeleteReservation() {
+    if (!deleteConfirmId) return;
+    setDeleteSubmitting(true);
+    setError("");
+    const idToRemove = deleteConfirmId;
+    const { proprietaireId, error: e } = await getCurrentProprietaireId();
+    if (e || !proprietaireId) {
+      setDeleteSubmitting(false);
+      return;
+    }
+    const { error: dErr } = await supabase
+      .from("reservations")
+      .delete()
+      .eq("id", idToRemove)
+      .eq("proprietaire_id", proprietaireId);
+    setDeleteSubmitting(false);
+    if (dErr) {
+      setError(formatSubmitError(dErr));
+      return;
+    }
+    setDeleteConfirmId(null);
+    if (detailId === idToRemove) setDetailId(null);
+    void load();
+  }
+
   async function sendApi(kind: "contrat" | "acompte" | "solde", id: string) {
     setError("");
     const res = await fetch(`/api/saisonnier/reservations/${id}/send-${kind}`, { method: "POST" });
@@ -595,6 +622,7 @@ export default function ReservationsSaisonnierPage() {
                   {(() => {
                     const isOta = row.source === "airbnb" || row.source === "booking";
                     const canDirectActions = !isOta;
+                    const isDirectSource = row.source === "direct";
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
                         <button
@@ -611,7 +639,11 @@ export default function ReservationsSaisonnierPage() {
                               Confirmer
                             </ResaActionPill>
                           ) : null}
-                          {canDirectActions && row.statut !== "annulee" ? (
+                          {canDirectActions && isDirectSource ? (
+                            <ResaActionPill variant="red" onClick={() => setDeleteConfirmId(row.id)}>
+                              Supprimer
+                            </ResaActionPill>
+                          ) : canDirectActions && !isDirectSource && row.statut !== "annulee" ? (
                             <ResaActionPill variant="red" onClick={() => void setStatut(row.id, "annulee")}>
                               Annuler
                             </ResaActionPill>
@@ -809,6 +841,43 @@ export default function ReservationsSaisonnierPage() {
                 </>
               );
             })()}
+          </div>
+        </div>
+      ) : null}
+
+      {deleteConfirmId ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="delete-resa-title"
+        >
+          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+            <h3 id="delete-resa-title" className="text-lg font-semibold" style={{ color: PC.text }}>
+              Supprimer la réservation
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Êtes-vous sûr de vouloir supprimer cette réservation ? Cette action est irréversible.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="proplio-btn-secondary px-4 py-2 text-sm"
+                disabled={deleteSubmitting}
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Retour
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: "#dc2626" }}
+                disabled={deleteSubmitting}
+                onClick={() => void confirmDeleteReservation()}
+              >
+                {deleteSubmitting ? "Suppression…" : "Supprimer"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
