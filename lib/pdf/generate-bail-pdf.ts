@@ -5,6 +5,7 @@ import {
   PDF_BORDER as BORDER_LIGHT,
   PDF_INFO_BLOCK_BG,
   PDF_MARGIN_X as MARGIN,
+  PDF_MARGIN_Y,
   PDF_PAGE_H as PAGE_H,
   PDF_PAGE_W as PAGE_W,
   PDF_TABLE_ALT as TABLE_ROW_ALT,
@@ -19,11 +20,7 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import {
-  PDF_FOOTER_HEIGHT,
-  PDF_SIGNATURE_FOOTER_RESERVE,
-  drawSignatureBlock,
-} from "@/lib/pdf/pdf-utils";
+import { PDF_FOOTER_HEIGHT, drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 /** Marge réservée sous le corps du document */
 const CONTENT_BOTTOM = pdfContentMinY();
@@ -949,25 +946,28 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   const villeSign = String(proprietaire.ville ?? "").trim() || "…………………";
   const dateSignFr = formatDateFrLong(new Date());
-  const sigIntroReserve = 88;
-  if (ctx.y < PDF_SIGNATURE_FOOTER_RESERVE + sigIntroReserve) {
+  /** Espace signature + pied (points), aligné demande produit ~150 pt + marge basse page. */
+  const SIG_AND_FOOTER_PTS = 150;
+  const yMinAboveBand = PDF_MARGIN_Y + SIG_AND_FOOTER_PTS;
+  /** Hauteur estimée du bloc « SIGNATURES » + paragraphe d’intro avant le bandeau fixe. */
+  const sigIntroH = 88;
+  const yBeforeSig = ctx.y;
+  if (yBeforeSig < yMinAboveBand + sigIntroH) {
     newPage(ctx);
-    ctx.page.drawText("SIGNATURES", {
-      x: MARGIN,
-      y: ctx.y,
-      size: 11,
-      font: ctx.fontBold,
-      color: PRIMARY,
-    });
-    ctx.y -= 18;
-    drawParagraph(
-      ctx,
-      "Les parties apposent leurs signatures ci-dessous pour valider l'ensemble des articles du présent contrat.",
-      { size: 9 },
-    );
   }
-
-  ensureSpace(ctx, PDF_SIGNATURE_FOOTER_RESERVE + 16);
+  ctx.page.drawText("SIGNATURES", {
+    x: MARGIN,
+    y: ctx.y,
+    size: 11,
+    font: ctx.fontBold,
+    color: PRIMARY,
+  });
+  ctx.y -= 18;
+  drawParagraph(
+    ctx,
+    "Les parties apposent leurs signatures ci-dessous pour valider l'ensemble des articles du présent contrat.",
+    { size: 9 },
+  );
 
   let img: PDFImage | null = null;
   if (signatureImage) {

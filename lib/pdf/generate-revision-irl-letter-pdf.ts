@@ -12,15 +12,11 @@ import {
   PDF_VIOLET as VIOLET,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
+  PDF_MARGIN_Y,
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import {
-  PDF_FOOTER_HEIGHT,
-  PDF_SIGNATURE_FOOTER_RESERVE,
-  drawSignatureBlock,
-  sanitizePdfText,
-} from "@/lib/pdf/pdf-utils";
+import { PDF_FOOTER_HEIGHT, drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 const CONTENT_BOTTOM = pdfContentMinY();
 
@@ -269,16 +265,11 @@ export async function generateRevisionIrlLetterPdfBuffer(
 
   y = drawTwoColumnBlock(page, y, font, fontBold, leftCol, rightCol, dateLine);
 
+  const SIG_AND_FOOTER_PTS = 150;
+  const yMinAboveSignatureBand = PDF_MARGIN_Y + SIG_AND_FOOTER_PTS;
+
   const ensureSpace = (needed: number) => {
     if (y < CONTENT_BOTTOM + needed) {
-      page = doc.addPage([PAGE_W, PAGE_H]);
-      drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
-      y = pdfContentTopAfterHeader() - 12;
-    }
-  };
-  /** Dernière page : réserve signature + pied. */
-  const ensureSpaceFinal = (needed: number) => {
-    if (y < PDF_SIGNATURE_FOOTER_RESERVE + needed) {
       page = doc.addPage([PAGE_W, PAGE_H]);
       drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
       y = pdfContentTopAfterHeader() - 12;
@@ -334,7 +325,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   );
   y -= 8;
 
-  ensureSpace(200);
+  ensureSpace(155);
   const tableRows = [
     {
       label: "IRL de référence",
@@ -350,6 +341,14 @@ export async function generateRevisionIrlLetterPdfBuffer(
   y = drawTableRevision(page, y, font, fontBold, tableRows);
   y -= 4;
 
+  /** ~hauteur des 3 derniers paragraphes + marge avant le bandeau signature fixe (150 pt + marge basse). */
+  const closingBlockApprox = 120;
+  if (y < yMinAboveSignatureBand + closingBlockApprox) {
+    page = doc.addPage([PAGE_W, PAGE_H]);
+    drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+    y = pdfContentTopAfterHeader() - 12;
+  }
+
   drawParagraph(`Cette révision prendra effet à compter du ${input.dateEffetRevision}.`);
   y -= 2;
   drawParagraph("Nous restons à votre disposition pour tout renseignement complémentaire.");
@@ -357,9 +356,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   drawParagraph(
     "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
   );
-  y -= 28;
-
-  ensureSpaceFinal(PDF_SIGNATURE_FOOTER_RESERVE + 8);
+  y -= 14;
 
   let sigImg: PDFImage | null = null;
   if (input.signatureImage?.bytes?.length) {
