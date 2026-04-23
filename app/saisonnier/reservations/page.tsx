@@ -347,7 +347,7 @@ export default function ReservationsSaisonnierPage() {
         tarif_caution: caution,
         montant_acompte: Math.round(acompte * 100) / 100,
         taxe_sejour_total: taxeTotal,
-        statut: "en_attente",
+        statut: form.source === "direct" ? "confirmee" : "en_attente",
         source: form.source,
         notes: form.notes.trim() || null,
       })
