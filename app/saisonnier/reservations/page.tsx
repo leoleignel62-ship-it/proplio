@@ -133,6 +133,7 @@ export default function ReservationsSaisonnierPage() {
   const [detailSaving, setDetailSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteOtaConfirmId, setDeleteOtaConfirmId] = useState<string | null>(null);
+  const [deleteBlocageConfirmId, setDeleteBlocageConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [sendConfirm, setSendConfirm] = useState<{
     kind: "contrat" | "acompte" | "solde";
@@ -527,6 +528,12 @@ export default function ReservationsSaisonnierPage() {
     if (ok) setDeleteOtaConfirmId(null);
   }
 
+  async function confirmDeleteBlocageFromProplio() {
+    if (!deleteBlocageConfirmId) return;
+    const ok = await deleteReservationPermanently(deleteBlocageConfirmId);
+    if (ok) setDeleteBlocageConfirmId(null);
+  }
+
   async function sendApi(kind: "contrat" | "acompte" | "solde", id: string): Promise<boolean> {
     setError("");
     const res = await fetch(`/api/saisonnier/reservations/${id}/send-${kind}`, { method: "POST" });
@@ -727,8 +734,7 @@ export default function ReservationsSaisonnierPage() {
                     const isOta = row.source === "airbnb" || row.source === "booking";
                     const isBlocage = row.source === "blocage";
                     const canDirectActions = !isOta && !isBlocage;
-                    const canDeletePermanently =
-                      row.source === "direct" || row.source === "autre" || row.source === "blocage";
+                    const canDeletePermanently = row.source === "direct" || row.source === "autre";
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
                         <button
@@ -750,7 +756,20 @@ export default function ReservationsSaisonnierPage() {
                               variant="red"
                               onClick={() => {
                                 setDeleteOtaConfirmId(null);
+                                setDeleteBlocageConfirmId(null);
                                 setDeleteConfirmId(row.id);
+                              }}
+                            >
+                              Supprimer
+                            </ResaActionPill>
+                          ) : null}
+                          {isBlocage ? (
+                            <ResaActionPill
+                              variant="red"
+                              onClick={() => {
+                                setDeleteConfirmId(null);
+                                setDeleteOtaConfirmId(null);
+                                setDeleteBlocageConfirmId(row.id);
                               }}
                             >
                               Supprimer
@@ -776,6 +795,7 @@ export default function ReservationsSaisonnierPage() {
                               variant="redOutline"
                               onClick={() => {
                                 setDeleteConfirmId(null);
+                                setDeleteBlocageConfirmId(null);
                                 setDeleteOtaConfirmId(row.id);
                               }}
                             >
@@ -1184,6 +1204,40 @@ export default function ReservationsSaisonnierPage() {
                 style={{ backgroundColor: "#dc2626" }}
                 disabled={deleteSubmitting}
                 onClick={() => void confirmDeleteOtaFromProplio()}
+              >
+                {deleteSubmitting ? "Suppression…" : "Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteBlocageConfirmId ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="delete-blocage-title"
+        >
+          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+            <h3 id="delete-blocage-title" className="text-lg font-semibold leading-snug" style={{ color: PC.text }}>
+              Supprimer ce blocage de Proplio ?
+            </h3>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="proplio-btn-secondary px-4 py-2 text-sm"
+                disabled={deleteSubmitting}
+                onClick={() => setDeleteBlocageConfirmId(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: "#dc2626" }}
+                disabled={deleteSubmitting}
+                onClick={() => void confirmDeleteBlocageFromProplio()}
               >
                 {deleteSubmitting ? "Suppression…" : "Supprimer"}
               </button>

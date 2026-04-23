@@ -107,7 +107,8 @@ export async function POST(request: Request) {
         );
         if (nbNuits <= 0) continue;
 
-        const isBlocage = isBlocagePersonnelFromSummary(ev.summary);
+        const summary = ev.summary;
+        const isBlocage = isBlocagePersonnelFromSummary(summary);
         const source = isBlocage ? "blocage" : job.source;
         const tarifTotal = isBlocage ? 0 : calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
         const tarifNuit = isBlocage ? 0 : nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
           taxe_sejour_total: taxeTotal,
           statut: "confirmee",
           source,
-          notes: ev.summary,
+          notes: summary,
         };
 
         if (existing?.id) {
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
               taxe_sejour_total: taxeTotal,
               statut: "confirmee",
               source,
-              notes: ev.summary,
+              notes: summary,
             })
             .eq("id", existing.id)
             .eq("proprietaire_id", ownerId);
