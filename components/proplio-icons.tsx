@@ -115,3 +115,15 @@ export function IconTrendingUp({ className, ...p }: IconProps) {
     </svg>
   );
 }
+
+export function IconFolder({ className, ...p }: IconProps) {
+  return (
+    <svg className={iconClass(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} {...p}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 7.5V18A2.25 2.25 0 0 0 5.25 20.25h13.5A2.25 2.25 0 0 0 21 18V9a2.25 2.25 0 0 0-2.25-2.25h-4.379a2.25 2.25 0 0 1-1.59-.659l-1.061-1.06A2.25 2.25 0 0 0 10.621 4.5H5.25A2.25 2.25 0 0 0 3 6.75Z"
+      />
+    </svg>
+  );
+}

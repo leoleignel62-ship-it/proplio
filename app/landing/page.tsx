@@ -7,7 +7,9 @@ import {
   IconContract,
   IconDeviceCamera,
   IconDocument,
+  IconFolder,
   IconHome,
+  IconTrendingUp,
 } from "@/components/proplio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
 import { PC } from "@/lib/proplio-colors";
@@ -65,6 +67,14 @@ const faqItems = [
   {
     q: "Comment fonctionne l'état des lieux depuis le smartphone ?",
     a: "Lors de la création d'un état des lieux, vous pouvez photographier chaque pièce directement depuis votre téléphone. Les photos sont intégrées automatiquement au rapport PDF.",
+  },
+  {
+    q: "Comment fonctionne la révision automatique des loyers ?",
+    a: "Proplio détecte automatiquement chaque année les baux éligibles à la révision et calcule le nouveau loyer selon l'IRL publié par l'INSEE. Vous validez la révision en un clic et une lettre officielle est générée et envoyée à votre locataire.",
+  },
+  {
+    q: "Quels types de documents puis-je stocker par logement ?",
+    a: "Diagnostics obligatoires, assurances, contrats, factures de travaux et photos — tout est organisé par catégorie directement dans la fiche de chaque logement.",
   },
 ];
 
@@ -210,8 +220,9 @@ export default function LandingPage() {
               Sans perdre votre temps.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg" style={{ color: PC.muted }}>
-              Quittances, baux, états des lieux — tout est centralisé et accessible en quelques clics. Proplio simplifie
-              votre gestion locative pour que vous vous concentriez sur l&apos;essentiel : investir.
+              Quittances, baux, états des lieux, révision des loyers, gestion des documents — tout est centralisé et
+              automatisé en quelques clics. Proplio vous libère des tâches administratives pour que vous vous concentriez
+              sur l&apos;essentiel : investir.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -326,6 +337,20 @@ export default function LandingPage() {
               body: "Suivez vos loyers encaissés, vos logements occupés et vos performances financières sur un tableau de bord clair et actualisé en temps réel.",
               badge: "Disponible sur tous les plans",
               badgeTone: "all" as const,
+            },
+            {
+              icon: IconTrendingUp,
+              title: "Révision annuelle des loyers calculée automatiquement",
+              body: "Proplio détecte automatiquement les baux éligibles à la révision annuelle et calcule le nouveau loyer selon l'Indice de Référence des Loyers (IRL) publié par l'INSEE. Validez en un clic et envoyez la lettre de révision officielle à votre locataire par email.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+            },
+            {
+              icon: IconFolder,
+              title: "Tous vos documents centralisés par logement",
+              body: "Stockez et retrouvez en un instant tous vos documents par logement : diagnostics obligatoires (DPE, électricité, gaz), assurances, contrats, factures de travaux et photos. Organisés par catégorie, accessibles partout, téléchargeables en un clic.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
             },
           ].map((f, i) => (
             <div
@@ -537,6 +562,8 @@ export default function LandingPage() {
                   ["Quittances", "Inclus", "✓ PDF + envoi en 1 clic"],
                   ["Baux", "~150-200€", "✓ Inclus"],
                   ["États des lieux", "~150-300€", "✓ Inclus + photos"],
+                  ["Révision IRL", "Manuel", "✓ Automatique"],
+                  ["Documents centralisés", "✗", "✓ Par logement"],
                   ["Disponibilité", "Horaires agence", "✓ 24h/24"],
                   ["Contrôle total", "✗", "✓ Vous décidez"],
                 ].map(([a, b, c]) => (
