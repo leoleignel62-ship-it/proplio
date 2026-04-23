@@ -12,16 +12,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DashboardVueGlobaleCard } from "@/components/dashboard-vue-globale-card";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
-import { useModeLocation } from "@/lib/mode-location";
-import {
-  getPortfolioKind,
-  getSaisonnierDashboardSnapshot,
-  type PortfolioKind,
-} from "@/lib/saisonnier-dashboard-metrics";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -316,14 +309,11 @@ function StatCard({
 }
 
 export function DashboardContent() {
-  const { setMode } = useModeLocation();
   const [prenom, setPrenom] = useState("");
   const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
   const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
-  const [portfolioKind, setPortfolioKind] = useState<PortfolioKind>("onlyClassique");
-  const [saisonnierRevenusMois, setSaisonnierRevenusMois] = useState(0);
   /** Évite ResponsiveContainer avec taille -1 au prérendu SSR / build statique. */
   const [chartMounted, setChartMounted] = useState(false);
 
@@ -376,23 +366,15 @@ export function DashboardContent() {
         const ownerId = proprietaire?.id as string | undefined;
         if (!ownerId || cancelled) return;
 
-        const [dashboardStats, derived, kind] = await Promise.all([
+        const [dashboardStats, derived] = await Promise.all([
           getDashboardStats(supabase, ownerId),
           getFinancialAndAnnual(supabase, ownerId),
-          getPortfolioKind(supabase, ownerId),
         ]);
 
         if (cancelled) return;
         setStats(dashboardStats);
         setFinancial(derived.financial);
         setAnnual(derived.annual);
-        setPortfolioKind(kind);
-        if (kind === "mixed") {
-          const snap = await getSaisonnierDashboardSnapshot(supabase, ownerId);
-          if (!cancelled) setSaisonnierRevenusMois(snap.revenusMois);
-        } else if (!cancelled) {
-          setSaisonnierRevenusMois(0);
-        }
       } catch {
         /* garder zéros */
       }
@@ -441,16 +423,6 @@ export function DashboardContent() {
           <p className="proplio-page-subtitle capitalize">{dateLong}</p>
         </div>
       </header>
-
-      {portfolioKind === "mixed" ? (
-        <DashboardVueGlobaleCard
-          encaisseClassiqueMois={financial.encaisseMois}
-          revenusSaisonnierMois={saisonnierRevenusMois}
-          otherModeHref="/saisonnier/dashboard"
-          otherModeLabel="Ouvrir l’espace saisonnier →"
-          onNavigateOther={() => setMode("saisonnier")}
-        />
-      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

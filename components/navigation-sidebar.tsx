@@ -98,7 +98,6 @@ function ModeLocationPill({
   mode: ModeLocation;
   onSelectClassique: () => void;
   onSelectSaisonnier: () => void;
-  /** Ex. "max-w-[280px]" pour le header centré */
   className?: string;
 }) {
   const pillInactive = PC.cardHover;
@@ -364,6 +363,20 @@ export function NavigationSidebar() {
         {renderNavItem(logementsNavItem, closeMobile)}
         <NavSeparatorLine className="my-2" />
 
+        <div className="w-full shrink-0 px-0 pb-3 pt-1">
+          <ModeLocationPill
+            mode={ownerPlan === "free" ? "classique" : mode}
+            onSelectClassique={() => {
+              selectClassiqueMode();
+              closeMobile?.();
+            }}
+            onSelectSaisonnier={() => {
+              selectSaisonnierMode();
+              closeMobile?.();
+            }}
+          />
+        </div>
+
         <NavSectionLabel>{mode === "saisonnier" ? "Gestion saisonnière" : "Gestion classique"}</NavSectionLabel>
         <div className="space-y-1">
           {navigationModeItems.map((item) => renderNavItem(item, closeMobile))}
@@ -472,58 +485,38 @@ export function NavigationSidebar() {
         </div>
       ) : null}
 
-      {/* Header desktop : gauche vide | toggle centré (absolu) | droite cloche */}
+      {/* Header desktop : notifications uniquement */}
       <header
         className="fixed left-0 right-0 top-0 z-40 hidden h-[60px] md:left-64 md:block md:px-6"
         style={{ backgroundColor: PC.sidebar, borderBottom: `1px solid ${PC.border}` }}
       >
-        <div className="pointer-events-none absolute left-1/2 top-1/2 w-[min(100%-120px,320px)] -translate-x-1/2 -translate-y-1/2 px-2">
-          <div className="pointer-events-auto">
-            <ModeLocationPill
-              mode={ownerPlan === "free" ? "classique" : mode}
-              onSelectClassique={selectClassiqueMode}
-              onSelectSaisonnier={selectSaisonnierMode}
-            />
-          </div>
-        </div>
         <div className="flex h-full items-center justify-end pr-1">
           <NotificationBellDropdown />
         </div>
       </header>
 
-      {/* Barre mobile : hamburger | toggle centré | cloche */}
+      {/* Barre mobile : menu | cloche */}
       <div
-        className="fixed left-0 right-0 top-0 z-[45] flex min-h-[52px] items-center gap-2 px-2 py-2 md:hidden"
+        className="fixed left-0 right-0 top-0 z-[45] flex min-h-[52px] items-center justify-between gap-2 px-2 py-2 md:hidden"
         style={mobileBarStyle}
       >
-        <div className="flex w-11 shrink-0 items-center justify-start">
-          <button
-            type="button"
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition"
-            style={{
-              backgroundColor: PC.primaryBg10,
-              border: `2px solid ${PC.borderPrimary50}`,
-              color: PC.text,
-              boxShadow: PC.cardShadow,
-            }}
-            aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav-drawer"
-            onClick={() => setMobileOpen((o) => !o)}
-          >
-            <HamburgerIcon />
-          </button>
-        </div>
-        <div className="flex min-w-0 flex-1 items-center justify-center px-1">
-          <div className="w-full max-w-[min(100%,260px)]">
-            <ModeLocationPill
-              mode={ownerPlan === "free" ? "classique" : mode}
-              onSelectClassique={selectClassiqueMode}
-              onSelectSaisonnier={selectSaisonnierMode}
-            />
-          </div>
-        </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-end">
+        <button
+          type="button"
+          className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl transition"
+          style={{
+            backgroundColor: PC.primaryBg10,
+            border: `2px solid ${PC.borderPrimary50}`,
+            color: PC.text,
+            boxShadow: PC.cardShadow,
+          }}
+          aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav-drawer"
+          onClick={() => setMobileOpen((o) => !o)}
+        >
+          <HamburgerIcon />
+        </button>
+        <div className="flex h-11 shrink-0 items-center justify-end">
           <NotificationBellDropdown panelZClass="z-[110]" />
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
-import { DashboardVueGlobaleCard } from "@/components/dashboard-vue-globale-card";
 import {
   IconBank,
   IconCalendar,
@@ -10,13 +9,9 @@ import {
   IconEuroCircle,
 } from "@/components/proplio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
-import { useModeLocation } from "@/lib/mode-location";
 import {
   emptySaisonnierDash,
-  getEncaisseClassiqueMoisCourant,
-  getPortfolioKind,
   getSaisonnierDashboardSnapshot,
-  type PortfolioKind,
   type SaisonnierDashData,
 } from "@/lib/saisonnier-dashboard-metrics";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -76,12 +71,9 @@ function StatCard({
 }
 
 export function SaisonnierDashboardContent() {
-  const { setMode } = useModeLocation();
   const [prenom, setPrenom] = useState("");
   const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [saisonnier, setSaisonnier] = useState<SaisonnierDashData>(emptySaisonnierDash);
-  const [portfolioKind, setPortfolioKind] = useState<PortfolioKind>("onlyClassique");
-  const [encaisseClassiqueMois, setEncaisseClassiqueMois] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,21 +108,10 @@ export function SaisonnierDashboardContent() {
         const ownerId = proprietaire?.id as string | undefined;
         if (!ownerId || cancelled) return;
 
-        const [snap, kind] = await Promise.all([
-          getSaisonnierDashboardSnapshot(supabase, ownerId),
-          getPortfolioKind(supabase, ownerId),
-        ]);
+        const snap = await getSaisonnierDashboardSnapshot(supabase, ownerId);
 
         if (cancelled) return;
         setSaisonnier(snap);
-        setPortfolioKind(kind);
-
-        if (kind === "mixed") {
-          const enc = await getEncaisseClassiqueMoisCourant(supabase, ownerId);
-          if (!cancelled) setEncaisseClassiqueMois(enc);
-        } else if (!cancelled) {
-          setEncaisseClassiqueMois(0);
-        }
       } catch {
         /* garder zéros */
       }
@@ -197,16 +178,6 @@ export function SaisonnierDashboardContent() {
           </p>
         </div>
       </header>
-
-      {portfolioKind === "mixed" ? (
-        <DashboardVueGlobaleCard
-          encaisseClassiqueMois={encaisseClassiqueMois}
-          revenusSaisonnierMois={saisonnier.revenusMois}
-          otherModeHref="/"
-          otherModeLabel="Ouvrir l’espace classique →"
-          onNavigateOther={() => setMode("classique")}
-        />
-      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
