@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
@@ -9,6 +8,15 @@ import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+
+type LogementOption = {
+  id: string;
+  nom: string;
+  tarif_nuit_moyenne: number | null;
+  tarif_menage: number | null;
+  tarif_caution: number | null;
+  taxe_sejour_nuit: number | null;
+};
 
 type ReservationRow = {
   id: string;
@@ -40,24 +48,6 @@ const STATUT_COLOR: Record<string, string> = {
   annulee: PC.danger,
 };
 
-const CalendrierPlanning = dynamic(
-  () => import("@/components/saisonnier/calendrier-planning"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="rounded-xl p-6 text-sm" style={{ color: PC.muted }}>
-        Chargement du planning…
-      </div>
-    ),
-  },
-);
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function daysBetween(a: string, b: string): number {
   const da = new Date(a + "T12:00:00").getTime();
   const db = new Date(b + "T12:00:00").getTime();
@@ -68,14 +58,12 @@ export default function ReservationsSaisonnierPage() {
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"liste" | "calendrier">("liste");
   const [rows, setRows] = useState<ReservationRow[]>([]);
-  const [logements, setLogements] = useState<Array<{ id: string; nom: string; tarif_nuit_moyenne: number | null; tarif_menage: number | null; tarif_caution: number | null; taxe_sejour_nuit: number | null }>>([]);
+  const [logements, setLogements] = useState<LogementOption[]>([]);
   const [voyageurs, setVoyageurs] = useState<Array<{ id: string; prenom: string; nom: string }>>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [acomptePct, setAcomptePct] = useState(30);
-  const dragRef = useRef<{ id: string; startX: number; deltaDays: number; arr0: string; dep0: string } | null>(null);
 
   const [form, setForm] = useState({
     logement_id: "",
@@ -121,8 +109,8 @@ export default function ReservationsSaisonnierPage() {
     const normalized: ReservationRow[] = raw.map((r) => {
       const lg = r.logements;
       const vg = r.voyageurs;
-      const logements = Array.isArray(lg) ? (lg[0] as { nom?: string }) ?? null : (lg as { nom?: string } | null);
-      const voyageurs = Array.isArray(vg) ? (vg[0] as { prenom?: string; nom?: string }) ?? null : (vg as { prenom?: string; nom?: string } | null);
+      const logementsJoin = Array.isArray(lg) ? (lg[0] as { nom?: string }) ?? null : (lg as { nom?: string } | null);
+      const voyageursJoin = Array.isArray(vg) ? (vg[0] as { prenom?: string; nom?: string }) ?? null : (vg as { prenom?: string; nom?: string } | null);
       return {
         id: String(r.id),
         logement_id: String(r.logement_id),
@@ -141,13 +129,13 @@ export default function ReservationsSaisonnierPage() {
         source: String(r.source ?? "direct"),
         notes: (r.notes as string | null) ?? null,
         contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
-        logements: logements ? { nom: String(logements.nom ?? "") } : null,
-        voyageurs: voyageurs ? { prenom: String(voyageurs.prenom ?? ""), nom: String(voyageurs.nom ?? "") } : null,
+        logements: logementsJoin ? { nom: String(logementsJoin.nom ?? "") } : null,
+        voyageurs: voyageursJoin ? { prenom: String(voyageursJoin.prenom ?? ""), nom: String(voyageursJoin.nom ?? "") } : null,
       };
     });
     setRows(normalized);
-    setLogements((r2.data as typeof logements) ?? []);
-    setVoyageurs((r3.data as typeof voyageurs) ?? []);
+    setLogements((r2.data as LogementOption[]) ?? []);
+    setVoyageurs((r3.data as Array<{ id: string; prenom: string; nom: string }>) ?? []);
     setLoading(false);
   }, []);
 
@@ -155,30 +143,23 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }, [load]);
 
-  const calendarMonth = useMemo(() => {
-    const n = new Date();
-    return new Date(n.getFullYear(), n.getMonth(), 1);
-  }, []);
-
-  const monthDays = useMemo(() => {
-    const y = calendarMonth.getFullYear();
-    const m = calendarMonth.getMonth();
-    const last = new Date(y, m + 1, 0).getDate();
-    return Array.from({ length: last }, (_, i) => new Date(y, m, i + 1));
-  }, [calendarMonth]);
-
-  const pxPerDay = 28;
-
-  if (loading) {
-    return (
-      <section className="proplio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
-        Chargement…
-      </section>
-    );
-  }
-  if (plan === "free") {
-    return <PlanFreeModuleUpsell variant="saisonnier" />;
-  }
+  const preview = useMemo(() => {
+    const tn = Number(form.tarif_nuit) || 0;
+    const arr = form.date_arrivee;
+    const dep = form.date_depart;
+    if (!arr || !dep || dep <= arr) return { nuits: 0, nuitees: 0, menage: 0, taxe: 0, caution: 0, total: 0, acompte: 0 };
+    const nuits = daysBetween(arr, dep);
+    const lg = logements.find((l) => l.id === form.logement_id);
+    const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
+    const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
+    const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
+    const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
+    const nuitees = nuits * tn;
+    const taxe = taxeN * nv * nuits;
+    const total = nuitees + menage + taxe + caution;
+    const acompte = (total * acomptePct) / 100;
+    return { nuits, nuitees, menage, taxe, caution, total, acompte };
+  }, [form, logements, acomptePct]);
 
   function openModal() {
     const lg = logements[0];
@@ -206,24 +187,6 @@ export default function ReservationsSaisonnierPage() {
       tarif_nuit: lg?.tarif_nuit_moyenne != null ? String(lg.tarif_nuit_moyenne) : f.tarif_nuit,
     }));
   }
-
-  const preview = useMemo(() => {
-    const tn = Number(form.tarif_nuit) || 0;
-    const arr = form.date_arrivee;
-    const dep = form.date_depart;
-    if (!arr || !dep || dep <= arr) return { nuits: 0, nuitees: 0, menage: 0, taxe: 0, caution: 0, total: 0, acompte: 0 };
-    const nuits = daysBetween(arr, dep);
-    const lg = logements.find((l) => l.id === form.logement_id);
-    const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
-    const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
-    const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
-    const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
-    const nuitees = nuits * tn;
-    const taxe = taxeN * nv * nuits;
-    const total = nuitees + menage + taxe + caution;
-    const acompte = (total * acomptePct) / 100;
-    return { nuits, nuitees, menage, taxe, caution, total, acompte };
-  }, [form, logements, acomptePct]);
 
   async function onCreateSubmit(e: FormEvent) {
     e.preventDefault();
@@ -339,87 +302,31 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }
 
-  function onPointerDownBar(ev: React.PointerEvent, row: ReservationRow) {
-    (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
-    dragRef.current = {
-      id: row.id,
-      startX: ev.clientX,
-      deltaDays: 0,
-      arr0: row.date_arrivee,
-      dep0: row.date_depart,
-    };
+  if (loading) {
+    return (
+      <section className="proplio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
+        Chargement…
+      </section>
+    );
   }
-
-  function onPointerMoveBar(ev: React.PointerEvent) {
-    const d = dragRef.current;
-    if (!d) return;
-    const dx = ev.clientX - d.startX;
-    d.deltaDays = Math.round(dx / pxPerDay);
+  if (plan === "free") {
+    return <PlanFreeModuleUpsell variant="saisonnier" />;
   }
-
-  async function onPointerUpBar() {
-    const d = dragRef.current;
-    dragRef.current = null;
-    if (!d || d.deltaDays === 0) return;
-    const arr = addDays(d.arr0, d.deltaDays);
-    const dep = addDays(d.dep0, d.deltaDays);
-    const { proprietaireId, error: e } = await getCurrentProprietaireId();
-    if (e || !proprietaireId) return;
-    const row = rows.find((r) => r.id === d.id);
-    if (!row) return;
-    const nuits = daysBetween(arr, dep);
-    const tarifTotal = nuits * row.tarif_nuit;
-    await supabase
-      .from("reservations")
-      .update({ date_arrivee: arr, date_depart: dep, tarif_total: tarifTotal })
-      .eq("id", d.id)
-      .eq("proprietaire_id", proprietaireId);
-    void load();
-  }
-
-  const monthStartStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}-01`;
-  const monthEndStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}-${String(monthDays.length).padStart(2, "0")}`;
 
   return (
     <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="proplio-page-title">Réservations</h1>
-          <p className="proplio-page-subtitle">Location saisonnière — liste et planning.</p>
+          <p className="proplio-page-subtitle">Location saisonnière — liste des réservations.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="flex rounded-full p-1" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
-            <button
-              type="button"
-              className="rounded-full px-4 py-2 text-xs font-semibold transition duration-200"
-              style={{
-                backgroundColor: view === "liste" ? PC.primary : "transparent",
-                color: view === "liste" ? PC.white : PC.muted,
-              }}
-              onClick={() => setView("liste")}
-            >
-              Liste
-            </button>
-            <button
-              type="button"
-              className="rounded-full px-4 py-2 text-xs font-semibold transition duration-200"
-              style={{
-                backgroundColor: view === "calendrier" ? PC.primary : "transparent",
-                color: view === "calendrier" ? PC.white : PC.muted,
-              }}
-              onClick={() => setView("calendrier")}
-            >
-              Calendrier
-            </button>
-          </div>
-          <button type="button" className="proplio-btn-primary px-4 py-2 text-sm" onClick={openModal} disabled={logements.length === 0}>
-            Nouvelle réservation
-          </button>
-        </div>
+        <button type="button" className="proplio-btn-primary px-4 py-2 text-sm" onClick={openModal} disabled={logements.length === 0}>
+          Nouvelle réservation
+        </button>
       </div>
       {logements.length === 0 ? (
         <p className="text-sm" style={{ color: PC.warning }}>
-          Aucun logement en mode saisonnier ou « les deux ». Configurez un logement dans Paramètres saisonniers.
+          Aucun logement en mode saisonnier ou « les deux ». Configurez un logement dans l’espace saisonnier.
         </p>
       ) : null}
       {error ? (
@@ -428,92 +335,80 @@ export default function ReservationsSaisonnierPage() {
         </p>
       ) : null}
 
-      {view === "liste" ? (
-        <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
-          <table className="w-full min-w-[1000px] text-left text-sm">
-            <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
-              <tr>
-                <th className="px-3 py-2">Logement</th>
-                <th className="px-3 py-2">Voyageur</th>
-                <th className="px-3 py-2">Arrivée</th>
-                <th className="px-3 py-2">Départ</th>
-                <th className="px-3 py-2">Nuits</th>
-                <th className="px-3 py-2">Montant</th>
-                <th className="px-3 py-2">Statut</th>
-                <th className="px-3 py-2">Source</th>
-                <th className="px-3 py-2">Actions</th>
+      <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}`, color: PC.muted }}>
+        Vue calendrier disponible prochainement
+      </div>
+
+      <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
+        <table className="w-full min-w-[1000px] text-left text-sm">
+          <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
+            <tr>
+              <th className="px-3 py-2">Logement</th>
+              <th className="px-3 py-2">Voyageur</th>
+              <th className="px-3 py-2">Arrivée</th>
+              <th className="px-3 py-2">Départ</th>
+              <th className="px-3 py-2">Nuits</th>
+              <th className="px-3 py-2">Montant</th>
+              <th className="px-3 py-2">Statut</th>
+              <th className="px-3 py-2">Source</th>
+              <th className="px-3 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
+                <td className="px-3 py-2">{row.logements?.nom}</td>
+                <td className="px-3 py-2" style={{ color: PC.muted }}>
+                  {row.voyageurs ? `${row.voyageurs.prenom} ${row.voyageurs.nom}` : "—"}
+                </td>
+                <td className="px-3 py-2">{row.date_arrivee}</td>
+                <td className="px-3 py-2">{row.date_depart}</td>
+                <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
+                <td className="px-3 py-2">{row.tarif_total.toFixed(0)} €</td>
+                <td className="px-3 py-2">
+                  <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${STATUT_COLOR[row.statut] ?? PC.muted}22`, color: STATUT_COLOR[row.statut] }}>
+                    {row.statut}
+                  </span>
+                </td>
+                <td className="px-3 py-2">{row.source}</td>
+                <td className="px-3 py-2">
+                  <div className="flex flex-col gap-1 text-xs">
+                    <button type="button" className="text-left underline" style={{ color: PC.primary }} onClick={() => setDetailId(row.id)}>
+                      Détail
+                    </button>
+                    {row.statut === "en_attente" ? (
+                      <button type="button" style={{ color: PC.success }} onClick={() => void setStatut(row.id, "confirmee")}>
+                        Confirmer
+                      </button>
+                    ) : null}
+                    {row.statut !== "annulee" ? (
+                      <button type="button" style={{ color: PC.danger }} onClick={() => void setStatut(row.id, "annulee")}>
+                        Annuler
+                      </button>
+                    ) : null}
+                    {row.voyageurs ? (
+                      <>
+                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("contrat", row.id)}>
+                          Envoyer contrat
+                        </button>
+                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("acompte", row.id)}>
+                          Reçu acompte
+                        </button>
+                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("solde", row.id)}>
+                          Reçu solde
+                        </button>
+                      </>
+                    ) : null}
+                    <button type="button" style={{ color: PC.muted }} onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                      Ménage fait
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
-                  <td className="px-3 py-2">{row.logements?.nom}</td>
-                  <td className="px-3 py-2" style={{ color: PC.muted }}>
-                    {row.voyageurs ? `${row.voyageurs.prenom} ${row.voyageurs.nom}` : "—"}
-                  </td>
-                  <td className="px-3 py-2">{row.date_arrivee}</td>
-                  <td className="px-3 py-2">{row.date_depart}</td>
-                  <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
-                  <td className="px-3 py-2">{row.tarif_total.toFixed(0)} €</td>
-                  <td className="px-3 py-2">
-                    <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${STATUT_COLOR[row.statut] ?? PC.muted}22`, color: STATUT_COLOR[row.statut] }}>
-                      {row.statut}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">{row.source}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-col gap-1 text-xs">
-                      <button type="button" className="text-left underline" style={{ color: PC.primary }} onClick={() => setDetailId(row.id)}>
-                        Détail
-                      </button>
-                      {row.statut === "en_attente" ? (
-                        <button type="button" style={{ color: PC.success }} onClick={() => void setStatut(row.id, "confirmee")}>
-                          Confirmer
-                        </button>
-                      ) : null}
-                      {row.statut !== "annulee" ? (
-                        <button type="button" style={{ color: PC.danger }} onClick={() => void setStatut(row.id, "annulee")}>
-                          Annuler
-                        </button>
-                      ) : null}
-                      {row.voyageurs ? (
-                        <>
-                          <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("contrat", row.id)}>
-                            Envoyer contrat
-                          </button>
-                          <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("acompte", row.id)}>
-                            Reçu acompte
-                          </button>
-                          <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("solde", row.id)}>
-                            Reçu solde
-                          </button>
-                        </>
-                      ) : null}
-                      <button type="button" style={{ color: PC.muted }} onClick={() => void markMenageDone(row.id, row.logement_id)}>
-                        Ménage fait
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <CalendrierPlanning
-          logements={logements}
-          rows={rows}
-          monthDays={monthDays}
-          monthStartStr={monthStartStr}
-          monthEndStr={monthEndStr}
-          pxPerDay={pxPerDay}
-          onPointerDownBar={(e, row) => onPointerDownBar(e, row as ReservationRow)}
-          onPointerMoveBar={onPointerMoveBar}
-          onPointerUpBar={() => {
-            void onPointerUpBar();
-          }}
-        />
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
@@ -614,7 +509,9 @@ export default function ReservationsSaisonnierPage() {
                   <h3 className="text-lg font-semibold">Détail réservation</h3>
                   <ul className="mt-3 space-y-2 text-sm" style={{ color: PC.muted }}>
                     <li>Logement : {row.logements?.nom}</li>
-                    <li>Dates : {row.date_arrivee} → {row.date_depart}</li>
+                    <li>
+                      Dates : {row.date_arrivee} → {row.date_depart}
+                    </li>
                     <li>Montant : {row.tarif_total.toFixed(2)} €</li>
                     <li>Statut : {row.statut}</li>
                     <li>Notes : {row.notes ?? "—"}</li>
