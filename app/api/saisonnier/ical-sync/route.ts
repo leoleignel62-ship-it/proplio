@@ -84,6 +84,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Aucune URL iCal renseignée pour ce logement." }, { status: 400 });
     }
 
+    const { error: delBlocageErr } = await supabase
+      .from("reservations")
+      .delete()
+      .eq("proprietaire_id", ownerId)
+      .eq("logement_id", logementId)
+      .eq("source", "blocage");
+    if (delBlocageErr) {
+      return NextResponse.json({ error: delBlocageErr.message }, { status: 500 });
+    }
+
     let imported = 0;
     let updated = 0;
 
@@ -108,13 +118,13 @@ export async function POST(request: Request) {
         if (nbNuits <= 0) continue;
 
         const summary = ev.summary;
-        const isBlocage = isBlocagePersonnelFromSummary(summary);
-        const source = isBlocage ? "blocage" : job.source;
-        const tarifTotal = isBlocage ? 0 : calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
-        const tarifNuit = isBlocage ? 0 : nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
-        const taxeTotal = isBlocage ? 0 : taxeNuit * nbNuits * 1;
-        const menageRow = isBlocage ? 0 : tarifMenage;
-        const cautionRow = isBlocage ? 0 : tarifCautionRow;
+        if (isBlocagePersonnelFromSummary(summary)) {
+          continue;
+        }
+
+        const tarifTotal = calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
+        const tarifNuit = nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
+        const taxeTotal = taxeNuit * nbNuits * 1;
         const { data: existing } = await supabase
           .from("reservations")
           .select("id, notes")
@@ -133,11 +143,11 @@ export async function POST(request: Request) {
           nb_voyageurs: 1,
           tarif_nuit: tarifNuit,
           tarif_total: tarifTotal,
-          tarif_menage: menageRow,
-          tarif_caution: cautionRow,
+          tarif_menage: tarifMenage,
+          tarif_caution: tarifCautionRow,
           taxe_sejour_total: taxeTotal,
           statut: "confirmee",
-          source,
+          source: job.source,
           notes: summary,
         };
 
@@ -147,11 +157,11 @@ export async function POST(request: Request) {
             .update({
               tarif_nuit: tarifNuit,
               tarif_total: tarifTotal,
-              tarif_menage: menageRow,
-              tarif_caution: cautionRow,
+              tarif_menage: tarifMenage,
+              tarif_caution: tarifCautionRow,
               taxe_sejour_total: taxeTotal,
               statut: "confirmee",
-              source,
+              source: job.source,
               notes: summary,
             })
             .eq("id", existing.id)
