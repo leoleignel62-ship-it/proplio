@@ -32,6 +32,8 @@ const LOGEMENT_MODAL_CARD: CSSProperties = {
   boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
 };
 
+type TypeLocation = "classique" | "saisonnier" | "les_deux";
+
 type Logement = {
   id: string;
   proprietaire_id: string;
@@ -48,7 +50,35 @@ type Logement = {
   chambres_details?: unknown;
   nb_modifications?: number | null;
   verrouille?: boolean | null;
+  type_location?: string | null;
+  capacite_max?: number | null;
+  tarif_nuit_basse?: number | null;
+  tarif_nuit_moyenne?: number | null;
+  tarif_nuit_haute?: number | null;
+  tarif_menage?: number | null;
+  tarif_caution?: number | null;
+  taxe_sejour_nuit?: number | null;
+  equipements_saisonnier?: string[] | null;
+  reglement_interieur?: string | null;
+  instructions_acces?: string | null;
+  ical_airbnb_url?: string | null;
+  ical_booking_url?: string | null;
 };
+
+const EXPLOITATION_CARD_BG = "#13131a";
+
+const EQUIPEMENTS_SAISONNIER_OPTS = [
+  "Wifi",
+  "Parking",
+  "Piscine",
+  "Climatisation",
+  "Lave-linge",
+  "Lave-vaisselle",
+  "Terrasse",
+  "Jardin",
+  "Barbecue",
+  "TV",
+] as const;
 
 const baseDefaultValues = {
   nom: "",
@@ -61,6 +91,22 @@ const baseDefaultValues = {
   charges: "",
   est_colocation: "non",
 };
+
+function normalizeTypeLocation(raw: string | null | undefined): TypeLocation {
+  if (raw === "saisonnier" || raw === "les_deux") return raw;
+  return "classique";
+}
+
+function getExploitationBadge(typeLoc: string | null | undefined): { label: string; bg: string; color: string } {
+  const t = typeLoc ?? "classique";
+  if (t === "saisonnier") {
+    return { label: "Saisonnier", bg: "rgba(34, 211, 238, 0.18)", color: "#22d3ee" };
+  }
+  if (t === "les_deux") {
+    return { label: "Les deux", bg: PC.primaryBg15, color: PC.secondary };
+  }
+  return { label: "Classique", bg: "rgba(148, 163, 184, 0.22)", color: "#94a3b8" };
+}
 
 export default function LogementsPage() {
   const [rows, setRows] = useState<Logement[]>([]);
@@ -81,9 +127,26 @@ export default function LogementsPage() {
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
   const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
+  const [typeLocation, setTypeLocation] = useState<TypeLocation>("classique");
+  const [capaciteMax, setCapaciteMax] = useState("");
+  const [tarifNuitBasse, setTarifNuitBasse] = useState("");
+  const [tarifNuitMoyenne, setTarifNuitMoyenne] = useState("");
+  const [tarifNuitHaute, setTarifNuitHaute] = useState("");
+  const [tarifMenage, setTarifMenage] = useState("");
+  const [tarifCaution, setTarifCaution] = useState("");
+  const [taxeSejourNuit, setTaxeSejourNuit] = useState("");
+  const [equipementsSaisonnier, setEquipementsSaisonnier] = useState<string[]>([]);
+  const [reglementInterieur, setReglementInterieur] = useState("");
+  const [instructionsAcces, setInstructionsAcces] = useState("");
+  const [icalAirbnbUrl, setIcalAirbnbUrl] = useState("");
+  const [icalBookingUrl, setIcalBookingUrl] = useState("");
+  const [icalSyncMessage, setIcalSyncMessage] = useState("");
+  const [icalSyncLoading, setIcalSyncLoading] = useState(false);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
-  const isColocation = values.est_colocation === "oui";
+  const showClassicFields = typeLocation === "classique" || typeLocation === "les_deux";
+  const showSaisonnierFields = typeLocation === "saisonnier" || typeLocation === "les_deux";
+  const isColocation = showClassicFields && values.est_colocation === "oui";
   const nCh = Math.max(1, Math.min(10, Number(nombreChambres) || 1));
   const totalChambresLoyers = useMemo(() => totalLoyersChambres(chambres.slice(0, nCh)), [chambres, nCh]);
   const loyerGlobal = Number(values.loyer || 0);
@@ -221,6 +284,40 @@ export default function LogementsPage() {
     setActiveChambreTab((tab) => Math.min(tab, c - 1));
   }
 
+  function resetSaisonnierFields() {
+    setTypeLocation("classique");
+    setCapaciteMax("");
+    setTarifNuitBasse("");
+    setTarifNuitMoyenne("");
+    setTarifNuitHaute("");
+    setTarifMenage("");
+    setTarifCaution("");
+    setTaxeSejourNuit("");
+    setEquipementsSaisonnier([]);
+    setReglementInterieur("");
+    setInstructionsAcces("");
+    setIcalAirbnbUrl("");
+    setIcalBookingUrl("");
+    setIcalSyncMessage("");
+  }
+
+  function loadSaisonnierFromRow(row: Logement) {
+    setTypeLocation(normalizeTypeLocation(row.type_location));
+    setCapaciteMax(row.capacite_max != null ? String(row.capacite_max) : "");
+    setTarifNuitBasse(row.tarif_nuit_basse != null ? String(row.tarif_nuit_basse) : "");
+    setTarifNuitMoyenne(row.tarif_nuit_moyenne != null ? String(row.tarif_nuit_moyenne) : "");
+    setTarifNuitHaute(row.tarif_nuit_haute != null ? String(row.tarif_nuit_haute) : "");
+    setTarifMenage(row.tarif_menage != null ? String(row.tarif_menage) : "");
+    setTarifCaution(row.tarif_caution != null ? String(row.tarif_caution) : "");
+    setTaxeSejourNuit(row.taxe_sejour_nuit != null ? String(row.taxe_sejour_nuit) : "");
+    setEquipementsSaisonnier(Array.isArray(row.equipements_saisonnier) ? [...row.equipements_saisonnier] : []);
+    setReglementInterieur(row.reglement_interieur ?? "");
+    setInstructionsAcces(row.instructions_acces ?? "");
+    setIcalAirbnbUrl(row.ical_airbnb_url ?? "");
+    setIcalBookingUrl(row.ical_booking_url ?? "");
+    setIcalSyncMessage("");
+  }
+
   async function openCreateModal() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
@@ -242,6 +339,7 @@ export default function LogementsPage() {
     setNombreChambres("1");
     setChambres([defaultChambre()]);
     setActiveChambreTab(0);
+    resetSaisonnierFields();
     setIsModalOpen(true);
   }
 
@@ -276,6 +374,7 @@ export default function LogementsPage() {
         : [...parsed, ...Array.from({ length: nc - parsed.length }, () => defaultChambre())];
     setChambres(filled.slice(0, nc));
     setActiveChambreTab(0);
+    loadSaisonnierFromRow(row);
     setIsModalOpen(true);
   }
 
@@ -286,6 +385,7 @@ export default function LogementsPage() {
     setNombreChambres("1");
     setChambres([defaultChambre()]);
     setActiveChambreTab(0);
+    resetSaisonnierFields();
   }
 
   function onChange(name: string, value: string) {
@@ -344,22 +444,71 @@ export default function LogementsPage() {
       }
 
       const surface = Number(values.surface);
-      const loyer = Number(values.loyer);
-      const charges = Number(values.charges);
       if (!Number.isFinite(surface) || surface <= 0) {
         setError("La surface doit être un nombre strictement positif.");
         return;
       }
-      if (!Number.isFinite(loyer) || loyer < 0 || !Number.isFinite(charges) || charges < 0) {
-        setError("Le loyer et les charges doivent être des nombres positifs ou nuls.");
-        return;
+
+      const showClassic = typeLocation === "classique" || typeLocation === "les_deux";
+      const showS = typeLocation === "saisonnier" || typeLocation === "les_deux";
+
+      let loyer = 0;
+      let charges = 0;
+      let coloc = false;
+      let nc = 0;
+      let detailsPayload: unknown[] = [];
+
+      if (showClassic) {
+        loyer = Number(values.loyer);
+        charges = Number(values.charges);
+        if (!Number.isFinite(loyer) || loyer < 0 || !Number.isFinite(charges) || charges < 0) {
+          setError("Le loyer et les charges doivent être des nombres positifs ou nuls.");
+          return;
+        }
+        coloc = values.est_colocation === "oui";
+        nc = coloc ? Math.max(1, Math.min(10, Number(nombreChambres) || 1)) : 0;
+        detailsPayload = coloc ? chambres.slice(0, nc).map((c) => ({ ...c })) : [];
       }
 
-      const coloc = values.est_colocation === "oui";
-      const nc = coloc ? Math.max(1, Math.min(10, Number(nombreChambres) || 1)) : 0;
-      const detailsPayload = coloc ? chambres.slice(0, nc).map((c) => ({ ...c })) : [];
+      let capacite_max: number | null = null;
+      let tarif_nuit_basse: number | null = null;
+      let tarif_nuit_moyenne: number | null = null;
+      let tarif_nuit_haute: number | null = null;
+      let tarif_menage: number | null = null;
+      let tarif_caution: number | null = null;
+      let taxe_sejour_nuit: number | null = null;
+      let equipements: string[] | null = null;
+      let reglement: string | null = null;
+      let instructions: string | null = null;
+      let icalA: string | null = null;
+      let icalB: string | null = null;
 
-      const payload = {
+      if (showS) {
+        const cap = Number(capaciteMax);
+        if (!Number.isFinite(cap) || cap <= 0) {
+          setError("Renseignez une capacité maximum (personnes) valide pour la location saisonnière.");
+          return;
+        }
+        const tm = tarifNuitMoyenne.trim() ? Number(tarifNuitMoyenne) : NaN;
+        if (!Number.isFinite(tm) || tm < 0) {
+          setError("Renseignez un tarif nuit moyenne saison valide (€).");
+          return;
+        }
+        capacite_max = cap;
+        tarif_nuit_basse = tarifNuitBasse.trim() ? Number(tarifNuitBasse) : null;
+        tarif_nuit_moyenne = tm;
+        tarif_nuit_haute = tarifNuitHaute.trim() ? Number(tarifNuitHaute) : null;
+        tarif_menage = tarifMenage.trim() ? Number(tarifMenage) : null;
+        tarif_caution = tarifCaution.trim() ? Number(tarifCaution) : null;
+        taxe_sejour_nuit = taxeSejourNuit.trim() ? Number(taxeSejourNuit) : null;
+        equipements = equipementsSaisonnier;
+        reglement = reglementInterieur.trim() || null;
+        instructions = instructionsAcces.trim() || null;
+        icalA = icalAirbnbUrl.trim() || null;
+        icalB = icalBookingUrl.trim() || null;
+      }
+
+      const payload: Record<string, unknown> = {
         proprietaire_id: ownerId,
         nom,
         adresse,
@@ -372,7 +521,35 @@ export default function LogementsPage() {
         est_colocation: coloc,
         nombre_chambres: nc,
         chambres_details: detailsPayload,
+        type_location: typeLocation,
+        capacite_max,
+        tarif_nuit_basse,
+        tarif_nuit_moyenne,
+        tarif_nuit_haute,
+        tarif_menage,
+        tarif_caution,
+        taxe_sejour_nuit,
+        equipements_saisonnier: equipements,
+        reglement_interieur: reglement,
+        instructions_acces: instructions,
+        ical_airbnb_url: icalA,
+        ical_booking_url: icalB,
       };
+
+      if (!showS) {
+        payload.capacite_max = null;
+        payload.tarif_nuit_basse = null;
+        payload.tarif_nuit_moyenne = null;
+        payload.tarif_nuit_haute = null;
+        payload.tarif_menage = null;
+        payload.tarif_caution = null;
+        payload.taxe_sejour_nuit = null;
+        payload.equipements_saisonnier = null;
+        payload.reglement_interieur = null;
+        payload.instructions_acces = null;
+        payload.ical_airbnb_url = null;
+        payload.ical_booking_url = null;
+      }
 
       const updatePayload =
         plan === "free"
@@ -436,6 +613,30 @@ export default function LogementsPage() {
       setError(formatSubmitError(e));
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function syncIcalForLogement(logementId: string) {
+    setIcalSyncLoading(true);
+    setIcalSyncMessage("");
+    try {
+      const res = await fetch("/api/saisonnier/ical-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logement_id: logementId }),
+      });
+      const data = (await res.json()) as { error?: string; imported?: number; updated?: number };
+      if (!res.ok) {
+        setIcalSyncMessage(data.error ?? "Échec synchronisation.");
+        return;
+      }
+      setIcalSyncMessage(
+        `Synchronisation : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`,
+      );
+    } catch (e) {
+      setIcalSyncMessage(formatSubmitError(e));
+    } finally {
+      setIcalSyncLoading(false);
     }
   }
 
@@ -512,6 +713,7 @@ export default function LogementsPage() {
                 : available === 0
                   ? { label: "Complet", bg: PC.successBg20, color: PC.success }
                   : { label: `${available} chambre(s) disponible(s)`, bg: PC.warningBg15, color: PC.warning };
+            const exploitationBadge = getExploitationBadge(row.type_location);
             const isHovered = hoveredLogementId === row.id;
             return (
               <article
@@ -541,6 +743,9 @@ export default function LogementsPage() {
                     {row.adresse}, {row.code_postal} {row.ville}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: exploitationBadge.bg, color: exploitationBadge.color }}>
+                      {exploitationBadge.label}
+                    </span>
                     <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
                       {row.type}
                     </span>
@@ -673,7 +878,7 @@ export default function LogementsPage() {
                     placeholder="T2, Studio..."
                   />
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                   <span className="font-medium">Surface (m²)</span>
                   <input
                     required
@@ -684,41 +889,101 @@ export default function LogementsPage() {
                     onChange={(e) => onChange("surface", e.target.value)}
                   />
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                  <span className="font-medium">Loyer global (€)</span>
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    style={fieldInputStyle}
-                    value={values.loyer}
-                    onChange={(e) => onChange("loyer", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                  <span className="font-medium">Charges globales (€)</span>
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    style={fieldInputStyle}
-                    value={values.charges}
-                    onChange={(e) => onChange("charges", e.target.value)}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
-                  <span className="font-medium">Mode</span>
-                  <select
-                    required
-                    style={fieldSelectStyle}
-                    value={values.est_colocation}
-                    onChange={(e) => onChange("est_colocation", e.target.value)}
-                  >
-                    <option value="non">Location classique</option>
-                    <option value="oui">Colocation</option>
-                  </select>
-                </label>
               </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold" style={{ color: PC.text }}>
+                  Mode d&apos;exploitation
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      {
+                        id: "classique" as const,
+                        icon: "🏠",
+                        title: "Location classique",
+                        desc: "Bail annuel, quittances mensuelles",
+                      },
+                      {
+                        id: "saisonnier" as const,
+                        icon: "🌴",
+                        title: "Location saisonnière",
+                        desc: "Nuitées, réservations courte durée",
+                      },
+                      {
+                        id: "les_deux" as const,
+                        icon: "🔄",
+                        title: "Les deux",
+                        desc: "Exploitation mixte selon les périodes",
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const active = typeLocation === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className="flex flex-col items-start gap-1 rounded-xl p-4 text-left transition duration-200"
+                        style={{
+                          backgroundColor: EXPLOITATION_CARD_BG,
+                          border: `2px solid ${active ? PC.primary : PC.border}`,
+                          boxShadow: active ? PC.activeRing : "none",
+                        }}
+                        onClick={() => setTypeLocation(opt.id)}
+                      >
+                        <span className="text-xl" aria-hidden>
+                          {opt.icon}
+                        </span>
+                        <span className="text-sm font-semibold" style={{ color: PC.text }}>
+                          {opt.title}
+                        </span>
+                        <span className="text-xs leading-snug" style={{ color: PC.muted }}>
+                          {opt.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {showClassicFields ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Loyer global (€)</span>
+                    <input
+                      required={showClassicFields}
+                      type="number"
+                      step="0.01"
+                      style={fieldInputStyle}
+                      value={values.loyer}
+                      onChange={(e) => onChange("loyer", e.target.value)}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Charges globales (€)</span>
+                    <input
+                      required={showClassicFields}
+                      type="number"
+                      step="0.01"
+                      style={fieldInputStyle}
+                      value={values.charges}
+                      onChange={(e) => onChange("charges", e.target.value)}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+                    <span className="font-medium">Mode</span>
+                    <select
+                      required
+                      style={fieldSelectStyle}
+                      value={values.est_colocation}
+                      onChange={(e) => onChange("est_colocation", e.target.value)}
+                    >
+                      <option value="non">Location classique</option>
+                      <option value="oui">Colocation</option>
+                    </select>
+                  </label>
+                </div>
+              ) : null}
 
               {isColocation ? (
                 <div
@@ -863,6 +1128,134 @@ export default function LogementsPage() {
                         ? "Somme des loyers de chambres = loyer global."
                         : `Écart : ${ecartLoyer >= 0 ? "+" : ""}${ecartLoyer.toFixed(2)} € (vérifiez la cohérence des montants).`}
                     </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {showSaisonnierFields ? (
+                <div className="space-y-4 rounded-xl p-4" style={{ border: `1px solid ${PC.primaryBorder40}`, backgroundColor: PC.primaryBg10 }}>
+                  <h4 className="text-sm font-semibold" style={{ color: PC.text }}>
+                    Paramètres saisonniers
+                  </h4>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Capacité max (personnes)</span>
+                      <input
+                        required={showSaisonnierFields}
+                        type="number"
+                        min={1}
+                        style={fieldInputStyle}
+                        value={capaciteMax}
+                        onChange={(e) => setCapaciteMax(e.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Tarif / nuit basse saison (€)</span>
+                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitBasse} onChange={(e) => setTarifNuitBasse(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Tarif / nuit moyenne saison (€)</span>
+                      <input
+                        required={showSaisonnierFields}
+                        type="number"
+                        step="0.01"
+                        style={fieldInputStyle}
+                        value={tarifNuitMoyenne}
+                        onChange={(e) => setTarifNuitMoyenne(e.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Tarif / nuit haute saison (€)</span>
+                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitHaute} onChange={(e) => setTarifNuitHaute(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Tarif ménage (€)</span>
+                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifMenage} onChange={(e) => setTarifMenage(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Tarif caution (€)</span>
+                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifCaution} onChange={(e) => setTarifCaution(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+                      <span className="font-medium">Taxe de séjour (€ / personne / nuit)</span>
+                      <input type="number" step="0.01" style={fieldInputStyle} value={taxeSejourNuit} onChange={(e) => setTaxeSejourNuit(e.target.value)} />
+                    </label>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-medium" style={{ color: PC.text }}>
+                      Équipements
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {EQUIPEMENTS_SAISONNIER_OPTS.map((label) => (
+                        <label key={label} className="flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                          <input
+                            type="checkbox"
+                            checked={equipementsSaisonnier.includes(label)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEquipementsSaisonnier((prev) => [...prev, label]);
+                              } else {
+                                setEquipementsSaisonnier((prev) => prev.filter((x) => x !== label));
+                              }
+                            }}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Règlement intérieur</span>
+                    <textarea className="min-h-24 rounded-lg px-3 py-2 text-sm" style={fieldInputMd} value={reglementInterieur} onChange={(e) => setReglementInterieur(e.target.value)} />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Instructions d&apos;accès</span>
+                    <textarea className="min-h-24 rounded-lg px-3 py-2 text-sm" style={fieldInputMd} value={instructionsAcces} onChange={(e) => setInstructionsAcces(e.target.value)} />
+                  </label>
+                  <div className="rounded-xl p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.bg }}>
+                    <h4 className="text-sm font-semibold" style={{ color: PC.text }}>
+                      Synchronisation calendrier
+                    </h4>
+                    <label className="mt-3 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">URL iCal Airbnb</span>
+                      <input style={fieldInputStyle} value={icalAirbnbUrl} onChange={(e) => setIcalAirbnbUrl(e.target.value)} placeholder="https://..." />
+                    </label>
+                    <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      📋 Comment récupérer votre lien Airbnb :<br />
+                      1. Airbnb → Calendrier → Disponibilités
+                      <br />
+                      2. Exporter le calendrier
+                      <br />
+                      3. Copier et coller le lien ici
+                    </p>
+                    <label className="mt-4 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">URL iCal Booking</span>
+                      <input style={fieldInputStyle} value={icalBookingUrl} onChange={(e) => setIcalBookingUrl(e.target.value)} placeholder="https://..." />
+                    </label>
+                    <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      Même démarche sur Booking.com : extranet → synchronisation du calendrier → lien iCal.
+                    </p>
+                    <button
+                      type="button"
+                      className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                      style={{ backgroundColor: PC.primary, color: PC.white }}
+                      disabled={icalSyncLoading || !isEditing}
+                      onClick={() => {
+                        if (editingRow) void syncIcalForLogement(editingRow.id);
+                      }}
+                    >
+                      {icalSyncLoading ? "Synchronisation…" : "Synchroniser maintenant"}
+                    </button>
+                    {!isEditing ? (
+                      <p className="mt-2 text-xs" style={{ color: PC.warning }}>
+                        Enregistrez le logement avant de synchroniser les calendriers.
+                      </p>
+                    ) : null}
+                    {icalSyncMessage ? (
+                      <p className="mt-2 text-xs" style={{ color: PC.muted }}>
+                        {icalSyncMessage}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

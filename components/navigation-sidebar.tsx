@@ -37,7 +37,7 @@ const navigationMainClassique = [
 
 const navigationMainSaisonnier = [
   { href: "/saisonnier/dashboard", label: "Dashboard", icon: IconChart },
-  { href: "/saisonnier/logements", label: "Logements", icon: IconBuilding },
+  { href: "/logements", label: "Logements", icon: IconBuilding },
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
