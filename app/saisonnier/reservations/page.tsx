@@ -1,6 +1,15 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
@@ -53,6 +62,36 @@ const STATUT_COLOR: Record<string, string> = {
   annulee: PC.danger,
 };
 
+function ResaActionPill({
+  children,
+  onClick,
+  variant,
+  disabled,
+}: {
+  children: ReactNode;
+  onClick: () => void | Promise<void>;
+  variant: "green" | "red" | "violet" | "violetOutline" | "grey";
+  disabled?: boolean;
+}) {
+  const base =
+    "rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45";
+  const style: CSSProperties =
+    variant === "green"
+      ? { backgroundColor: "#16a34a", color: "#fff", border: "none" }
+      : variant === "red"
+        ? { backgroundColor: "#dc2626", color: "#fff", border: "none" }
+        : variant === "violet"
+          ? { backgroundColor: "#7c3aed", color: "#fff", border: "none" }
+          : variant === "violetOutline"
+            ? { backgroundColor: "transparent", color: "#a78bfa", border: "1px solid rgba(167, 139, 250, 0.55)" }
+            : { backgroundColor: "rgba(148, 163, 184, 0.2)", color: PC.muted, border: `1px solid ${PC.border}` };
+  return (
+    <button type="button" className={base} style={style} disabled={disabled} onClick={() => void onClick()}>
+      {children}
+    </button>
+  );
+}
+
 function daysBetween(a: string, b: string): number {
   const da = new Date(a + "T12:00:00").getTime();
   const db = new Date(b + "T12:00:00").getTime();
@@ -87,9 +126,6 @@ export default function ReservationsSaisonnierPage() {
   const [form, setForm] = useState({
     logement_id: "",
     voyageur_id: "",
-    new_voyageur_prenom: "",
-    new_voyageur_nom: "",
-    new_voyageur_email: "",
     date_arrivee: "",
     date_depart: "",
     nb_voyageurs: "1",
@@ -229,9 +265,6 @@ export default function ReservationsSaisonnierPage() {
     setForm({
       logement_id: lg?.id ?? "",
       voyageur_id: "",
-      new_voyageur_prenom: "",
-      new_voyageur_nom: "",
-      new_voyageur_email: "",
       date_arrivee: "",
       date_depart: "",
       nb_voyageurs: "1",
@@ -254,23 +287,10 @@ export default function ReservationsSaisonnierPage() {
     setError("");
     const { proprietaireId, error: ownerErr } = await getCurrentProprietaireId();
     if (ownerErr || !proprietaireId) return;
-    let voyageurId = form.voyageur_id || null;
-    if (!voyageurId && form.new_voyageur_prenom.trim() && form.new_voyageur_nom.trim()) {
-      const { data: nv, error: nvErr } = await supabase
-        .from("voyageurs")
-        .insert({
-          proprietaire_id: proprietaireId,
-          prenom: form.new_voyageur_prenom.trim(),
-          nom: form.new_voyageur_nom.trim(),
-          email: form.new_voyageur_email.trim() || null,
-        })
-        .select("id")
-        .single();
-      if (nvErr) {
-        setError(formatSubmitError(nvErr));
-        return;
-      }
-      voyageurId = nv.id as string;
+    const voyageurId = form.voyageur_id.trim() || null;
+    if (!voyageurId) {
+      setError("Sélectionnez un voyageur. Créez un profil depuis la page Voyageurs si besoin.");
+      return;
     }
     if (!form.logement_id || !form.date_arrivee || !form.date_depart) {
       setError("Renseignez logement et dates.");
@@ -526,40 +546,41 @@ export default function ReservationsSaisonnierPage() {
                 <td className="px-3 py-2">{row.date_arrivee}</td>
                 <td className="px-3 py-2">{row.date_depart}</td>
                 <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2 align-top">
                   {row.source === "airbnb" || row.source === "booking" ? (
-                    editingMontantId === row.id ? (
-                      <input
-                        ref={montantInputRef}
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        className="w-28 rounded px-2 py-1 text-sm"
-                        style={{ ...fieldInputStyle, width: "7rem" }}
-                        value={editingMontantValue}
-                        onChange={(e) => setEditingMontantValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") void saveTarifTotalReservation(row.id, editingMontantValue);
-                        }}
-                        onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
-                      />
-                    ) : (
-                      <span className="inline-flex items-center gap-1">
-                        {row.tarif_total.toFixed(0)} €
-                        <button
-                          type="button"
-                          className="rounded px-1 text-xs"
-                          style={{ color: PC.primary }}
-                          title="Modifier le montant"
-                          onClick={() => {
-                            setEditingMontantId(row.id);
-                            setEditingMontantValue(String(row.tarif_total));
+                    <div className="flex flex-col gap-0.5">
+                      {editingMontantId === row.id ? (
+                        <input
+                          ref={montantInputRef}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          className="w-28 rounded px-2 py-1 text-sm"
+                          style={{ ...fieldInputStyle, width: "7rem" }}
+                          value={editingMontantValue}
+                          onChange={(e) => setEditingMontantValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void saveTarifTotalReservation(row.id, editingMontantValue);
                           }}
-                        >
-                          ✏️
-                        </button>
-                      </span>
-                    )
+                          onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
+                        />
+                      ) : (
+                        <>
+                          <span>{row.tarif_total.toFixed(0)} €</span>
+                          <button
+                            type="button"
+                            className="w-fit p-0 text-left text-[12px] font-normal underline"
+                            style={{ color: "#a78bfa", background: "none", border: "none", cursor: "pointer" }}
+                            onClick={() => {
+                              setEditingMontantId(row.id);
+                              setEditingMontantValue(String(row.tarif_total));
+                            }}
+                          >
+                            Modifier le prix
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ) : (
                     `${row.tarif_total.toFixed(0)} €`
                   )}
@@ -570,38 +591,53 @@ export default function ReservationsSaisonnierPage() {
                   </span>
                 </td>
                 <td className="px-3 py-2">{row.source}</td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-col gap-1 text-xs">
-                    <button type="button" className="text-left underline" style={{ color: PC.primary }} onClick={() => setDetailId(row.id)}>
-                      Détail
-                    </button>
-                    {row.statut === "en_attente" ? (
-                      <button type="button" style={{ color: PC.success }} onClick={() => void setStatut(row.id, "confirmee")}>
-                        Confirmer
-                      </button>
-                    ) : null}
-                    {row.statut !== "annulee" ? (
-                      <button type="button" style={{ color: PC.danger }} onClick={() => void setStatut(row.id, "annulee")}>
-                        Annuler
-                      </button>
-                    ) : null}
-                    {row.voyageurs ? (
-                      <>
-                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("contrat", row.id)}>
-                          Envoyer contrat
+                <td className="px-3 py-2 align-top">
+                  {(() => {
+                    const isOta = row.source === "airbnb" || row.source === "booking";
+                    const canDirectActions = !isOta;
+                    return (
+                      <div className="flex max-w-[220px] flex-col gap-1.5">
+                        <button
+                          type="button"
+                          className="w-fit p-0 text-left text-xs underline"
+                          style={{ color: PC.primary, background: "none", border: "none", cursor: "pointer" }}
+                          onClick={() => setDetailId(row.id)}
+                        >
+                          Détail
                         </button>
-                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("acompte", row.id)}>
-                          Reçu acompte
-                        </button>
-                        <button type="button" style={{ color: PC.secondary }} onClick={() => void sendApi("solde", row.id)}>
-                          Reçu solde
-                        </button>
-                      </>
-                    ) : null}
-                    <button type="button" style={{ color: PC.muted }} onClick={() => void markMenageDone(row.id, row.logement_id)}>
-                      Ménage fait
-                    </button>
-                  </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {canDirectActions && row.statut === "en_attente" ? (
+                            <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
+                              Confirmer
+                            </ResaActionPill>
+                          ) : null}
+                          {row.statut !== "annulee" ? (
+                            <ResaActionPill variant="red" onClick={() => void setStatut(row.id, "annulee")}>
+                              Annuler
+                            </ResaActionPill>
+                          ) : null}
+                          {canDirectActions && row.voyageurs ? (
+                            <ResaActionPill variant="violet" onClick={() => void sendApi("contrat", row.id)}>
+                              Contrat
+                            </ResaActionPill>
+                          ) : null}
+                          {canDirectActions && row.voyageurs ? (
+                            <ResaActionPill variant="violetOutline" onClick={() => void sendApi("acompte", row.id)}>
+                              Acompte
+                            </ResaActionPill>
+                          ) : null}
+                          {canDirectActions && row.voyageurs ? (
+                            <ResaActionPill variant="violetOutline" onClick={() => void sendApi("solde", row.id)}>
+                              Solde
+                            </ResaActionPill>
+                          ) : null}
+                          <ResaActionPill variant="grey" onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                            Ménage ✓
+                          </ResaActionPill>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}
@@ -626,8 +662,8 @@ export default function ReservationsSaisonnierPage() {
               </label>
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                 Voyageur existant
-                <select style={fieldSelectStyle} value={form.voyageur_id} onChange={(e) => setForm((f) => ({ ...f, voyageur_id: e.target.value }))}>
-                  <option value="">— Créer ou choisir —</option>
+                <select required style={fieldSelectStyle} value={form.voyageur_id} onChange={(e) => setForm((f) => ({ ...f, voyageur_id: e.target.value }))}>
+                  <option value="">— Sélectionner un voyageur —</option>
                   {voyageurs.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.prenom} {v.nom}
@@ -636,13 +672,16 @@ export default function ReservationsSaisonnierPage() {
                 </select>
               </label>
               <p className="text-xs" style={{ color: PC.muted }}>
-                Ou créer : prénom, nom, email
+                <a
+                  href="/saisonnier/voyageurs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                  style={{ color: PC.muted }}
+                >
+                  + Créer un nouveau voyageur
+                </a>
               </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <input placeholder="Prénom" style={fieldInputStyle} value={form.new_voyageur_prenom} onChange={(e) => setForm((f) => ({ ...f, new_voyageur_prenom: e.target.value }))} />
-                <input placeholder="Nom" style={fieldInputStyle} value={form.new_voyageur_nom} onChange={(e) => setForm((f) => ({ ...f, new_voyageur_nom: e.target.value }))} />
-              </div>
-              <input placeholder="Email nouveau voyageur" type="email" style={fieldInputStyle} value={form.new_voyageur_email} onChange={(e) => setForm((f) => ({ ...f, new_voyageur_email: e.target.value }))} />
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                   Arrivée

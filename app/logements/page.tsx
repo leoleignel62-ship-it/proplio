@@ -70,10 +70,24 @@ type Logement = {
 
 const EXPLOITATION_CARD_BG = "#13131a";
 
-const MOIS_OPTIONS = Array.from({ length: 12 }, (_, i) => {
-  const v = String(i + 1).padStart(2, "0");
-  return { value: v, label: `${i + 1}` };
-});
+const MOIS_FR = [
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
+] as const;
+const MOIS_OPTIONS = MOIS_FR.map((label, i) => ({
+  value: String(i + 1).padStart(2, "0"),
+  label,
+}));
 const JOUR_OPTIONS = Array.from({ length: 31 }, (_, i) => {
   const v = String(i + 1).padStart(2, "0");
   return { value: v, label: `${i + 1}` };
@@ -1333,17 +1347,17 @@ export default function LogementsPage() {
                           <div className="grid gap-2 sm:grid-cols-2">
                             <div>
                               <p className="mb-1 text-xs font-medium" style={{ color: PC.muted }}>
-                                Date début (jour / mois)
+                                Début
                               </p>
                               <div className="flex gap-2">
-                                <select style={fieldSelectStyle} className="flex-1" value={creneauDd} onChange={(e) => setCreneauDd(e.target.value)}>
+                                <select style={fieldSelectStyle} className="min-w-0 flex-1" aria-label="Jour de début" value={creneauDd} onChange={(e) => setCreneauDd(e.target.value)}>
                                   {JOUR_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                       {o.label}
                                     </option>
                                   ))}
                                 </select>
-                                <select style={fieldSelectStyle} className="flex-1" value={creneauDm} onChange={(e) => setCreneauDm(e.target.value)}>
+                                <select style={fieldSelectStyle} className="min-w-0 flex-1" aria-label="Mois de début" value={creneauDm} onChange={(e) => setCreneauDm(e.target.value)}>
                                   {MOIS_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                       {o.label}
@@ -1354,17 +1368,17 @@ export default function LogementsPage() {
                             </div>
                             <div>
                               <p className="mb-1 text-xs font-medium" style={{ color: PC.muted }}>
-                                Date fin (jour / mois)
+                                Fin
                               </p>
                               <div className="flex gap-2">
-                                <select style={fieldSelectStyle} className="flex-1" value={creneauFd} onChange={(e) => setCreneauFd(e.target.value)}>
+                                <select style={fieldSelectStyle} className="min-w-0 flex-1" aria-label="Jour de fin" value={creneauFd} onChange={(e) => setCreneauFd(e.target.value)}>
                                   {JOUR_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                       {o.label}
                                     </option>
                                   ))}
                                 </select>
-                                <select style={fieldSelectStyle} className="flex-1" value={creneauFm} onChange={(e) => setCreneauFm(e.target.value)}>
+                                <select style={fieldSelectStyle} className="min-w-0 flex-1" aria-label="Mois de fin" value={creneauFm} onChange={(e) => setCreneauFm(e.target.value)}>
                                   {MOIS_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>
                                       {o.label}
