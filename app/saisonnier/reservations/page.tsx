@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
@@ -8,14 +8,19 @@ import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
 
 type LogementOption = {
   id: string;
   nom: string;
+  tarifs_creneaux: unknown;
+  tarif_nuit_defaut: number | null;
   tarif_nuit_moyenne: number | null;
   tarif_menage: number | null;
   tarif_caution: number | null;
   taxe_sejour_nuit: number | null;
+  ical_airbnb_url: string | null;
+  ical_booking_url: string | null;
 };
 
 type ReservationRow = {
@@ -54,6 +59,14 @@ function daysBetween(a: string, b: string): number {
   return Math.round((db - da) / 86400000);
 }
 
+function logementTarifPayload(lg: LogementOption) {
+  return {
+    tarifs_creneaux: lg.tarifs_creneaux,
+    tarif_nuit_defaut: lg.tarif_nuit_defaut,
+    tarif_nuit_moyenne: lg.tarif_nuit_moyenne,
+  };
+}
+
 export default function ReservationsSaisonnierPage() {
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
@@ -64,6 +77,12 @@ export default function ReservationsSaisonnierPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [acomptePct, setAcomptePct] = useState(30);
+  const [toast, setToast] = useState<string | null>(null);
+  const [editingMontantId, setEditingMontantId] = useState<string | null>(null);
+  const [editingMontantValue, setEditingMontantValue] = useState("");
+  const montantInputRef = useRef<HTMLInputElement | null>(null);
+  const [detailPrixReel, setDetailPrixReel] = useState("");
+  const [detailSaving, setDetailSaving] = useState(false);
 
   const [form, setForm] = useState({
     logement_id: "",
@@ -75,9 +94,9 @@ export default function ReservationsSaisonnierPage() {
     date_depart: "",
     nb_voyageurs: "1",
     source: "direct",
-    tarif_nuit: "",
     notes: "",
   });
+  const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -99,7 +118,9 @@ export default function ReservationsSaisonnierPage() {
         .order("date_arrivee", { ascending: true }),
       supabase
         .from("logements")
-        .select("id, nom, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, type_location")
+        .select(
+          "id, nom, tarifs_creneaux, tarif_nuit_defaut, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url, type_location",
+        )
         .eq("proprietaire_id", proprietaireId)
         .in("type_location", ["saisonnier", "les_deux"]),
       supabase.from("voyageurs").select("id, prenom, nom").eq("proprietaire_id", proprietaireId).order("nom"),
@@ -134,7 +155,20 @@ export default function ReservationsSaisonnierPage() {
       };
     });
     setRows(normalized);
-    setLogements((r2.data as LogementOption[]) ?? []);
+    setLogements(
+      ((r2.data ?? []) as Record<string, unknown>[]).map((row) => ({
+        id: String(row.id),
+        nom: String(row.nom ?? ""),
+        tarifs_creneaux: row.tarifs_creneaux ?? [],
+        tarif_nuit_defaut: row.tarif_nuit_defaut != null ? Number(row.tarif_nuit_defaut) : null,
+        tarif_nuit_moyenne: row.tarif_nuit_moyenne != null ? Number(row.tarif_nuit_moyenne) : null,
+        tarif_menage: row.tarif_menage != null ? Number(row.tarif_menage) : null,
+        tarif_caution: row.tarif_caution != null ? Number(row.tarif_caution) : null,
+        taxe_sejour_nuit: row.taxe_sejour_nuit != null ? Number(row.taxe_sejour_nuit) : null,
+        ical_airbnb_url: (row.ical_airbnb_url as string | null) ?? null,
+        ical_booking_url: (row.ical_booking_url as string | null) ?? null,
+      })),
+    );
     setVoyageurs((r3.data as Array<{ id: string; prenom: string; nom: string }>) ?? []);
     setLoading(false);
   }, []);
@@ -143,23 +177,52 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    if (editingMontantId) montantInputRef.current?.focus();
+  }, [editingMontantId]);
+
+  useEffect(() => {
+    if (!detailId) {
+      setDetailPrixReel("");
+      return;
+    }
+    const r = rows.find((x) => x.id === detailId);
+    if (r) setDetailPrixReel(String(r.tarif_total));
+  }, [detailId, rows]);
+
+  const showIcalPrixInfo = useMemo(
+    () =>
+      logements.some(
+        (l) => String(l.ical_airbnb_url ?? "").trim().length > 0 || String(l.ical_booking_url ?? "").trim().length > 0,
+      ),
+    [logements],
+  );
+
   const preview = useMemo(() => {
-    const tn = Number(form.tarif_nuit) || 0;
     const arr = form.date_arrivee;
     const dep = form.date_depart;
     if (!arr || !dep || dep <= arr) return { nuits: 0, nuitees: 0, menage: 0, taxe: 0, caution: 0, total: 0, acompte: 0 };
     const nuits = daysBetween(arr, dep);
     const lg = logements.find((l) => l.id === form.logement_id);
+    const nuitees =
+      form.source === "direct" && lg
+        ? calculerMontantReservation(logementTarifPayload(lg), arr, dep)
+        : Math.max(0, Number(tarifManuelAirbnb) || 0) * nuits;
     const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
-    const nuitees = nuits * tn;
     const taxe = taxeN * nv * nuits;
     const total = nuitees + menage + taxe + caution;
     const acompte = (total * acomptePct) / 100;
     return { nuits, nuitees, menage, taxe, caution, total, acompte };
-  }, [form, logements, acomptePct]);
+  }, [form, logements, acomptePct, tarifManuelAirbnb]);
 
   function openModal() {
     const lg = logements[0];
@@ -173,18 +236,16 @@ export default function ReservationsSaisonnierPage() {
       date_depart: "",
       nb_voyageurs: "1",
       source: "direct",
-      tarif_nuit: lg?.tarif_nuit_moyenne != null ? String(lg.tarif_nuit_moyenne) : "",
       notes: "",
     });
+    setTarifManuelAirbnb("");
     setModalOpen(true);
   }
 
   function onLogementPick(id: string) {
-    const lg = logements.find((l) => l.id === id);
     setForm((f) => ({
       ...f,
       logement_id: id,
-      tarif_nuit: lg?.tarif_nuit_moyenne != null ? String(lg.tarif_nuit_moyenne) : f.tarif_nuit,
     }));
   }
 
@@ -211,9 +272,8 @@ export default function ReservationsSaisonnierPage() {
       }
       voyageurId = nv.id as string;
     }
-    const tn = Number(form.tarif_nuit);
-    if (!form.logement_id || !form.date_arrivee || !form.date_depart || !Number.isFinite(tn)) {
-      setError("Renseignez logement, dates et tarif/nuit.");
+    if (!form.logement_id || !form.date_arrivee || !form.date_depart) {
+      setError("Renseignez logement et dates.");
       return;
     }
     const nuits = daysBetween(form.date_arrivee, form.date_depart);
@@ -222,11 +282,28 @@ export default function ReservationsSaisonnierPage() {
       return;
     }
     const lg = logements.find((l) => l.id === form.logement_id);
+    if (!lg) {
+      setError("Logement introuvable.");
+      return;
+    }
     const menage = lg?.tarif_menage != null ? Number(lg.tarif_menage) : 0;
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
-    const tarifTotal = nuits * tn;
+    let tarifTotal: number;
+    let tn: number;
+    if (form.source === "direct") {
+      tarifTotal = calculerMontantReservation(logementTarifPayload(lg), form.date_arrivee, form.date_depart);
+      tn = nuits > 0 ? Math.round((tarifTotal / nuits) * 100) / 100 : 0;
+    } else {
+      const tnm = Number(tarifManuelAirbnb);
+      if (!Number.isFinite(tnm) || tnm < 0) {
+        setError("Renseignez un tarif / nuit pour cette source.");
+        return;
+      }
+      tn = tnm;
+      tarifTotal = nuits * tn;
+    }
     const taxeTotal = taxeN * nv * nuits;
     const totalTtc = tarifTotal + menage + taxeTotal + caution;
     const acompte = (totalTtc * acomptePct) / 100;
@@ -272,6 +349,58 @@ export default function ReservationsSaisonnierPage() {
     }
     setModalOpen(false);
     void load();
+  }
+
+  async function saveTarifTotalReservation(id: string, valueStr: string) {
+    const v = Number(valueStr);
+    if (!Number.isFinite(v) || v < 0) {
+      setEditingMontantId(null);
+      return;
+    }
+    const { proprietaireId, error: e } = await getCurrentProprietaireId();
+    if (e || !proprietaireId) return;
+    const row = rows.find((r) => r.id === id);
+    const nuits = row ? daysBetween(row.date_arrivee, row.date_depart) : 0;
+    const tarif_nuit = nuits > 0 ? Math.round((v / nuits) * 100) / 100 : 0;
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ tarif_total: v, tarif_nuit })
+      .eq("id", id)
+      .eq("proprietaire_id", proprietaireId);
+    if (!uErr) {
+      setToast("Prix mis à jour");
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, tarif_total: v, tarif_nuit } : r)));
+    } else {
+      setError(formatSubmitError(uErr));
+    }
+    setEditingMontantId(null);
+  }
+
+  async function saveDetailPrixReel() {
+    if (!detailId) return;
+    const v = Number(detailPrixReel);
+    if (!Number.isFinite(v) || v < 0) return;
+    setDetailSaving(true);
+    const { proprietaireId, error: e } = await getCurrentProprietaireId();
+    if (e || !proprietaireId) {
+      setDetailSaving(false);
+      return;
+    }
+    const row = rows.find((r) => r.id === detailId);
+    const nuits = row ? daysBetween(row.date_arrivee, row.date_depart) : 0;
+    const tarif_nuit = nuits > 0 ? Math.round((v / nuits) * 100) / 100 : 0;
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ tarif_total: v, tarif_nuit })
+      .eq("id", detailId)
+      .eq("proprietaire_id", proprietaireId);
+    setDetailSaving(false);
+    if (!uErr) {
+      setToast("Prix mis à jour");
+      setRows((prev) => prev.map((r) => (r.id === detailId ? { ...r, tarif_total: v, tarif_nuit } : r)));
+    } else {
+      setError(formatSubmitError(uErr));
+    }
   }
 
   async function setStatut(id: string, statut: string) {
@@ -335,6 +464,39 @@ export default function ReservationsSaisonnierPage() {
         </p>
       ) : null}
 
+      {showIcalPrixInfo ? (
+        <div
+          className="flex gap-3 rounded-xl p-4 text-sm leading-relaxed"
+          style={{
+            backgroundColor: "rgba(251, 146, 60, 0.12)",
+            border: `1px solid rgba(251, 146, 60, 0.35)`,
+            color: PC.text,
+          }}
+        >
+          <span className="shrink-0 text-xl" aria-hidden>
+            ℹ️
+          </span>
+          <div>
+            <p className="font-semibold" style={{ color: "#fb923c" }}>
+              Prix des réservations Airbnb/Booking
+            </p>
+            <p className="mt-2" style={{ color: PC.muted }}>
+              Airbnb et Booking ne communiquent pas les prix via la synchronisation de calendrier. Les réservations importées affichent une estimation basée sur vos tarifs configurés. Pour un suivi précis, renseignez le prix réel directement sur chaque réservation.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {toast ? (
+        <div
+          className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-lg px-4 py-2 text-sm font-medium shadow-lg"
+          style={{ backgroundColor: PC.success, color: PC.white }}
+          role="status"
+        >
+          {toast}
+        </div>
+      ) : null}
+
       <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}`, color: PC.muted }}>
         Vue calendrier disponible prochainement
       </div>
@@ -364,7 +526,44 @@ export default function ReservationsSaisonnierPage() {
                 <td className="px-3 py-2">{row.date_arrivee}</td>
                 <td className="px-3 py-2">{row.date_depart}</td>
                 <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
-                <td className="px-3 py-2">{row.tarif_total.toFixed(0)} €</td>
+                <td className="px-3 py-2">
+                  {row.source === "airbnb" || row.source === "booking" ? (
+                    editingMontantId === row.id ? (
+                      <input
+                        ref={montantInputRef}
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        className="w-28 rounded px-2 py-1 text-sm"
+                        style={{ ...fieldInputStyle, width: "7rem" }}
+                        value={editingMontantValue}
+                        onChange={(e) => setEditingMontantValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void saveTarifTotalReservation(row.id, editingMontantValue);
+                        }}
+                        onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
+                      />
+                    ) : (
+                      <span className="inline-flex items-center gap-1">
+                        {row.tarif_total.toFixed(0)} €
+                        <button
+                          type="button"
+                          className="rounded px-1 text-xs"
+                          style={{ color: PC.primary }}
+                          title="Modifier le montant"
+                          onClick={() => {
+                            setEditingMontantId(row.id);
+                            setEditingMontantValue(String(row.tarif_total));
+                          }}
+                        >
+                          ✏️
+                        </button>
+                      </span>
+                    )
+                  ) : (
+                    `${row.tarif_total.toFixed(0)} €`
+                  )}
+                </td>
                 <td className="px-3 py-2">
                   <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${STATUT_COLOR[row.statut] ?? PC.muted}22`, color: STATUT_COLOR[row.statut] }}>
                     {row.statut}
@@ -460,24 +659,45 @@ export default function ReservationsSaisonnierPage() {
               </label>
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                 Source
-                <select style={fieldSelectStyle} value={form.source} onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}>
+                <select
+                  style={fieldSelectStyle}
+                  value={form.source}
+                  onChange={(e) => {
+                    const source = e.target.value;
+                    setForm((f) => ({ ...f, source }));
+                    if (source !== "direct") setTarifManuelAirbnb("");
+                  }}
+                >
                   <option value="direct">Direct</option>
                   <option value="airbnb">Airbnb</option>
                   <option value="booking">Booking</option>
                   <option value="autre">Autre</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
-                Tarif / nuit (€)
-                <input required type="number" step="0.01" style={fieldInputStyle} value={form.tarif_nuit} onChange={(e) => setForm((f) => ({ ...f, tarif_nuit: e.target.value }))} />
-              </label>
+              {form.source === "direct" ? (
+                <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                  Le montant des nuitées est calculé automatiquement à partir des créneaux tarifaires et du tarif par défaut du logement.
+                </p>
+              ) : (
+                <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                  Tarif / nuit (€)
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    style={fieldInputStyle}
+                    value={tarifManuelAirbnb}
+                    onChange={(e) => setTarifManuelAirbnb(e.target.value)}
+                  />
+                </label>
+              )}
               <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
                 Acompte demandé (%)
                 <input type="number" min={0} max={100} style={fieldInputStyle} value={acomptePct} onChange={(e) => setAcomptePct(Number(e.target.value) || 0)} />
               </label>
               <div className="rounded-lg p-3 text-sm" style={{ backgroundColor: PC.primaryBg10, border: `1px solid ${PC.border}` }}>
                 <p>Nuits : {preview.nuits}</p>
-                <p>Total nuitées : {preview.nuitees.toFixed(2)} €</p>
+                <p>Total nuitées (hébergement) : {preview.nuitees.toFixed(2)} €</p>
                 <p>Ménage + taxe + caution inclus : total TTC {preview.total.toFixed(2)} €</p>
                 <p>Acompte ({acomptePct}%) : {preview.acompte.toFixed(2)} €</p>
               </div>
@@ -504,6 +724,7 @@ export default function ReservationsSaisonnierPage() {
             {(() => {
               const row = rows.find((r) => r.id === detailId);
               if (!row) return null;
+              const isOta = row.source === "airbnb" || row.source === "booking";
               return (
                 <>
                   <h3 className="text-lg font-semibold">Détail réservation</h3>
@@ -512,10 +733,37 @@ export default function ReservationsSaisonnierPage() {
                     <li>
                       Dates : {row.date_arrivee} → {row.date_depart}
                     </li>
-                    <li>Montant : {row.tarif_total.toFixed(2)} €</li>
+                    <li>Source : {row.source}</li>
+                    <li>Montant (hébergement) : {row.tarif_total.toFixed(2)} €</li>
                     <li>Statut : {row.statut}</li>
                     <li>Notes : {row.notes ?? "—"}</li>
                   </ul>
+                  {isOta ? (
+                    <div className="mt-4 space-y-2 rounded-lg p-3" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.inputBg }}>
+                      <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                        <span className="font-medium" style={{ color: PC.text }}>
+                          Prix réel (€)
+                        </span>
+                        <span className="text-xs">Prix communiqué par Airbnb/Booking</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          style={fieldInputStyle}
+                          value={detailPrixReel}
+                          onChange={(e) => setDetailPrixReel(e.target.value)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={detailSaving}
+                        className="proplio-btn-primary w-full py-2 text-sm"
+                        onClick={() => void saveDetailPrixReel()}
+                      >
+                        {detailSaving ? "…" : "Mettre à jour"}
+                      </button>
+                    </div>
+                  ) : null}
                   <button type="button" className="proplio-btn-primary mt-4 w-full py-2" onClick={() => setDetailId(null)}>
                     Fermer
                   </button>

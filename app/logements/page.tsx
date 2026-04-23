@@ -25,6 +25,7 @@ import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputMd, fieldInputStyle, fieldSelectMd, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { type TarifCreneau, parseTarifsCreneauxJson } from "@/lib/saisonnier-tarifs";
 
 const LOGEMENT_MODAL_CARD: CSSProperties = {
   ...panelCard,
@@ -52,6 +53,8 @@ type Logement = {
   verrouille?: boolean | null;
   type_location?: string | null;
   capacite_max?: number | null;
+  tarifs_creneaux?: unknown;
+  tarif_nuit_defaut?: number | null;
   tarif_nuit_basse?: number | null;
   tarif_nuit_moyenne?: number | null;
   tarif_nuit_haute?: number | null;
@@ -66,6 +69,27 @@ type Logement = {
 };
 
 const EXPLOITATION_CARD_BG = "#13131a";
+
+const MOIS_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const v = String(i + 1).padStart(2, "0");
+  return { value: v, label: `${i + 1}` };
+});
+const JOUR_OPTIONS = Array.from({ length: 31 }, (_, i) => {
+  const v = String(i + 1).padStart(2, "0");
+  return { value: v, label: `${i + 1}` };
+});
+
+function mmDdFromParts(m: string, d: string): string {
+  const mm = String(Math.max(1, Math.min(12, Number(m) || 1))).padStart(2, "0");
+  const dd = String(Math.max(1, Math.min(31, Number(d) || 1))).padStart(2, "0");
+  return `${mm}-${dd}`;
+}
+
+function formatMmDdFr(md: string): string {
+  const [mm, dd] = md.split("-");
+  if (!mm || !dd) return md;
+  return `${dd}/${mm}`;
+}
 
 const EQUIPEMENTS_SAISONNIER_OPTS = [
   "Wifi",
@@ -129,9 +153,16 @@ export default function LogementsPage() {
   const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
   const [typeLocation, setTypeLocation] = useState<TypeLocation>("classique");
   const [capaciteMax, setCapaciteMax] = useState("");
-  const [tarifNuitBasse, setTarifNuitBasse] = useState("");
-  const [tarifNuitMoyenne, setTarifNuitMoyenne] = useState("");
-  const [tarifNuitHaute, setTarifNuitHaute] = useState("");
+  const [tarifNuitDefaut, setTarifNuitDefaut] = useState("");
+  const [tarifsCreneaux, setTarifsCreneaux] = useState<TarifCreneau[]>([]);
+  const [creneauFormOpen, setCreneauFormOpen] = useState(false);
+  const [creneauEditingId, setCreneauEditingId] = useState<string | null>(null);
+  const [creneauNom, setCreneauNom] = useState("");
+  const [creneauDm, setCreneauDm] = useState("07");
+  const [creneauDd, setCreneauDd] = useState("01");
+  const [creneauFm, setCreneauFm] = useState("08");
+  const [creneauFd, setCreneauFd] = useState("31");
+  const [creneauTarif, setCreneauTarif] = useState("");
   const [tarifMenage, setTarifMenage] = useState("");
   const [tarifCaution, setTarifCaution] = useState("");
   const [taxeSejourNuit, setTaxeSejourNuit] = useState("");
@@ -287,9 +318,16 @@ export default function LogementsPage() {
   function resetSaisonnierFields() {
     setTypeLocation("classique");
     setCapaciteMax("");
-    setTarifNuitBasse("");
-    setTarifNuitMoyenne("");
-    setTarifNuitHaute("");
+    setTarifNuitDefaut("");
+    setTarifsCreneaux([]);
+    setCreneauFormOpen(false);
+    setCreneauEditingId(null);
+    setCreneauNom("");
+    setCreneauDm("07");
+    setCreneauDd("01");
+    setCreneauFm("08");
+    setCreneauFd("31");
+    setCreneauTarif("");
     setTarifMenage("");
     setTarifCaution("");
     setTaxeSejourNuit("");
@@ -304,9 +342,17 @@ export default function LogementsPage() {
   function loadSaisonnierFromRow(row: Logement) {
     setTypeLocation(normalizeTypeLocation(row.type_location));
     setCapaciteMax(row.capacite_max != null ? String(row.capacite_max) : "");
-    setTarifNuitBasse(row.tarif_nuit_basse != null ? String(row.tarif_nuit_basse) : "");
-    setTarifNuitMoyenne(row.tarif_nuit_moyenne != null ? String(row.tarif_nuit_moyenne) : "");
-    setTarifNuitHaute(row.tarif_nuit_haute != null ? String(row.tarif_nuit_haute) : "");
+    const parsed = parseTarifsCreneauxJson(row.tarifs_creneaux);
+    setTarifsCreneaux(parsed);
+    const def =
+      row.tarif_nuit_defaut != null
+        ? String(row.tarif_nuit_defaut)
+        : row.tarif_nuit_moyenne != null
+          ? String(row.tarif_nuit_moyenne)
+          : "";
+    setTarifNuitDefaut(def);
+    setCreneauFormOpen(false);
+    setCreneauEditingId(null);
     setTarifMenage(row.tarif_menage != null ? String(row.tarif_menage) : "");
     setTarifCaution(row.tarif_caution != null ? String(row.tarif_caution) : "");
     setTaxeSejourNuit(row.taxe_sejour_nuit != null ? String(row.taxe_sejour_nuit) : "");
@@ -405,6 +451,59 @@ export default function LogementsPage() {
     });
   }
 
+  function openCreneauAdd() {
+    setCreneauEditingId(null);
+    setCreneauNom("");
+    setCreneauDm("07");
+    setCreneauDd("01");
+    setCreneauFm("08");
+    setCreneauFd("31");
+    setCreneauTarif("");
+    setCreneauFormOpen(true);
+  }
+
+  function openCreneauEdit(c: TarifCreneau) {
+    const [dm, dd] = c.date_debut.split("-");
+    const [fm, fd] = c.date_fin.split("-");
+    setCreneauEditingId(c.id);
+    setCreneauNom(c.nom);
+    setCreneauDm(dm ?? "07");
+    setCreneauDd(dd ?? "01");
+    setCreneauFm(fm ?? "08");
+    setCreneauFd(fd ?? "31");
+    setCreneauTarif(String(c.tarif));
+    setCreneauFormOpen(true);
+  }
+
+  function saveCreneauDraft() {
+    const price = Number(creneauTarif);
+    if (!creneauNom.trim() || !Number.isFinite(price) || price < 0) return;
+    const dDeb = mmDdFromParts(creneauDm, creneauDd);
+    const dFin = mmDdFromParts(creneauFm, creneauFd);
+    const item: TarifCreneau = {
+      id: creneauEditingId ?? crypto.randomUUID(),
+      nom: creneauNom.trim(),
+      date_debut: dDeb,
+      date_fin: dFin,
+      tarif: price,
+    };
+    if (creneauEditingId) {
+      setTarifsCreneaux((prev) => prev.map((x) => (x.id === creneauEditingId ? item : x)));
+    } else {
+      setTarifsCreneaux((prev) => [...prev, item]);
+    }
+    setCreneauFormOpen(false);
+    setCreneauEditingId(null);
+  }
+
+  function removeCreneau(id: string) {
+    setTarifsCreneaux((prev) => prev.filter((x) => x.id !== id));
+    if (creneauEditingId === id) {
+      setCreneauFormOpen(false);
+      setCreneauEditingId(null);
+    }
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -471,9 +570,6 @@ export default function LogementsPage() {
       }
 
       let capacite_max: number | null = null;
-      let tarif_nuit_basse: number | null = null;
-      let tarif_nuit_moyenne: number | null = null;
-      let tarif_nuit_haute: number | null = null;
       let tarif_menage: number | null = null;
       let tarif_caution: number | null = null;
       let taxe_sejour_nuit: number | null = null;
@@ -483,21 +579,29 @@ export default function LogementsPage() {
       let icalA: string | null = null;
       let icalB: string | null = null;
 
+      let tarif_nuit_defaut: number | null = null;
+      let tarifs_creneaux_payload: TarifCreneau[] = [];
+
       if (showS) {
         const cap = Number(capaciteMax);
         if (!Number.isFinite(cap) || cap <= 0) {
           setError("Renseignez une capacité maximum (personnes) valide pour la location saisonnière.");
           return;
         }
-        const tm = tarifNuitMoyenne.trim() ? Number(tarifNuitMoyenne) : NaN;
-        if (!Number.isFinite(tm) || tm < 0) {
-          setError("Renseignez un tarif nuit moyenne saison valide (€).");
+        const tdef = tarifNuitDefaut.trim() ? Number(tarifNuitDefaut) : NaN;
+        if (!Number.isFinite(tdef) || tdef < 0) {
+          setError("Renseignez un tarif par défaut (€/nuit) valide.");
           return;
         }
         capacite_max = cap;
-        tarif_nuit_basse = tarifNuitBasse.trim() ? Number(tarifNuitBasse) : null;
-        tarif_nuit_moyenne = tm;
-        tarif_nuit_haute = tarifNuitHaute.trim() ? Number(tarifNuitHaute) : null;
+        tarif_nuit_defaut = tdef;
+        tarifs_creneaux_payload = tarifsCreneaux.map((c) => ({
+          id: c.id,
+          nom: c.nom.trim() || "Période",
+          date_debut: c.date_debut,
+          date_fin: c.date_fin,
+          tarif: c.tarif,
+        }));
         tarif_menage = tarifMenage.trim() ? Number(tarifMenage) : null;
         tarif_caution = tarifCaution.trim() ? Number(tarifCaution) : null;
         taxe_sejour_nuit = taxeSejourNuit.trim() ? Number(taxeSejourNuit) : null;
@@ -523,9 +627,11 @@ export default function LogementsPage() {
         chambres_details: detailsPayload,
         type_location: typeLocation,
         capacite_max,
-        tarif_nuit_basse,
-        tarif_nuit_moyenne,
-        tarif_nuit_haute,
+        tarifs_creneaux: showS ? tarifs_creneaux_payload : null,
+        tarif_nuit_defaut: showS ? tarif_nuit_defaut : null,
+        tarif_nuit_basse: null,
+        tarif_nuit_moyenne: showS ? tarif_nuit_defaut : null,
+        tarif_nuit_haute: null,
         tarif_menage,
         tarif_caution,
         taxe_sejour_nuit,
@@ -538,6 +644,8 @@ export default function LogementsPage() {
 
       if (!showS) {
         payload.capacite_max = null;
+        payload.tarifs_creneaux = null;
+        payload.tarif_nuit_defaut = null;
         payload.tarif_nuit_basse = null;
         payload.tarif_nuit_moyenne = null;
         payload.tarif_nuit_haute = null;
@@ -1138,7 +1246,7 @@ export default function LogementsPage() {
                     Paramètres saisonniers
                   </h4>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
                       <span className="font-medium">Capacité max (personnes)</span>
                       <input
                         required={showSaisonnierFields}
@@ -1149,25 +1257,145 @@ export default function LogementsPage() {
                         onChange={(e) => setCapaciteMax(e.target.value)}
                       />
                     </label>
-                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                      <span className="font-medium">Tarif / nuit basse saison (€)</span>
-                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitBasse} onChange={(e) => setTarifNuitBasse(e.target.value)} />
-                    </label>
-                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                      <span className="font-medium">Tarif / nuit moyenne saison (€)</span>
-                      <input
-                        required={showSaisonnierFields}
-                        type="number"
-                        step="0.01"
-                        style={fieldInputStyle}
-                        value={tarifNuitMoyenne}
-                        onChange={(e) => setTarifNuitMoyenne(e.target.value)}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                      <span className="font-medium">Tarif / nuit haute saison (€)</span>
-                      <input type="number" step="0.01" style={fieldInputStyle} value={tarifNuitHaute} onChange={(e) => setTarifNuitHaute(e.target.value)} />
-                    </label>
+                    <div className="space-y-3 sm:col-span-2">
+                      <div>
+                        <h5 className="text-sm font-semibold" style={{ color: PC.text }}>
+                          Tarifs par période
+                        </h5>
+                        <p className="mt-1 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                          Définissez vos tarifs selon les périodes de l&apos;année. Ces tarifs se répètent chaque année automatiquement.
+                        </p>
+                      </div>
+                      <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <span className="font-medium">Tarif par défaut (€/nuit)</span>
+                        <input
+                          required={showSaisonnierFields}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          style={fieldInputStyle}
+                          value={tarifNuitDefaut}
+                          onChange={(e) => setTarifNuitDefaut(e.target.value)}
+                          placeholder="Hors créneau défini"
+                        />
+                      </label>
+                      <ul className="space-y-2">
+                        {tarifsCreneaux.map((c) => (
+                          <li
+                            key={c.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm"
+                            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.bg }}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium" style={{ color: PC.text }}>
+                                {c.nom}
+                              </p>
+                              <p className="text-xs" style={{ color: PC.muted }}>
+                                Du {formatMmDdFr(c.date_debut)} au {formatMmDdFr(c.date_fin)} · {c.tarif} €/nuit
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                className="rounded-lg px-2 py-1 text-xs font-medium"
+                                style={{ color: PC.primary, border: `1px solid ${PC.border}` }}
+                                title="Modifier"
+                                onClick={() => openCreneauEdit(c)}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-lg px-2 py-1 text-xs font-medium"
+                                style={{ color: "#f87171" }}
+                                title="Supprimer"
+                                onClick={() => removeCreneau(c.id)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {!creneauFormOpen ? (
+                        <button type="button" className="proplio-btn-secondary w-full py-2 text-sm" onClick={openCreneauAdd}>
+                          Ajouter une période
+                        </button>
+                      ) : (
+                        <div className="space-y-3 rounded-lg p-3" style={{ border: `1px solid ${PC.primaryBorder40}`, backgroundColor: PC.primaryBg10 }}>
+                          <p className="text-xs font-medium" style={{ color: PC.text }}>
+                            {creneauEditingId ? "Modifier la période" : "Nouvelle période"}
+                          </p>
+                          <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                            Nom de la période
+                            <input style={fieldInputStyle} value={creneauNom} onChange={(e) => setCreneauNom(e.target.value)} placeholder="Été, Noël…" />
+                          </label>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <div>
+                              <p className="mb-1 text-xs font-medium" style={{ color: PC.muted }}>
+                                Date début (jour / mois)
+                              </p>
+                              <div className="flex gap-2">
+                                <select style={fieldSelectStyle} className="flex-1" value={creneauDd} onChange={(e) => setCreneauDd(e.target.value)}>
+                                  {JOUR_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select style={fieldSelectStyle} className="flex-1" value={creneauDm} onChange={(e) => setCreneauDm(e.target.value)}>
+                                  {MOIS_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="mb-1 text-xs font-medium" style={{ color: PC.muted }}>
+                                Date fin (jour / mois)
+                              </p>
+                              <div className="flex gap-2">
+                                <select style={fieldSelectStyle} className="flex-1" value={creneauFd} onChange={(e) => setCreneauFd(e.target.value)}>
+                                  {JOUR_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select style={fieldSelectStyle} className="flex-1" value={creneauFm} onChange={(e) => setCreneauFm(e.target.value)}>
+                                  {MOIS_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <label className="flex flex-col gap-1 text-xs" style={{ color: PC.muted }}>
+                            Tarif (€/nuit)
+                            <input type="number" step="0.01" min={0} style={fieldInputStyle} value={creneauTarif} onChange={(e) => setCreneauTarif(e.target.value)} />
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" className="proplio-btn-primary px-3 py-1.5 text-sm" onClick={saveCreneauDraft}>
+                              {creneauEditingId ? "Enregistrer" : "Ajouter"}
+                            </button>
+                            <button
+                              type="button"
+                              className="proplio-btn-secondary px-3 py-1.5 text-sm"
+                              onClick={() => {
+                                setCreneauFormOpen(false);
+                                setCreneauEditingId(null);
+                              }}
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                       <span className="font-medium">Tarif ménage (€)</span>
                       <input type="number" step="0.01" style={fieldInputStyle} value={tarifMenage} onChange={(e) => setTarifMenage(e.target.value)} />

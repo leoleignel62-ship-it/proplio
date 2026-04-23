@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseVeventsFromIcs } from "@/lib/ical-saisonnier";
+import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
 import { normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     const { data: logement, error: lErr } = await supabase
       .from("logements")
       .select(
-        "id, proprietaire_id, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url",
+        "id, proprietaire_id, tarifs_creneaux, tarif_nuit_defaut, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url",
       )
       .eq("id", logementId)
       .eq("proprietaire_id", ownerId)
@@ -49,7 +50,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Logement introuvable." }, { status: 404 });
     }
 
-    const tarifNuit = Number(logement.tarif_nuit_moyenne ?? 0);
+    const logementTarif = {
+      tarifs_creneaux: logement.tarifs_creneaux,
+      tarif_nuit_defaut: logement.tarif_nuit_defaut as number | null,
+      tarif_nuit_moyenne: logement.tarif_nuit_moyenne as number | null,
+    };
     const tarifMenage = Number(logement.tarif_menage ?? 0);
     const tarifCautionRow = Number(logement.tarif_caution ?? 0);
     const taxeNuit = Number(logement.taxe_sejour_nuit ?? 0);
@@ -86,7 +91,8 @@ export async function POST(request: Request) {
         );
         if (nbNuits <= 0) continue;
 
-        const tarifTotal = nbNuits * tarifNuit;
+        const tarifTotal = calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
+        const tarifNuit = nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
         const taxeTotal = taxeNuit * nbNuits * 1;
         const { data: existing } = await supabase
           .from("reservations")

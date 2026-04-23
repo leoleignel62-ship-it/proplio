@@ -182,3 +182,9 @@ CREATE INDEX IF NOT EXISTS
 CREATE INDEX IF NOT EXISTS
   idx_voyageurs_proprietaire_id
   ON public.voyageurs(proprietaire_id);
+
+-- Créneaux tarifs récurrents (MM-DD) + tarif nuit hors créneau
+ALTER TABLE public.logements
+ADD COLUMN IF NOT EXISTS tarifs_creneaux jsonb DEFAULT '[]';
+ALTER TABLE public.logements
+ADD COLUMN IF NOT EXISTS tarif_nuit_defaut numeric;
