@@ -4,24 +4,28 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import {
+  IconBank,
   IconBuilding,
+  IconCalendar,
   IconChart,
   IconClipboard,
   IconCog,
   IconContract,
   IconDocument,
   IconHome,
+  IconSparkles,
   IconTrendingUp,
   IconUsers,
 } from "@/components/proplio-icons";
 import { detecterBauxEligibles } from "@/lib/irl-revision";
-import { normalizePlan, type ProplioPlan } from "@/lib/plan-limits";
+import { useModeLocation, type ModeLocation } from "@/lib/mode-location";
+import { normalizePlan, PLAN_UPGRADE_PATH, type ProplioPlan } from "@/lib/plan-limits";
 import { PC } from "@/lib/proplio-colors";
 import { supabase } from "@/lib/supabase";
 
 const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
 
-const navigationMain = [
+const navigationMainClassique = [
   { href: "/", label: "Dashboard", icon: IconChart },
   { href: "/logements", label: "Logements", icon: IconBuilding },
   { href: "/locataires", label: "Locataires", icon: IconUsers },
@@ -31,9 +35,75 @@ const navigationMain = [
   { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
 ] as const;
 
+const navigationMainSaisonnier = [
+  { href: "/", label: "Dashboard", icon: IconChart },
+  { href: "/logements", label: "Logements", icon: IconBuilding },
+  { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
+  { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
+  { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
+  { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
+  { href: "/saisonnier/menage", label: "Ménage", icon: IconSparkles },
+  { href: "/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
+] as const;
+
 const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;
 
-const navigationItems = [...navigationMain, ...navigationSettings] as const;
+type NavMainItem = (typeof navigationMainClassique)[number] | (typeof navigationMainSaisonnier)[number];
+type NavSettingsItem = (typeof navigationSettings)[number];
+type NavItem = NavMainItem | NavSettingsItem;
+
+function pathIsActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function ModeLocationPill({
+  mode,
+  onSelectClassique,
+  onSelectSaisonnier,
+}: {
+  mode: ModeLocation;
+  onSelectClassique: () => void;
+  onSelectSaisonnier: () => void;
+}) {
+  const pillInactive = PC.cardHover;
+  const pillActive = "#7c3aed";
+  return (
+    <div
+      className="mb-6 w-full rounded-full p-1"
+      style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+      role="group"
+      aria-label="Mode de location"
+    >
+      <div className="grid grid-cols-2 gap-1">
+        <button
+          type="button"
+          className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
+          style={{
+            backgroundColor: mode === "classique" ? pillActive : pillInactive,
+            color: mode === "classique" ? PC.white : PC.muted,
+            boxShadow: mode === "classique" ? PC.activeRing : "none",
+          }}
+          onClick={onSelectClassique}
+        >
+          Classique
+        </button>
+        <button
+          type="button"
+          className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
+          style={{
+            backgroundColor: mode === "saisonnier" ? pillActive : pillInactive,
+            color: mode === "saisonnier" ? PC.white : PC.muted,
+            boxShadow: mode === "saisonnier" ? PC.activeRing : "none",
+          }}
+          onClick={onSelectSaisonnier}
+        >
+          Saisonnier
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function NavLink({
   href,
@@ -111,10 +181,12 @@ function CloseIcon() {
 
 export function NavigationSidebar() {
   const pathname = usePathname();
+  const { mode, setMode } = useModeLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [ownerPlan, setOwnerPlan] = useState<ProplioPlan | null>(null);
+  const [saisonnierUpsellOpen, setSaisonnierUpsellOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,25 +215,47 @@ export function NavigationSidebar() {
     };
   }, []);
 
+  useEffect(() => {
+    if (ownerPlan === "free" && mode === "saisonnier") {
+      setMode("classique");
+    }
+  }, [ownerPlan, mode, setMode]);
+
+  const navigationMain = mode === "saisonnier" ? navigationMainSaisonnier : navigationMainClassique;
+
   function isSidebarStarterOnlyLocked(href: string): boolean {
+    if (ownerPlan !== "free") return false;
+    if (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux") return true;
+    if (mode === "saisonnier" && href.startsWith("/saisonnier")) return true;
+    return false;
+  }
+
+  function renderNavItem(item: NavItem, closeMobile?: () => void) {
+    const locked = isSidebarStarterOnlyLocked(item.href);
+    const href = locked && item.href.startsWith("/saisonnier") ? PLAN_UPGRADE_PATH : item.href;
     return (
-      ownerPlan === "free" &&
-      (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux")
+      <NavLink
+        key={`${mode}-${item.href}`}
+        href={href}
+        label={item.label}
+        Icon={item.icon}
+        isActive={pathIsActive(pathname, item.href)}
+        onNavigate={closeMobile}
+        starterOnlyLock={locked}
+      />
     );
   }
 
-  function renderNavItem(item: (typeof navigationItems)[number], closeMobile?: () => void) {
-    return (
-      <NavLink
-        key={item.href}
-        href={item.href}
-        label={item.label}
-        Icon={item.icon}
-        isActive={pathname === item.href}
-        onNavigate={closeMobile}
-        starterOnlyLock={isSidebarStarterOnlyLocked(item.href)}
-      />
-    );
+  function selectClassiqueMode() {
+    setMode("classique");
+  }
+
+  function selectSaisonnierMode() {
+    if (ownerPlan === "free") {
+      setSaisonnierUpsellOpen(true);
+      return;
+    }
+    setMode("saisonnier");
   }
 
   useEffect(() => {
@@ -229,7 +323,7 @@ export function NavigationSidebar() {
     <>
       <aside className="hidden flex-col md:flex" style={asideStyle}>
         <div className="flex h-full flex-col p-5">
-          <Link href="/" className="mb-10 flex items-center gap-2.5">
+          <Link href="/" className="mb-6 flex items-center gap-2.5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={logoBadgeStyle}>
               <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
             </span>
@@ -237,6 +331,12 @@ export function NavigationSidebar() {
               Proplio
             </span>
           </Link>
+
+          <ModeLocationPill
+            mode={ownerPlan === "free" ? "classique" : mode}
+            onSelectClassique={selectClassiqueMode}
+            onSelectSaisonnier={selectSaisonnierMode}
+          />
 
           <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
             {navigationMain.map((item) => renderNavItem(item))}
@@ -269,6 +369,47 @@ export function NavigationSidebar() {
           </div>
         </div>
       </aside>
+
+      {saisonnierUpsellOpen ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ backgroundColor: PC.overlay }}
+          role="dialog"
+          aria-modal
+          aria-labelledby="saisonnier-upsell-title"
+        >
+          <div
+            className="max-w-md rounded-2xl p-6 shadow-2xl"
+            style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}
+          >
+            <h2 id="saisonnier-upsell-title" className="text-lg font-semibold" style={{ color: PC.text }}>
+              Location saisonnière
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Disponible à partir du plan Starter. Passez à un plan payant pour gérer réservations, voyageurs, taxes de
+              séjour et synchronisation iCal.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-medium"
+                style={{ border: `1px solid ${PC.border}`, color: PC.muted }}
+                onClick={() => setSaisonnierUpsellOpen(false)}
+              >
+                Fermer
+              </button>
+              <Link
+                href={PLAN_UPGRADE_PATH}
+                className="rounded-lg px-4 py-2 text-sm font-semibold"
+                style={{ backgroundColor: PC.primary, color: PC.white }}
+                onClick={() => setSaisonnierUpsellOpen(false)}
+              >
+                Voir les abonnements
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Barre mobile : hamburger | logo | cloche — fixe en haut au scroll */}
       <div
@@ -353,6 +494,16 @@ export function NavigationSidebar() {
                   <CloseIcon />
                 </button>
               </div>
+
+              <ModeLocationPill
+                mode={ownerPlan === "free" ? "classique" : mode}
+                onSelectClassique={() => {
+                  selectClassiqueMode();
+                }}
+                onSelectSaisonnier={() => {
+                  selectSaisonnierMode();
+                }}
+              />
 
               <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
                 {navigationMain.map((item) => renderNavItem(item, () => setMobileOpen(false)))}

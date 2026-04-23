@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Bar,
   CartesianGrid,
@@ -13,8 +21,18 @@ import {
   YAxis,
 } from "recharts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
+import {
+  IconBank,
+  IconBuilding,
+  IconCalendar,
+  IconChart,
+  IconContract,
+  IconDocument,
+  IconEuroCircle,
+  IconUsers,
+} from "@/components/proplio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
+import { useModeLocation } from "@/lib/mode-location";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -255,6 +273,265 @@ async function getFinancialAndAnnual(
   }
 }
 
+type SaisonnierCheckRow = {
+  id: string;
+  date_arrivee: string;
+  date_depart: string;
+  nb_voyageurs: number;
+  logements: { nom: string } | null;
+  voyageurs: { prenom: string; nom: string } | null;
+};
+
+type SaisonnierPendingRow = {
+  id: string;
+  date_arrivee: string;
+  date_depart: string;
+  tarif_total: number;
+  logements: { nom: string } | null;
+  voyageurs: { prenom: string; nom: string } | null;
+};
+
+type SaisonnierDashData = {
+  revenusMois: number;
+  tauxOccupation: number;
+  resaActives: number;
+  taxesAReverser: number;
+  checkins: SaisonnierCheckRow[];
+  checkouts: Array<SaisonnierCheckRow & { menage_prevu: boolean }>;
+  enAttente: SaisonnierPendingRow[];
+};
+
+function emptySaisonnierDash(): SaisonnierDashData {
+  return {
+    revenusMois: 0,
+    tauxOccupation: 0,
+    resaActives: 0,
+    taxesAReverser: 0,
+    checkins: [],
+    checkouts: [],
+    enAttente: [],
+  };
+}
+
+function parseISODate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y!, m! - 1, d!);
+}
+
+function countNightsInCalendarMonth(arriveStr: string, departStr: string, year: number, month: number): number {
+  const arr = parseISODate(arriveStr);
+  const dep = parseISODate(departStr);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  let n = 0;
+  for (let d = new Date(arr.getTime()); d < dep; d.setDate(d.getDate() + 1)) {
+    if (d >= monthStart && d <= monthEnd) n++;
+  }
+  return n;
+}
+
+async function getSaisonnierDashboardSnapshot(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<SaisonnierDashData> {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const monthStartStr = `${y}-${String(m).padStart(2, "0")}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const monthEndStr = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const todayStr = now.toISOString().slice(0, 10);
+  const in7 = new Date(now);
+  in7.setDate(in7.getDate() + 7);
+  const in7Str = in7.toISOString().slice(0, 10);
+
+  try {
+    const { data: logs, error: logErr } = await supabase
+      .from("logements")
+      .select("id, nom, type_location")
+      .eq("proprietaire_id", ownerId);
+    if (logErr) return emptySaisonnierDash();
+
+    const seasonalIds = new Set(
+      (logs ?? [])
+        .filter((row) => row.type_location === "saisonnier" || row.type_location === "les_deux")
+        .map((row) => row.id as string),
+    );
+    const daysInMonth = lastDay;
+    const nSeasonal = seasonalIds.size;
+    const totalSlots = nSeasonal === 0 ? 0 : daysInMonth * nSeasonal;
+
+    const { data: reservations, error: resErr } = await supabase
+      .from("reservations")
+      .select(
+        `
+        id,
+        logement_id,
+        date_arrivee,
+        date_depart,
+        nb_voyageurs,
+        tarif_total,
+        statut,
+        logements ( nom ),
+        voyageurs ( prenom, nom )
+      `,
+      )
+      .eq("proprietaire_id", ownerId);
+    if (resErr) return emptySaisonnierDash();
+
+    const listRaw = reservations ?? [];
+    const list = listRaw.map((r: Record<string, unknown>) => {
+      const lg = r.logements;
+      const vg = r.voyageurs;
+      const logements = Array.isArray(lg) ? (lg[0] as { nom?: string } | undefined) ?? null : (lg as { nom?: string } | null);
+      const voyageurs = Array.isArray(vg) ? (vg[0] as { prenom?: string; nom?: string } | undefined) ?? null : (vg as { prenom?: string; nom?: string } | null);
+      return {
+        id: String(r.id),
+        logement_id: String(r.logement_id),
+        date_arrivee: String(r.date_arrivee),
+        date_depart: String(r.date_depart),
+        nb_voyageurs: Number(r.nb_voyageurs ?? 1),
+        tarif_total: Number(r.tarif_total ?? 0),
+        statut: String(r.statut ?? ""),
+        logements: logements ? { nom: String(logements.nom ?? "") } : null,
+        voyageurs: voyageurs ? { prenom: String(voyageurs.prenom ?? ""), nom: String(voyageurs.nom ?? "") } : null,
+      };
+    });
+
+    let revenusMois = 0;
+    let occupiedNightsMonth = 0;
+    let resaActives = 0;
+
+    for (const r of list) {
+      if (r.statut === "annulee") continue;
+      const overlap =
+        r.date_arrivee <= monthEndStr &&
+        r.date_depart >= monthStartStr;
+      if (overlap && (r.statut === "terminee" || r.statut === "en_cours")) {
+        const portion =
+          Number(r.tarif_total ?? 0) *
+          (() => {
+            const totalN = Math.max(
+              1,
+              Math.round(
+                (parseISODate(r.date_depart).getTime() - parseISODate(r.date_arrivee).getTime()) / 86400000,
+              ),
+            );
+            const inM = countNightsInCalendarMonth(r.date_arrivee, r.date_depart, y, m);
+            return totalN > 0 ? Math.min(1, inM / totalN) : 0;
+          })();
+        revenusMois += portion;
+      }
+      if (r.statut === "confirmee" || r.statut === "en_cours") resaActives++;
+      if (seasonalIds.has(r.logement_id)) {
+        occupiedNightsMonth += countNightsInCalendarMonth(r.date_arrivee, r.date_depart, y, m);
+      }
+    }
+
+    const { data: taxRows, error: taxErr } = await supabase
+      .from("taxes_sejour")
+      .select("montant, reversee")
+      .eq("proprietaire_id", ownerId);
+    let taxesAReverser = 0;
+    if (!taxErr && taxRows) {
+      for (const t of taxRows) {
+        if (!t.reversee) taxesAReverser += Number(t.montant ?? 0);
+      }
+    }
+
+    const checkinCandidates = list
+      .filter(
+        (r) =>
+          r.statut !== "annulee" &&
+          r.date_arrivee >= todayStr &&
+          r.date_arrivee <= in7Str,
+      )
+      .sort((a, b) => a.date_arrivee.localeCompare(b.date_arrivee))
+      .slice(0, 5);
+
+    const checkoutCandidates = list
+      .filter(
+        (r) =>
+          r.statut !== "annulee" &&
+          r.date_depart >= todayStr &&
+          r.date_depart <= in7Str,
+      )
+      .sort((a, b) => a.date_depart.localeCompare(b.date_depart))
+      .slice(0, 5);
+
+    const { data: menageRows } = await supabase
+      .from("menages")
+      .select("reservation_id")
+      .eq("proprietaire_id", ownerId);
+    const menageRes = new Set((menageRows ?? []).map((row) => row.reservation_id as string));
+
+    const checkins: SaisonnierCheckRow[] = checkinCandidates.map((r) => ({
+      id: r.id,
+      date_arrivee: r.date_arrivee,
+      date_depart: r.date_depart,
+      nb_voyageurs: r.nb_voyageurs,
+      logements: r.logements,
+      voyageurs: r.voyageurs,
+    }));
+
+    const checkouts: Array<SaisonnierCheckRow & { menage_prevu: boolean }> = checkoutCandidates.map((r) => ({
+      id: r.id,
+      date_arrivee: r.date_arrivee,
+      date_depart: r.date_depart,
+      nb_voyageurs: r.nb_voyageurs,
+      logements: r.logements,
+      voyageurs: r.voyageurs,
+      menage_prevu: menageRes.has(r.id),
+    }));
+
+    const enAttente: SaisonnierPendingRow[] = list
+      .filter((r) => r.statut === "en_attente")
+      .sort((a, b) => a.date_arrivee.localeCompare(b.date_arrivee))
+      .map((r) => ({
+        id: r.id,
+        date_arrivee: r.date_arrivee,
+        date_depart: r.date_depart,
+        tarif_total: Number(r.tarif_total ?? 0),
+        logements: r.logements,
+        voyageurs: r.voyageurs,
+      }));
+
+    const tauxOccupation = totalSlots > 0 ? Math.min(100, (occupiedNightsMonth / totalSlots) * 100) : 0;
+
+    return {
+      revenusMois,
+      tauxOccupation,
+      resaActives,
+      taxesAReverser,
+      checkins,
+      checkouts,
+      enAttente,
+    };
+  } catch {
+    return emptySaisonnierDash();
+  }
+}
+
+async function getLogementsModeFlags(
+  supabase: SupabaseClient,
+  ownerId: string,
+): Promise<{ hasClassique: boolean; hasSaisonnier: boolean }> {
+  try {
+    const { data, error } = await supabase.from("logements").select("type_location").eq("proprietaire_id", ownerId);
+    if (error || !data?.length) return { hasClassique: true, hasSaisonnier: false };
+    let hasClassique = false;
+    let hasSaisonnier = false;
+    for (const row of data) {
+      const t = (row.type_location as string | null) ?? "classique";
+      if (t === "classique" || t === "les_deux") hasClassique = true;
+      if (t === "saisonnier" || t === "les_deux") hasSaisonnier = true;
+    }
+    return { hasClassique, hasSaisonnier };
+  } catch {
+    return { hasClassique: true, hasSaisonnier: false };
+  }
+}
+
 function StatCard({
   titre,
   valeur,
@@ -263,9 +540,9 @@ function StatCard({
   iconTint,
 }: {
   titre: string;
-  valeur: number;
+  valeur: ReactNode;
   description: string;
-  icon: typeof IconBuilding;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   iconTint: string;
 }) {
   return (
@@ -309,11 +586,14 @@ function StatCard({
 }
 
 export function DashboardContent() {
+  const { mode, setMode, isSaisonnier } = useModeLocation();
   const [prenom, setPrenom] = useState("");
   const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
   const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
+  const [saisonnier, setSaisonnier] = useState<SaisonnierDashData>(emptySaisonnierDash);
+  const [hasBothModes, setHasBothModes] = useState(false);
   /** Évite ResponsiveContainer avec taille -1 au prérendu SSR / build statique. */
   const [chartMounted, setChartMounted] = useState(false);
 
@@ -366,15 +646,19 @@ export function DashboardContent() {
         const ownerId = proprietaire?.id as string | undefined;
         if (!ownerId || cancelled) return;
 
-        const [dashboardStats, derived] = await Promise.all([
+        const [dashboardStats, derived, snap, flags] = await Promise.all([
           getDashboardStats(supabase, ownerId),
           getFinancialAndAnnual(supabase, ownerId),
+          getSaisonnierDashboardSnapshot(supabase, ownerId),
+          getLogementsModeFlags(supabase, ownerId),
         ]);
 
         if (cancelled) return;
         setStats(dashboardStats);
         setFinancial(derived.financial);
         setAnnual(derived.annual);
+        setSaisonnier(snap);
+        setHasBothModes(flags.hasClassique && flags.hasSaisonnier);
       } catch {
         /* garder zéros */
       }
@@ -384,6 +668,21 @@ export function DashboardContent() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const confirmReservation = useCallback(async (id: string) => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.from("reservations").update({ statut: "confirmee" }).eq("id", id);
+      if (error) return;
+      setSaisonnier((prev) => ({
+        ...prev,
+        enAttente: prev.enAttente.filter((r) => r.id !== id),
+        resaActives: prev.resaActives + 1,
+      }));
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const dateLong = new Intl.DateTimeFormat("fr-FR", {
@@ -424,6 +723,196 @@ export function DashboardContent() {
         </div>
       </header>
 
+      {hasBothModes ? (
+        <section
+          className="space-y-4 p-5 sm:p-6"
+          style={{
+            backgroundColor: PC.card,
+            border: `1px solid ${PC.primaryBorder40}`,
+            borderRadius: 12,
+            boxShadow: PC.cardShadow,
+          }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
+                Vue globale
+              </h2>
+              <p className="text-sm" style={{ color: PC.muted }}>
+                Classique + saisonnier — {new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date())}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+              style={{ backgroundColor: PC.primary, color: PC.white }}
+              onClick={() => setMode(isSaisonnier ? "classique" : "saisonnier")}
+            >
+              {isSaisonnier ? "Voir le mode classique" : "Voir le mode saisonnier"}
+            </button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <article className="rounded-xl p-4" style={{ backgroundColor: PC.primaryBg10, border: `1px solid ${PC.border}` }}>
+              <p className="text-xs font-medium" style={{ color: PC.muted }}>
+                Revenus classique (mois)
+              </p>
+              <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: PC.text }}>
+                {financial.encaisseMois.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €
+              </p>
+            </article>
+            <article className="rounded-xl p-4" style={{ backgroundColor: PC.successBg10, border: `1px solid ${PC.borderSuccess40}` }}>
+              <p className="text-xs font-medium" style={{ color: PC.muted }}>
+                Revenus saisonnier (mois)
+              </p>
+              <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: PC.success }}>
+                {saisonnier.revenusMois.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €
+              </p>
+            </article>
+            <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+              <p className="text-xs font-medium" style={{ color: PC.muted }}>
+                Logements
+              </p>
+              <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: PC.text }}>
+                {stats.logements}
+              </p>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {isSaisonnier ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              titre="Revenus du mois"
+              valeur={`${saisonnier.revenusMois.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
+              description="Réservations terminées ou en cours (quote-part mois)."
+              icon={IconEuroCircle}
+              iconTint={PC.success}
+            />
+            <StatCard
+              titre="Taux d'occupation"
+              valeur={`${Math.round(saisonnier.tauxOccupation)} %`}
+              description="Nuits occupées / nuits disponibles (logements saisonniers)."
+              icon={IconChart}
+              iconTint={PC.primary}
+            />
+            <StatCard
+              titre="Réservations actives"
+              valeur={saisonnier.resaActives}
+              description="Confirmées ou en cours."
+              icon={IconCalendar}
+              iconTint={PC.secondary}
+            />
+            <StatCard
+              titre="Taxe de séjour"
+              valeur={`${saisonnier.taxesAReverser.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
+              description="Total non encore reversé."
+              icon={IconBank}
+              iconTint={PC.warning}
+            />
+          </div>
+
+          <section
+            className="grid gap-4 lg:grid-cols-2"
+            style={{ color: PC.text }}
+          >
+            <div className="rounded-xl p-5" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+              <h3 className="text-base font-semibold">Prochains check-in</h3>
+              <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                Dans les 7 jours
+              </p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {saisonnier.checkins.length === 0 ? (
+                  <li style={{ color: PC.muted }}>Aucun check-in prévu.</li>
+                ) : (
+                  saisonnier.checkins.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-col rounded-lg px-3 py-2"
+                      style={{ backgroundColor: PC.bg, border: `1px solid ${PC.border}` }}
+                    >
+                      <span className="font-medium">{row.logements?.nom ?? "Logement"}</span>
+                      <span style={{ color: PC.muted }}>
+                        {(row.voyageurs?.prenom ?? "?") + " " + (row.voyageurs?.nom ?? "")} ·{" "}
+                        {new Date(row.date_arrivee).toLocaleDateString("fr-FR")} · {row.nb_voyageurs} pers.
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+            <div className="rounded-xl p-5" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+              <h3 className="text-base font-semibold">Prochains check-out</h3>
+              <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                Dans les 7 jours
+              </p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {saisonnier.checkouts.length === 0 ? (
+                  <li style={{ color: PC.muted }}>Aucun check-out prévu.</li>
+                ) : (
+                  saisonnier.checkouts.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-col rounded-lg px-3 py-2"
+                      style={{ backgroundColor: PC.bg, border: `1px solid ${PC.border}` }}
+                    >
+                      <span className="font-medium">{row.logements?.nom ?? "Logement"}</span>
+                      <span style={{ color: PC.muted }}>
+                        {new Date(row.date_depart).toLocaleDateString("fr-FR")}
+                        {row.menage_prevu ? (
+                          <span className="ml-2 rounded px-1.5 py-0.5 text-xs" style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}>
+                            Ménage prévu
+                          </span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          </section>
+
+          <section className="rounded-xl p-5" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+            <h3 className="text-base font-semibold" style={{ color: PC.text }}>
+              Réservations en attente
+            </h3>
+            <ul className="mt-3 divide-y" style={{ borderColor: PC.border }}>
+              {saisonnier.enAttente.length === 0 ? (
+                <li className="py-3 text-sm" style={{ color: PC.muted }}>
+                  Aucune réservation en attente.
+                </li>
+              ) : (
+                saisonnier.enAttente.map((row) => (
+                  <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                    <div>
+                      <span className="font-medium" style={{ color: PC.text }}>
+                        {row.logements?.nom ?? "Logement"}
+                      </span>
+                      <span className="ml-2" style={{ color: PC.muted }}>
+                        {(row.voyageurs?.prenom ?? "") + " " + (row.voyageurs?.nom ?? "")} ·{" "}
+                        {new Date(row.date_arrivee).toLocaleDateString("fr-FR")} →{" "}
+                        {new Date(row.date_depart).toLocaleDateString("fr-FR")} · {row.tarif_total.toFixed(0)} €
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                      style={{ backgroundColor: PC.primary, color: PC.white }}
+                      onClick={() => void confirmReservation(row.id)}
+                    >
+                      Confirmer
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
+        </>
+      ) : null}
+
+      {!isSaisonnier ? (
+        <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           titre="Logements actifs"
@@ -569,6 +1058,8 @@ export function DashboardContent() {
           </div>
         </div>
       </section>
+        </>
+      ) : null}
     </>
   );
 }

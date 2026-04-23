@@ -70,6 +70,11 @@ const copy = {
     benefits:
       "Calculez la révision annuelle selon l’indice INSEE, validez le nouveau loyer, conservez l’historique et envoyez la lettre officielle en PDF par e-mail au locataire.",
   },
+  saisonnier: {
+    kicker: "Location saisonnière",
+    benefits:
+      "Gérez vos réservations courte durée, voyageurs, calendriers iCal (Airbnb / Booking), taxes de séjour, ménages entre séjours, contrats et reçus PDF — le tout aux côtés de votre activité classique.",
+  },
 } as const;
 
 export type PlanFreeModuleUpsellVariant = keyof typeof copy;
