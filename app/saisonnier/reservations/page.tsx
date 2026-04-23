@@ -126,6 +126,7 @@ export default function ReservationsSaisonnierPage() {
   const [detailPrixReel, setDetailPrixReel] = useState("");
   const [detailSaving, setDetailSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteOtaConfirmId, setDeleteOtaConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [sendConfirm, setSendConfirm] = useState<{
     kind: "contrat" | "acompte" | "solde";
@@ -485,29 +486,39 @@ export default function ReservationsSaisonnierPage() {
     void load();
   }
 
-  async function confirmDeleteReservation() {
-    if (!deleteConfirmId) return;
+  async function deleteReservationPermanently(id: string): Promise<boolean> {
     setDeleteSubmitting(true);
     setError("");
-    const idToRemove = deleteConfirmId;
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
     if (e || !proprietaireId) {
       setDeleteSubmitting(false);
-      return;
+      return false;
     }
     const { error: dErr } = await supabase
       .from("reservations")
       .delete()
-      .eq("id", idToRemove)
+      .eq("id", id)
       .eq("proprietaire_id", proprietaireId);
     setDeleteSubmitting(false);
     if (dErr) {
       setError(formatSubmitError(dErr));
-      return;
+      return false;
     }
-    setDeleteConfirmId(null);
-    if (detailId === idToRemove) setDetailId(null);
+    if (detailId === id) setDetailId(null);
     void load();
+    return true;
+  }
+
+  async function confirmDeleteReservation() {
+    if (!deleteConfirmId) return;
+    const ok = await deleteReservationPermanently(deleteConfirmId);
+    if (ok) setDeleteConfirmId(null);
+  }
+
+  async function confirmDeleteOtaFromProplio() {
+    if (!deleteOtaConfirmId) return;
+    const ok = await deleteReservationPermanently(deleteOtaConfirmId);
+    if (ok) setDeleteOtaConfirmId(null);
   }
 
   async function sendApi(kind: "contrat" | "acompte" | "solde", id: string): Promise<boolean> {
@@ -707,6 +718,19 @@ export default function ReservationsSaisonnierPage() {
                         >
                           Détail
                         </button>
+                        {isOta ? (
+                          <button
+                            type="button"
+                            className="w-fit p-0 text-left text-[11px] leading-snug"
+                            style={{ color: PC.tertiary, background: "none", border: "none", cursor: "pointer" }}
+                            onClick={() => {
+                              setDeleteConfirmId(null);
+                              setDeleteOtaConfirmId(row.id);
+                            }}
+                          >
+                            Supprimer de Proplio
+                          </button>
+                        ) : null}
                         <div className="grid grid-cols-2 gap-1">
                           {canDirectActions && row.statut === "en_attente" ? (
                             <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
@@ -714,7 +738,13 @@ export default function ReservationsSaisonnierPage() {
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && canDeletePermanently ? (
-                            <ResaActionPill variant="red" onClick={() => setDeleteConfirmId(row.id)}>
+                            <ResaActionPill
+                              variant="red"
+                              onClick={() => {
+                                setDeleteOtaConfirmId(null);
+                                setDeleteConfirmId(row.id);
+                              }}
+                            >
                               Supprimer
                             </ResaActionPill>
                           ) : null}
@@ -1083,6 +1113,45 @@ export default function ReservationsSaisonnierPage() {
                 style={{ backgroundColor: "#dc2626" }}
                 disabled={deleteSubmitting}
                 onClick={() => void confirmDeleteReservation()}
+              >
+                {deleteSubmitting ? "Suppression…" : "Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteOtaConfirmId ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="delete-ota-proplio-title"
+        >
+          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
+            <h3 id="delete-ota-proplio-title" className="text-lg font-semibold" style={{ color: PC.text }}>
+              Supprimer de Proplio
+            </h3>
+            <div className="mt-3 space-y-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              <p className="m-0">Supprimer cette réservation de Proplio ?</p>
+              <p className="m-0">Elle restera visible sur Airbnb/Booking.</p>
+              <p className="m-0">Cette action est irréversible.</p>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="proplio-btn-secondary px-4 py-2 text-sm"
+                disabled={deleteSubmitting}
+                onClick={() => setDeleteOtaConfirmId(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: "#dc2626" }}
+                disabled={deleteSubmitting}
+                onClick={() => void confirmDeleteOtaFromProplio()}
               >
                 {deleteSubmitting ? "Suppression…" : "Supprimer"}
               </button>
