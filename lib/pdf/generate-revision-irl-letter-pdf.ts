@@ -46,6 +46,18 @@ export type RevisionIrlLetterPdfInput = {
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
 };
 
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/\u202f/g, " ") // espace fine insécable → espace normale
+    .replace(/\u00a0/g, " ") // espace insécable → espace normale
+    .replace(/\u2019/g, "'") // apostrophe typographique → apostrophe
+    .replace(/\u2018/g, "'") // guillemet → apostrophe
+    .replace(/\u201c/g, '"') // guillemet ouvrant → guillemet droit
+    .replace(/\u201d/g, '"') // guillemet fermant → guillemet droit
+    .replace(/\u2013/g, "-") // tiret demi-cadratin → tiret
+    .replace(/\u2014/g, "-"); // tiret cadratin → tiret
+}
+
 function wrapToWidth(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -75,7 +87,7 @@ function measureColHeight(
   for (const ln of lines) {
     const sz = ln.size ?? 10;
     const f = ln.bold ? fontBold : font;
-    const wrapped = wrapToWidth(ln.text, f, sz, colW - 4);
+    const wrapped = wrapToWidth(sanitizePdfText(ln.text), f, sz, colW - 4);
     h += wrapped.length * lh(sz);
   }
   return h;
@@ -95,8 +107,9 @@ function drawTwoColumnBlock(
   const colW = (innerW - gap) / 2;
   const sepX = MARGIN + colW + gap / 2;
 
-  const dateW = font.widthOfTextAtSize(dateLine, 9);
-  page.drawText(dateLine, {
+  const dateLineSafe = sanitizePdfText(dateLine);
+  const dateW = font.widthOfTextAtSize(dateLineSafe, 9);
+  page.drawText(sanitizePdfText(dateLineSafe), {
     x: PAGE_W - MARGIN - dateW,
     y: yTop,
     size: 9,
@@ -148,8 +161,8 @@ function drawTwoColumnBlock(
       const sz = ln.size ?? 10;
       const f = ln.bold ? fontBold : font;
       const col = ln.color ?? TEXT_MAIN;
-      for (const wl of wrapToWidth(ln.text, f, sz, w - 4)) {
-        page.drawText(wl, { x: x + 8, y: yy, size: sz, font: f, color: col });
+      for (const wl of wrapToWidth(sanitizePdfText(ln.text), f, sz, w - 4)) {
+        page.drawText(sanitizePdfText(wl), { x: x + 8, y: yy, size: sz, font: f, color: col });
         yy -= lh(sz);
       }
     }
@@ -210,14 +223,14 @@ function drawTableRevision(
     });
 
     const vy = yBottom + (rowH - 10) / 2;
-    page.drawText(r.label, {
+    page.drawText(sanitizePdfText(r.label), {
       x: x0 + 8,
       y: vy,
       size: 10,
       font: r.highlight ? fontBold : font,
       color: TEXT_MAIN,
     });
-    page.drawText(r.value, {
+    page.drawText(sanitizePdfText(r.value), {
       x: x0 + labelW + 8,
       y: vy,
       size: 10,
@@ -275,16 +288,17 @@ export async function generateRevisionIrlLetterPdfBuffer(
     const sz = opts?.size ?? BODY_PT;
     const f = opts?.bold ? fontBold : font;
     const col = opts?.color ?? TEXT_MAIN;
-    for (const line of wrapToWidth(text, f, sz, PAGE_W - 2 * MARGIN)) {
+    const cleaned = sanitizePdfText(text);
+    for (const line of wrapToWidth(cleaned, f, sz, PAGE_W - 2 * MARGIN)) {
       ensureSpace(BODY_LEAD + 4);
-      page.drawText(line, { x: MARGIN, y, size: sz, font: f, color: col });
+      page.drawText(sanitizePdfText(line), { x: MARGIN, y, size: sz, font: f, color: col });
       y -= BODY_LEAD;
     }
   };
 
   ensureSpace(48);
-  const objet = "Objet : Révision annuelle du loyer";
-  page.drawText(objet, {
+  const objet = sanitizePdfText("Objet : Révision annuelle du loyer");
+  page.drawText(sanitizePdfText(objet), {
     x: MARGIN,
     y,
     size: 11,
@@ -353,7 +367,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   });
   y -= 8;
 
-  page.drawText("Le propriétaire", {
+  page.drawText(sanitizePdfText("Le propriétaire"), {
     x: MARGIN,
     y,
     size: 10,
@@ -361,7 +375,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
     color: TEXT_SEC,
   });
   y -= BODY_LEAD;
-  page.drawText(input.proprietaireNom, {
+  page.drawText(sanitizePdfText(input.proprietaireNom), {
     x: MARGIN,
     y,
     size: 11,
@@ -389,7 +403,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
     }
   }
 
-  page.drawText(input.dateLettre, {
+  page.drawText(sanitizePdfText(input.dateLettre), {
     x: MARGIN,
     y,
     size: 9,
