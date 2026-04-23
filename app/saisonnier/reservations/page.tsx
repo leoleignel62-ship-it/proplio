@@ -73,7 +73,7 @@ function ResaActionPill({
 }: {
   children: ReactNode;
   onClick: () => void | Promise<void>;
-  variant: "green" | "red" | "violet" | "violetOutline" | "grey";
+  variant: "green" | "red" | "redOutline" | "violet" | "violetOutline" | "grey";
   disabled?: boolean;
 }) {
   const base =
@@ -83,11 +83,17 @@ function ResaActionPill({
       ? { backgroundColor: "#16a34a", color: "#fff", border: "none" }
       : variant === "red"
         ? { backgroundColor: "#dc2626", color: "#fff", border: "none" }
-        : variant === "violet"
-          ? { backgroundColor: "#7c3aed", color: "#fff", border: "none" }
-          : variant === "violetOutline"
-            ? { backgroundColor: "transparent", color: "#a78bfa", border: "1px solid rgba(167, 139, 250, 0.55)" }
-            : { backgroundColor: "rgba(148, 163, 184, 0.2)", color: PC.muted, border: `1px solid ${PC.border}` };
+        : variant === "redOutline"
+          ? {
+              backgroundColor: "transparent",
+              color: "#dc2626",
+              border: "1px solid rgba(220, 38, 38, 0.65)",
+            }
+          : variant === "violet"
+            ? { backgroundColor: "#7c3aed", color: "#fff", border: "none" }
+            : variant === "violetOutline"
+              ? { backgroundColor: "transparent", color: "#a78bfa", border: "1px solid rgba(167, 139, 250, 0.55)" }
+              : { backgroundColor: "rgba(148, 163, 184, 0.2)", color: PC.muted, border: `1px solid ${PC.border}` };
   return (
     <button type="button" className={base} style={style} disabled={disabled} onClick={() => void onClick()}>
       {children}
@@ -733,19 +739,6 @@ export default function ReservationsSaisonnierPage() {
                         >
                           Détail
                         </button>
-                        {isOta ? (
-                          <button
-                            type="button"
-                            className="w-fit p-0 text-left text-[11px] leading-snug"
-                            style={{ color: PC.tertiary, background: "none", border: "none", cursor: "pointer" }}
-                            onClick={() => {
-                              setDeleteConfirmId(null);
-                              setDeleteOtaConfirmId(row.id);
-                            }}
-                          >
-                            Supprimer de Proplio
-                          </button>
-                        ) : null}
                         <div className="grid grid-cols-2 gap-1">
                           {canDirectActions && row.statut === "en_attente" ? (
                             <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
@@ -776,6 +769,17 @@ export default function ReservationsSaisonnierPage() {
                           {canDirectActions && row.voyageurs ? (
                             <ResaActionPill variant="violetOutline" onClick={() => requestSendConfirm("solde", row)}>
                               Solde
+                            </ResaActionPill>
+                          ) : null}
+                          {isOta ? (
+                            <ResaActionPill
+                              variant="redOutline"
+                              onClick={() => {
+                                setDeleteConfirmId(null);
+                                setDeleteOtaConfirmId(row.id);
+                              }}
+                            >
+                              Supprimer
                             </ResaActionPill>
                           ) : null}
                           {!isBlocage ? (
