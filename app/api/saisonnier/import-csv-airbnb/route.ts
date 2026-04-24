@@ -134,6 +134,7 @@ export async function POST(request: Request) {
       .eq("proprietaire_id", ownerId)
       .not("airbnb_confirmation_code", "is", null);
     if (existingErr) {
+      console.log("[import-csv] vérification colonne airbnb_confirmation_code échouée:", JSON.stringify(existingErr));
       return NextResponse.json(
         {
           error:
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
         `Taxe séjour reversée: ${taxeSejour.toFixed(2)}€`,
       ].join("\n");
 
-      const { error: insertErr } = await supabase.from("reservations").insert({
+      const reservation = {
         proprietaire_id: ownerId,
         logement_id: logementId,
         voyageur_id: null,
@@ -204,17 +205,29 @@ export async function POST(request: Request) {
         acompte_recu: true,
         solde_recu: true,
         delai_solde_jours: 0,
-      });
-      if (insertErr) {
-        if (String(insertErr.message ?? "").includes("airbnb_confirmation_code")) {
-          return NextResponse.json(
-            {
-              error:
-                "La colonne airbnb_confirmation_code est introuvable. Exécutez l'ALTER TABLE dans Supabase SQL Editor.",
-            },
-            { status: 500 },
-          );
+      };
+
+      try {
+        console.log("[import-csv] tentative insert:", JSON.stringify(reservation));
+        const { error: insertErr } = await supabase.from("reservations").insert(reservation);
+        console.log("[import-csv] résultat insert:", JSON.stringify(insertErr));
+        if (insertErr) {
+          if (String(insertErr.message ?? "").includes("airbnb_confirmation_code")) {
+            return NextResponse.json(
+              {
+                error:
+                  "La colonne airbnb_confirmation_code est introuvable. Exécutez l'ALTER TABLE dans Supabase SQL Editor.",
+              },
+              { status: 500 },
+            );
+          }
+          continue;
         }
+      } catch (insertException) {
+        console.log(
+          "[import-csv] exception insert:",
+          JSON.stringify(insertException instanceof Error ? insertException.message : insertException),
+        );
         continue;
       }
 
