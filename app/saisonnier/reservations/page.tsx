@@ -136,6 +136,12 @@ function addOneDayIso(iso: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+function extractVoyageurFromNotes(notes: string | null | undefined): string | null {
+  if (!notes) return null;
+  const match = notes.match(/(?:^|\n)Voyageur:\s*([^\n]+)/i);
+  return match?.[1]?.trim() || null;
+}
+
 function logementTarifPayload(lg: LogementOption) {
   return {
     tarifs_creneaux: lg.tarifs_creneaux,
@@ -776,7 +782,13 @@ export default function ReservationsSaisonnierPage() {
               <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
                 <td className="px-3 py-2">{row.logements?.nom}</td>
                 <td className="px-3 py-2" style={{ color: PC.muted }}>
-                  {row.voyageurs ? `${row.voyageurs.prenom} ${row.voyageurs.nom}` : "—"}
+                  {row.voyageurs ? (
+                    `${row.voyageurs.prenom} ${row.voyageurs.nom}`
+                  ) : extractVoyageurFromNotes(row.notes) ? (
+                    <em>{extractVoyageurFromNotes(row.notes)}</em>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-3 py-2">{row.date_arrivee}</td>
                 <td className="px-3 py-2">{row.date_depart}</td>

@@ -187,6 +187,13 @@ export default function LogementsPage() {
   const [icalBookingUrl, setIcalBookingUrl] = useState("");
   const [icalSyncMessage, setIcalSyncMessage] = useState("");
   const [icalSyncLoading, setIcalSyncLoading] = useState(false);
+  const [csvImportFile, setCsvImportFile] = useState<File | null>(null);
+  const [csvImportLoading, setCsvImportLoading] = useState(false);
+  const [csvImportResult, setCsvImportResult] = useState<{
+    imported: number;
+    skipped: number;
+    unmatchedNames: string[];
+  } | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const showClassicFields = typeLocation === "classique" || typeLocation === "les_deux";
@@ -763,6 +770,49 @@ export default function LogementsPage() {
       setIcalSyncMessage(formatSubmitError(e));
     } finally {
       setIcalSyncLoading(false);
+    }
+  }
+
+  async function importAirbnbCsvHistory() {
+    if (!csvImportFile) {
+      setIcalSyncMessage("Sélectionnez d'abord un fichier CSV Airbnb.");
+      return;
+    }
+    setCsvImportLoading(true);
+    setIcalSyncMessage("");
+    setCsvImportResult(null);
+    try {
+      const form = new FormData();
+      form.append("file", csvImportFile);
+      const res = await fetch("/api/saisonnier/import-csv-airbnb", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        imported?: number;
+        skipped?: number;
+        unmatched?: Array<{ code: string; logement_nom: string; dates: string }>;
+      };
+      if (!res.ok) {
+        setIcalSyncMessage(data.error ?? "Échec import CSV.");
+        return;
+      }
+      const unmatchedNames = Array.from(
+        new Set((data.unmatched ?? []).map((x) => x.logement_nom).filter(Boolean)),
+      );
+      setCsvImportResult({
+        imported: data.imported ?? 0,
+        skipped: data.skipped ?? 0,
+        unmatchedNames,
+      });
+      if (editingRow?.id) {
+        await loadRows(proprietaireId);
+      }
+    } catch (e) {
+      setIcalSyncMessage(formatSubmitError(e));
+    } finally {
+      setCsvImportLoading(false);
     }
   }
 
@@ -1515,6 +1565,57 @@ export default function LogementsPage() {
                       <p className="mt-2 text-xs" style={{ color: PC.muted }}>
                         {icalSyncMessage}
                       </p>
+                    ) : null}
+                  </div>
+                  <div className="rounded-xl p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.bg }}>
+                    <h4 className="text-sm font-semibold" style={{ color: PC.text }}>
+                      Importer l&apos;historique Airbnb (CSV)
+                    </h4>
+                    <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      1. Airbnb → Revenus → Montant payé
+                      <br />
+                      2. Cliquer Exporter au format CSV
+                      <br />
+                      3. Importer le fichier ici
+                    </p>
+                    <label className="mt-3 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Fichier CSV Airbnb</span>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        style={fieldInputStyle}
+                        onChange={(e) => setCsvImportFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                      style={{ backgroundColor: PC.primary, color: PC.white }}
+                      disabled={csvImportLoading || !csvImportFile}
+                      onClick={() => {
+                        void importAirbnbCsvHistory();
+                      }}
+                    >
+                      {csvImportLoading ? "Import..." : "Importer"}
+                    </button>
+                    {csvImportResult ? (
+                      <div className="mt-3 space-y-1 text-xs" style={{ color: PC.muted }}>
+                        <p style={{ color: PC.success }}>
+                          ✅ {csvImportResult.imported} réservations importées
+                        </p>
+                        <p>⏭️ {csvImportResult.skipped} déjà existantes (ignorées)</p>
+                        <p>
+                          ⚠️ {csvImportResult.unmatchedNames.length} non associées à un logement :
+                          {csvImportResult.unmatchedNames.length > 0
+                            ? ` ${csvImportResult.unmatchedNames.join(", ")}`
+                            : " aucune"}
+                        </p>
+                        {csvImportResult.unmatchedNames.length > 0 ? (
+                          <p>
+                            Ces réservations ont été importées sans logement. Associez-les manuellement depuis la page Réservations.
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </div>
