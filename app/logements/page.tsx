@@ -747,14 +747,18 @@ export default function LogementsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logement_id: logementId, sync_full_history: syncFullHistory }),
       });
-      const data = (await res.json()) as { error?: string; imported?: number; updated?: number };
+      const data = (await res.json()) as {
+        error?: string;
+        imported?: number;
+        updated?: number;
+        infoMessage?: string | null;
+      };
       if (!res.ok) {
         setIcalSyncMessage(data.error ?? "Échec synchronisation.");
         return;
       }
-      setIcalSyncMessage(
-        `${syncFullHistory ? "Import historique" : "Synchronisation"} : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`,
-      );
+      const baseMessage = `${syncFullHistory ? "Import historique" : "Synchronisation"} : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`;
+      setIcalSyncMessage(data.infoMessage ? `${baseMessage} ${data.infoMessage}` : baseMessage);
     } catch (e) {
       setIcalSyncMessage(formatSubmitError(e));
     } finally {

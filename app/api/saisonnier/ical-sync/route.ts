@@ -102,6 +102,7 @@ export async function POST(request: Request) {
 
     let imported = 0;
     let updated = 0;
+    const infoMessages: string[] = [];
 
     for (const job of jobs) {
       let text: string;
@@ -114,6 +115,25 @@ export async function POST(request: Request) {
       }
 
       const events = parseVeventsFromIcs(text);
+      if (events.length > 0) {
+        const sortedByArrivee = [...events].sort((a, b) => a.dateArrivee.localeCompare(b.dateArrivee));
+        const minDate = sortedByArrivee[0]!.dateArrivee;
+        const maxDate = sortedByArrivee[sortedByArrivee.length - 1]!.dateDepart;
+        console.info(
+          `[ical-sync] source=${job.source} logement_id=${logementId} events=${events.length} min=${minDate} max=${maxDate}`,
+        );
+      } else {
+        console.info(`[ical-sync] source=${job.source} logement_id=${logementId} events=0`);
+      }
+      if (job.source === "airbnb" && events.length > 0) {
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const hasPastEvent = events.some((ev) => ev.dateArrivee < todayIso);
+        if (!hasPastEvent) {
+          infoMessages.push(
+            "Airbnb ne fournit que les réservations futures via iCal. Les réservations passées doivent être saisies manuellement.",
+          );
+        }
+      }
       for (const ev of events) {
         if (ev.dateDepart < startDate || ev.dateArrivee > endDate) {
           continue;
@@ -183,7 +203,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ imported, updated });
+    return NextResponse.json({ imported, updated, infoMessage: infoMessages[0] ?? null });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur serveur." },

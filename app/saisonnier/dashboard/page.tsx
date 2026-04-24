@@ -40,6 +40,7 @@ const EMPTY_OCC = {
 const EMPTY_SOURCES = { airbnb: 0, direct: 0, booking: 0, autre: 0 };
 
 export default function SaisonnierDashboardPage() {
+  const currentYear = new Date().getFullYear();
   const [ownerId, setOwnerId] = useState<string>("");
   const [annees, setAnnees] = useState<number[]>([]);
   const [annee, setAnnee] = useState<number>(new Date().getFullYear());
@@ -79,9 +80,9 @@ export default function SaisonnierDashboardPage() {
       ]);
 
       if (cancelled) return;
-      const sortedYears = anneesList.length ? anneesList : [new Date().getFullYear()];
-      setAnnees(sortedYears);
-      setAnnee(sortedYears[0]!);
+      const mergedYears = Array.from(new Set([currentYear, ...anneesList])).sort((a, b) => b - a);
+      setAnnees(mergedYears);
+      setAnnee(mergedYears[0] ?? currentYear);
       setLogements(
         (logementsData.data ?? [])
           .filter((l) => l.type_location === "saisonnier" || l.type_location === "les_deux")
@@ -140,6 +141,10 @@ export default function SaisonnierDashboardPage() {
     { label: "Direct", value: sources.direct, color: "#7c3aed" },
     { label: "Booking", value: sources.booking, color: "#003580" },
   ];
+  const yearIndex = annees.findIndex((y) => y === annee);
+  const canGoPreviousYear = yearIndex >= 0 && yearIndex < annees.length - 1;
+  const canGoNextYear = yearIndex > 0;
+  const hasReservationsForYear = stats.total > 0;
 
   return (
     <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
@@ -148,7 +153,16 @@ export default function SaisonnierDashboardPage() {
           <h1 className="proplio-page-title">Dashboard Saisonnier</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="rounded-md px-2 py-1 text-sm" style={{ border: `1px solid ${PC.border}` }} onClick={() => setAnnee((prev) => prev - 1)}>
+          <button
+            type="button"
+            className="rounded-md px-2 py-1 text-sm disabled:opacity-40"
+            style={{ border: `1px solid ${PC.border}` }}
+            disabled={!canGoPreviousYear}
+            onClick={() => {
+              if (!canGoPreviousYear) return;
+              setAnnee(annees[yearIndex + 1] ?? annee);
+            }}
+          >
             {"<"}
           </button>
           <select className="rounded-md px-3 py-1.5 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }} value={annee} onChange={(e) => setAnnee(Number(e.target.value))}>
@@ -158,7 +172,16 @@ export default function SaisonnierDashboardPage() {
               </option>
             ))}
           </select>
-          <button type="button" className="rounded-md px-2 py-1 text-sm" style={{ border: `1px solid ${PC.border}` }} onClick={() => setAnnee((prev) => prev + 1)}>
+          <button
+            type="button"
+            className="rounded-md px-2 py-1 text-sm disabled:opacity-40"
+            style={{ border: `1px solid ${PC.border}` }}
+            disabled={!canGoNextYear}
+            onClick={() => {
+              if (!canGoNextYear) return;
+              setAnnee(annees[yearIndex - 1] ?? annee);
+            }}
+          >
             {">"}
           </button>
           <select className="rounded-md px-3 py-1.5 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }} value={logementId} onChange={(e) => setLogementId(e.target.value)}>
@@ -172,6 +195,16 @@ export default function SaisonnierDashboardPage() {
         </div>
       </header>
 
+      {loading ? (
+        <div className="rounded-xl p-6 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.muted }}>
+          Chargement du dashboard...
+        </div>
+      ) : !hasReservationsForYear ? (
+        <div className="rounded-xl p-6 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.muted }}>
+          Aucune reservation pour {annee}.
+        </div>
+      ) : (
+        <>
       <section className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
           <p className="text-sm" style={{ color: PC.muted }}>Revenus encaisses</p>
@@ -232,7 +265,7 @@ export default function SaisonnierDashboardPage() {
 
       <section className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
         <h2 className="text-base font-semibold">Graphique mensuel</h2>
-        {loading ? <p className="mt-3 text-sm" style={{ color: PC.muted }}>Chargement...</p> : <RevenusMensuelsChart data={mensuel} />}
+        <RevenusMensuelsChart data={mensuel} />
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -262,6 +295,8 @@ export default function SaisonnierDashboardPage() {
           </table>
         </div>
       </section>
+        </>
+      )}
     </section>
   );
 }
