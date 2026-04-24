@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { IconArrowPath } from "@/components/proplio-icons";
+import { BtnEmail, BtnSecondary, StatusBadge } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -44,6 +46,7 @@ function rowContratStatut(row: Row): ContratStatut {
 type StatutFiltre = "tous" | "genere" | "envoye" | "signe";
 
 export default function ContratsSejourPage() {
+  const toast = useToast();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
@@ -133,6 +136,7 @@ export default function ContratsSejourPage() {
     const res = await fetch(`/api/saisonnier/reservations/${id}/send-contrat`, { method: "POST" });
     const j = await res.json();
     if (!res.ok) setError(j.error ?? "Erreur");
+    else toast.success("Contrat envoyé par email.");
     void load();
   }
 
@@ -141,6 +145,7 @@ export default function ContratsSejourPage() {
     if (e || !proprietaireId) return;
     await supabase.from("reservations").update({ contrat_signe: next }).eq("id", id).eq("proprietaire_id", proprietaireId);
     void load();
+    toast.success(next ? "Contrat marqué comme signé." : "Marquage signé retiré.");
   }
 
   if (loading) {
@@ -228,29 +233,29 @@ export default function ContratsSejourPage() {
                     <p className="text-sm" style={{ color: PC.muted }}>
                       {row.voyageurs ? `${row.voyageurs.prenom} ${row.voyageurs.nom}` : "Sans voyageur"} · {datesAffichees}
                     </p>
-                    <p className="mt-2 text-xs" style={{ color: PC.secondary }}>
-                      Statut : {statut}
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: PC.secondary }}>
+                      <span>Statut :</span>
+                      <StatusBadge
+                        status={statut === "Généré" ? "brouillon" : statut === "Envoyé" ? "envoye" : "signe"}
+                        label={statut}
+                      />
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      className="rounded-lg px-3 py-2 text-xs font-semibold"
-                      style={{ backgroundColor: PC.primary, color: PC.white }}
+                    <BtnEmail
+                      size="small"
                       disabled={!row.voyageurs?.email}
                       onClick={() => void sendContrat(row.id)}
                     >
-                      Générer PDF + envoyer email
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs"
-                      style={{ border: `1px solid ${PC.border}`, color: PC.muted }}
+                      Envoyer par email
+                    </BtnEmail>
+                    <BtnSecondary
+                      size="small"
+                      icon={<IconArrowPath className="h-3 w-3" />}
                       onClick={() => void sendContrat(row.id)}
                     >
-                      <IconArrowPath className="h-3 w-3" />
                       Renvoyer
-                    </button>
+                    </BtnSecondary>
                     <label className="flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
                       <input type="checkbox" checked={Boolean(row.contrat_signe)} onChange={(e) => void toggleSigne(row.id, e.target.checked)} />
                       Marquer comme signé

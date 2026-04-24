@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import {
   canCreateLocataire,
@@ -60,6 +62,7 @@ const defaultValues = {
 };
 
 export default function LocatairesPage() {
+  const toast = useToast();
   const [rows, setRows] = useState<Locataire[]>([]);
   const [logements, setLogements] = useState<LogementRow[]>([]);
   const [values, setValues] = useState<Record<string, string>>(defaultValues);
@@ -431,6 +434,7 @@ export default function LocatairesPage() {
       closeModal();
       await loadRows(ownerId);
       await loadLogements(ownerId);
+      toast.success(isEditing ? "Locataire mis à jour." : "Locataire créé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -446,6 +450,7 @@ export default function LocatairesPage() {
       const { proprietaireId: ownerId, error: ownerErr } = await getCurrentProprietaireId();
       if (ownerErr || !ownerId) {
         setError(ownerErr ? formatSubmitError(ownerErr) : "Session propriétaire introuvable.");
+        setIsDeleting(false);
         return;
       }
 
@@ -521,6 +526,7 @@ export default function LocatairesPage() {
 
       await loadRows(ownerId);
       setDeleteTarget(null);
+      toast.success("Locataire supprimé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -535,16 +541,14 @@ export default function LocatairesPage() {
           <h1 className="proplio-page-title">Locataires</h1>
           <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion des profils locataires.</p>
         </div>
-        <button
-          type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           onClick={() => void openCreateModal()}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouveau locataire
-        </button>
+        </BtnPrimary>
       </div>
 
       {error ? (
@@ -659,9 +663,8 @@ export default function LocatairesPage() {
                             </p>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                              <BtnSecondary
+                                size="small"
                                 disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
                                 title={
                                   currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
@@ -681,15 +684,14 @@ export default function LocatairesPage() {
                                 onClick={() => openEditModal(row)}
                               >
                                 Modifier
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                              </BtnSecondary>
+                              <BtnDanger
+                                size="small"
                                 disabled={isDeleting}
                                 onClick={() => setDeleteTarget(row)}
                               >
                                 Supprimer
-                              </button>
+                              </BtnDanger>
                             </>
                           )}
                         </div>
@@ -708,13 +710,9 @@ export default function LocatairesPage() {
           <div className="mx-auto max-w-lg rounded-xl" style={LOCA_MODAL_CARD}>
             <div className="mb-4 flex items-start justify-between">
               <h3 className="text-lg font-semibold">{isEditing ? "Modifier le locataire" : "Créer un locataire"}</h3>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-sm pc-outline-muted"
-                onClick={closeModal}
-              >
+              <BtnNeutral className="!px-2 !py-1 text-sm" onClick={closeModal}>
                 Fermer
-              </button>
+              </BtnNeutral>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
@@ -829,50 +827,26 @@ export default function LocatairesPage() {
               ) : null}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={closeModal}>
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary disabled:opacity-60"
-                >
-                  {isSubmitting ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}
-                </button>
+                <BtnNeutral onClick={closeModal}>Annuler</BtnNeutral>
+                <BtnPrimary type="submit" disabled={isSubmitting} loading={isSubmitting}>
+                  {isEditing ? "Mettre à jour" : "Créer"}
+                </BtnPrimary>
               </div>
             </form>
           </div>
         </div>
       ) : null}
 
-      {deleteTarget ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4">
-          <div className="mx-auto mt-20 max-w-lg rounded-xl p-6" style={LOCA_MODAL_CARD}>
-            <h3 className="text-lg font-semibold">Confirmer la suppression</h3>
-            <p className="mt-3 whitespace-pre-line text-sm" style={{ color: PC.muted }}>
-              {"Êtes-vous sûr de vouloir supprimer ce locataire ?\nCette action supprimera également tous les documents liés : quittances, baux et états des lieux associés.\n⚠️ Ce locataire compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.\nCette action est irréversible."}
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
-                disabled={isDeleting}
-                onClick={() => setDeleteTarget(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-medium pc-outline-danger"
-                disabled={isDeleting}
-                onClick={() => void onDelete(deleteTarget.id)}
-              >
-                {isDeleting ? "Suppression..." : "Supprimer définitivement"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteTarget != null}
+        title="Supprimer le locataire"
+        description="Êtes-vous sûr de vouloir supprimer ce locataire ? Cette action supprimera également les quittances, baux et états des lieux associés. Cette action est irréversible."
+        loading={isDeleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) void onDelete(deleteTarget.id);
+        }}
+      />
     </section>
   );
 }

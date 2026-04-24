@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/proplio-colors";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
 import type { ProplioPlan } from "@/lib/plan-limits";
@@ -225,20 +226,18 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
                   <p className="mt-2 text-center text-sm" style={{ color: PC.muted }}>
                     {priceLabel}
                   </p>
-                  <button
-                    type="button"
+                  <BtnPrimary
+                    className="mt-4 w-full"
+                    size="small"
                     disabled={loadingPlanId !== null}
-                    onClick={() => void onPlanCheckout(row.id)}
-                    className="mt-4 w-full rounded-lg px-3 py-2.5 text-xs font-semibold transition-opacity duration-200 disabled:cursor-not-allowed sm:text-sm"
+                    loading={isLoading}
                     style={{
-                      backgroundColor: PC.primary,
-                      color: PC.white,
-                      boxShadow: "0 2px 10px rgba(124, 58, 237, 0.35)",
                       opacity: loadingPlanId !== null && !isLoading ? 0.45 : 1,
                     }}
+                    onClick={() => void onPlanCheckout(row.id)}
                   >
-                    {isLoading ? "Redirection…" : row.cta}
-                  </button>
+                    {row.cta}
+                  </BtnPrimary>
                 </div>
               );
             })}

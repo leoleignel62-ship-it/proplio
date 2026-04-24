@@ -33,6 +33,8 @@ import {
   type SaisonnierRappelReservationRow,
 } from "@/lib/saisonnier-rappel-conditions";
 import { normalizePlan, PLAN_UPGRADE_PATH, type ProplioPlan } from "@/lib/plan-limits";
+import { BtnEmail, BtnNeutral, BtnPrimary } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 import { supabase } from "@/lib/supabase";
 
@@ -468,22 +470,15 @@ export function NavigationSidebar() {
               séjour et synchronisation iCal.
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-medium"
-                style={{ border: `1px solid ${PC.border}`, color: PC.muted }}
-                onClick={() => setSaisonnierUpsellOpen(false)}
-              >
-                Fermer
-              </button>
-              <Link
-                href={PLAN_UPGRADE_PATH}
-                className="rounded-lg px-4 py-2 text-sm font-semibold"
-                style={{ backgroundColor: PC.primary, color: PC.white }}
-                onClick={() => setSaisonnierUpsellOpen(false)}
+              <BtnNeutral onClick={() => setSaisonnierUpsellOpen(false)}>Fermer</BtnNeutral>
+              <BtnPrimary
+                onClick={() => {
+                  setSaisonnierUpsellOpen(false);
+                  router.push(PLAN_UPGRADE_PATH);
+                }}
               >
                 Voir les abonnements
-              </Link>
+              </BtnPrimary>
             </div>
           </div>
         </div>
@@ -849,6 +844,7 @@ export async function refreshHeaderAlerts(): Promise<HeaderAlertMetrics> {
 }
 
 function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<HeaderAlertMetrics>({
     quittancesNonEnvoyeesMois: 0,
@@ -967,10 +963,9 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                         {item.voyageur} · {item.logement} · {item.dates}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs font-semibold"
-                      style={{ backgroundColor: "#7c3aed", color: "#fff" }}
+                    <BtnEmail
+                      size="small"
+                      className="mt-2 w-full"
                       onClick={() => {
                         void (async () => {
                           const res = await fetch("/api/saisonnier/send-rappel-acompte", {
@@ -981,12 +976,13 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                           if (res.ok) {
                             const fresh = await refreshHeaderAlerts();
                             setAlerts(fresh);
+                            toast.success("Rappel d'acompte envoyé.");
                           }
                         })();
                       }}
                     >
-                      Envoyer le rappel
-                    </button>
+                      Renvoyer
+                    </BtnEmail>
                   </div>
                 ))}
                 {alerts.rappelsSoldeSaisonnier.map((item) => (
@@ -1003,10 +999,9 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                         {item.voyageur} · {item.logement} · {item.dates}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs font-semibold"
-                      style={{ backgroundColor: "#7c3aed", color: "#fff" }}
+                    <BtnEmail
+                      size="small"
+                      className="mt-2 w-full"
                       onClick={() => {
                         void (async () => {
                           const res = await fetch("/api/saisonnier/send-rappel-solde", {
@@ -1017,12 +1012,13 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                           if (res.ok) {
                             const fresh = await refreshHeaderAlerts();
                             setAlerts(fresh);
+                            toast.success("Rappel de solde envoyé.");
                           }
                         })();
                       }}
                     >
-                      Envoyer le rappel
-                    </button>
+                      Renvoyer
+                    </BtnEmail>
                   </div>
                 ))}
               </>

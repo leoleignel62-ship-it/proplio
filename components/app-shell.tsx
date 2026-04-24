@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { NavigationSidebar } from "@/components/navigation-sidebar";
+import { ToastProvider } from "@/components/ui/toast";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/proplio-colors";
 
@@ -21,19 +22,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isAuthPage) {
     return (
-      <main
-        className="flex min-h-screen items-center justify-center p-4"
-        style={shellStyle}
-      >
-        {children}
-      </main>
+      <ToastProvider>
+        <main
+          className="flex min-h-screen items-center justify-center p-4"
+          style={shellStyle}
+        >
+          {children}
+        </main>
+      </ToastProvider>
     );
   }
 
   return (
-    <div className="min-h-screen" style={shellStyle}>
-      <NavigationSidebar />
-      <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen" style={shellStyle}>
+        <NavigationSidebar />
+        <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
+      </div>
+    </ToastProvider>
   );
 }

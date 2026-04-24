@@ -14,6 +14,8 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { BtnEmail, BtnPrimary, BtnSecondary } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 import { supabase } from "@/lib/supabase";
@@ -67,6 +69,7 @@ function formatDateFr(d: string) {
 }
 
 export default function RevisionsIrlPage() {
+  const toast = useToast();
   const [plan, setPlan] = useState<ProplioPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [irl, setIrl] = useState<IrlApi>({ valeur: 143.46, trimestre: "T4 2024" });
@@ -77,7 +80,6 @@ export default function RevisionsIrlPage() {
   const [locatairesEmailMap, setLocatairesEmailMap] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState("");
   const [actionKey, setActionKey] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [filtreLogement, setFiltreLogement] = useState("");
   const [pendingLetters, setPendingLetters] = useState<Array<{ bailId: string; revisionId: string; label: string }>>(
     [],
@@ -145,12 +147,6 @@ export default function RevisionsIrlPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 4000);
-    return () => window.clearTimeout(t);
-  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -239,6 +235,7 @@ export default function RevisionsIrlPage() {
       }
       invalidateHeaderAlertsCache();
       await loadData();
+      toast.success("Révision validée.");
     } finally {
       setActionKey(null);
     }
@@ -260,6 +257,7 @@ export default function RevisionsIrlPage() {
       }
       invalidateHeaderAlertsCache();
       await loadData();
+      toast.success("Révision ignorée.");
     } finally {
       setActionKey(null);
     }
@@ -296,6 +294,7 @@ export default function RevisionsIrlPage() {
       });
       invalidateHeaderAlertsCache();
       await loadData();
+      toast.success("IRL de référence enregistré.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -321,7 +320,7 @@ export default function RevisionsIrlPage() {
         setError(typeof j.error === "string" ? j.error : "Envoi impossible.");
         return;
       }
-      if (opts?.resend) setToast("Lettre renvoyée !");
+      toast.success(opts?.resend ? "Lettre renvoyée." : "Lettre envoyée par email.");
       invalidateHeaderAlertsCache();
       await loadData();
     } finally {
@@ -335,19 +334,6 @@ export default function RevisionsIrlPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      {toast ? (
-        <div
-          className="fixed bottom-4 right-4 z-50 max-w-sm rounded-xl px-4 py-3 text-sm font-medium shadow-lg"
-          role="status"
-          style={{
-            backgroundColor: PC.successBg10,
-            color: PC.success,
-            border: `1px solid ${PC.borderSuccess40}`,
-          }}
-        >
-          {toast}
-        </div>
-      ) : null}
       <nav className="text-sm" style={{ color: PC.muted }}>
         <Link href="/" className="inline-flex items-center gap-1.5 transition hover:underline" style={{ color: PC.muted }}>
           <IconHome className="h-4 w-4" />
@@ -421,15 +407,9 @@ export default function RevisionsIrlPage() {
                             setMissingIrlDraft((prev) => ({ ...prev, [bail.id]: e.target.value }))
                           }
                         />
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-50"
-                          style={{ backgroundColor: PC.primary }}
-                          onClick={() => void onSaveIrlReference(bail.id)}
-                        >
-                          {busy ? "…" : "Enregistrer"}
-                        </button>
+                        <BtnPrimary size="small" disabled={busy} loading={busy} onClick={() => void onSaveIrlReference(bail.id)}>
+                          Enregistrer
+                        </BtnPrimary>
                       </div>
                     </div>
                   );
@@ -508,24 +488,16 @@ export default function RevisionsIrlPage() {
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
+                    <BtnPrimary
                       disabled={busyV || busyI}
-                      className="rounded-xl px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-50"
-                      style={{ backgroundColor: PC.primary }}
+                      loading={busyV}
                       onClick={() => void onValider(bail)}
                     >
-                      {busyV ? "…" : "Valider la révision"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyV || busyI}
-                      className="rounded-xl border px-4 py-2.5 text-sm font-medium transition disabled:opacity-50"
-                      style={{ borderColor: PC.border, color: PC.text, backgroundColor: "transparent" }}
-                      onClick={() => void onIgnorer(bail)}
-                    >
-                      {busyI ? "…" : "Ignorer"}
-                    </button>
+                      Valider la révision
+                    </BtnPrimary>
+                    <BtnSecondary disabled={busyV || busyI} loading={busyI} onClick={() => void onIgnorer(bail)}>
+                      Ignorer
+                    </BtnSecondary>
                   </div>
                 </div>
               );
@@ -554,15 +526,13 @@ export default function RevisionsIrlPage() {
                 <span className="text-sm" style={{ color: PC.text }}>
                   {p.label}
                 </span>
-                <button
-                  type="button"
+                <BtnEmail
                   disabled={actionKey === `s-${p.revisionId}`}
-                  className="rounded-xl px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-50"
-                  style={{ backgroundColor: PC.primary }}
+                  loading={actionKey === `s-${p.revisionId}`}
                   onClick={() => void onEnvoyerLettre(p.revisionId)}
                 >
-                  {actionKey === `s-${p.revisionId}` ? "…" : "Envoyer la lettre au locataire par e-mail"}
-                </button>
+                  Envoyer par email
+                </BtnEmail>
               </div>
             ))}
           </div>
@@ -645,35 +615,22 @@ export default function RevisionsIrlPage() {
                         >
                           Envoyée le {dateEnvoiRaw ? formatDateFr(String(dateEnvoiRaw)) : "—"}
                         </span>
-                        <button
-                          type="button"
+                        <BtnEmail
+                          size="small"
                           disabled={sendBusy}
-                          className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition disabled:opacity-50"
-                          style={{
-                            borderColor: PC.border,
-                            color: PC.muted,
-                            backgroundColor: "transparent",
-                          }}
-                          onClick={() =>
-                            void onEnvoyerLettre(r.id, { resend: true, tenantEmail })
-                          }
+                          loading={sendBusy}
+                          icon={<IconArrowPath className="!h-3.5 !w-3.5 shrink-0" />}
+                          onClick={() => void onEnvoyerLettre(r.id, { resend: true, tenantEmail })}
                         >
-                          <IconArrowPath className="!h-3.5 !w-3.5 shrink-0" />
-                          {sendBusy ? "Envoi…" : "Renvoyer"}
-                        </button>
+                          Renvoyer
+                        </BtnEmail>
                       </div>
                     );
                   } else if (st === "validee") {
                     lettreCell = (
-                      <button
-                        type="button"
-                        disabled={sendBusy}
-                        className="rounded-md px-2.5 py-1 text-xs font-semibold text-white transition disabled:opacity-50"
-                        style={{ backgroundColor: PC.primary }}
-                        onClick={() => void onEnvoyerLettre(r.id)}
-                      >
-                        {sendBusy ? "…" : "Envoyer"}
-                      </button>
+                      <BtnEmail size="small" disabled={sendBusy} loading={sendBusy} onClick={() => void onEnvoyerLettre(r.id)}>
+                        Envoyer par email
+                      </BtnEmail>
                     );
                   } else {
                     lettreCell = <span style={{ color: PC.muted }}>—</span>;

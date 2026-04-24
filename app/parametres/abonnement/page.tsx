@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import {
@@ -12,6 +12,8 @@ import {
 import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
+import { BtnDanger, BtnPrimary, BtnSecondary } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
@@ -94,6 +96,7 @@ function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
 }
 
 export default function AbonnementPage() {
+  const toast = useToast();
   const searchParams = useSearchParams();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
@@ -133,6 +136,14 @@ export default function AbonnementPage() {
   }, []);
 
   const hasCheckoutSuccess = searchParams.get("success") === "true";
+  const checkoutSuccessToastDone = useRef(false);
+
+  useEffect(() => {
+    if (hasCheckoutSuccess && !checkoutSuccessToastDone.current) {
+      checkoutSuccessToastDone.current = true;
+      toast.success("Paiement validé. Votre abonnement va être mis à jour automatiquement.");
+    }
+  }, [hasCheckoutSuccess, toast]);
   const hasCheckoutCanceled = searchParams.get("canceled") === "true";
 
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
@@ -213,25 +224,15 @@ export default function AbonnementPage() {
           locataires.
         </p>
         {plan !== "free" ? (
-          <button
-            type="button"
-            className="proplio-btn-primary mt-6 inline-flex items-center gap-2 px-5 py-2.5"
-            disabled={isOpeningPortal}
-            onClick={() => void openPortal()}
-          >
-            {isOpeningPortal ? "Ouverture..." : "Gérer mon abonnement"}
-          </button>
+          <BtnPrimary className="mt-6" loading={isOpeningPortal} onClick={() => void openPortal()}>
+            Gérer mon abonnement
+          </BtnPrimary>
         ) : null}
       </div>
 
       {error ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           {error}
-        </p>
-      ) : null}
-      {hasCheckoutSuccess ? (
-        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
-          Paiement validé. Votre abonnement va être mis à jour automatiquement.
         </p>
       ) : null}
       {hasCheckoutCanceled ? (
@@ -365,20 +366,20 @@ export default function AbonnementPage() {
                 ))}
               </ul>
               {!isPaid ? (
-                <button type="button" className="proplio-btn-secondary mt-6 w-full py-2.5" disabled>
+                <BtnSecondary className="mt-6 w-full" disabled>
                   {isCurrent ? "Plan actuel" : "Plan gratuit"}
-                </button>
+                </BtnSecondary>
               ) : (
-                <button
-                  type="button"
-                  className={`proplio-btn-primary mt-6 w-full disabled:opacity-60 ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
+                <BtnPrimary
+                  className={`mt-6 w-full ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
                   disabled={isCurrent || loadingCheckoutKey !== null}
+                  loading={loadingCheckoutKey === `${p.id}-${billing}`}
                   onClick={() => {
                     if (isPaidPlan(p.id)) void startCheckout(p.id, billing);
                   }}
                 >
-                  {loadingCheckoutKey === `${p.id}-${billing}` ? "Redirection..." : "Choisir ce plan"}
-                </button>
+                  Choisir ce plan
+                </BtnPrimary>
               )}
             </article>
           );
@@ -394,18 +395,16 @@ export default function AbonnementPage() {
         <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
           Vous pouvez demander la résiliation à tout moment.
         </p>
-        <button
-          type="button"
-          className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-200 ease-out"
-          style={{ backgroundColor: PC.dangerBg15, color: PC.danger, border: `1px solid ${PC.borderDanger40}` }}
+        <BtnDanger
+          className="mt-4"
           onClick={() => {
             const ok = window.confirm("Confirmer la résiliation de votre abonnement ?");
             if (!ok) return;
-            setMessage("Résiliation demandée. Notre équipe vous contactera rapidement.");
+            toast.success("Résiliation demandée. Notre équipe vous contactera rapidement.");
           }}
         >
           Résilier
-        </button>
+        </BtnDanger>
       </div>
 
       <p className="text-sm" style={{ color: PC.muted }}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState, type CSSProperties } from "react";
+import { BtnNeutral, BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, fieldSelectStyle } from "@/lib/proplio-field-styles";
 
@@ -71,19 +72,19 @@ export function EntityFormModal({
           <h3 className="text-lg font-semibold" style={{ color: PC.text }}>
             {title}
           </h3>
-          <button
-            type="button"
-            className="rounded-lg px-2 py-1 text-sm transition"
+          <BtnNeutral
+            className="!px-2 !py-1 text-sm"
             style={{
               color: closeHover ? PC.text : PC.muted,
               backgroundColor: closeHover ? PC.bg : "transparent",
+              border: "none",
             }}
             onMouseEnter={() => setCloseHover(true)}
             onMouseLeave={() => setCloseHover(false)}
             onClick={onClose}
           >
             Fermer
-          </button>
+          </BtnNeutral>
         </div>
 
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -124,35 +125,12 @@ export function EntityFormModal({
           ))}
 
           <div className="mt-1 flex items-center justify-end gap-3 sm:col-span-2">
-            <button
-              type="button"
-              className="rounded-xl font-medium"
-              style={{
-                border: `1px solid ${PC.border}`,
-                backgroundColor: "transparent",
-                color: PC.text,
-                padding: "0.625rem 1rem",
-                fontSize: "0.875rem",
-              }}
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
+            <BtnNeutral onClick={onClose} disabled={isSubmitting}>
               Annuler
-            </button>
-            <button
-              type="submit"
-              className="rounded-xl px-6 font-medium"
-              style={{
-                backgroundColor: PC.primary,
-                color: PC.white,
-                padding: "0.625rem 1.5rem",
-                fontSize: "0.875rem",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Enregistrement..." : submitLabel}
-            </button>
+            </BtnNeutral>
+            <BtnPrimary type="submit" disabled={isSubmitting} loading={isSubmitting}>
+              {submitLabel}
+            </BtnPrimary>
           </div>
         </form>
       </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   emptyProprietaireProfile,
   fetchProprietaireProfile,
@@ -15,6 +15,8 @@ import {
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PLAN_DISPLAY_FEATURES, PLAN_DISPLAY_LABELS, type PlanDisplayId } from "@/lib/plan-display-copy";
+import { BtnPrimary, BtnSecondary } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
 
@@ -56,17 +58,19 @@ type StripeSubscriptionInfo = {
 };
 
 export default function ParametresPage() {
+  const toast = useToast();
+  const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<ProprietaireProfile>(emptyProprietaireProfile);
   const [plan, setPlan] = useState("free");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
-  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [stripeSubscription, setStripeSubscription] = useState<StripeSubscriptionInfo | null>(null);
   const [stripeSubscriptionLoading, setStripeSubscriptionLoading] = useState(false);
+  const signatureFileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -162,13 +166,11 @@ export default function ParametresPage() {
 
   function onChange(field: keyof ProprietaireProfile, value: string) {
     setProfile((prev) => ({ ...prev, [field]: value }));
-    if (success) setSuccess("");
     if (error) setError("");
   }
 
   async function onUploadSignature(file: File) {
     setError("");
-    setSuccess("");
     setIsUploadingSignature(true);
 
     const { proprietaireId, error: ownerError } = await getCurrentProprietaireId();
@@ -203,14 +205,13 @@ export default function ParametresPage() {
     const { data } = await supabase.storage.from("signatures").createSignedUrl(filePath, 3600);
     setSignatureUrl(data?.signedUrl ?? null);
     setProfile((prev) => ({ ...prev, id: savedProfile?.id, signature_path: filePath }));
-    setSuccess("Signature enregistrée avec succès.");
+    toast.success("Signature enregistrée.");
     setIsUploadingSignature(false);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
-    setSuccess("");
     setError("");
 
     if (!profile.nom.trim() || !profile.prenom.trim()) {
@@ -245,7 +246,7 @@ export default function ParametresPage() {
     if (data?.id) {
       setProfile((prev) => ({ ...prev, id: data.id }));
     }
-    setSuccess("Profil propriétaire enregistré avec succès.");
+    toast.success("Profil enregistré.");
     setIsSaving(false);
   }
 
@@ -362,19 +363,10 @@ export default function ParametresPage() {
                 {error}
               </p>
             ) : null}
-            {success ? (
-              <p
-                className="sm:col-span-2 rounded-lg px-3 py-2 text-sm"
-                style={{ backgroundColor: PC.successBg10, color: PC.success }}
-              >
-                {success}
-              </p>
-            ) : null}
-
             <div className="sm:col-span-2 flex justify-end">
-              <button type="submit" className="proplio-btn-primary px-6" disabled={isSaving}>
-                {isSaving ? "Enregistrement..." : "Enregistrer mon profil"}
-              </button>
+              <BtnPrimary type="submit" disabled={isSaving} loading={isSaving}>
+                Enregistrer mon profil
+              </BtnPrimary>
             </div>
           </form>
         )}
@@ -463,9 +455,7 @@ export default function ParametresPage() {
         ) : null}
 
         <div className="mt-6">
-          <Link href="/parametres/abonnement" className="proplio-btn-primary inline-flex items-center justify-center px-6">
-            Gérer mon abonnement
-          </Link>
+          <BtnPrimary onClick={() => router.push("/parametres/abonnement")}>Gérer mon abonnement</BtnPrimary>
         </div>
       </div>
 
@@ -476,18 +466,22 @@ export default function ParametresPage() {
         </p>
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="proplio-btn-secondary inline-flex cursor-pointer items-center justify-center">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void onUploadSignature(file);
-              }}
-            />
+          <input
+            ref={signatureFileRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void onUploadSignature(file);
+            }}
+          />
+          <BtnSecondary
+            disabled={isUploadingSignature}
+            onClick={() => signatureFileRef.current?.click()}
+          >
             {isUploadingSignature ? "Upload en cours..." : "Uploader une signature"}
-          </label>
+          </BtnSecondary>
 
           {signatureUrl ? (
             <div

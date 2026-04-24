@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -15,6 +15,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
+import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/proplio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -309,6 +310,7 @@ function StatCard({
 }
 
 export function DashboardContent() {
+  const router = useRouter();
   const [prenom, setPrenom] = useState("");
   const [showProfileOnboardingBanner, setShowProfileOnboardingBanner] = useState(false);
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
@@ -415,13 +417,9 @@ export function DashboardContent() {
           <p className="text-sm leading-relaxed" style={{ color: PC.text }}>
             👤 Complétez votre profil propriétaire pour que vos quittances et baux soient générés correctement.
           </p>
-          <Link
-            href="/parametres"
-            className="inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-            style={{ backgroundColor: PC.primary, color: PC.white }}
-          >
+          <BtnPrimary className="shrink-0" onClick={() => router.push("/parametres")}>
             Compléter mon profil
-          </Link>
+          </BtnPrimary>
         </div>
       ) : null}
 

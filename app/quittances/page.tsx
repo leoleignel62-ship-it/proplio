@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import {
   canCreateQuittance,
   FREE_PLAN_EDIT_CONFIRM_MESSAGE,
@@ -95,6 +97,7 @@ const defaultValues = {
 const GROUP_CARD_STYLE = { ...panelCard, padding: 16 } as const;
 
 export default function QuittancesPage() {
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<Quittance[]>([]);
@@ -167,7 +170,8 @@ export default function QuittancesPage() {
     ],
     [logements, locatairesForSelectedLogement, values.logement_id],
   );
-  const [successToast, setSuccessToast] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
@@ -510,6 +514,7 @@ export default function QuittancesPage() {
 
       closeModal();
       await loadRows(ownerId);
+      toast.success(isEditing ? "Quittance mise à jour." : "Quittance créée.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -519,6 +524,7 @@ export default function QuittancesPage() {
 
   async function onDelete(id: string) {
     setError("");
+    setDeleteSubmitting(true);
 
     try {
       const { proprietaireId: ownerId, error: ownerErr } = await getCurrentProprietaireId();
@@ -538,10 +544,13 @@ export default function QuittancesPage() {
         return;
       }
 
+      setDeleteConfirmId(null);
       await loadRows(ownerId);
+      toast.success("Quittance supprimée.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
+      setDeleteSubmitting(false);
     }
   }
 
@@ -565,8 +574,7 @@ export default function QuittancesPage() {
       const { proprietaireId: ownerId } = await getCurrentProprietaireId();
       if (ownerId) await loadRows(ownerId);
       const email = payload.to || locataires.find((l) => l.id === row.locataire_id)?.email || "destinataire";
-      setSuccessToast(`Email envoyé avec succès à ${email}`);
-      window.setTimeout(() => setSuccessToast(""), 3000);
+      toast.success(`Email envoyé à ${email}.`);
     } catch (e) {
       setError(`Erreur lors de l'envoi : ${formatSubmitError(e)}`);
     } finally {
@@ -594,6 +602,7 @@ export default function QuittancesPage() {
       link.download = `quittance-${row.id.slice(0, 8)}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
+      toast.success("PDF téléchargé.");
     } catch (e) {
       setError(`Erreur de génération PDF : ${formatSubmitError(e)}`);
     }
@@ -629,16 +638,14 @@ export default function QuittancesPage() {
             ))}
           </select>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           onClick={() => void openCreateModal()}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouvelle quittance
-        </button>
+        </BtnPrimary>
       </div>
 
       {error ? (
@@ -663,12 +670,6 @@ export default function QuittancesPage() {
           </div>
         </div>
       ) : null}
-      {successToast ? (
-        <p className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
-          {successToast}
-        </p>
-      ) : null}
-
       {isLoading ? (
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement des quittances...
@@ -704,33 +705,29 @@ export default function QuittancesPage() {
                         Loyer {row.loyer.toFixed(2)} € · Charges {row.charges.toFixed(2)} €
                       </p>
                       <p className="text-base font-semibold">Total {row.total.toFixed(2)} €</p>
-                      <span
-                        className="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={
-                          row.envoyee
-                            ? { backgroundColor: PC.successBg20, color: PC.success }
-                            : { backgroundColor: PC.warningBg15, color: PC.warning }
-                        }
-                      >
-                        {row.envoyee
-                          ? `Envoyée le ${row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}`
-                          : "Non envoyée"}
-                      </span>
+                      <div className="mt-2">
+                        <StatusBadge
+                          status={row.envoyee ? "envoye" : "en_attente"}
+                          label={
+                            row.envoyee
+                              ? `Envoyée le ${row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}`
+                              : "Non envoyée"
+                          }
+                        />
+                      </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
-                          disabled={sendingId === row.id}
-                          onClick={() => onSendQuittance(row)}
+                        <BtnEmail
+                          size="small"
+                          loading={sendingId === row.id}
+                          onClick={() => void onSendQuittance(row)}
                         >
-                          {sendingId === row.id ? "Envoi..." : "Envoyer"}
-                        </button>
-                        <button type="button" onClick={() => void onGeneratePdf(row)} className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
-                          PDF
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1.5 text-xs pc-outline-muted"
+                          Envoyer par email
+                        </BtnEmail>
+                        <BtnPdf size="small" onClick={() => void onGeneratePdf(row)}>
+                          Télécharger PDF
+                        </BtnPdf>
+                        <BtnSecondary
+                          size="small"
                           disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
                           title={
                             currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
@@ -747,11 +744,11 @@ export default function QuittancesPage() {
                           }}
                           onClick={() => openEditModal(row)}
                         >
-                          ✎
-                        </button>
-                        <button type="button" className="rounded-md px-2 py-1.5 text-xs pc-outline-danger" onClick={() => void onDelete(row.id)}>
-                          🗑
-                        </button>
+                          Modifier
+                        </BtnSecondary>
+                        <BtnDanger size="small" onClick={() => setDeleteConfirmId(row.id)}>
+                          Supprimer
+                        </BtnDanger>
                       </div>
                     </article>
                   ))}
@@ -772,6 +769,17 @@ export default function QuittancesPage() {
         onClose={closeModal}
         onChange={onChange}
         onSubmit={onSubmit}
+      />
+
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer la quittance"
+        description="Êtes-vous sûr de vouloir supprimer cette quittance ? Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
       />
     </section>
   );

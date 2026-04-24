@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
@@ -71,6 +72,7 @@ function formatSupabaseInsertError(e: {
 }
 
 export default function EtatsDesLieuxPage() {
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<EdlRow[]>([]);
@@ -89,7 +91,6 @@ export default function EtatsDesLieuxPage() {
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [successToast, setSuccessToast] = useState("");
   const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
@@ -330,6 +331,7 @@ export default function EtatsDesLieuxPage() {
       return;
     }
     setModal(false);
+    toast.success("État des lieux créé.");
     router.push(`/etats-des-lieux/${inserted.id}`);
   }
 
@@ -344,8 +346,7 @@ export default function EtatsDesLieuxPage() {
       const j = (await res.json()) as { error?: string; to?: string[] };
       if (!res.ok) setError(j.error ?? "Envoi impossible.");
       else {
-        setSuccessToast(`Email envoyé avec succès à ${(j.to ?? []).join(", ") || "destinataire"}`);
-        window.setTimeout(() => setSuccessToast(""), 3000);
+        toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
       }
     } catch (e) {
       setError(formatSubmitError(e));
@@ -416,6 +417,7 @@ export default function EtatsDesLieuxPage() {
 
     setDeleteTarget(null);
     void load();
+    toast.success("État des lieux supprimé.");
   }
 
   const filteredRows = useMemo(
@@ -464,9 +466,8 @@ export default function EtatsDesLieuxPage() {
               </option>
             ))}
         </select>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
           onClick={() => {
@@ -481,9 +482,8 @@ export default function EtatsDesLieuxPage() {
             setModal(true);
           }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouvel état des lieux
-        </button>
+        </BtnPrimary>
       </div>
 
       {isPlanLimitReached ? (
@@ -509,12 +509,6 @@ export default function EtatsDesLieuxPage() {
           ) : null}
         </div>
       ) : null}
-      {successToast ? (
-        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
-          {successToast}
-        </p>
-      ) : null}
-
       {loading ? (
         <div className="p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement…
@@ -560,45 +554,36 @@ export default function EtatsDesLieuxPage() {
                       <p className="mt-1 text-sm" style={{ color: PC.muted }}>
                         {r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}
                       </p>
-                      <span
-                        className="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={r.statut === "termine" ? { backgroundColor: PC.dangerBg15, color: PC.red600 } : { backgroundColor: PC.warningBg15, color: PC.warning }}
-                      >
-                        {r.statut === "termine" ? "Finalisé" : "En cours"}
-                      </span>
+                      <div className="mt-2">
+                        <StatusBadge
+                          status={r.statut === "termine" ? "finalise" : "en_cours"}
+                          label={r.statut === "termine" ? "Finalisé" : "En cours"}
+                        />
+                      </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {edlFreeBlocked ? (
-                          <span
-                            className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
-                            style={{ opacity: 0.5, cursor: "not-allowed" }}
-                          >
-                            Voir
-                          </span>
+                          <BtnNeutral size="small" disabled style={{ opacity: 0.5 }}>
+                            Ouvrir
+                          </BtnNeutral>
                         ) : (
-                          <Link href={`/etats-des-lieux/${r.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-muted">
-                            Voir
-                          </Link>
+                          <BtnSecondary size="small" onClick={() => router.push(`/etats-des-lieux/${r.id}`)}>
+                            Ouvrir
+                          </BtnSecondary>
                         )}
                         {edlFreeBlocked ? (
-                          <span
-                            className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
-                            style={{ opacity: 0.5, cursor: "not-allowed" }}
-                          >
-                            PDF
-                          </span>
+                          <BtnPdf size="small" disabled style={{ opacity: 0.5 }}>
+                            Télécharger PDF
+                          </BtnPdf>
                         ) : (
-                          <a
-                            href={`/api/etats-des-lieux/${r.id}/pdf`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                          <BtnPdf
+                            size="small"
+                            onClick={() => window.open(`/api/etats-des-lieux/${r.id}/pdf`, "_blank", "noopener,noreferrer")}
                           >
-                            PDF
-                          </a>
+                            Télécharger PDF
+                          </BtnPdf>
                         )}
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                        <BtnEmail
+                          size="small"
                           disabled={edlFreeBlocked}
                           style={{
                             opacity: edlFreeBlocked ? 0.5 : 1,
@@ -606,11 +591,10 @@ export default function EtatsDesLieuxPage() {
                           }}
                           onClick={() => void onSendEmail(r.id)}
                         >
-                          Email
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                          Envoyer par email
+                        </BtnEmail>
+                        <BtnDanger
+                          size="small"
                           disabled={edlFreeBlocked}
                           style={{
                             opacity: edlFreeBlocked ? 0.5 : 1,
@@ -619,7 +603,7 @@ export default function EtatsDesLieuxPage() {
                           onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
                         >
                           Supprimer
-                        </button>
+                        </BtnDanger>
                       </div>
                     </article>
                   ))}
@@ -630,43 +614,19 @@ export default function EtatsDesLieuxPage() {
         </div>
       )}
 
-      {deleteTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="w-full max-w-md p-6" style={panelCard}>
-            <h2 className="text-lg font-semibold">Supprimer l&apos;état des lieux</h2>
-            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-              {deleteTarget.statut === "termine"
-                ? "Attention, cet état des lieux est finalisé et a valeur légale. Êtes-vous sûr de vouloir le supprimer définitivement ?"
-                : "Êtes-vous sûr de vouloir supprimer cet état des lieux ?"}
-            </p>
-            <p className="mt-2 text-xs" style={{ color: PC.muted }}>
-              Les photos associées seront également supprimées du stockage.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
-                disabled={deleteSubmitting}
-                onClick={() => setDeleteTarget(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 pc-danger-fill"
-                disabled={deleteSubmitting}
-                onClick={() => void executeDeleteConfirmed()}
-              >
-                {deleteSubmitting
-                  ? "…"
-                  : deleteTarget.statut === "termine"
-                    ? "Supprimer définitivement"
-                    : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteTarget != null}
+        title="Supprimer l'état des lieux"
+        description={
+          (deleteTarget?.statut === "termine"
+            ? "Attention, cet état des lieux est finalisé et a valeur légale. "
+            : "") +
+          "Êtes-vous sûr de vouloir supprimer cet état des lieux ? Les photos associées seront également supprimées du stockage. Cette action est irréversible."
+        }
+        loading={deleteSubmitting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void executeDeleteConfirmed()}
+      />
 
       {modal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
@@ -755,12 +715,10 @@ export default function EtatsDesLieuxPage() {
                 </select>
               </label>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={() => setModal(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary" disabled={submitting}>
-                  {submitting ? "…" : "Commencer l'état des lieux"}
-                </button>
+                <BtnNeutral onClick={() => setModal(false)}>Annuler</BtnNeutral>
+                <BtnPrimary type="submit" disabled={submitting} loading={submitting}>
+                  Commencer l&apos;état des lieux
+                </BtnPrimary>
               </div>
             </form>
           </div>

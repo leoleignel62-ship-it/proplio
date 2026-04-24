@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
 import { IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import {
   defaultChambre,
   parseChambresDetails,
@@ -147,6 +149,7 @@ function getExploitationBadge(typeLoc: string | null | undefined): { label: stri
 }
 
 export default function LogementsPage() {
+  const toast = useToast();
   const [rows, setRows] = useState<Logement[]>([]);
   const [values, setValues] = useState<Record<string, string>>(baseDefaultValues);
   const [nombreChambres, setNombreChambres] = useState("1");
@@ -162,6 +165,7 @@ export default function LogementsPage() {
   const [planWarningMessage, setPlanWarningMessage] = useState("");
   const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
   const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
@@ -701,6 +705,7 @@ export default function LogementsPage() {
 
       closeModal();
       await loadRows(ownerId);
+      toast.success(isEditing ? "Logement mis à jour." : "Logement créé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -730,6 +735,7 @@ export default function LogementsPage() {
           (deleteError as { code?: string }).code === "23503" ||
           /foreign key|constraint|violat|reference/i.test(deleteError.message ?? "");
         if (isLinkedDataError) {
+          setDeleteConfirmId(null);
           setIsDeleteBlockedModalOpen(true);
           return;
         }
@@ -737,7 +743,9 @@ export default function LogementsPage() {
         return;
       }
 
+      setDeleteConfirmId(null);
       await loadRows(ownerId);
+      toast.success("Logement supprimé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -766,6 +774,7 @@ export default function LogementsPage() {
       }
       const baseMessage = `${syncFullHistory ? "Import historique" : "Synchronisation"} : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`;
       setIcalSyncMessage(data.infoMessage ? `${baseMessage} ${data.infoMessage}` : baseMessage);
+      toast.success(syncFullHistory ? "Import calendrier terminé." : "Calendrier synchronisé.");
     } catch (e) {
       setIcalSyncMessage(formatSubmitError(e));
     } finally {
@@ -809,6 +818,7 @@ export default function LogementsPage() {
         imported: data.imported ?? 0,
         skipped: data.skipped ?? 0,
       });
+      toast.success("Import CSV terminé.");
       if (editingRow?.id) {
         await loadRows(proprietaireId);
       }
@@ -826,16 +836,14 @@ export default function LogementsPage() {
           <h1 className="proplio-page-title">Logements</h1>
           <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion de vos biens.</p>
         </div>
-        <button
-          type="button"
-          className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           onClick={() => void openCreateModal()}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouveau logement
-        </button>
+        </BtnPrimary>
       </div>
 
       {error ? (
@@ -954,9 +962,9 @@ export default function LogementsPage() {
                     </p>
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-muted sm:w-auto"
+                      <BtnSecondary
+                        size="small"
+                        className="w-full sm:w-auto"
                         disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
                         title={
                           currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
@@ -977,18 +985,18 @@ export default function LogementsPage() {
                         }}
                       >
                         Modifier
-                      </button>
-                      <button
-                        type="button"
-                        className="w-full rounded-md px-3 py-1.5 text-xs pc-outline-danger sm:w-auto"
+                      </BtnSecondary>
+                      <BtnDanger
+                        size="small"
+                        className="w-full sm:w-auto"
                         disabled={isDeleting}
                         onClick={(event) => {
                           event.stopPropagation();
-                          void onDelete(row.id);
+                          setDeleteConfirmId(row.id);
                         }}
                       >
                         Supprimer
-                      </button>
+                      </BtnDanger>
                     </>
                   )}
                 </div>
@@ -1003,14 +1011,13 @@ export default function LogementsPage() {
           <div className="mx-auto max-w-3xl" style={LOGEMENT_MODAL_CARD}>
             <div className="mb-4 flex items-start justify-between">
               <h3 className="text-lg font-semibold">{isEditing ? "Modifier le logement" : "Créer un logement"}</h3>
-              <button
-                type="button"
-                className="rounded-lg px-2 py-1 text-sm pc-close-muted disabled:opacity-40"
+              <BtnNeutral
+                className="!px-2 !py-1 text-sm"
                 onClick={closeModal}
                 disabled={csvImportLoading}
               >
                 Fermer
-              </button>
+              </BtnNeutral>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
@@ -1394,9 +1401,9 @@ export default function LogementsPage() {
                         ))}
                       </ul>
                       {!creneauFormOpen ? (
-                        <button type="button" className="proplio-btn-secondary w-full py-2 text-sm" onClick={openCreneauAdd}>
+                        <BtnSecondary type="button" className="w-full py-2 text-sm" onClick={openCreneauAdd}>
                           Ajouter une période
-                        </button>
+                        </BtnSecondary>
                       ) : (
                         <div className="space-y-3 rounded-lg p-3" style={{ border: `1px solid ${PC.primaryBorder40}`, backgroundColor: PC.primaryBg10 }}>
                           <p className="text-xs font-medium" style={{ color: PC.text }}>
@@ -1455,19 +1462,19 @@ export default function LogementsPage() {
                             <input type="number" step="0.01" min={0} style={fieldInputStyle} value={creneauTarif} onChange={(e) => setCreneauTarif(e.target.value)} />
                           </label>
                           <div className="flex flex-wrap gap-2">
-                            <button type="button" className="proplio-btn-primary px-3 py-1.5 text-sm" onClick={saveCreneauDraft}>
+                            <BtnPrimary type="button" size="small" onClick={saveCreneauDraft}>
                               {creneauEditingId ? "Enregistrer" : "Ajouter"}
-                            </button>
-                            <button
+                            </BtnPrimary>
+                            <BtnSecondary
                               type="button"
-                              className="proplio-btn-secondary px-3 py-1.5 text-sm"
+                              size="small"
                               onClick={() => {
                                 setCreneauFormOpen(false);
                                 setCreneauEditingId(null);
                               }}
                             >
                               Annuler
-                            </button>
+                            </BtnSecondary>
                           </div>
                         </div>
                       )}
@@ -1540,21 +1547,15 @@ export default function LogementsPage() {
                       Même démarche sur Booking.com : extranet → synchronisation du calendrier → lien iCal.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                        style={{ backgroundColor: PC.primary, color: PC.white }}
+                      <BtnPrimary
                         disabled={icalSyncLoading || !isEditing}
                         onClick={() => {
                           if (editingRow) void syncIcalForLogement(editingRow.id);
                         }}
                       >
                         {icalSyncLoading ? "Synchronisation…" : "Synchroniser maintenant"}
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                        style={{ backgroundColor: PC.secondary, color: PC.white }}
+                      </BtnPrimary>
+                      <BtnSecondary
                         disabled={icalSyncLoading || !isEditing}
                         title="Importe toutes les réservations disponibles depuis 2010. À utiliser une seule fois au démarrage."
                         onClick={() => {
@@ -1562,7 +1563,7 @@ export default function LogementsPage() {
                         }}
                       >
                         {icalSyncLoading ? "Import en cours…" : "Importer tout l'historique"}
-                      </button>
+                      </BtnSecondary>
                     </div>
                     {!isEditing ? (
                       <p className="mt-2 text-xs" style={{ color: PC.warning }}>
@@ -1595,17 +1596,16 @@ export default function LogementsPage() {
                         onChange={(e) => setCsvImportFile(e.target.files?.[0] ?? null)}
                       />
                     </label>
-                    <button
-                      type="button"
-                      className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                      style={{ backgroundColor: PC.primary, color: PC.white }}
-                      disabled={csvImportLoading || !csvImportFile}
-                        onClick={(e) => {
-                          void importAirbnbCsvHistory(e);
+                    <BtnPrimary
+                      className="mt-3"
+                      loading={csvImportLoading}
+                      disabled={!csvImportFile}
+                      onClick={(e) => {
+                        void importAirbnbCsvHistory(e);
                       }}
                     >
-                      {csvImportLoading ? "Import en cours..." : "Importer"}
-                    </button>
+                      Importer
+                    </BtnPrimary>
                     {csvImportResult ? (
                       <div className="mt-3 space-y-1 text-xs" style={{ color: PC.muted }}>
                         <p style={{ color: PC.success }}>
@@ -1619,54 +1619,41 @@ export default function LogementsPage() {
               ) : null}
 
               <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  className="proplio-btn-secondary"
-                  onClick={closeModal}
-                  disabled={csvImportLoading}
-                >
+                <BtnSecondary onClick={closeModal} disabled={csvImportLoading}>
                   Annuler
-                </button>
-                <button type="submit" disabled={isSubmitting} className="proplio-btn-primary px-6">
-                  {isSubmitting ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}
-                </button>
+                </BtnSecondary>
+                <BtnPrimary type="submit" disabled={isSubmitting} loading={isSubmitting}>
+                  {isEditing ? "Mettre à jour" : "Créer"}
+                </BtnPrimary>
               </div>
             </form>
           </div>
         </div>
       ) : null}
 
-      {isDeleteBlockedModalOpen ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-safari">
-          <div className="mx-auto mt-16 max-w-xl rounded-xl p-6" style={LOGEMENT_MODAL_CARD}>
-            <h3 className="text-xl font-semibold" style={{ color: PC.text }}>
-              Impossible de supprimer ce logement
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Ce logement a des données associées qui doivent être supprimées avant :
-              <br />- Locataires assignés
-              <br />- Baux actifs ou terminés
-              <br />- Quittances générées
-              <br />- États des lieux
-              <br />
-              <br />
-              ⚠️ Ce logement compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.
-              <br />
-              <br />
-              Veuillez d&apos;abord supprimer ces éléments depuis leurs sections respectives.
-            </p>
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                className="proplio-btn-primary px-5 py-2"
-                onClick={() => setIsDeleteBlockedModalOpen(false)}
-              >
-                Compris
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={isDeleteBlockedModalOpen}
+        title="Impossible de supprimer ce logement"
+        description={
+          "Ce logement a des données associées qui doivent être supprimées avant :\n- Locataires assignés\n- Baux actifs ou terminés\n- Quittances générées\n- États des lieux\n\n⚠️ Ce logement compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.\n\nVeuillez d'abord supprimer ces éléments depuis leurs sections respectives."
+        }
+        confirmLabel="Compris"
+        cancelLabel="Fermer"
+        variant="primary"
+        onClose={() => setIsDeleteBlockedModalOpen(false)}
+        onConfirm={() => setIsDeleteBlockedModalOpen(false)}
+      />
+
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer le logement"
+        description="Êtes-vous sûr de vouloir supprimer ce logement ? Cette action est irréversible."
+        loading={isDeleting}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
     </section>
   );
 }

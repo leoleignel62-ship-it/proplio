@@ -11,6 +11,7 @@ import {
   getSourcesRepartition,
   getTauxOccupation,
 } from "@/lib/saisonnier-dashboard-metrics";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 
 const RevenusMensuelsChart = dynamic(
@@ -46,6 +47,7 @@ function emptyMensuelRows(): Array<{ mois: string; revenus: number; nuits: numbe
 }
 
 export default function SaisonnierDashboardPage() {
+  const toast = useToast();
   const currentYear = new Date().getFullYear();
   const [ownerId, setOwnerId] = useState<string>("");
   const [annees, setAnnees] = useState<number[]>([]);
@@ -63,7 +65,6 @@ export default function SaisonnierDashboardPage() {
   );
   const [syncRefreshTick, setSyncRefreshTick] = useState(0);
   const hasAutoSyncedIcalRef = useRef(false);
-  const [syncToast, setSyncToast] = useState<{ message: string; visible: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,15 +126,11 @@ export default function SaisonnierDashboardPage() {
               (r) => r.status === "fulfilled" && r.value.ok,
             ).length;
             if (successCount > 0) {
-              const message =
+              toast.success(
                 successCount > 1
                   ? `${successCount} calendriers synchronisés avec Airbnb/Booking`
-                  : "Calendrier synchronisé avec Airbnb/Booking";
-              setSyncToast({ message, visible: true });
-              window.setTimeout(() => {
-                setSyncToast((prev) => (prev ? { ...prev, visible: false } : prev));
-              }, 3000);
-              window.setTimeout(() => setSyncToast(null), 3300);
+                  : "Calendrier synchronisé avec Airbnb/Booking",
+              );
             }
             setSyncRefreshTick((n) => n + 1);
           })().catch(() => {});
@@ -247,25 +244,6 @@ export default function SaisonnierDashboardPage() {
           </select>
         </div>
       </header>
-      {syncToast ? (
-        <div
-          className="fixed bottom-6 right-6 z-[90] flex items-center gap-2 px-3 py-2 text-sm"
-          style={{
-            backgroundColor: "#13131a",
-            border: "1px solid #ffffff10",
-            borderRadius: 8,
-            color: "#e5e7eb",
-            opacity: syncToast.visible ? 1 : 0,
-            transform: syncToast.visible ? "translateY(0)" : "translateY(10px)",
-            transition: "opacity 300ms ease, transform 300ms ease",
-          }}
-          role="status"
-        >
-          <span style={{ color: "#22c55e", fontWeight: 700 }}>✓</span>
-          <span>{syncToast.message}</span>
-        </div>
-      ) : null}
-
       {loading ? (
         <p className="text-sm" style={{ color: PC.muted }}>
           Mise à jour des indicateurs…

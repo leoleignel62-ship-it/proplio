@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentLogementCategory } from "@/lib/documents-logement";
 import { DOCUMENT_CATEGORIES, MAX_DOCUMENT_UPLOAD_BYTES } from "@/lib/documents-logement";
 import type { ProplioPlan } from "@/lib/plan-limits";
+import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/proplio-colors";
 import { supabase } from "@/lib/supabase";
 
@@ -72,11 +74,14 @@ function FileTypeIcon({ kind }: { kind: "pdf" | "image" | "other" }) {
 }
 
 export function DocumentsTab({ logementId, plan }: { logementId: string; plan: ProplioPlan }) {
+  const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(() => plan !== "free");
   const [error, setError] = useState("");
   const [uploadingCat, setUploadingCat] = useState<DocumentLogementCategory | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const fileInputs = useRef<Partial<Record<DocumentLogementCategory, HTMLInputElement | null>>>({});
 
   const byCategory = useMemo(() => {
@@ -142,6 +147,7 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
         return;
       }
       if (j.document) setRows((prev) => [j.document!, ...prev]);
+      toast.success("Document ajouté.");
     } catch {
       setError("Erreur réseau.");
     } finally {
@@ -165,7 +171,6 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
   };
 
   const onDelete = async (id: string) => {
-    if (!window.confirm("Supprimer ce document ? Cette action est irréversible.")) return;
     setError("");
     setDeletingId(id);
     try {
@@ -176,6 +181,8 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
         return;
       }
       setRows((prev) => prev.filter((r) => r.id !== id));
+      setDeleteConfirmId(null);
+      toast.success("Document supprimé.");
     } catch {
       setError("Erreur réseau.");
     } finally {
@@ -189,13 +196,9 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
         <p className="text-sm" style={{ color: PC.muted }}>
           Disponible à partir du plan Starter
         </p>
-        <Link
-          href="/parametres/abonnement"
-          className="mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-95"
-          style={{ backgroundColor: PC.primary }}
-        >
+        <BtnPrimary className="mt-4" onClick={() => router.push("/parametres/abonnement")}>
           Voir les abonnements
-        </Link>
+        </BtnPrimary>
       </div>
     );
   }
@@ -235,15 +238,14 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
                 accept="*/*"
                 onChange={(e) => void onFileChange(section.id, e)}
               />
-              <button
-                type="button"
+              <BtnSecondary
+                size="small"
                 disabled={uploadingCat !== null}
-                className="rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50"
-                style={{ borderColor: PC.borderStrong, color: PC.secondary, backgroundColor: PC.inputBg }}
+                loading={uploadingCat === section.id}
                 onClick={() => onPickFile(section.id)}
               >
-                {uploadingCat === section.id ? "Envoi…" : "Ajouter un document"}
-              </button>
+                Ajouter un document
+              </BtnSecondary>
             </div>
           </div>
 
@@ -276,23 +278,16 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg border px-2.5 py-1 text-xs font-medium transition hover:opacity-90"
-                        style={{ borderColor: PC.borderStrong, color: PC.text }}
-                        onClick={() => void onDownload(doc.id)}
-                      >
-                        Télécharger
-                      </button>
-                      <button
-                        type="button"
+                      <BtnSecondary size="small" onClick={() => void onDownload(doc.id)}>
+                        Télécharger PDF
+                      </BtnSecondary>
+                      <BtnDanger
+                        size="small"
                         disabled={deletingId === doc.id}
-                        className="rounded-lg px-2.5 py-1 text-xs font-medium transition disabled:opacity-50"
-                        style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}
-                        onClick={() => void onDelete(doc.id)}
+                        onClick={() => setDeleteConfirmId(doc.id)}
                       >
-                        {deletingId === doc.id ? "…" : "Supprimer"}
-                      </button>
+                        Supprimer
+                      </BtnDanger>
                     </div>
                   </li>
                 );
@@ -301,6 +296,17 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
           </ul>
         </section>
       ))}
+
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer le document"
+        description="Êtes-vous sûr de vouloir supprimer ce document ? Cette action est irréversible."
+        loading={deletingId != null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
     </div>
   );
 }

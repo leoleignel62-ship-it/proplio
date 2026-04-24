@@ -1,11 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
 import { IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import {
@@ -48,13 +50,14 @@ type EdlRow = {
 };
 
 export default function EtatsDesLieuxSaisonnierPage() {
+  const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const [rows, setRows] = useState<EdlRow[]>([]);
   const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [successToast, setSuccessToast] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
@@ -189,6 +192,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
     }
     setDeleteTarget(null);
     void load();
+    toast.success("État des lieux supprimé.");
   }
 
   async function onSendEmail(id: string) {
@@ -197,8 +201,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
     const j = (await res.json()) as { error?: string; to?: string[] };
     if (!res.ok) setError(j.error ?? "Envoi impossible.");
     else {
-      setSuccessToast(`Email envoyé avec succès à ${(j.to ?? []).join(", ") || "destinataire"}`);
-      window.setTimeout(() => setSuccessToast(""), 3000);
+      toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
     }
   }
 
@@ -215,9 +218,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
             Formulaire simplifié (pièces, inventaire, PDF dédié location saisonnière).
           </p>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
           onClick={() => {
@@ -225,9 +227,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
             setWizardOpen(true);
           }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouvel état des lieux
-        </button>
+        </BtnPrimary>
       </div>
 
       {isPlanLimitReached ? (
@@ -253,12 +254,6 @@ export default function EtatsDesLieuxSaisonnierPage() {
           {error}
         </div>
       ) : null}
-      {successToast ? (
-        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
-          {successToast}
-        </p>
-      ) : null}
-
       {loading ? (
         <div className="p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Chargement…
@@ -293,51 +288,39 @@ export default function EtatsDesLieuxSaisonnierPage() {
                   <td className="px-3 py-2">
                     {getEdlTypeEtatFromRow(row as Record<string, unknown>) === "entree" ? "Entrée" : "Sortie"}
                   </td>
-                  <td className="px-3 py-2">{row.statut === "termine" ? "Finalisé" : "Brouillon"}</td>
+                  <td className="px-3 py-2">
+                    <StatusBadge status={row.statut === "termine" ? "finalise" : "brouillon"} />
+                  </td>
                   <td className="px-3 py-2">
                     {row.date_etat ? new Date(row.date_etat).toLocaleDateString("fr-FR") : "—"}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={`/saisonnier/etats-des-lieux/${row.id}`}
-                        className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
-                      >
+                      <BtnSecondary size="small" onClick={() => router.push(`/saisonnier/etats-des-lieux/${row.id}`)}>
                         Ouvrir
-                      </Link>
+                      </BtnSecondary>
                       {row.statut === "termine" ? (
-                        <a
-                          href={`/api/etats-des-lieux/${row.id}/pdf`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                        <BtnPdf
+                          size="small"
+                          onClick={() => window.open(`/api/etats-des-lieux/${row.id}/pdf`, "_blank", "noopener,noreferrer")}
                         >
-                          PDF
-                        </a>
+                          Télécharger PDF
+                        </BtnPdf>
                       ) : (
-                        <span
-                          className="rounded-md px-3 py-1.5 text-xs opacity-50 pc-outline-primary"
+                        <BtnPdf
+                          size="small"
+                          disabled
                           title="Finalisez l'EDL pour générer le PDF."
                         >
-                          PDF
-                        </span>
+                          Télécharger PDF
+                        </BtnPdf>
                       )}
-                      <button
-                        type="button"
-                        className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
-                        disabled={row.statut !== "termine"}
-                        style={{ opacity: row.statut !== "termine" ? 0.5 : 1 }}
-                        onClick={() => void onSendEmail(row.id)}
-                      >
-                        Envoyer
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
-                        onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}
-                      >
+                      <BtnEmail size="small" disabled={row.statut !== "termine"} onClick={() => void onSendEmail(row.id)}>
+                        Envoyer par email
+                      </BtnEmail>
+                      <BtnDanger size="small" onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
                         Supprimer
-                      </button>
+                      </BtnDanger>
                     </div>
                   </td>
                 </tr>
@@ -356,36 +339,14 @@ export default function EtatsDesLieuxSaisonnierPage() {
         />
       ) : null}
 
-      {deleteTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="w-full max-w-md p-6" style={panelCard}>
-            <h2 className="text-lg font-semibold">Supprimer l&apos;état des lieux</h2>
-            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-              {deleteTarget.statut === "termine"
-                ? "Cet état des lieux est finalisé. Confirmez la suppression définitive."
-                : "Confirmez la suppression de cet état des lieux."}
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
-                disabled={deleteSubmitting}
-                onClick={() => setDeleteTarget(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 pc-danger-fill"
-                disabled={deleteSubmitting}
-                onClick={() => void executeDeleteConfirmed()}
-              >
-                {deleteSubmitting ? "…" : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteTarget != null}
+        title="Supprimer l'état des lieux"
+        description="Êtes-vous sûr de vouloir supprimer cet état des lieux ? Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void executeDeleteConfirmed()}
+      />
     </section>
   );
 }

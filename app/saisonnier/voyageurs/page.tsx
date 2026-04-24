@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { IconPlus, IconTrash } from "@/components/proplio-icons";
+import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
@@ -23,6 +25,7 @@ type Voyageur = {
 };
 
 export default function VoyageursSaisonnierPage() {
+  const toast = useToast();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [rows, setRows] = useState<Voyageur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,8 @@ export default function VoyageursSaisonnierPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Voyageur | null>(null);
   const [sejoursByVoy, setSejoursByVoy] = useState<Record<string, number>>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     prenom: "",
     nom: "",
@@ -135,15 +140,24 @@ export default function VoyageursSaisonnierPage() {
     }
     setModalOpen(false);
     void load();
+    toast.success(editing ? "Voyageur mis à jour." : "Voyageur créé.");
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Supprimer ce voyageur ?")) return;
+    setDeleting(true);
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
-    if (e || !proprietaireId) return;
+    if (e || !proprietaireId) {
+      setDeleting(false);
+      return;
+    }
     const { error: dErr } = await supabase.from("voyageurs").delete().eq("id", id).eq("proprietaire_id", proprietaireId);
     if (dErr) setError(formatSubmitError(dErr));
+    else {
+      setDeleteConfirmId(null);
+      toast.success("Voyageur supprimé.");
+    }
     void load();
+    setDeleting(false);
   }
 
   async function onUploadPi(voyageurId: string, file: File | null) {
@@ -154,6 +168,7 @@ export default function VoyageursSaisonnierPage() {
     const res = await fetch("/api/saisonnier/voyageurs/upload-identite", { method: "POST", body: fd });
     const j = await res.json();
     if (!res.ok) setError(j.error ?? "Upload échoué");
+    else toast.success("Pièce d'identité enregistrée.");
     void load();
   }
 
@@ -164,10 +179,9 @@ export default function VoyageursSaisonnierPage() {
           <h1 className="proplio-page-title">Voyageurs</h1>
           <p className="proplio-page-subtitle">Profils pour la location saisonnière.</p>
         </div>
-        <button type="button" className="proplio-btn-primary inline-flex items-center gap-2 px-5 py-2.5" onClick={openCreate}>
-          <IconPlus className="h-4 w-4" />
+        <BtnPrimary icon={<IconPlus className="h-4 w-4" />} onClick={openCreate}>
           Nouveau voyageur
-        </button>
+        </BtnPrimary>
       </div>
       {error ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
@@ -218,13 +232,16 @@ export default function VoyageursSaisonnierPage() {
                   <td className="px-4 py-3">{sejoursByVoy[row.id] ?? 0}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" className="text-xs underline" style={{ color: PC.primary }} onClick={() => openEdit(row)}>
+                      <BtnSecondary size="small" onClick={() => openEdit(row)}>
                         Modifier
-                      </button>
-                      <button type="button" className="inline-flex items-center gap-1 text-xs" style={{ color: PC.danger }} onClick={() => void onDelete(row.id)}>
-                        <IconTrash className="h-3 w-3" />
+                      </BtnSecondary>
+                      <BtnDanger
+                        size="small"
+                        icon={<IconTrash className="h-3 w-3" />}
+                        onClick={() => setDeleteConfirmId(row.id)}
+                      >
                         Supprimer
-                      </button>
+                      </BtnDanger>
                     </div>
                   </td>
                 </tr>
@@ -264,12 +281,8 @@ export default function VoyageursSaisonnierPage() {
                 <input style={fieldInputStyle} value={form.numero_identite} onChange={(e) => setForm((f) => ({ ...f, numero_identite: e.target.value }))} />
               </label>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="proplio-btn-secondary px-4 py-2" onClick={() => setModalOpen(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="proplio-btn-primary px-4 py-2">
-                  Enregistrer
-                </button>
+                <BtnSecondary onClick={() => setModalOpen(false)}>Annuler</BtnSecondary>
+                <BtnPrimary type="submit">Enregistrer</BtnPrimary>
               </div>
             </form>
           </div>
@@ -281,6 +294,17 @@ export default function VoyageursSaisonnierPage() {
           → Réservations
         </Link>
       </p>
+
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer le voyageur"
+        description="Êtes-vous sûr de vouloir supprimer ce voyageur ? Cette action est irréversible."
+        loading={deleting}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
     </section>
   );
 }

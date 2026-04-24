@@ -12,6 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
@@ -151,6 +153,7 @@ function logementTarifPayload(lg: LogementOption) {
 }
 
 export default function ReservationsSaisonnierPage() {
+  const uxToast = useToast();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -160,7 +163,6 @@ export default function ReservationsSaisonnierPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [acomptePct, setAcomptePct] = useState(30);
-  const [toast, setToast] = useState<string | null>(null);
   const [editingMontantId, setEditingMontantId] = useState<string | null>(null);
   const [editingMontantValue, setEditingMontantValue] = useState("");
   const montantInputRef = useRef<HTMLInputElement | null>(null);
@@ -195,7 +197,6 @@ export default function ReservationsSaisonnierPage() {
   const [proprietaireIdForCalendar, setProprietaireIdForCalendar] = useState<string | null>(null);
   const [reservationRevision, setReservationRevision] = useState(0);
   const hasAutoSyncedIcalRef = useRef(false);
-  const [syncToast, setSyncToast] = useState<{ message: string; visible: boolean } | null>(null);
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -329,27 +330,17 @@ export default function ReservationsSaisonnierPage() {
               successCount > 1
                 ? `${successCount} calendriers synchronisés avec Airbnb/Booking`
                 : "Calendrier synchronisé avec Airbnb/Booking";
-            setSyncToast({ message, visible: true });
-            window.setTimeout(() => {
-              setSyncToast((prev) => (prev ? { ...prev, visible: false } : prev));
-            }, 3000);
-            window.setTimeout(() => setSyncToast(null), 3300);
+            uxToast.success(message);
           }
           await load();
         })().catch(() => {});
       }
     }
-  }, []);
+  }, [uxToast]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(t);
-  }, [toast]);
 
   useEffect(() => {
     if (editingMontantId) montantInputRef.current?.focus();
@@ -542,6 +533,7 @@ export default function ReservationsSaisonnierPage() {
     }
     setModalOpen(false);
     void load();
+    uxToast.success("Réservation créée.");
   }
 
   async function saveTarifTotalReservation(id: string, valueStr: string) {
@@ -561,7 +553,7 @@ export default function ReservationsSaisonnierPage() {
       .eq("id", id)
       .eq("proprietaire_id", proprietaireId);
     if (!uErr) {
-      setToast("Prix mis à jour");
+      uxToast.success("Prix mis à jour.");
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, tarif_total: v, tarif_nuit } : r)));
     } else {
       setError(formatSubmitError(uErr));
@@ -589,7 +581,7 @@ export default function ReservationsSaisonnierPage() {
       .eq("proprietaire_id", proprietaireId);
     setDetailSaving(false);
     if (!uErr) {
-      setToast("Prix mis à jour");
+      uxToast.success("Prix mis à jour.");
       setRows((prev) => prev.map((r) => (r.id === detailId ? { ...r, tarif_total: v, tarif_nuit } : r)));
     } else {
       setError(formatSubmitError(uErr));
@@ -638,6 +630,7 @@ export default function ReservationsSaisonnierPage() {
       return false;
     }
     if (detailId === id) setDetailId(null);
+    uxToast.success("Réservation supprimée.");
     void load();
     return true;
   }
@@ -686,7 +679,10 @@ export default function ReservationsSaisonnierPage() {
     setSendSubmitting(true);
     const ok = await sendApi(sendConfirm.kind, sendConfirm.id);
     setSendSubmitting(false);
-    if (ok) setSendConfirm(null);
+    if (ok) {
+      setSendConfirm(null);
+      uxToast.success("Contrat envoyé par email.");
+    }
   }
 
   async function markMenageDone(reservationId: string, logementId: string) {
@@ -744,9 +740,9 @@ export default function ReservationsSaisonnierPage() {
             </button>
           </div>
         </div>
-        <button type="button" className="proplio-btn-primary px-4 py-2 text-sm" onClick={openModal} disabled={logements.length === 0}>
+        <BtnPrimary onClick={openModal} disabled={logements.length === 0}>
           Nouvelle réservation
-        </button>
+        </BtnPrimary>
       </div>
       {logements.length === 0 ? (
         <p className="text-sm" style={{ color: PC.warning }}>
@@ -779,34 +775,6 @@ export default function ReservationsSaisonnierPage() {
               Airbnb et Booking ne communiquent pas les prix via la synchronisation de calendrier. Les réservations importées affichent une estimation basée sur vos tarifs configurés. Pour un suivi précis, renseignez le prix réel directement sur chaque réservation.
             </p>
           </div>
-        </div>
-      ) : null}
-
-      {toast ? (
-        <div
-          className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-lg px-4 py-2 text-sm font-medium shadow-lg"
-          style={{ backgroundColor: PC.success, color: PC.white }}
-          role="status"
-        >
-          {toast}
-        </div>
-      ) : null}
-      {syncToast ? (
-        <div
-          className="fixed bottom-6 right-6 z-[90] flex items-center gap-2 px-3 py-2 text-sm"
-          style={{
-            backgroundColor: "#13131a",
-            border: "1px solid #ffffff10",
-            borderRadius: 8,
-            color: "#e5e7eb",
-            opacity: syncToast.visible ? 1 : 0,
-            transform: syncToast.visible ? "translateY(0)" : "translateY(10px)",
-            transition: "opacity 300ms ease, transform 300ms ease",
-          }}
-          role="status"
-        >
-          <span style={{ color: "#22c55e", fontWeight: 700 }}>✓</span>
-          <span>{syncToast.message}</span>
         </div>
       ) : null}
 
@@ -1254,12 +1222,10 @@ export default function ReservationsSaisonnierPage() {
                 <textarea className="min-h-16 rounded-lg px-3 py-2 text-sm" style={fieldInputStyle} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
               </label>
               <div className="flex justify-end gap-2">
-                <button type="button" className="proplio-btn-secondary px-4 py-2" onClick={() => setModalOpen(false)}>
-                  Fermer
-                </button>
-                <button type="submit" className="proplio-btn-primary px-4 py-2">
-                  Créer
-                </button>
+                <BtnSecondary type="button" onClick={() => setModalOpen(false)}>
+                  Annuler
+                </BtnSecondary>
+                <BtnPrimary type="submit">Créer</BtnPrimary>
               </div>
             </form>
             </div>
@@ -1316,19 +1282,19 @@ export default function ReservationsSaisonnierPage() {
                           onChange={(e) => setDetailPrixReel(e.target.value)}
                         />
                       </label>
-                      <button
+                      <BtnPrimary
                         type="button"
-                        disabled={detailSaving}
-                        className="proplio-btn-primary w-full py-2 text-sm"
+                        loading={detailSaving}
+                        className="w-full"
                         onClick={() => void saveDetailPrixReel()}
                       >
-                        {detailSaving ? "…" : "Mettre à jour"}
-                      </button>
+                        Modifier
+                      </BtnPrimary>
                     </div>
                   ) : null}
-                  <button type="button" className="proplio-btn-primary mt-4 w-full py-2" onClick={() => setDetailId(null)}>
-                    Fermer
-                  </button>
+                  <BtnSecondary type="button" className="mt-4 w-full" onClick={() => setDetailId(null)}>
+                    Annuler
+                  </BtnSecondary>
                 </>
               );
             })()}
@@ -1336,150 +1302,47 @@ export default function ReservationsSaisonnierPage() {
         </div>
       ) : null}
 
-      {sendConfirm ? (
-        <div
-          className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal
-          aria-labelledby="send-resa-title"
-        >
-          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-            <h3 id="send-resa-title" className="text-lg font-semibold" style={{ color: PC.text }}>
-              Confirmation d&apos;envoi
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              {`Envoyer le contrat de séjour à ${sendConfirm.email} ?`}
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="proplio-btn-secondary px-4 py-2 text-sm"
-                disabled={sendSubmitting}
-                onClick={() => setSendConfirm(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: "#7c3aed" }}
-                disabled={sendSubmitting}
-                onClick={() => void confirmSendReservation()}
-              >
-                {sendSubmitting ? "Envoi…" : "Envoyer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={sendConfirm != null}
+        title="Confirmation d'envoi"
+        description={
+          sendConfirm
+            ? `Envoyer le contrat de séjour à ${sendConfirm.email} ?`
+            : ""
+        }
+        variant="primary"
+        confirmLabel="Confirmer"
+        loading={sendSubmitting}
+        onClose={() => setSendConfirm(null)}
+        onConfirm={() => void confirmSendReservation()}
+      />
 
-      {deleteConfirmId ? (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal
-          aria-labelledby="delete-resa-title"
-        >
-          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-            <h3 id="delete-resa-title" className="text-lg font-semibold" style={{ color: PC.text }}>
-              Supprimer la réservation
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Êtes-vous sûr de vouloir supprimer cette réservation ? Cette action est irréversible.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="proplio-btn-secondary px-4 py-2 text-sm"
-                disabled={deleteSubmitting}
-                onClick={() => setDeleteConfirmId(null)}
-              >
-                Retour
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: "#dc2626" }}
-                disabled={deleteSubmitting}
-                onClick={() => void confirmDeleteReservation()}
-              >
-                {deleteSubmitting ? "Suppression…" : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer la réservation"
+        description="Êtes-vous sûr de vouloir supprimer cette réservation ? Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => void confirmDeleteReservation()}
+      />
 
-      {deleteOtaConfirmId ? (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal
-          aria-labelledby="delete-ota-proplio-title"
-        >
-          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-            <h3 id="delete-ota-proplio-title" className="text-lg font-semibold" style={{ color: PC.text }}>
-              Supprimer de Proplio
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Supprimer cette réservation de Proplio ? Elle restera sur Airbnb/Booking.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="proplio-btn-secondary px-4 py-2 text-sm"
-                disabled={deleteSubmitting}
-                onClick={() => setDeleteOtaConfirmId(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: "#dc2626" }}
-                disabled={deleteSubmitting}
-                onClick={() => void confirmDeleteOtaFromProplio()}
-              >
-                {deleteSubmitting ? "Suppression…" : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteOtaConfirmId != null}
+        title="Supprimer de Proplio"
+        description="Êtes-vous sûr de vouloir supprimer cette réservation de Proplio ? Elle restera sur Airbnb/Booking. Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteOtaConfirmId(null)}
+        onConfirm={() => void confirmDeleteOtaFromProplio()}
+      />
 
-      {deleteBlocageConfirmId ? (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
-          role="dialog"
-          aria-modal
-          aria-labelledby="delete-blocage-title"
-        >
-          <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-            <h3 id="delete-blocage-title" className="text-lg font-semibold leading-snug" style={{ color: PC.text }}>
-              Supprimer ce blocage de Proplio ?
-            </h3>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="proplio-btn-secondary px-4 py-2 text-sm"
-                disabled={deleteSubmitting}
-                onClick={() => setDeleteBlocageConfirmId(null)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: "#dc2626" }}
-                disabled={deleteSubmitting}
-                onClick={() => void confirmDeleteBlocageFromProplio()}
-              >
-                {deleteSubmitting ? "Suppression…" : "Supprimer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={deleteBlocageConfirmId != null}
+        title="Supprimer le blocage"
+        description="Êtes-vous sûr de vouloir supprimer ce blocage ? Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteBlocageConfirmId(null)}
+        onConfirm={() => void confirmDeleteBlocageFromProplio()}
+      />
     </section>
   );
 }

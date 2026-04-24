@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { IconHome } from "@/components/proplio-icons";
 import { parseChambresDetails, totalLoyersChambres } from "@/lib/colocation";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 import { DocumentsTab } from "@/components/logement/documents-tab";
+import { BtnPrimary, BtnSecondary, StatusBadge } from "@/components/ui";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
@@ -102,6 +103,7 @@ function InfoBadge({
 }
 
 export default function LogementDetailPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const logementId = params.id;
   const [activeTab, setActiveTab] = useState<TabId>("locataires");
@@ -207,13 +209,7 @@ export default function LogementDetailPage() {
           <h1 className="text-[28px] font-bold leading-tight tracking-tight" style={{ color: PC.text }}>
             {logement.nom}
           </h1>
-          <Link
-            href="/logements"
-            className="inline-flex shrink-0 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition hover:opacity-90"
-            style={{ backgroundColor: PC.primaryBg25, color: PC.secondary, border: `1px solid ${PC.primaryBorder40}` }}
-          >
-            Modifier
-          </Link>
+          <BtnSecondary onClick={() => router.push("/logements")}>Modifier</BtnSecondary>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <InfoBadge icon={<IconHome className="h-4 w-4" />} iconColor={PC.secondary}>
@@ -314,12 +310,20 @@ export default function LogementDetailPage() {
                     {loc ? (
                       <>
                         <p className="mt-1 text-sm">{loc.prenom} {loc.nom}</p>
-                        <Link href="/locataires" className="mt-3 inline-block proplio-btn-secondary">Voir le profil</Link>
+                        <BtnSecondary className="mt-3" size="small" onClick={() => router.push("/locataires")}>
+                          Ouvrir
+                        </BtnSecondary>
                       </>
                     ) : (
                       <>
                         <p className="mt-1 text-sm" style={{ color: PC.muted }}>Chambre disponible</p>
-                        <Link href={`/locataires?logement_id=${logementId}`} className="mt-3 inline-block proplio-btn-primary">Assigner un locataire</Link>
+                        <BtnPrimary
+                          className="mt-3"
+                          size="small"
+                          onClick={() => router.push(`/locataires?logement_id=${logementId}`)}
+                        >
+                          Assigner un locataire
+                        </BtnPrimary>
                       </>
                     )}
                   </article>
@@ -340,13 +344,18 @@ export default function LogementDetailPage() {
       {activeTab === "quittances" ? (
         <section className="space-y-3">
           <div className="flex justify-end">
-            <Link href={`/quittances?logement_id=${logementId}`} className="proplio-btn-primary">Nouvelle quittance</Link>
+            <BtnPrimary onClick={() => router.push(`/quittances?logement_id=${logementId}`)}>
+              Nouvelle quittance
+            </BtnPrimary>
           </div>
           <div className="rounded-xl p-4" style={panelCard}>
             {quittances.map((q) => (
               <div key={q.id} className="flex items-center justify-between border-b py-2 last:border-b-0" style={{ borderColor: PC.border }}>
                 <span>{q.mois}/{q.annee} · {q.total.toFixed(2)} €</span>
-                <span style={{ color: q.envoyee ? PC.success : PC.warning }}>{q.envoyee ? "Envoyée" : "Non envoyée"}</span>
+                <StatusBadge
+                  status={q.envoyee ? "envoye" : "en_attente"}
+                  label={q.envoyee ? "Envoyée" : "Non envoyée"}
+                />
               </div>
             ))}
           </div>
@@ -356,13 +365,16 @@ export default function LogementDetailPage() {
       {activeTab === "baux" ? (
         <section className="space-y-3">
           <div className="flex justify-end">
-            <Link href={`/baux?logement_id=${logementId}`} className="proplio-btn-primary">Nouveau bail</Link>
+            <BtnPrimary onClick={() => router.push(`/baux?logement_id=${logementId}`)}>Nouveau bail</BtnPrimary>
           </div>
           <div className="rounded-xl p-4" style={panelCard}>
             {baux.map((b) => (
               <div key={b.id} className="flex items-center justify-between border-b py-2 last:border-b-0" style={{ borderColor: PC.border }}>
                 <span>{b.type_bail} · {new Date(b.date_debut).toLocaleDateString("fr-FR")} - {new Date(b.date_fin).toLocaleDateString("fr-FR")}</span>
-                <span style={{ color: b.statut === "actif" ? PC.success : PC.muted }}>{b.statut === "actif" ? "Actif" : "Terminé"}</span>
+                <StatusBadge
+                  status={b.statut === "actif" ? "actif" : "termine"}
+                  label={b.statut === "actif" ? "Actif" : "Terminé"}
+                />
               </div>
             ))}
           </div>
@@ -372,7 +384,9 @@ export default function LogementDetailPage() {
       {activeTab === "etats-des-lieux" ? (
         <section className="space-y-3">
           <div className="flex justify-end">
-            <Link href={`/etats-des-lieux?bail_logement_id=${logementId}`} className="proplio-btn-primary">Nouvel état des lieux</Link>
+            <BtnPrimary onClick={() => router.push(`/etats-des-lieux?bail_logement_id=${logementId}`)}>
+              Nouvel état des lieux
+            </BtnPrimary>
           </div>
           <div className="rounded-xl p-4" style={panelCard}>
             {edls.map((e) => (
@@ -380,7 +394,10 @@ export default function LogementDetailPage() {
                 <Link href={`/etats-des-lieux/${e.id}`} style={{ color: PC.secondary }}>
                   {(e.type || e.type_etat || "État")} · {e.date_etat ? new Date(e.date_etat).toLocaleDateString("fr-FR") : "—"}
                 </Link>
-                <span style={{ color: e.statut === "termine" ? PC.success : PC.warning }}>{e.statut}</span>
+                <StatusBadge
+                  status={e.statut === "termine" ? "termine" : "en_cours"}
+                  label={e.statut === "termine" ? "Terminé" : "En cours"}
+                />
               </div>
             ))}
           </div>

@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { getIrlPourDate } from "@/lib/irl-historique";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
@@ -212,6 +214,7 @@ const defaultValues = {
 };
 
 export default function BauxPage() {
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<Bail[]>([]);
@@ -241,7 +244,8 @@ export default function BauxPage() {
     if (!values.logement_id) return locataires;
     return locataires.filter((l) => l.logement_id === values.logement_id);
   }, [values.logement_id, locataires]);
-  const [successToast, setSuccessToast] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
@@ -909,6 +913,7 @@ export default function BauxPage() {
 
       closeModal();
       await loadRows(ownerId);
+      toast.success(isEditing ? "Bail mis à jour." : "Bail créé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
@@ -918,6 +923,7 @@ export default function BauxPage() {
 
   async function onDelete(id: string) {
     setError("");
+    setDeleteSubmitting(true);
 
     try {
       const { proprietaireId: ownerId, error: ownerErr } = await getCurrentProprietaireId();
@@ -941,10 +947,13 @@ export default function BauxPage() {
         return;
       }
 
+      setDeleteConfirmId(null);
       await loadRows(ownerId);
+      toast.success("Bail supprimé.");
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {
+      setDeleteSubmitting(false);
     }
   }
 
@@ -977,6 +986,7 @@ export default function BauxPage() {
       link.download = `bail-${id.slice(0, 8)}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
+      toast.success("PDF téléchargé.");
     } catch (e) {
       setError(`Erreur de génération PDF : ${formatSubmitError(e)}`);
     } finally {
@@ -1004,8 +1014,7 @@ export default function BauxPage() {
       const { proprietaireId: ownerId } = await getCurrentProprietaireId();
       if (ownerId) await loadRows(ownerId);
       const dest = payload.to?.join(", ") || "destinataire";
-      setSuccessToast(`Email envoyé avec succès à ${dest}`);
-      window.setTimeout(() => setSuccessToast(""), 3000);
+      toast.success(`Email envoyé à ${dest}.`);
     } catch (e) {
       setError(`Erreur d'envoi de l'e-mail : ${formatSubmitError(e)}`);
     } finally {
@@ -1050,16 +1059,14 @@ export default function BauxPage() {
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium pc-solid-primary"
+        <BtnPrimary
+          icon={<IconPlus className="h-4 w-4" />}
           onClick={() => void openCreateModal()}
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
         >
-          <IconPlus className="h-4 w-4" />
           Nouveau bail
-        </button>
+        </BtnPrimary>
       </div>
 
       {error ? (
@@ -1084,12 +1091,6 @@ export default function BauxPage() {
           </div>
         </div>
       ) : null}
-      {successToast ? (
-        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.successBg10, color: PC.success }}>
-          {successToast}
-        </p>
-      ) : null}
-
       {isLoading ? (
         <div
           className="rounded-xl p-6 text-sm"
@@ -1134,43 +1135,39 @@ export default function BauxPage() {
                       </p>
                       <p className="text-base font-semibold">{Number(row.loyer).toFixed(2)} € / mois</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={row.statut === "actif" ? { backgroundColor: PC.successBg20, color: PC.success } : { backgroundColor: PC.border, color: PC.muted }}>
-                          {row.statut === "actif" ? "Actif" : "Terminé"}
-                        </span>
+                        <StatusBadge
+                          status={row.statut === "actif" ? "actif" : "termine"}
+                          label={row.statut === "actif" ? "Actif" : "Terminé"}
+                        />
                         {row.email_envoye ? (
-                          <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}>
-                            Bail envoyé
-                          </span>
+                          <StatusBadge status="envoye" label="Bail envoyé" />
                         ) : null}
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                        <BtnPdf
+                          size="small"
                           disabled={freeBauxBlock}
                           style={{
                             opacity: freeBauxBlock ? 0.5 : 1,
                             cursor: freeBauxBlock ? "not-allowed" : "pointer",
                           }}
-                          onClick={() => onGeneratePdf(row.id)}
+                          onClick={() => void onGeneratePdf(row.id)}
                         >
-                          PDF
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                          Télécharger PDF
+                        </BtnPdf>
+                        <BtnEmail
+                          size="small"
                           disabled={freeBauxBlock}
                           style={{
                             opacity: freeBauxBlock ? 0.5 : 1,
                             cursor: freeBauxBlock ? "not-allowed" : "pointer",
                           }}
-                          onClick={() => onSendBailEmail(row.id)}
+                          onClick={() => void onSendBailEmail(row.id)}
                         >
-                          Envoyer
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                          Envoyer par email
+                        </BtnEmail>
+                        <BtnSecondary
+                          size="small"
                           disabled={freeBauxBlock}
                           style={{
                             opacity: freeBauxBlock ? 0.5 : 1,
@@ -1179,19 +1176,18 @@ export default function BauxPage() {
                           onClick={() => openEditModal(row)}
                         >
                           Modifier
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                        </BtnSecondary>
+                        <BtnDanger
+                          size="small"
                           disabled={freeBauxBlock}
                           style={{
                             opacity: freeBauxBlock ? 0.5 : 1,
                             cursor: freeBauxBlock ? "not-allowed" : "pointer",
                           }}
-                          onClick={() => void onDelete(row.id)}
+                          onClick={() => setDeleteConfirmId(row.id)}
                         >
                           Supprimer
-                        </button>
+                        </BtnDanger>
                       </div>
                     </article>
                   ))}
@@ -1355,14 +1351,12 @@ export default function BauxPage() {
                         />
                       </label>
                       {!values.irl_field_unlocked ? (
-                        <button
-                          type="button"
-                          className="rounded-lg border px-3 py-2 text-xs font-medium transition"
-                          style={{ borderColor: PC.border, color: PC.text }}
+                        <BtnSecondary
+                          size="small"
                           onClick={() => setValues((prev) => ({ ...prev, irl_field_unlocked: true }))}
                         >
                           Modifier
-                        </button>
+                        </BtnSecondary>
                       ) : null}
                     </div>
                   </>
@@ -1893,25 +1887,26 @@ export default function BauxPage() {
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg px-4 py-2 text-sm font-medium pc-outline-muted"
-                onClick={closeModal}
-              >
-                Fermer
-              </button>
-              <button
-                type="submit"
-                className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary disabled:opacity-60"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}
-              </button>
+              <BtnNeutral onClick={closeModal}>Fermer</BtnNeutral>
+              <BtnPrimary type="submit" disabled={isSubmitting} loading={isSubmitting}>
+                {isEditing ? "Mettre à jour" : "Créer"}
+              </BtnPrimary>
             </div>
             </form>
           </div>
         </div>
       ) : null}
+
+      <ConfirmModal
+        open={deleteConfirmId != null}
+        title="Supprimer le bail"
+        description="Êtes-vous sûr de vouloir supprimer ce bail ? Cette action est irréversible."
+        loading={deleteSubmitting}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
     </section>
   );
 }

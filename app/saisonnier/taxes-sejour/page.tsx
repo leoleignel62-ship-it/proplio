@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { BtnNeutral, BtnPrimary } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -24,6 +26,7 @@ type TaxRow = {
 };
 
 export default function TaxesSejourPage() {
+  const toast = useToast();
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<TaxRow[]>([]);
@@ -147,6 +150,7 @@ export default function TaxesSejourPage() {
       .in("id", rowIds)
       .eq("proprietaire_id", proprietaireId);
     void load();
+    toast.success("Taxes marquées comme reversées.");
   }
 
   if (loading) {
@@ -168,10 +172,9 @@ export default function TaxesSejourPage() {
           <p className="proplio-page-subtitle">Récapitulatif et reversement.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <BtnNeutral
             type="button"
-            className="rounded-md px-2 py-1 text-sm disabled:opacity-40"
-            style={{ border: `1px solid ${PC.border}` }}
+            size="small"
             disabled={!canGoPreviousYear}
             onClick={() => {
               if (!canGoPreviousYear) return;
@@ -179,7 +182,7 @@ export default function TaxesSejourPage() {
             }}
           >
             {"<"}
-          </button>
+          </BtnNeutral>
           <select
             className="rounded-md px-3 py-1.5 text-sm"
             style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}
@@ -192,10 +195,9 @@ export default function TaxesSejourPage() {
               </option>
             ))}
           </select>
-          <button
+          <BtnNeutral
             type="button"
-            className="rounded-md px-2 py-1 text-sm disabled:opacity-40"
-            style={{ border: `1px solid ${PC.border}` }}
+            size="small"
             disabled={!canGoNextYear}
             onClick={() => {
               if (!canGoNextYear) return;
@@ -203,7 +205,7 @@ export default function TaxesSejourPage() {
             }}
           >
             {">"}
-          </button>
+          </BtnNeutral>
         </div>
       </div>
       {error ? (
@@ -237,14 +239,9 @@ export default function TaxesSejourPage() {
                 <td className="px-3 py-2">{row.allReversee ? "Reversée ✓" : "À reverser"}</td>
                 <td className="px-3 py-2">
                   {!row.allReversee ? (
-                    <button
-                      type="button"
-                      className="text-xs underline"
-                      style={{ color: PC.primary }}
-                      onClick={() => void markReversee(row.idsNotReversee)}
-                    >
+                    <BtnPrimary size="small" onClick={() => void markReversee(row.idsNotReversee)}>
                       Marquer comme reversée
-                    </button>
+                    </BtnPrimary>
                   ) : null}
                 </td>
               </tr>

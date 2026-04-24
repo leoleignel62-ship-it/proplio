@@ -23,6 +23,8 @@ import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
+import { BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast";
 
 type EdlRow = Record<string, unknown>;
 
@@ -158,6 +160,7 @@ const INP: CSSProperties = {
 };
 
 export function EdlEditor({ edlId }: { edlId: string }) {
+  const toast = useToast();
   const [row, setRow] = useState<EdlRow | null>(null);
   const [pieces, setPieces] = useState<PiecesEdlData | null>(null);
   const [entryPieces, setEntryPieces] = useState<PiecesEdlData | null>(null);
@@ -166,7 +169,6 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [successToast, setSuccessToast] = useState("");
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
@@ -475,96 +477,44 @@ export function EdlEditor({ edlId }: { edlId: string }) {
             </span>
           ) : null}
           {!isFinalise ? (
-            <button
-              type="button"
-              className="text-sm"
-              style={{
-                borderRadius: 12,
-                border: `1px solid ${PC.border}`,
-                backgroundColor: "transparent",
-                color: PC.text,
-                fontWeight: 500,
-                padding: "0.625rem 1rem",
-              }}
-              onClick={() => void persist()}
-            >
+            <BtnSecondary onClick={() => void persist()}>
               Sauvegarder
-            </button>
+            </BtnSecondary>
           ) : null}
           {!isFinalise ? (
-            <button
-              type="button"
-              className="text-sm"
-              style={{
-                borderRadius: 12,
-                backgroundColor: PC.primary,
-                color: PC.white,
-                fontWeight: 500,
-                padding: "0.625rem 1rem",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-              }}
-              onClick={() => setFinalizeOpen(true)}
-            >
-              Finaliser l&apos;état des lieux
-            </button>
+            <BtnPrimary onClick={() => setFinalizeOpen(true)}>Finaliser l&apos;état des lieux</BtnPrimary>
           ) : null}
           {isFinalise ? (
-            <a
-              href={`/api/etats-des-lieux/${edlId}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center text-sm"
-              style={{
-                borderRadius: 12,
-                border: `1px solid ${PC.border}`,
-                color: PC.text,
-                fontWeight: 500,
-                padding: "0.625rem 1rem",
-              }}
-            >
-              Générer le PDF
-            </a>
+            <BtnPdf onClick={() => window.open(`/api/etats-des-lieux/${edlId}/pdf`, "_blank", "noopener,noreferrer")}>
+              Télécharger PDF
+            </BtnPdf>
           ) : (
-            <span
-              className="inline-flex cursor-not-allowed items-center rounded-lg px-3 py-2 text-sm opacity-60"
-              style={{ border: `1px solid ${PC.border}`, color: PC.muted }}
-              title="Finalisez l'état des lieux pour générer le PDF."
-            >
-              Générer le PDF
-            </span>
+            <BtnPdf disabled style={{ opacity: 0.6, cursor: "not-allowed" }} title="Finalisez l'état des lieux pour générer le PDF.">
+              Télécharger PDF
+            </BtnPdf>
           )}
           {isFinalise ? (
-            <button
-              type="button"
-              className="text-sm"
-              style={{
-                borderRadius: 12,
-                backgroundColor: PC.primary,
-                color: PC.white,
-                fontWeight: 500,
-                padding: "0.625rem 1rem",
-              }}
+            <BtnEmail
               onClick={async () => {
                 const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
                 const j = (await res.json()) as { error?: string; to?: string[] };
                 if (!res.ok) setError(j.error ?? "Envoi impossible");
                 else {
                   setError("");
-                  setSuccessToast(`Email envoyé avec succès à ${(j.to ?? []).join(", ") || "destinataire"}`);
-                  window.setTimeout(() => setSuccessToast(""), 3000);
+                  toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
                 }
               }}
             >
-              Envoyer par e-mail
-            </button>
+              Envoyer par email
+            </BtnEmail>
           ) : (
-            <span
-              className="inline-flex cursor-not-allowed items-center rounded-lg px-3 py-2 text-sm opacity-70"
-              style={{ backgroundColor: PC.primaryBg40, color: PC.white }}
+            <BtnEmail
+              disabled
+              style={{ opacity: 0.7, cursor: "not-allowed" }}
               title="Finalisez l'état des lieux pour envoyer par e-mail."
             >
-              Envoyer par e-mail
-            </span>
+              Envoyer par email
+            </BtnEmail>
           )}
         </div>
       </div>
@@ -581,15 +531,6 @@ export function EdlEditor({ edlId }: { edlId: string }) {
           {error}
         </p>
       ) : null}
-      {successToast ? (
-        <p
-          className="mb-4 rounded-xl px-4 py-3 text-sm"
-          style={{ border: `1px solid rgba(16, 185, 129, 0.3)`, backgroundColor: PC.successBg10, color: PC.success }}
-        >
-          {successToast}
-        </p>
-      ) : null}
-
       {isFinalise ? (
         <p
           className="rounded-lg px-4 py-2 text-sm"
@@ -795,40 +736,21 @@ export function EdlEditor({ edlId }: { edlId: string }) {
                 Cette pièce n&apos;est pas incluse.
               </p>
               {!isFinalise ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm font-medium"
-                  style={{
-                    borderRadius: 12,
-                    backgroundColor: PC.primary,
-                    color: PC.white,
-                    padding: "0.625rem 1rem",
-                  }}
-                  onClick={() => setRoomEnabled(activeRoom.id, true)}
-                >
+                <BtnPrimary className="mt-3" size="small" onClick={() => setRoomEnabled(activeRoom.id, true)}>
                   Activer {activeRoom.label}
-                </button>
+                </BtnPrimary>
               ) : null}
             </div>
           ) : (
             <>
               {activeRoom.id.startsWith("chambre_") && activeRoom.id === "chambre_1" && !isFinalise ? (
-                <button
-                  type="button"
-                  className="text-sm font-medium"
-                  style={{
-                    borderRadius: 12,
-                    border: `1px solid ${PC.border}`,
-                    color: PC.text,
-                    padding: "0.625rem 1rem",
-                    backgroundColor: "transparent",
-                  }}
+                <BtnSecondary
                   onClick={() =>
                     setPieces((prev) => (prev ? addChambreToPieces(prev, meuble) : prev))
                   }
                 >
                   + Ajouter une chambre
-                </button>
+                </BtnSecondary>
               ) : null}
               <div className="space-y-3">
                 {Object.entries(activeRoom.elements).map(([elementKey, el]) => (
@@ -854,73 +776,35 @@ export function EdlEditor({ edlId }: { edlId: string }) {
         </div>
       ) : null}
 
-      {finalizeOpen ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4 backdrop-blur-safari"
-          style={{ backgroundColor: PC.overlay }}
-        >
-          <div className="max-w-md p-6 shadow-xl" style={CARD}>
-            <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
-              Finaliser l&apos;état des lieux
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Attention : une fois finalisé, l&apos;état des lieux ne pourra plus être modifié car il a valeur
-              légale. Confirmez-vous la finalisation ?
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                className="font-medium"
-                style={{
-                  borderRadius: 12,
-                  border: `1px solid ${PC.border}`,
-                  color: PC.text,
-                  padding: "0.625rem 1rem",
-                  backgroundColor: "transparent",
-                }}
-                disabled={finalizing}
-                onClick={() => setFinalizeOpen(false)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="font-medium"
-                style={{
-                  borderRadius: 12,
-                  backgroundColor: PC.red600,
-                  color: PC.white,
-                  padding: "0.625rem 1rem",
-                }}
-                disabled={finalizing}
-                onClick={() => {
-                  void (async () => {
-                    if (!proprietaireId) return;
-                    setFinalizing(true);
-                    setError("");
-                    await persist();
-                    const { error: upErr } = await supabase
-                      .from("etats_des_lieux")
-                      .update({ statut: "termine", updated_at: new Date().toISOString() })
-                      .eq("id", edlId)
-                      .eq("proprietaire_id", proprietaireId);
-                    setFinalizing(false);
-                    if (upErr) {
-                      setError(formatSubmitError(upErr));
-                      return;
-                    }
-                    statutRef.current = "termine";
-                    setRow((r) => (r ? { ...r, statut: "termine" } : r));
-                    setFinalizeOpen(false);
-                  })();
-                }}
-              >
-                {finalizing ? "…" : "Confirmer la finalisation"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={finalizeOpen}
+        title="Finaliser l'état des lieux"
+        description="Attention : une fois finalisé, l'état des lieux ne pourra plus être modifié car il a valeur légale. Confirmez-vous la finalisation ?"
+        confirmLabel="Confirmer"
+        variant="primary"
+        loading={finalizing}
+        onClose={() => setFinalizeOpen(false)}
+        onConfirm={async () => {
+          if (!proprietaireId) return;
+          setFinalizing(true);
+          setError("");
+          await persist();
+          const { error: upErr } = await supabase
+            .from("etats_des_lieux")
+            .update({ statut: "termine", updated_at: new Date().toISOString() })
+            .eq("id", edlId)
+            .eq("proprietaire_id", proprietaireId);
+          setFinalizing(false);
+          if (upErr) {
+            setError(formatSubmitError(upErr));
+            return;
+          }
+          statutRef.current = "termine";
+          setRow((r) => (r ? { ...r, statut: "termine" } : r));
+          setFinalizeOpen(false);
+          toast.success("État des lieux finalisé.");
+        }}
+      />
 
       {preview ? (
         <button
