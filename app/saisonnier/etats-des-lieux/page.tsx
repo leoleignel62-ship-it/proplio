@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { IconPlus } from "@/components/proplio-icons";
 import { normalizePiecesData } from "@/lib/etat-des-lieux/defaults";
@@ -33,6 +33,7 @@ type ReservationOpt = {
 
 type EdlRow = {
   id: string;
+  reservation_id: string | null;
   bail_id: string | null;
   logement_id: string | null;
   type_etat?: string | null;
@@ -43,8 +44,6 @@ type EdlRow = {
 };
 
 type EntreeOpt = { id: string; label: string };
-
-const EDL_CARD: CSSProperties = { ...panelCard, padding: 16 };
 
 function createSaisonnierPiecesData() {
   return normalizePiecesData(
@@ -184,8 +183,9 @@ export default function EtatsDesLieuxSaisonnierPage() {
     const [edlRes, resaRes] = await Promise.all([
       supabase
         .from("etats_des_lieux")
-        .select("id, bail_id, logement_id, type, type_etat, date_etat, statut, created_at")
+        .select("id, reservation_id, bail_id, logement_id, type, type_etat, date_etat, statut, created_at")
         .eq("proprietaire_id", proprietaireId)
+        .not("reservation_id", "is", null)
         .order("created_at", { ascending: false }),
       supabase
         .from("reservations")
@@ -196,6 +196,16 @@ export default function EtatsDesLieuxSaisonnierPage() {
     ]);
 
     if (edlRes.error || resaRes.error) {
+      if (
+        edlRes.error &&
+        (edlRes.error.message.includes("reservation_id") || edlRes.error.details?.includes("reservation_id"))
+      ) {
+        setError(
+          "La colonne reservation_id est absente de la table etats_des_lieux. Exécutez la migration SQL fournie puis rechargez la page.",
+        );
+        setLoading(false);
+        return;
+      }
       setError(formatSubmitError(edlRes.error ?? resaRes.error));
       setLoading(false);
       return;
@@ -241,7 +251,10 @@ export default function EtatsDesLieuxSaisonnierPage() {
       return;
     }
     const related = rows
-      .filter((r) => r.bail_id === reservationId && getEdlTypeEtatFromRow(r as Record<string, unknown>) === "entree")
+      .filter(
+        (r) =>
+          r.reservation_id === reservationId && getEdlTypeEtatFromRow(r as Record<string, unknown>) === "entree",
+      )
       .map((r) => ({
         id: r.id,
         label: `Entrée du ${r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}`,
@@ -254,7 +267,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
     () =>
       rows.map((r) => ({
         row: r,
-        reservation: reservations.find((res) => res.id === r.bail_id) ?? null,
+        reservation: reservations.find((res) => res.id === r.reservation_id) ?? null,
       })),
     [rows, reservations],
   );
@@ -300,7 +313,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
     const nowIso = new Date().toISOString();
     const payload = {
       proprietaire_id: proprietaireId,
-      bail_id: selected.id,
+      reservation_id: selected.id,
+      bail_id: null,
       logement_id: selected.logement_id,
       locataire_id: null,
       type: typeNormalized,

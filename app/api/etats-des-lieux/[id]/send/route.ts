@@ -64,7 +64,8 @@ export async function POST(
     }
 
     const locataireId = edl.locataire_id as string | undefined;
-    const reservationId = (edl.bail_id as string | undefined) ?? null;
+    const reservationId =
+      (edl.reservation_id as string | undefined) ?? (edl.bail_id as string | undefined) ?? null;
     const sigPath = proprietaire.signature_path as string | undefined;
 
     const [locRes, resaRes, sigDownload] = await Promise.all([

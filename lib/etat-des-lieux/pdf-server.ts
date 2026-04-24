@@ -37,7 +37,8 @@ export async function buildEdlPdfBufferFromDb(
 ): Promise<Uint8Array> {
   const logementId = edl.logement_id as string | undefined;
   const locataireId = edl.locataire_id as string | undefined;
-  const reservationId = edl.bail_id as string | undefined;
+  const reservationId =
+    (edl.reservation_id as string | undefined) ?? (edl.bail_id as string | undefined);
 
   const [logementRes, locataireRes, reservationRes] = await Promise.all([
     logementId
