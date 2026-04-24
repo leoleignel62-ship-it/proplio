@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { IconPencil } from "@/components/proplio-icons";
 import { BtnDanger, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
@@ -81,6 +82,10 @@ type ReservationRow = {
   logements?: { nom: string } | null;
   voyageurs?: { prenom: string; nom: string; email: string | null } | null;
 };
+
+/** Bouton « saisir le prix » OTA : même emphase qu’un BtnPrimary small, couleur attention. */
+const OTA_PRIX_BTN_ORANGE = "#f59e0b";
+const OTA_PRIX_BTN_ORANGE_HOVER = "#d97706";
 
 const STATUT_COLOR: Record<string, string> = {
   en_attente: PC.warning,
@@ -989,22 +994,38 @@ export default function ReservationsSaisonnierPage() {
                           onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
                         />
                       ) : Number(row.tarif_total) <= 0 ? (
-                        <>
+                        <div className="flex min-w-[10rem] flex-col gap-2">
                           <span className="font-medium" style={{ color: "#fb923c" }}>
                             Prix non renseigné
                           </span>
-                          <button
+                          <BtnPrimary
                             type="button"
-                            className="w-fit p-0 text-left text-[12px] font-normal underline"
-                            style={{ color: "#8b5cf6", background: "none", border: "none", cursor: "pointer" }}
+                            size="small"
+                            className="!w-full justify-center"
+                            icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                            style={{
+                              backgroundColor: OTA_PRIX_BTN_ORANGE,
+                              color: "#fff",
+                              border: `1px solid ${OTA_PRIX_BTN_ORANGE}`,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!e.currentTarget.disabled) {
+                                e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE_HOVER;
+                                e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE_HOVER;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE;
+                              e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE;
+                            }}
                             onClick={() => {
                               setEditingMontantId(row.id);
                               setEditingMontantValue("");
                             }}
                           >
                             Saisir le prix
-                          </button>
-                        </>
+                          </BtnPrimary>
+                        </div>
                       ) : (
                         <>
                           <span>{row.tarif_total.toFixed(0)} €</span>
