@@ -262,6 +262,18 @@ export function NavigationSidebar() {
     }
   }, [ownerPlan, mode, setMode]);
 
+  /** Toggle aligné sur l’URL : /saisonnier/… → Saisonnier, sinon Classique. */
+  useEffect(() => {
+    const isSaisonnierPath = pathname === "/saisonnier" || pathname.startsWith("/saisonnier/");
+    if (isSaisonnierPath) {
+      if (ownerPlan !== "free") {
+        setMode("saisonnier");
+      }
+    } else {
+      setMode("classique");
+    }
+  }, [pathname, ownerPlan, setMode]);
+
   const navigationModeItems = mode === "saisonnier" ? navigationModeSaisonnier : navigationModeClassique;
 
   function isSidebarStarterOnlyLocked(href: string): boolean {

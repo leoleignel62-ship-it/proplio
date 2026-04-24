@@ -146,7 +146,7 @@ export async function POST(request: Request) {
 
         const { data: existing } = await supabase
           .from("reservations")
-          .select("id, notes, tarif_total")
+          .select("id")
           .eq("proprietaire_id", ownerId)
           .eq("logement_id", logementId)
           .eq("date_arrivee", ev.dateArrivee)
@@ -172,17 +172,13 @@ export async function POST(request: Request) {
         };
 
         if (existing?.id) {
-          const keepPrice = Number(existing.tarif_total ?? 0) > 0;
+          /** Mise à jour iCal : ne pas conserver / recalculer le prix — tarif_total reste à 0. */
           const { error: uErr } = await supabase
             .from("reservations")
             .update({
-              ...(keepPrice
-                ? {}
-                : {
-                    tarif_nuit: 0,
-                    tarif_total: 0,
-                    taxe_sejour_total: 0,
-                  }),
+              tarif_nuit: 0,
+              tarif_total: 0,
+              taxe_sejour_total: 0,
               tarif_menage: tarifMenage,
               tarif_caution: tarifCautionRow,
               statut: "confirmee",
