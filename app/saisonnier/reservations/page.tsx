@@ -102,6 +102,20 @@ function formatDateFR(dateStr: string): string {
   });
 }
 
+function todayIsoLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Période d’occupation par rapport à aujourd’hui (dates YYYY-MM-DD). */
+function rowPeriode(row: ReservationRow, today: string): "a_venir" | "en_cours" | "passees" {
+  const arr = row.date_arrivee.slice(0, 10);
+  const dep = row.date_depart.slice(0, 10);
+  if (dep < today) return "passees";
+  if (arr > today) return "a_venir";
+  return "en_cours";
+}
+
 function ResaActionPill({
   children,
   onClick,
@@ -209,6 +223,12 @@ export default function ReservationsSaisonnierPage() {
   const [proprietaireIdForCalendar, setProprietaireIdForCalendar] = useState<string | null>(null);
   const [reservationRevision, setReservationRevision] = useState(0);
   const hasAutoSyncedIcalRef = useRef(false);
+
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterStatut, setFilterStatut] = useState<"tous" | "confirmee" | "en_attente" | "terminee">("tous");
+  const [filterSource, setFilterSource] = useState<"toutes" | "direct" | "airbnb" | "booking">("toutes");
+  const [filterLogementId, setFilterLogementId] = useState("");
+  const [filterPeriode, setFilterPeriode] = useState<"toutes" | "a_venir" | "en_cours" | "passees">("toutes");
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -383,6 +403,31 @@ export default function ReservationsSaisonnierPage() {
       ),
     [logements],
   );
+
+  const filteredRows = useMemo(() => {
+    const q = filterSearch.trim().toLowerCase();
+    const today = todayIsoLocal();
+    return rows.filter((row) => {
+      if (q) {
+        const logNom = (row.logements?.nom ?? "").toLowerCase();
+        const v = row.voyageurs;
+        const voyStr = v ? `${v.prenom} ${v.nom}`.toLowerCase() : (extractVoyageurFromNotes(row.notes) ?? "").toLowerCase();
+        if (!logNom.includes(q) && !voyStr.includes(q)) return false;
+      }
+      if (filterStatut !== "tous" && row.statut !== filterStatut) return false;
+      if (filterSource !== "toutes") {
+        if (filterSource === "direct" && row.source !== "direct" && row.source !== "autre") return false;
+        if (filterSource === "airbnb" && row.source !== "airbnb") return false;
+        if (filterSource === "booking" && row.source !== "booking") return false;
+      }
+      if (filterLogementId && row.logement_id !== filterLogementId) return false;
+      if (filterPeriode !== "toutes") {
+        const p = rowPeriode(row, today);
+        if (filterPeriode !== p) return false;
+      }
+      return true;
+    });
+  }, [rows, filterSearch, filterStatut, filterSource, filterLogementId, filterPeriode]);
 
   const preview = useMemo(() => {
     const arr = form.date_arrivee;
@@ -790,6 +835,83 @@ export default function ReservationsSaisonnierPage() {
         </div>
       ) : null}
 
+      {viewMode === "liste" ? (
+        <div
+          className="flex flex-col gap-4 rounded-xl p-4 lg:flex-row lg:flex-wrap lg:items-end"
+          style={{ ...panelCard, border: `1px solid ${PC.border}` }}
+        >
+          <label className="flex min-w-[200px] flex-1 flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+            <span>Recherche</span>
+            <input
+              type="search"
+              placeholder="Rechercher un voyageur ou un logement..."
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              style={fieldInputStyle}
+              className="w-full"
+            />
+          </label>
+          <label className="flex min-w-[160px] flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+            <span>Statut</span>
+            <select
+              value={filterStatut}
+              onChange={(e) => setFilterStatut(e.target.value as "tous" | "confirmee" | "en_attente" | "terminee")}
+              style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+              className="w-full"
+            >
+              <option value="tous">Tous</option>
+              <option value="confirmee">Confirmée</option>
+              <option value="en_attente">En attente</option>
+              <option value="terminee">Terminée</option>
+            </select>
+          </label>
+          <label className="flex min-w-[160px] flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+            <span>Source</span>
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value as "toutes" | "direct" | "airbnb" | "booking")}
+              style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+              className="w-full"
+            >
+              <option value="toutes">Toutes</option>
+              <option value="direct">Direct</option>
+              <option value="airbnb">Airbnb</option>
+              <option value="booking">Booking</option>
+            </select>
+          </label>
+          <label className="flex min-w-[200px] flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+            <span>Logement</span>
+            <select
+              value={filterLogementId}
+              onChange={(e) => setFilterLogementId(e.target.value)}
+              style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+              className="w-full"
+            >
+              <option value="">Tous les logements</option>
+              {logements.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nom}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-[160px] flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+            <span>Période</span>
+            <select
+              value={filterPeriode}
+              onChange={(e) => setFilterPeriode(e.target.value as "toutes" | "a_venir" | "en_cours" | "passees")}
+              style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+              className="w-full"
+            >
+              <option value="toutes">Toutes</option>
+              <option value="a_venir">À venir</option>
+              <option value="en_cours">En cours</option>
+              <option value="passees">Passées</option>
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       {viewMode === "calendrier" && proprietaireIdForCalendar ? (
         <SaisonnierReservationsPlanningCalendar
           proprietaireId={proprietaireIdForCalendar}
@@ -817,7 +939,16 @@ export default function ReservationsSaisonnierPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-3 py-10 text-center text-sm" style={{ color: PC.muted }}>
+                  {rows.length === 0
+                    ? "Aucune réservation."
+                    : "Aucune réservation ne correspond à vos filtres."}
+                </td>
+              </tr>
+            ) : null}
+            {filteredRows.map((row) => (
               <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
                 <td className="px-3 py-2">{row.logements?.nom}</td>
                 <td className="px-3 py-2" style={{ color: PC.muted }}>
