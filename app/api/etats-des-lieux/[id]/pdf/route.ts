@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
+import { buildSaisonnierEdlPdfBufferFromDb, rowUsesSaisonnierPdf } from "@/lib/etat-des-lieux/saisonnier-edl-pdf-build";
 
 export async function GET(
   _request: Request,
@@ -22,7 +23,7 @@ export async function GET(
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("id, prenom, nom, signature_path")
+      .select("id, prenom, nom, email, telephone, adresse, code_postal, ville, signature_path")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -63,14 +64,22 @@ export async function GET(
       }
     }
 
-    /** Mise en page PDF (dont signatures en bas de dernière page) : `lib/pdf/generate-edl-pdf.ts`. */
-    const pdfBytes = await buildEdlPdfBufferFromDb(
-      supabase,
-      supabaseAdmin,
-      edl as Record<string, unknown>,
-      proprietaire as Record<string, unknown>,
-      signatureImage,
-    );
+    const edlRec = edl as Record<string, unknown>;
+    const pdfBytes = rowUsesSaisonnierPdf(edlRec)
+      ? await buildSaisonnierEdlPdfBufferFromDb(
+          supabase,
+          supabaseAdmin,
+          edlRec,
+          proprietaire as Record<string, unknown>,
+          signatureImage,
+        )
+      : await buildEdlPdfBufferFromDb(
+          supabase,
+          supabaseAdmin,
+          edlRec,
+          proprietaire as Record<string, unknown>,
+          signatureImage,
+        );
 
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {

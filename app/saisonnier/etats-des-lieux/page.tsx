@@ -1,160 +1,59 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
 import { IconPlus } from "@/components/proplio-icons";
-import { normalizePiecesData } from "@/lib/etat-des-lieux/defaults";
-import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
+import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import {
   canCreateEtatDesLieux,
   getMonthlyCreatedCount,
   getOwnerPlan,
   PLAN_FREE_EDL_BANNER,
-  PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
   type ProplioPlan,
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { panelCard } from "@/lib/proplio-field-styles";
 
-type ReservationOpt = {
-  id: string;
-  logement_id: string | null;
-  voyageur_id: string | null;
-  voyageurLabel: string;
-  logementLabel: string;
-  date_arrivee: string;
-  date_depart: string;
-};
+const SaisonnierEdlWizard = dynamic(
+  () =>
+    import("@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard").then((m) => ({
+      default: m.SaisonnierEdlWizard,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-[80] flex items-center justify-center" style={{ backgroundColor: PC.overlay }}>
+        <p className="rounded-lg px-4 py-3 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Chargement de l&apos;éditeur…
+        </p>
+      </div>
+    ),
+  },
+);
 
 type EdlRow = {
   id: string;
   reservation_id: string | null;
-  bail_id: string | null;
-  logement_id: string | null;
   type_etat?: string | null;
   type?: string | null;
   date_etat: string | null;
   statut: string;
-  created_at?: string;
 };
-
-type EntreeOpt = { id: string; label: string };
-
-function createSaisonnierPiecesData() {
-  return normalizePiecesData(
-    {
-      version: 1,
-      rooms: [
-        {
-          id: "salon",
-          label: "Salon / Séjour",
-          enabled: true,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            mobilier: { state: "bon", comment: "", photoPath: null },
-            fenetres: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "cuisine",
-          label: "Cuisine",
-          enabled: true,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            equipements: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "chambre_1",
-          label: "Chambre 1",
-          enabled: true,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            mobilier: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "chambre_2",
-          label: "Chambre 2",
-          enabled: false,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            mobilier: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "salle_de_bain",
-          label: "Salle de bain",
-          enabled: true,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            equipements: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "wc",
-          label: "WC",
-          enabled: true,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            equipements: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-        {
-          id: "exterieur",
-          label: "Extérieur / Terrasse",
-          enabled: false,
-          elements: {
-            murs: { state: "bon", comment: "", photoPath: null },
-            sol: { state: "bon", comment: "", photoPath: null },
-            equipements: { state: "bon", comment: "", photoPath: null },
-            menuiseries: { state: "bon", comment: "", photoPath: null },
-          },
-        },
-      ],
-      compteurs: {
-        electricite: { index: "", photoPath: null },
-        eauFroide: { index: "", photoPath: null },
-        eauChaude: { index: "", photoPath: null },
-        gaz: { index: "", photoPath: null },
-      },
-      clesRemises: 0,
-      badgesRemis: 0,
-      observationsGenerales: "",
-    },
-    true,
-  );
-}
 
 export default function EtatsDesLieuxSaisonnierPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const [rows, setRows] = useState<EdlRow[]>([]);
-  const [reservations, setReservations] = useState<ReservationOpt[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [reservationId, setReservationId] = useState("");
-  const [typeEtat, setTypeEtat] = useState<"entree" | "sortie">("entree");
-  const [entreeId, setEntreeId] = useState("");
-  const [entreesOptions, setEntreesOptions] = useState<EntreeOpt[]>([]);
-  const [dateEtat, setDateEtat] = useState(() => new Date().toISOString().slice(0, 10));
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [successToast, setSuccessToast] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -183,7 +82,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
     const [edlRes, resaRes] = await Promise.all([
       supabase
         .from("etats_des_lieux")
-        .select("id, reservation_id, bail_id, logement_id, type, type_etat, date_etat, statut, created_at")
+        .select("id, reservation_id, type, type_etat, date_etat, statut, created_at")
         .eq("proprietaire_id", proprietaireId)
         .not("reservation_id", "is", null)
         .order("created_at", { ascending: false }),
@@ -217,8 +116,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
       const rec = r as Record<string, unknown>;
       const vg = rec.voyageurs;
       const lg = rec.logements;
-      const voyageursJoin = Array.isArray(vg) ? vg[0] as Record<string, unknown> : vg as Record<string, unknown> | null;
-      const logementsJoin = Array.isArray(lg) ? lg[0] as Record<string, unknown> : lg as Record<string, unknown> | null;
+      const voyageursJoin = Array.isArray(vg) ? (vg[0] as Record<string, unknown>) : (vg as Record<string, unknown> | null);
+      const logementsJoin = Array.isArray(lg) ? (lg[0] as Record<string, unknown>) : (lg as Record<string, unknown> | null);
       return {
         id: String(rec.id),
         logement_id: rec.logement_id ? String(rec.logement_id) : null,
@@ -227,7 +126,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
         logementLabel: String(logementsJoin?.nom ?? "Logement"),
         date_arrivee: String(rec.date_arrivee ?? ""),
         date_depart: String(rec.date_depart ?? ""),
-      } satisfies ReservationOpt;
+      } satisfies SaisonnierReservationOption;
     });
     setReservations(resaList);
 
@@ -244,25 +143,6 @@ export default function EtatsDesLieuxSaisonnierPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!reservationId || typeEtat !== "sortie") {
-      setEntreesOptions([]);
-      setEntreeId("");
-      return;
-    }
-    const related = rows
-      .filter(
-        (r) =>
-          r.reservation_id === reservationId && getEdlTypeEtatFromRow(r as Record<string, unknown>) === "entree",
-      )
-      .map((r) => ({
-        id: r.id,
-        label: `Entrée du ${r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}`,
-      }));
-    setEntreesOptions(related);
-    if (!related.some((o) => o.id === entreeId)) setEntreeId("");
-  }, [reservationId, typeEtat, rows, entreeId]);
-
   const rowsWithReservation = useMemo(
     () =>
       rows.map((r) => ({
@@ -271,81 +151,6 @@ export default function EtatsDesLieuxSaisonnierPage() {
       })),
     [rows, reservations],
   );
-
-  async function onCreate(event: FormEvent) {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-
-    const { proprietaireId, error: pe } = await getCurrentProprietaireId();
-    if (pe || !proprietaireId) {
-      setError(pe ? formatSubmitError(pe) : "Session invalide.");
-      setIsSubmitting(false);
-      return;
-    }
-    const selected = reservations.find((r) => r.id === reservationId);
-    if (!selected || !selected.logement_id) {
-      setError("Sélectionnez une réservation valide.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (typeEtat === "sortie" && !entreeId) {
-      setError("Sélectionnez l'état des lieux d'entrée à comparer.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const plan = await getOwnerPlan(proprietaireId);
-    if (plan === "free") {
-      setError(PLAN_FREE_EDL_BANNER);
-      setIsSubmitting(false);
-      return;
-    }
-    const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
-      setError(PLAN_LIMIT_ERROR_MESSAGE);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const typeNormalized = normalizeEdlTypeEtatInput(typeEtat);
-    const pieces = createSaisonnierPiecesData();
-    const nowIso = new Date().toISOString();
-    const payload = {
-      proprietaire_id: proprietaireId,
-      reservation_id: selected.id,
-      bail_id: null,
-      logement_id: selected.logement_id,
-      locataire_id: null,
-      type: typeNormalized,
-      type_etat: typeNormalized,
-      date_etat: dateEtat,
-      type_logement: "meuble",
-      statut: "en_cours",
-      pieces,
-      compteurs: pieces.compteurs,
-      observations: pieces.observationsGenerales,
-      cles_remises: pieces.clesRemises,
-      badges_remis: pieces.badgesRemis,
-      etat_entree_id: typeNormalized === "sortie" ? entreeId : null,
-      email_envoye: false,
-      updated_at: nowIso,
-    };
-
-    const { data: inserted, error: insErr } = await supabase
-      .from("etats_des_lieux")
-      .insert(payload)
-      .select("id")
-      .maybeSingle();
-
-    setIsSubmitting(false);
-    if (insErr || !inserted?.id) {
-      setError(insErr ? formatSubmitError(insErr) : "Création impossible.");
-      return;
-    }
-    setIsModalOpen(false);
-    window.location.href = `/etats-des-lieux/${inserted.id}`;
-  }
 
   async function executeDeleteConfirmed() {
     if (!deleteTarget) return;
@@ -407,7 +212,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
         <div>
           <h1 className="proplio-page-title">États des lieux</h1>
           <p className="proplio-page-subtitle max-w-xl">
-            Entrée / sortie liés à une réservation saisonnière.
+            Formulaire simplifié (pièces, inventaire, PDF dédié location saisonnière).
           </p>
         </div>
         <button
@@ -416,12 +221,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
           disabled={isPlanLimitReached}
           style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
           onClick={() => {
-            setReservationId(reservations[0]?.id ?? "");
-            setTypeEtat("entree");
-            setEntreeId("");
-            setDateEtat(new Date().toISOString().slice(0, 10));
             setError("");
-            setIsModalOpen(true);
+            setWizardOpen(true);
           }}
         >
           <IconPlus className="h-4 w-4" />
@@ -430,10 +231,17 @@ export default function EtatsDesLieuxSaisonnierPage() {
       </div>
 
       {isPlanLimitReached ? (
-        <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
+        <div
+          className="rounded-lg px-3 py-2 text-sm"
+          style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}
+        >
           <div className="flex items-center justify-between gap-3">
             <p>⚠️ {planLimitMessage}</p>
-            <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
+            <a
+              href={PLAN_UPGRADE_PATH}
+              className="rounded-md px-3 py-1 text-xs font-medium"
+              style={{ backgroundColor: PC.primary, color: PC.white }}
+            >
               Voir les plans
             </a>
           </div>
@@ -452,7 +260,9 @@ export default function EtatsDesLieuxSaisonnierPage() {
       ) : null}
 
       {loading ? (
-        <div className="p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>Chargement…</div>
+        <div className="p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Chargement…
+        </div>
       ) : rowsWithReservation.length === 0 ? (
         <div className="p-8 text-center text-sm" style={{ ...panelCard, color: PC.muted }}>
           Aucun état des lieux saisonnier.
@@ -475,7 +285,9 @@ export default function EtatsDesLieuxSaisonnierPage() {
                   <td className="px-3 py-2">
                     <p className="font-medium">{reservation?.voyageurLabel ?? "Voyageur"}</p>
                     <p className="text-xs" style={{ color: PC.muted }}>
-                      {reservation ? `${reservation.date_arrivee} → ${reservation.date_depart}` : "Séjour non trouvé"}
+                      {reservation
+                        ? `${reservation.date_arrivee} → ${reservation.date_depart} · ${reservation.logementLabel}`
+                        : "Séjour non trouvé"}
                     </p>
                   </td>
                   <td className="px-3 py-2">
@@ -487,16 +299,43 @@ export default function EtatsDesLieuxSaisonnierPage() {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-2">
-                      <Link href={`/etats-des-lieux/${row.id}`} className="rounded-md px-3 py-1.5 text-xs pc-outline-muted">
+                      <Link
+                        href={`/saisonnier/etats-des-lieux/${row.id}`}
+                        className="rounded-md px-3 py-1.5 text-xs pc-outline-muted"
+                      >
                         Ouvrir
                       </Link>
-                      <a href={`/api/etats-des-lieux/${row.id}/pdf`} target="_blank" rel="noreferrer" className="rounded-md px-3 py-1.5 text-xs pc-outline-primary">
-                        PDF
-                      </a>
-                      <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-success" onClick={() => void onSendEmail(row.id)}>
+                      {row.statut === "termine" ? (
+                        <a
+                          href={`/api/etats-des-lieux/${row.id}/pdf`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md px-3 py-1.5 text-xs pc-outline-primary"
+                        >
+                          PDF
+                        </a>
+                      ) : (
+                        <span
+                          className="rounded-md px-3 py-1.5 text-xs opacity-50 pc-outline-primary"
+                          title="Finalisez l'EDL pour générer le PDF."
+                        >
+                          PDF
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs pc-outline-success"
+                        disabled={row.statut !== "termine"}
+                        style={{ opacity: row.statut !== "termine" ? 0.5 : 1 }}
+                        onClick={() => void onSendEmail(row.id)}
+                      >
                         Envoyer
                       </button>
-                      <button type="button" className="rounded-md px-3 py-1.5 text-xs pc-outline-danger" onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs pc-outline-danger"
+                        onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}
+                      >
                         Supprimer
                       </button>
                     </div>
@@ -508,59 +347,13 @@ export default function EtatsDesLieuxSaisonnierPage() {
         </div>
       )}
 
-      {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-safari">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-6" style={panelCard}>
-            <h2 className="text-lg font-semibold">Nouvel état des lieux saisonnier</h2>
-            <form onSubmit={onCreate} className="mt-4 space-y-4">
-              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                <span>Réservation</span>
-                <select required style={fieldSelectStyle} value={reservationId} onChange={(e) => setReservationId(e.target.value)}>
-                  <option value="">Sélectionner…</option>
-                  {reservations.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.voyageurLabel} — {r.logementLabel} ({r.date_arrivee} → {r.date_depart})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <fieldset className="space-y-2">
-                <legend className="text-sm" style={{ color: PC.muted }}>Type</legend>
-                <label className="flex items-center gap-2 text-sm" style={{ color: PC.text }}>
-                  <input type="radio" name="te" checked={typeEtat === "entree"} onChange={() => setTypeEtat("entree")} />
-                  Entrée
-                </label>
-                <label className="flex items-center gap-2 text-sm" style={{ color: PC.text }}>
-                  <input type="radio" name="te" checked={typeEtat === "sortie"} onChange={() => setTypeEtat("sortie")} />
-                  Sortie
-                </label>
-              </fieldset>
-              {typeEtat === "sortie" ? (
-                <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                  <span>État d&apos;entrée à comparer</span>
-                  <select required style={fieldSelectStyle} value={entreeId} onChange={(e) => setEntreeId(e.target.value)}>
-                    <option value="">Sélectionner…</option>
-                    {entreesOptions.map((o) => (
-                      <option key={o.id} value={o.id}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
-                <span>Date</span>
-                <input type="date" style={fieldInputStyle} required value={dateEtat} onChange={(e) => setDateEtat(e.target.value)} />
-              </label>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" onClick={() => setIsModalOpen(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary" disabled={isSubmitting}>
-                  {isSubmitting ? "…" : "Commencer l'état des lieux"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {wizardOpen ? (
+        <SaisonnierEdlWizard
+          reservations={reservations}
+          initialEdlId={null}
+          onClose={() => setWizardOpen(false)}
+          onSaved={() => void load()}
+        />
       ) : null}
 
       {deleteTarget ? (
@@ -573,10 +366,20 @@ export default function EtatsDesLieuxSaisonnierPage() {
                 : "Confirmez la suppression de cet état des lieux."}
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button type="button" className="rounded-lg px-4 py-2 text-sm pc-outline-muted" disabled={deleteSubmitting} onClick={() => setDeleteTarget(null)}>
+              <button
+                type="button"
+                className="rounded-lg px-4 py-2 text-sm pc-outline-muted"
+                disabled={deleteSubmitting}
+                onClick={() => setDeleteTarget(null)}
+              >
                 Annuler
               </button>
-              <button type="button" className="rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 pc-danger-fill" disabled={deleteSubmitting} onClick={() => void executeDeleteConfirmed()}>
+              <button
+                type="button"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 pc-danger-fill"
+                disabled={deleteSubmitting}
+                onClick={() => void executeDeleteConfirmed()}
+              >
                 {deleteSubmitting ? "…" : "Supprimer"}
               </button>
             </div>

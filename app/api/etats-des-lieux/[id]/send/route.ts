@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
+import { buildSaisonnierEdlPdfBufferFromDb, rowUsesSaisonnierPdf } from "@/lib/etat-des-lieux/saisonnier-edl-pdf-build";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -26,7 +27,7 @@ export async function POST(
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("id, prenom, nom, email, signature_path")
+      .select("id, prenom, nom, email, telephone, adresse, code_postal, ville, signature_path")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -52,6 +53,9 @@ export async function POST(
     if (edlError || !edl) {
       return NextResponse.json({ error: "État des lieux introuvable." }, { status: 404 });
     }
+
+    const edlRec = edl as Record<string, unknown>;
+    const isSaisonnierPdf = rowUsesSaisonnierPdf(edlRec);
 
     if (edl.statut !== "termine") {
       return NextResponse.json(
@@ -90,7 +94,11 @@ export async function POST(
     const tenantEmail = String(locRes.data?.email ?? resaVoyageurs?.email ?? "").trim();
     if (!tenantEmail) {
       return NextResponse.json(
-        { error: "E-mail du locataire manquant sur sa fiche." },
+        {
+          error: isSaisonnierPdf
+            ? "E-mail du voyageur manquant sur sa fiche."
+            : "E-mail du locataire manquant sur sa fiche.",
+        },
         { status: 400 },
       );
     }
@@ -104,13 +112,21 @@ export async function POST(
       signatureImage = { bytes, isPng };
     }
 
-    const pdfBytes = await buildEdlPdfBufferFromDb(
-      supabase,
-      supabaseAdmin,
-      edl as Record<string, unknown>,
-      proprietaire as Record<string, unknown>,
-      signatureImage,
-    );
+    const pdfBytes = isSaisonnierPdf
+      ? await buildSaisonnierEdlPdfBufferFromDb(
+          supabase,
+          supabaseAdmin,
+          edlRec,
+          proprietaire as Record<string, unknown>,
+          signatureImage,
+        )
+      : await buildEdlPdfBufferFromDb(
+          supabase,
+          supabaseAdmin,
+          edlRec,
+          proprietaire as Record<string, unknown>,
+          signatureImage,
+        );
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const typeLabel = getEdlTypeEtatFromRow(edl as Record<string, unknown>) === "sortie" ? "sortie" : "entrée";
@@ -125,7 +141,7 @@ export async function POST(
       subject,
       html: `<p>Bonjour,</p>
 <p>Veuillez trouver en pièce jointe l'état des lieux (${typeLabel}) établi via Proplio.</p>
-<p>Ce message est adressé au bailleur et au locataire pour conservation.</p>
+<p>Ce message est adressé au bailleur et au ${isSaisonnierPdf ? "preneur (voyageur)" : "locataire"} pour conservation.</p>
 <p>Cordialement,<br/>${bailleurNom}</p>`,
       attachments: [
         {
