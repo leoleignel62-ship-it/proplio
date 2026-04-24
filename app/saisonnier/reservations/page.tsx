@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { BtnDanger, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
@@ -89,6 +89,18 @@ const STATUT_COLOR: Record<string, string> = {
   terminee: PC.muted,
   annulee: PC.danger,
 };
+
+function formatDateFR(dateStr: string): string {
+  if (!dateStr) return "";
+  const base = dateStr.trim().split("T")[0] ?? "";
+  const date = new Date(`${base}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 function ResaActionPill({
   children,
@@ -817,8 +829,8 @@ export default function ReservationsSaisonnierPage() {
                     "—"
                   )}
                 </td>
-                <td className="px-3 py-2">{row.date_arrivee}</td>
-                <td className="px-3 py-2">{row.date_depart}</td>
+                <td className="px-3 py-2">{formatDateFR(row.date_arrivee)}</td>
+                <td className="px-3 py-2">{formatDateFR(row.date_depart)}</td>
                 <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
                 <td className="px-3 py-2 align-top">
                   {row.source === "blocage" ? (
@@ -846,7 +858,7 @@ export default function ReservationsSaisonnierPage() {
                           <button
                             type="button"
                             className="w-fit p-0 text-left text-[12px] font-normal underline"
-                            style={{ color: "#a78bfa", background: "none", border: "none", cursor: "pointer" }}
+                            style={{ color: PC.primary, background: "none", border: "none", cursor: "pointer" }}
                             onClick={() => {
                               setEditingMontantId(row.id);
                               setEditingMontantValue(String(row.tarif_total));
@@ -910,23 +922,19 @@ export default function ReservationsSaisonnierPage() {
                     const canDeletePermanently = row.source === "direct" || row.source === "autre";
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
-                        <button
-                          type="button"
-                          className="w-fit p-0 text-left text-xs underline"
-                          style={{ color: PC.primary, background: "none", border: "none", cursor: "pointer" }}
-                          onClick={() => setDetailId(row.id)}
-                        >
+                        <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
                           Détail
-                        </button>
-                        <div className="grid grid-cols-2 gap-1">
+                        </BtnSecondary>
+                        <div className="flex flex-col gap-1">
                           {canDirectActions && row.statut === "en_attente" ? (
                             <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
                               Confirmer
                             </ResaActionPill>
                           ) : null}
                           {canDirectActions && canDeletePermanently ? (
-                            <ResaActionPill
-                              variant="red"
+                            <BtnDanger
+                              size="small"
+                              className="!w-full justify-center"
                               onClick={() => {
                                 setDeleteOtaConfirmId(null);
                                 setDeleteBlocageConfirmId(null);
@@ -934,11 +942,12 @@ export default function ReservationsSaisonnierPage() {
                               }}
                             >
                               Supprimer
-                            </ResaActionPill>
+                            </BtnDanger>
                           ) : null}
                           {isBlocage ? (
-                            <ResaActionPill
-                              variant="red"
+                            <BtnDanger
+                              size="small"
+                              className="!w-full justify-center"
                               onClick={() => {
                                 setDeleteConfirmId(null);
                                 setDeleteOtaConfirmId(null);
@@ -946,15 +955,15 @@ export default function ReservationsSaisonnierPage() {
                               }}
                             >
                               Supprimer
-                            </ResaActionPill>
+                            </BtnDanger>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
-                            <ResaActionPill variant="violet" onClick={() => requestSendConfirm("contrat", row)}>
-                              Contrat
-                            </ResaActionPill>
+                            <BtnPdf size="small" className="!w-full justify-center" onClick={() => requestSendConfirm("contrat", row)}>
+                              Contrat PDF
+                            </BtnPdf>
                           ) : null}
                           {canDirectActions && row.voyageurs && row.source === "direct" ? (
-                            <div className="col-span-2 flex flex-col gap-1">
+                            <div className="flex flex-col gap-1">
                               <button
                                 type="button"
                                 className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
@@ -984,8 +993,9 @@ export default function ReservationsSaisonnierPage() {
                             </div>
                           ) : null}
                           {isOta ? (
-                            <ResaActionPill
-                              variant="redOutline"
+                            <BtnDanger
+                              size="small"
+                              className="!w-full justify-center"
                               onClick={() => {
                                 setDeleteConfirmId(null);
                                 setDeleteBlocageConfirmId(null);
@@ -993,12 +1003,12 @@ export default function ReservationsSaisonnierPage() {
                               }}
                             >
                               Supprimer
-                            </ResaActionPill>
+                            </BtnDanger>
                           ) : null}
                           {!isBlocage ? (
-                            <ResaActionPill variant="grey" onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                            <BtnNeutral size="small" className="!w-full justify-center" onClick={() => void markMenageDone(row.id, row.logement_id)}>
                               Ménage ✓
-                            </ResaActionPill>
+                            </BtnNeutral>
                           ) : null}
                         </div>
                       </div>
@@ -1247,7 +1257,7 @@ export default function ReservationsSaisonnierPage() {
                   <ul className="mt-3 space-y-2 text-sm" style={{ color: PC.muted }}>
                     <li>Logement : {row.logements?.nom}</li>
                     <li>
-                      Dates : {row.date_arrivee} ({row.heure_arrivee}) → {row.date_depart} ({row.heure_depart})
+                      Dates : {formatDateFR(row.date_arrivee)} ({row.heure_arrivee}) → {formatDateFR(row.date_depart)} ({row.heure_depart})
                     </li>
                     <li className="flex flex-wrap items-center gap-2">
                       Source :{" "}
