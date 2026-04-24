@@ -39,6 +39,12 @@ const EMPTY_OCC = {
 };
 const EMPTY_SOURCES = { airbnb: 0, direct: 0, booking: 0, autre: 0 };
 
+const MOIS_FR = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sep", "Oct", "Nov", "Dec"] as const;
+
+function emptyMensuelRows(): Array<{ mois: string; revenus: number; nuits: number; nbReservations: number }> {
+  return MOIS_FR.map((mois) => ({ mois, revenus: 0, nuits: 0, nbReservations: 0 }));
+}
+
 export default function SaisonnierDashboardPage() {
   const currentYear = new Date().getFullYear();
   const [ownerId, setOwnerId] = useState<string>("");
@@ -52,7 +58,9 @@ export default function SaisonnierDashboardPage() {
   const [stats, setStats] = useState(EMPTY_RES_STATS);
   const [occupation, setOccupation] = useState(EMPTY_OCC);
   const [sources, setSources] = useState(EMPTY_SOURCES);
-  const [mensuel, setMensuel] = useState<Array<{ mois: string; revenus: number; nuits: number; nbReservations: number }>>([]);
+  const [mensuel, setMensuel] = useState<Array<{ mois: string; revenus: number; nuits: number; nbReservations: number }>>(
+    () => emptyMensuelRows(),
+  );
   const [syncRefreshTick, setSyncRefreshTick] = useState(0);
   const hasAutoSyncedIcalRef = useRef(false);
   const [syncToast, setSyncToast] = useState<{ message: string; visible: boolean } | null>(null);
@@ -141,7 +149,10 @@ export default function SaisonnierDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     const loadMetrics = async () => {
-      if (!ownerId) return;
+      if (!ownerId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const supabase = createSupabaseBrowserClient();
       const selectedLogement = logementId || undefined;
@@ -187,7 +198,6 @@ export default function SaisonnierDashboardPage() {
   const yearIndex = annees.findIndex((y) => y === annee);
   const canGoPreviousYear = yearIndex >= 0 && yearIndex < annees.length - 1;
   const canGoNextYear = yearIndex > 0;
-  const hasReservationsForYear = stats.total > 0;
 
   return (
     <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
@@ -257,15 +267,11 @@ export default function SaisonnierDashboardPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-xl p-6 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.muted }}>
-          Chargement du dashboard...
-        </div>
-      ) : !hasReservationsForYear ? (
-        <div className="rounded-xl p-6 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.muted }}>
-          Aucune reservation pour {annee}.
-        </div>
-      ) : (
-        <>
+        <p className="text-sm" style={{ color: PC.muted }}>
+          Mise à jour des indicateurs…
+        </p>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
           <p className="text-sm" style={{ color: PC.muted }}>Revenus encaisses</p>
@@ -356,8 +362,6 @@ export default function SaisonnierDashboardPage() {
           </table>
         </div>
       </section>
-        </>
-      )}
     </section>
   );
 }
