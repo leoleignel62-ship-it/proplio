@@ -28,6 +28,7 @@ const EMPTY_REVENUS = {
   revpan: 0,
   moyParReservation: 0,
   variationVsAnneePrec: 0,
+  sansPrixRevenusCount: 0,
 };
 
 const EMPTY_RES_STATS = { total: 0, terminees: 0, enCours: 0, aVenir: 0, annulees: 0 };
@@ -268,6 +269,14 @@ export default function SaisonnierDashboardPage() {
           </p>
         </article>
       </section>
+
+      {revenus.sansPrixRevenusCount > 0 ? (
+        <p className="text-sm" style={{ color: "#fb923c" }}>
+          {revenus.sansPrixRevenusCount === 1
+            ? "1 réservation sans prix non incluse dans les revenus"
+            : `${revenus.sansPrixRevenusCount} réservations sans prix non incluses dans les revenus`}
+        </p>
+      ) : null}
 
       <section className="flex flex-wrap gap-2 text-sm">
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: PC.border }}>Total: {stats.total}</span>

@@ -91,6 +91,12 @@ function getReservationNights(row: DashboardReservationRow): number {
   return Math.max(0, Math.round(diffMs / 86400000));
 }
 
+/** Revenus : uniquement si un prix a été saisi (strictement positif). */
+function montantPourRevenu(tarifTotal: number | null | undefined): number {
+  const t = Number(tarifTotal ?? 0);
+  return t > 0 ? t : 0;
+}
+
 function getReservationStatus(
   row: DashboardReservationRow,
   todayIso: string,
@@ -168,6 +174,7 @@ export async function getRevenusAnnuels(
   revpan: number;
   moyParReservation: number;
   variationVsAnneePrec: number;
+  sansPrixRevenusCount: number;
 }> {
   const [currentRows, prevRows] = await Promise.all([
     fetchDashboardReservations(supabase, proprietaireId, annee, logementId),
@@ -177,24 +184,40 @@ export async function getRevenusAnnuels(
 
   const revenusEncaisses = currentRows
     .filter((r) => getReservationStatus(r, todayIso) === "terminee")
-    .reduce((sum, r) => sum + Number(r.tarif_total ?? 0), 0);
+    .reduce((sum, r) => sum + montantPourRevenu(r.tarif_total), 0);
 
   const revenusAVenir = currentRows
     .filter((r) => getReservationStatus(r, todayIso) === "aVenir" && r.statut !== "annulee" && r.statut !== "en_attente")
-    .reduce((sum, r) => sum + Number(r.tarif_total ?? 0), 0);
+    .reduce((sum, r) => sum + montantPourRevenu(r.tarif_total), 0);
 
   const totalAnnuel = revenusEncaisses + revenusAVenir;
   const validReservations = currentRows.filter((r) => getReservationStatus(r, todayIso) !== "annulee");
   const nuitsOccupees = validReservations.reduce((sum, r) => sum + getReservationNights(r), 0);
   const revpan = nuitsOccupees > 0 ? totalAnnuel / nuitsOccupees : 0;
-  const moyParReservation = validReservations.length > 0 ? totalAnnuel / validReservations.length : 0;
+  const resaAvecPrix = validReservations.filter((r) => montantPourRevenu(r.tarif_total) > 0).length;
+  const moyParReservation = resaAvecPrix > 0 ? totalAnnuel / resaAvecPrix : 0;
 
   const prevTotal = prevRows
     .filter((r) => r.statut !== "annulee")
-    .reduce((sum, r) => sum + Number(r.tarif_total ?? 0), 0);
+    .reduce((sum, r) => sum + montantPourRevenu(r.tarif_total), 0);
   const variationVsAnneePrec = prevTotal > 0 ? ((totalAnnuel - prevTotal) / prevTotal) * 100 : 0;
 
-  return { revenusEncaisses, revenusAVenir, totalAnnuel, revpan, moyParReservation, variationVsAnneePrec };
+  const sansPrixRevenusCount = currentRows.filter(
+    (r) =>
+      r.statut !== "annulee" &&
+      String(r.source ?? "").toLowerCase() !== "blocage" &&
+      Number(r.tarif_total ?? 0) <= 0,
+  ).length;
+
+  return {
+    revenusEncaisses,
+    revenusAVenir,
+    totalAnnuel,
+    revpan,
+    moyParReservation,
+    variationVsAnneePrec,
+    sansPrixRevenusCount,
+  };
 }
 
 export async function getReservationsStats(
@@ -235,7 +258,7 @@ export async function getTauxOccupation(
     if (row.statut === "annulee") continue;
     nuitsOccupees += getReservationNights(row);
     const month = parseISODate(row.date_arrivee).getMonth();
-    revenusParMois[month] += Number(row.tarif_total ?? 0);
+    revenusParMois[month] += montantPourRevenu(row.tarif_total);
   }
   const nbLogements = await getNbLogements(supabase, proprietaireId, logementId);
   const nuitsDisponibles = 365 * nbLogements;
@@ -273,7 +296,7 @@ export async function getRevenusParMois(
   for (const row of rows) {
     if (row.statut === "annulee") continue;
     const idx = parseISODate(row.date_arrivee).getMonth();
-    mapped[idx]!.revenus += Number(row.tarif_total ?? 0);
+    mapped[idx]!.revenus += montantPourRevenu(row.tarif_total);
     mapped[idx]!.nuits += getReservationNights(row);
     mapped[idx]!.nbReservations += 1;
   }
@@ -380,7 +403,7 @@ export async function getSaisonnierDashboardSnapshot(
       const overlap = r.date_arrivee <= monthEndStr && r.date_depart >= monthStartStr;
       if (overlap && (r.statut === "terminee" || r.statut === "en_cours")) {
         const portion =
-          Number(r.tarif_total ?? 0) *
+          montantPourRevenu(r.tarif_total) *
           (() => {
             const totalN = Math.max(
               1,

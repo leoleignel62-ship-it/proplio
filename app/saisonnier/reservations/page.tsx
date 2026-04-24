@@ -384,7 +384,10 @@ export default function ReservationsSaisonnierPage() {
       return;
     }
     const r = rows.find((x) => x.id === detailId);
-    if (r) setDetailPrixReel(String(r.tarif_total));
+    if (r) {
+      const ota = r.source === "airbnb" || r.source === "booking";
+      setDetailPrixReel(ota && Number(r.tarif_total) <= 0 ? "" : String(r.tarif_total));
+    }
   }, [detailId, rows]);
 
   /** Évite un <select> contrôlé avec une valeur absente des options (affichage vide). */
@@ -826,10 +829,12 @@ export default function ReservationsSaisonnierPage() {
           </span>
           <div>
             <p className="font-semibold" style={{ color: "#fb923c" }}>
-              Prix des réservations Airbnb/Booking
+              Prix des réservations Airbnb / Booking
             </p>
-            <p className="mt-2" style={{ color: PC.muted }}>
-              Airbnb et Booking ne communiquent pas les prix via la synchronisation de calendrier. Les réservations importées affichent une estimation basée sur vos tarifs configurés. Pour un suivi précis, renseignez le prix réel directement sur chaque réservation.
+            <p className="mt-2 leading-relaxed" style={{ color: PC.muted }}>
+              Airbnb et Booking ne transmettent pas les prix via la synchronisation de calendrier. Les montants affichés
+              ont été saisis manuellement. Pour les réservations sans prix, cliquez sur «&nbsp;Saisir le prix&nbsp;» et
+              renseignez le montant indiqué sur votre espace hôte Airbnb ou Booking.
             </p>
           </div>
         </div>
@@ -983,6 +988,23 @@ export default function ReservationsSaisonnierPage() {
                           }}
                           onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
                         />
+                      ) : Number(row.tarif_total) <= 0 ? (
+                        <>
+                          <span className="font-medium" style={{ color: "#fb923c" }}>
+                            Prix non renseigné
+                          </span>
+                          <button
+                            type="button"
+                            className="w-fit p-0 text-left text-[12px] font-normal underline"
+                            style={{ color: "#8b5cf6", background: "none", border: "none", cursor: "pointer" }}
+                            onClick={() => {
+                              setEditingMontantId(row.id);
+                              setEditingMontantValue("");
+                            }}
+                          >
+                            Saisir le prix
+                          </button>
+                        </>
                       ) : (
                         <>
                           <span>{row.tarif_total.toFixed(0)} €</span>
@@ -1403,7 +1425,16 @@ export default function ReservationsSaisonnierPage() {
                         row.source
                       )}
                     </li>
-                    <li>Montant (hébergement) : {isBlocage ? "—" : `${row.tarif_total.toFixed(2)} €`}</li>
+                    <li>
+                      Montant (hébergement) :{" "}
+                      {isBlocage ? (
+                        "—"
+                      ) : isOta && Number(row.tarif_total) <= 0 ? (
+                        <span style={{ color: "#fb923c" }}>Prix non renseigné</span>
+                      ) : (
+                        `${row.tarif_total.toFixed(2)} €`
+                      )}
+                    </li>
                     <li>Statut : {row.statut}</li>
                     <li>Notes : {row.notes ?? "—"}</li>
                   </ul>
@@ -1429,7 +1460,7 @@ export default function ReservationsSaisonnierPage() {
                         className="w-full"
                         onClick={() => void saveDetailPrixReel()}
                       >
-                        Modifier
+                        {Number(row.tarif_total) <= 0 ? "Enregistrer le prix" : "Modifier"}
                       </BtnPrimary>
                     </div>
                   ) : null}

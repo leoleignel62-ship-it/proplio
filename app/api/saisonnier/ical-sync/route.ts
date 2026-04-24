@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { parseVeventsFromIcs } from "@/lib/ical-saisonnier";
-import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
 import { normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
     const { data: logement, error: lErr } = await supabase
       .from("logements")
       .select(
-        "id, proprietaire_id, tarifs_creneaux, tarif_nuit_defaut, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url",
+        "id, proprietaire_id, tarif_menage, tarif_caution, ical_airbnb_url, ical_booking_url",
       )
       .eq("id", logementId)
       .eq("proprietaire_id", ownerId)
@@ -72,14 +71,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Logement introuvable." }, { status: 404 });
     }
 
-    const logementTarif = {
-      tarifs_creneaux: logement.tarifs_creneaux,
-      tarif_nuit_defaut: logement.tarif_nuit_defaut as number | null,
-      tarif_nuit_moyenne: logement.tarif_nuit_moyenne as number | null,
-    };
     const tarifMenage = Number(logement.tarif_menage ?? 0);
     const tarifCautionRow = Number(logement.tarif_caution ?? 0);
-    const taxeNuit = Number(logement.taxe_sejour_nuit ?? 0);
 
     const jobs: Array<{ url: string; source: JobSource }> = [];
     const airbnb = String(logement.ical_airbnb_url ?? "").trim();
@@ -151,18 +144,16 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const tarifTotal = calculerMontantReservation(logementTarif, ev.dateArrivee, ev.dateDepart);
-        const tarifNuit = nbNuits > 0 ? Math.round((tarifTotal / nbNuits) * 100) / 100 : 0;
-        const taxeTotal = taxeNuit * nbNuits * 1;
         const { data: existing } = await supabase
           .from("reservations")
-          .select("id, notes")
+          .select("id, notes, tarif_total")
           .eq("proprietaire_id", ownerId)
           .eq("logement_id", logementId)
           .eq("date_arrivee", ev.dateArrivee)
           .eq("date_depart", ev.dateDepart)
           .maybeSingle();
 
+        /** Airbnb/Booking : pas d’estimation — prix saisi manuellement côté app. */
         const base = {
           proprietaire_id: ownerId,
           logement_id: logementId,
@@ -170,25 +161,30 @@ export async function POST(request: Request) {
           date_arrivee: ev.dateArrivee,
           date_depart: ev.dateDepart,
           nb_voyageurs: 1,
-          tarif_nuit: tarifNuit,
-          tarif_total: tarifTotal,
+          tarif_nuit: 0,
+          tarif_total: 0,
           tarif_menage: tarifMenage,
           tarif_caution: tarifCautionRow,
-          taxe_sejour_total: taxeTotal,
+          taxe_sejour_total: 0,
           statut: "confirmee",
           source: job.source,
           notes: summary,
         };
 
         if (existing?.id) {
+          const keepPrice = Number(existing.tarif_total ?? 0) > 0;
           const { error: uErr } = await supabase
             .from("reservations")
             .update({
-              tarif_nuit: tarifNuit,
-              tarif_total: tarifTotal,
+              ...(keepPrice
+                ? {}
+                : {
+                    tarif_nuit: 0,
+                    tarif_total: 0,
+                    taxe_sejour_total: 0,
+                  }),
               tarif_menage: tarifMenage,
               tarif_caution: tarifCautionRow,
-              taxe_sejour_total: taxeTotal,
               statut: "confirmee",
               source: job.source,
               notes: summary,
