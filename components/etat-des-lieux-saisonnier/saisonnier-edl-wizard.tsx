@@ -46,6 +46,15 @@ type EntreeOpt = { id: string; label: string };
 
 const STEP_LABELS = ["Informations", "Pièces", "Inventaire", "Signatures"];
 
+/** `date_arrivee` / `date_depart` (ISO ou YYYY-MM-DD) → valeur pour `<input type="date" />`. */
+function reservationDateToInputValue(raw: string): string {
+  const t = raw?.trim();
+  if (!t) return new Date().toISOString().slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+  const d = new Date(t);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
 export function SaisonnierEdlWizard({
   reservations,
   initialEdlId,
@@ -227,6 +236,17 @@ export function SaisonnierEdlWizard({
   );
 
   const isReadOnly = statut === "termine";
+
+  /** Création uniquement : date EDL = arrivée (entrée) ou départ (sortie) — édition `/[id]` inchangée. */
+  useEffect(() => {
+    if (initialEdlId) return;
+    if (isReadOnly) return;
+    if (!reservationId) return;
+    const r = reservations.find((x) => x.id === reservationId);
+    if (!r) return;
+    const raw = typeEtat === "entree" ? r.date_arrivee : r.date_depart;
+    setDateEtat(reservationDateToInputValue(raw));
+  }, [initialEdlId, isReadOnly, reservationId, typeEtat, reservations]);
 
   async function onSendPdfEmail() {
     if (!edlId || !isReadOnly) return;
