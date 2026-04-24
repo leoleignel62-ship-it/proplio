@@ -37,18 +37,32 @@ export default function SaisonnierEdlDetailPage() {
   const [error, setError] = useState("");
   const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
   const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
+  const [edlStatut, setEdlStatut] = useState<string | null>(null);
 
   const loadReservations = useCallback(async () => {
     const { proprietaireId, error: pe } = await getCurrentProprietaireId();
     if (pe || !proprietaireId) {
       setError(pe ? formatSubmitError(pe) : "Session invalide.");
+      setEdlStatut(null);
       return;
     }
     const plan = await getOwnerPlan(proprietaireId);
     setCurrentPlan(plan);
     if (plan === "free") {
       setLoading(false);
+      setEdlStatut(null);
       return;
+    }
+    if (id) {
+      const { data: edlRow } = await supabase
+        .from("etats_des_lieux")
+        .select("statut")
+        .eq("id", id)
+        .eq("proprietaire_id", proprietaireId)
+        .maybeSingle();
+      setEdlStatut(edlRow?.statut != null ? String(edlRow.statut) : null);
+    } else {
+      setEdlStatut(null);
     }
     const { data, error: re } = await supabase
       .from("reservations")
@@ -75,7 +89,7 @@ export default function SaisonnierEdlDetailPage() {
     });
     setReservations(resaList);
     setLoading(false);
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     void loadReservations();
@@ -101,11 +115,28 @@ export default function SaisonnierEdlDetailPage() {
     );
   }
 
+  const isEdlFinalise = edlStatut === "termine";
+
   return (
-    <section className="proplio-page-wrap min-h-[60vh]">
+    <section className="proplio-page-wrap relative min-h-[60vh]">
+      {isEdlFinalise ? (
+        <div
+          className="fixed left-0 right-0 top-0 z-[90] border-b px-4 py-3 text-sm shadow-sm"
+          role="status"
+          style={{
+            backgroundColor: PC.warningBg15,
+            color: PC.warning,
+            borderColor: PC.border,
+          }}
+        >
+          ⚠️ Cet état des lieux est finalisé et ne peut plus être modifié. Vous pouvez uniquement le consulter,
+          générer le PDF ou l&apos;envoyer.
+        </div>
+      ) : null}
       <SaisonnierEdlWizard
         reservations={reservations}
         initialEdlId={id}
+        showLockedBanner={isEdlFinalise}
         onClose={() => router.push("/saisonnier/etats-des-lieux")}
         onSaved={() => void loadReservations()}
       />

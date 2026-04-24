@@ -27,11 +27,26 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import {
-  PDF_FOOTER_HEIGHT,
-  PDF_SIGNATURE_FOOTER_RESERVE,
-  sanitizePdfText,
-} from "@/lib/pdf/pdf-utils";
+import { PDF_FOOTER_HEIGHT, PDF_SIGNATURE_FOOTER_RESERVE } from "@/lib/pdf/pdf-utils";
+
+/** Helvetica StandardFonts = WinAnsi : pas de ✓ ✗ ⚠️ etc. */
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/✓/g, "OK")
+    .replace(/✗/g, "Non")
+    .replace(/⚠️/g, "!")
+    .replace(/⚠/g, "!")
+    .replace(/✅/g, "OK")
+    .replace(/❌/g, "Non")
+    .replace(/\u2713/g, "OK")
+    .replace(/\u2717/g, "Non")
+    .replace(/\u26a0/g, "!")
+    .replace(/\u202f/g, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\u2019/g, "'")
+    .replace(/\u2013/g, "-")
+    .replace(/\u2014/g, "-");
+}
 
 const USABLE_W = PAGE_W - 2 * MARGIN;
 const PHOTO_BOX = 52;
@@ -84,9 +99,9 @@ function drawImageCoverInBox(
 }
 
 function etatIcon(e: SaisonnierEtatPiece): string {
-  if (e === "bon") return "✓ Bon";
+  if (e === "bon") return "OK Bon";
   if (e === "moyen") return "~ Moyen";
-  return "✗ Mauvais";
+  return "Non Mauvais";
 }
 
 function drawSaisonnierSignatureBlock(
@@ -253,7 +268,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     "ÉTAT DES LIEUX - LOCATION SAISONNIÈRE\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(page, font, fontBold, headerTitle);
+  drawProplioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
   let y = pdfContentTopAfterHeader();
   const reserveSig = { on: false };
   const sigFloor = () =>
@@ -261,7 +276,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
 
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawProplioPdfHeader(page, font, fontBold, headerTitle);
+    drawProplioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
     y = pdfContentTopAfterHeader();
   };
 
@@ -269,7 +284,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     const f = bold ? fontBold : font;
     for (const ln of wrapLines(sanitizePdfText(text), f, size, USABLE_W)) {
       if (y < sigFloor()) newPage();
-      page.drawText(ln, { x: MARGIN, y, size, font: f, color });
+      page.drawText(sanitizePdfText(ln), { x: MARGIN, y, size, font: f, color });
       y -= size + 3;
     }
   };
@@ -318,12 +333,12 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   page.drawText(sanitizePdfText("Bailleur"), { x: MARGIN + 6, y: ty, size: 9, font: fontBold, color: PRIMARY });
   ty -= 12;
   for (const ln of wrapLines(sanitizePdfText(params.bailleur.nom), fontBold, 9, colW2 - 12)) {
-    page.drawText(ln, { x: MARGIN + 6, y: ty, size: 9, font: fontBold, color: BODY });
+    page.drawText(sanitizePdfText(ln), { x: MARGIN + 6, y: ty, size: 9, font: fontBold, color: BODY });
     ty -= 10;
   }
   for (const ad of params.bailleur.adresseLignes) {
     for (const ln of wrapLines(sanitizePdfText(ad), font, 8, colW2 - 12)) {
-      page.drawText(ln, { x: MARGIN + 6, y: ty, size: 8, font, color: MUTED });
+      page.drawText(sanitizePdfText(ln), { x: MARGIN + 6, y: ty, size: 8, font, color: MUTED });
       ty -= 9;
     }
   }
@@ -447,7 +462,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     });
     let oy = topL - 14;
     for (const ln of obsLines) {
-      page.drawText(ln, { x: MARGIN + 6, y: oy, size: 8, font, color: MUTED });
+      page.drawText(sanitizePdfText(ln), { x: MARGIN + 6, y: oy, size: 8, font, color: MUTED });
       oy -= 9;
     }
     let px = MARGIN + USABLE_W - 6 - PHOTO_BOX;

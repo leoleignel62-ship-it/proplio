@@ -51,11 +51,14 @@ export function SaisonnierEdlWizard({
   initialEdlId,
   onClose,
   onSaved,
+  showLockedBanner = false,
 }: {
   reservations: SaisonnierReservationOption[];
   initialEdlId: string | null;
   onClose: () => void;
   onSaved: () => void;
+  /** Bandeau « finalisé » rendu sur la page détail — décale le contenu sous le bandeau fixe */
+  showLockedBanner?: boolean;
 }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
@@ -74,6 +77,8 @@ export function SaisonnierEdlWizard({
   const [ownerSigUrl, setOwnerSigUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [sendBusy, setSendBusy] = useState(false);
+  const [sendToast, setSendToast] = useState("");
 
   const payloadRef = useRef(payload);
   payloadRef.current = payload;
@@ -223,6 +228,26 @@ export function SaisonnierEdlWizard({
 
   const isReadOnly = statut === "termine";
 
+  async function onSendPdfEmail() {
+    if (!edlId || !isReadOnly) return;
+    setSendBusy(true);
+    setError("");
+    setSendToast("");
+    try {
+      const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
+      const j = (await res.json()) as { error?: string; to?: string[] };
+      if (!res.ok) setError(j.error ?? "Envoi impossible.");
+      else {
+        setSendToast(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}`);
+        window.setTimeout(() => setSendToast(""), 4000);
+      }
+    } catch (e) {
+      setError(formatSubmitError(e));
+    } finally {
+      setSendBusy(false);
+    }
+  }
+
   async function ensureCreatedFromStep1(): Promise<string | null> {
     if (edlId) return edlId;
     setSaving(true);
@@ -294,6 +319,10 @@ export function SaisonnierEdlWizard({
   }
 
   async function onNext() {
+    if (isReadOnly) {
+      setStep((s) => Math.min(3, s + 1));
+      return;
+    }
     if (step === 0) {
       const p = payloadRef.current;
       p.general.nb_cles = Math.max(0, Math.floor(Number(p.general.nb_cles) || 0));
@@ -426,7 +455,10 @@ export function SaisonnierEdlWizard({
   return (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto p-4"
-      style={{ backgroundColor: PC.overlay }}
+      style={{
+        backgroundColor: PC.overlay,
+        paddingTop: showLockedBanner ? "5.5rem" : undefined,
+      }}
     >
       <div
         className="my-8 w-full max-w-3xl rounded-2xl p-6 shadow-2xl"
@@ -441,13 +473,35 @@ export function SaisonnierEdlWizard({
               Étape {step + 1}/4 — {STEP_LABELS[step]}
             </p>
           </div>
-          <button
-            type="button"
-            className="text-sm pc-outline-muted rounded-lg px-3 py-1.5"
-            onClick={onClose}
-          >
-            Fermer
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {isReadOnly && edlId ? (
+              <>
+                <a
+                  href={`/api/etats-des-lieux/${edlId}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg px-3 py-1.5 text-sm pc-outline-primary"
+                >
+                  PDF
+                </a>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-1.5 text-sm pc-outline-success"
+                  disabled={sendBusy}
+                  onClick={() => void onSendPdfEmail()}
+                >
+                  {sendBusy ? "…" : "Envoyer"}
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="text-sm pc-outline-muted rounded-lg px-3 py-1.5"
+              onClick={onClose}
+            >
+              Fermer
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 flex gap-1">
@@ -469,6 +523,14 @@ export function SaisonnierEdlWizard({
         {error ? (
           <p className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
             {error}
+          </p>
+        ) : null}
+        {sendToast ? (
+          <p
+            className="mb-4 rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid rgba(16, 185, 129, 0.3)`, backgroundColor: PC.successBg10, color: PC.success }}
+          >
+            {sendToast}
           </p>
         ) : null}
 
@@ -844,8 +906,8 @@ export function SaisonnierEdlWizard({
               </span>
             </label>
             {isReadOnly ? (
-              <p className="text-sm font-medium" style={{ color: PC.success }}>
-                Document finalisé. Vous pouvez télécharger le PDF depuis la liste.
+              <p className="text-sm" style={{ color: PC.muted }}>
+                Utilisez les boutons <strong>PDF</strong> et <strong>Envoyer</strong> ci-dessus pour partager le document.
               </p>
             ) : (
               <button
@@ -873,7 +935,7 @@ export function SaisonnierEdlWizard({
             <button
               type="button"
               className="rounded-lg px-4 py-2 text-sm font-medium pc-solid-primary"
-              disabled={saving || isReadOnly}
+              disabled={saving}
               onClick={() => void onNext()}
             >
               {saving ? "…" : "Suivant"}
