@@ -67,46 +67,6 @@ function parseDecimal(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function normalizeText(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function scoreMatch(a: string, b: string): number {
-  if (!a || !b) return 0;
-  if (a === b) return 100;
-  if (a.includes(b) || b.includes(a)) return 80;
-  const ta = new Set(a.split(" ").filter(Boolean));
-  const tb = new Set(b.split(" ").filter(Boolean));
-  let common = 0;
-  for (const t of ta) {
-    if (tb.has(t)) common += 1;
-  }
-  return common * 10;
-}
-
-function findBestLogementMatch(
-  csvName: string,
-  logements: Array<{ id: string; nom: string }>,
-): { id: string; nom: string } | null {
-  const target = normalizeText(csvName);
-  let best: { id: string; nom: string } | null = null;
-  let bestScore = 0;
-  for (const logement of logements) {
-    const score = scoreMatch(target, normalizeText(logement.nom));
-    if (score > bestScore) {
-      best = logement;
-      bestScore = score;
-    }
-  }
-  return bestScore >= 10 ? best : null;
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -131,27 +91,28 @@ export async function POST(request: Request) {
     }
     const ownerId = String(proprietaire.id);
 
-    const form = await request.formData();
-    const csvFile = form.get("file");
-    if (!(csvFile instanceof File)) {
-      return NextResponse.json({ error: "Fichier CSV manquant." }, { status: 400 });
+    const body = (await request.json()) as { csv?: string; logement_id?: string };
+    const csvText = String(body.csv ?? "");
+    const logementId = String(body.logement_id ?? "").trim();
+    if (!csvText.trim()) {
+      return NextResponse.json({ error: "Contenu CSV manquant." }, { status: 400 });
     }
-    if (!csvFile.name.toLowerCase().endsWith(".csv")) {
-      return NextResponse.json({ error: "Le fichier doit être au format .csv." }, { status: 400 });
+    if (!logementId) {
+      return NextResponse.json({ error: "logement_id requis." }, { status: 400 });
     }
-
-    const csvText = await csvFile.text();
     const rows = parseCsv(csvText);
     if (!rows.length) {
       return NextResponse.json({ error: "Le fichier CSV est vide ou invalide." }, { status: 400 });
     }
 
-    const { data: logements, error: logementsErr } = await supabase
+    const { data: logement, error: logementErr } = await supabase
       .from("logements")
-      .select("id, nom")
-      .eq("proprietaire_id", ownerId);
-    if (logementsErr) {
-      return NextResponse.json({ error: logementsErr.message }, { status: 500 });
+      .select("id")
+      .eq("id", logementId)
+      .eq("proprietaire_id", ownerId)
+      .maybeSingle();
+    if (logementErr || !logement) {
+      return NextResponse.json({ error: "Logement introuvable." }, { status: 404 });
     }
 
     const { data: existingCodesRows, error: existingErr } = await supabase
@@ -176,7 +137,6 @@ export async function POST(request: Request) {
 
     let imported = 0;
     let skipped = 0;
-    const unmatched: Array<{ code: string; logement_nom: string; dates: string }> = [];
     const todayIso = new Date().toISOString().slice(0, 10);
 
     for (const row of rows) {
@@ -200,19 +160,6 @@ export async function POST(request: Request) {
       const taxeSejour = parseDecimal(String(row["Taxes reversées par Airbnb"] ?? "0"));
       const fraisService = parseDecimal(String(row["Frais de service"] ?? "0"));
       const voyageur = String(row["Voyageur"] ?? "").trim();
-      const logementNomCsv = String(row["Logement"] ?? "").trim();
-      const logementMatch = findBestLogementMatch(
-        logementNomCsv,
-        (logements ?? []).map((l) => ({ id: String(l.id), nom: String(l.nom ?? "") })),
-      );
-      if (!logementMatch) {
-        unmatched.push({
-          code,
-          logement_nom: logementNomCsv || "(vide)",
-          dates: `${dateArrivee} → ${dateDepart}`,
-        });
-      }
-
       const tarifNuit = nuits > 0 ? Math.round((revenusBruts / nuits) * 100) / 100 : 0;
       const statut = dateDepart < todayIso ? "terminee" : "confirmee";
       const notes = [
@@ -224,7 +171,7 @@ export async function POST(request: Request) {
 
       const { error: insertErr } = await supabase.from("reservations").insert({
         proprietaire_id: ownerId,
-        logement_id: logementMatch?.id ?? null,
+        logement_id: logementId,
         voyageur_id: null,
         date_arrivee: dateArrivee,
         date_depart: dateDepart,
@@ -262,7 +209,7 @@ export async function POST(request: Request) {
       existingCodes.add(code);
     }
 
-    return NextResponse.json({ imported, skipped, unmatched });
+    return NextResponse.json({ imported, skipped });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur serveur." },

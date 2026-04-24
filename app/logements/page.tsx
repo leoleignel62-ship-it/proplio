@@ -192,7 +192,6 @@ export default function LogementsPage() {
   const [csvImportResult, setCsvImportResult] = useState<{
     imported: number;
     skipped: number;
-    unmatchedNames: string[];
   } | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
@@ -778,33 +777,32 @@ export default function LogementsPage() {
       setIcalSyncMessage("Sélectionnez d'abord un fichier CSV Airbnb.");
       return;
     }
+    if (!editingRow?.id) {
+      setIcalSyncMessage("Enregistrez le logement avant d'importer un CSV.");
+      return;
+    }
     setCsvImportLoading(true);
     setIcalSyncMessage("");
     setCsvImportResult(null);
     try {
-      const form = new FormData();
-      form.append("file", csvImportFile);
+      const csvContent = await csvImportFile.text();
       const res = await fetch("/api/saisonnier/import-csv-airbnb", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: csvContent, logement_id: editingRow.id }),
       });
       const data = (await res.json()) as {
         error?: string;
         imported?: number;
         skipped?: number;
-        unmatched?: Array<{ code: string; logement_nom: string; dates: string }>;
       };
       if (!res.ok) {
         setIcalSyncMessage(data.error ?? "Échec import CSV.");
         return;
       }
-      const unmatchedNames = Array.from(
-        new Set((data.unmatched ?? []).map((x) => x.logement_nom).filter(Boolean)),
-      );
       setCsvImportResult({
         imported: data.imported ?? 0,
         skipped: data.skipped ?? 0,
-        unmatchedNames,
       });
       if (editingRow?.id) {
         await loadRows(proprietaireId);
@@ -1604,17 +1602,6 @@ export default function LogementsPage() {
                           ✅ {csvImportResult.imported} réservations importées
                         </p>
                         <p>⏭️ {csvImportResult.skipped} déjà existantes (ignorées)</p>
-                        <p>
-                          ⚠️ {csvImportResult.unmatchedNames.length} non associées à un logement :
-                          {csvImportResult.unmatchedNames.length > 0
-                            ? ` ${csvImportResult.unmatchedNames.join(", ")}`
-                            : " aucune"}
-                        </p>
-                        {csvImportResult.unmatchedNames.length > 0 ? (
-                          <p>
-                            Ces réservations ont été importées sans logement. Associez-les manuellement depuis la page Réservations.
-                          </p>
-                        ) : null}
                       </div>
                     ) : null}
                   </div>
