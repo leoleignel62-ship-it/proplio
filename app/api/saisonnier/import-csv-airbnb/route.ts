@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 type CsvRow = Record<string, string>;
 
 function stripBom(input: string): string {
-  return input.charCodeAt(0) === 0xfeff ? input.slice(1) : input;
+  return input.replace(/^\uFEFF/, "");
 }
 
 function parseCsvLine(line: string): string[] {
@@ -41,7 +41,7 @@ function parseCsv(content: string): CsvRow[] {
   const clean = stripBom(content).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const lines = clean.split("\n").filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]!).map((h) => h.trim());
+  const headers = parseCsvLine(lines[0]!).map((h) => stripBom(h.trim()));
   const rows: CsvRow[] = [];
   for (let i = 1; i < lines.length; i += 1) {
     const cols = parseCsvLine(lines[i]!);
@@ -54,12 +54,20 @@ function parseCsv(content: string): CsvRow[] {
   return rows;
 }
 
-function parseFrDateToIso(value: string): string | null {
+function parseFlexibleDateToIso(value: string): string | null {
   const v = value.trim();
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
   if (!m) return null;
-  const [, dd, mm, yyyy] = m;
-  return `${yyyy}-${mm}-${dd}`;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  const yyyy = m[3]!;
+  if (a > 12 && b >= 1 && b <= 12) {
+    return `${yyyy}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+  }
+  if (b > 12 && a >= 1 && a <= 12) {
+    return `${yyyy}-${String(a).padStart(2, "0")}-${String(b).padStart(2, "0")}`;
+  }
+  return `${yyyy}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
 }
 
 function parseDecimal(value: string): number {
@@ -101,9 +109,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "logement_id requis." }, { status: 400 });
     }
     const rows = parseCsv(csvText);
+    console.log("[import-csv] nb lignes trouvées après parsing:", rows.length);
     if (!rows.length) {
       return NextResponse.json({ error: "Le fichier CSV est vide ou invalide." }, { status: 400 });
     }
+    const reservationRowsCount = rows.filter(
+      (row) => String(row["Type"] ?? "").trim().normalize("NFC") === "Réservation",
+    ).length;
+    console.log("[import-csv] nb lignes Type=Réservation:", reservationRowsCount);
 
     const { data: logement, error: logementErr } = await supabase
       .from("logements")
@@ -143,15 +156,15 @@ export async function POST(request: Request) {
       const type = String(row["Type"] ?? "").trim();
       const code = String(row["Code de confirmation"] ?? "").trim();
       if (!code) continue;
-      if (type !== "Réservation") continue;
+      if (type.normalize("NFC") !== "Réservation") continue;
       if (type.includes("Annulation") || type.includes("Résolution")) continue;
       if (existingCodes.has(code)) {
         skipped += 1;
         continue;
       }
 
-      const dateArrivee = parseFrDateToIso(String(row["Date de début"] ?? ""));
-      const dateDepart = parseFrDateToIso(String(row["Date de fin"] ?? ""));
+      const dateArrivee = parseFlexibleDateToIso(String(row["Date de début"] ?? ""));
+      const dateDepart = parseFlexibleDateToIso(String(row["Date de fin"] ?? ""));
       if (!dateArrivee || !dateDepart) continue;
 
       const nuits = Math.max(1, Number.parseInt(String(row["Nuits"] ?? "1"), 10) || 1);
