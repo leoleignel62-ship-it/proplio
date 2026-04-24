@@ -213,6 +213,7 @@ export function SaisonnierReservationsPlanningCalendar({
       .from("reservations")
       .select("id, logement_id, date_arrivee, date_depart, source, voyageurs(prenom, nom)")
       .eq("proprietaire_id", proprietaireId)
+      .neq("source", "blocage")
       .lte("date_arrivee", fetchEndLast)
       .gt("date_depart", fetchStart)
       .order("date_arrivee", { ascending: true });

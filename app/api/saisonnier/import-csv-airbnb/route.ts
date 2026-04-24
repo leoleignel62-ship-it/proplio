@@ -160,6 +160,12 @@ export async function POST(request: Request) {
 
       const dateArrivee = parseFlexibleDateToIso(String(row["Date de début"] ?? ""));
       const dateDepart = parseFlexibleDateToIso(String(row["Date de fin"] ?? ""));
+      console.log(
+        "[import-csv] dates:",
+        String(row["Date de début"] ?? ""),
+        "->",
+        String(row["Date de fin"] ?? ""),
+      );
       if (!dateArrivee || !dateDepart) continue;
 
       const nuits = Math.max(1, Number.parseInt(String(row["Nuits"] ?? "1"), 10) || 1);
