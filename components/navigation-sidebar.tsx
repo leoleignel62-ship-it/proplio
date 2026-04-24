@@ -21,7 +21,6 @@ import {
   IconContract,
   IconDocument,
   IconHome,
-  IconSparkles,
   IconTrendingUp,
   IconUsers,
 } from "@/components/proplio-icons";
@@ -67,9 +66,8 @@ const navigationModeSaisonnier = [
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
-  { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
-  { href: "/saisonnier/menage", label: "Ménage", icon: IconSparkles },
   { href: "/saisonnier/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
+  { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
 ] as const;
 
 const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;

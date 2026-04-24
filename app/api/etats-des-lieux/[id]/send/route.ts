@@ -64,18 +64,29 @@ export async function POST(
     }
 
     const locataireId = edl.locataire_id as string | undefined;
+    const reservationId = (edl.bail_id as string | undefined) ?? null;
     const sigPath = proprietaire.signature_path as string | undefined;
 
-    const [locRes, sigDownload] = await Promise.all([
+    const [locRes, resaRes, sigDownload] = await Promise.all([
       locataireId
         ? supabase.from("locataires").select("email").eq("id", locataireId).maybeSingle()
         : Promise.resolve({ data: null as { email: string | null } | null }),
+      reservationId
+        ? supabase
+            .from("reservations")
+            .select("voyageur_id, voyageurs(email)")
+            .eq("id", reservationId)
+            .maybeSingle()
+        : Promise.resolve({ data: null as Record<string, unknown> | null }),
       sigPath
         ? supabaseAdmin.storage.from("signatures").download(sigPath)
         : Promise.resolve({ data: null as Blob | null }),
     ]);
 
-    const tenantEmail = String(locRes.data?.email ?? "").trim();
+    const resaVoyageurs = Array.isArray((resaRes.data as Record<string, unknown> | null)?.voyageurs)
+      ? ((resaRes.data as Record<string, unknown>).voyageurs as Array<Record<string, unknown>>)[0]
+      : ((resaRes.data as Record<string, unknown> | null)?.voyageurs as Record<string, unknown> | null);
+    const tenantEmail = String(locRes.data?.email ?? resaVoyageurs?.email ?? "").trim();
     if (!tenantEmail) {
       return NextResponse.json(
         { error: "E-mail du locataire manquant sur sa fiche." },

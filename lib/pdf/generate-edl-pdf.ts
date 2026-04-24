@@ -157,6 +157,8 @@ export type EdlPdfParams = {
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
   /** storage_path -> embedded image bytes */
   photoFiles: Map<string, Uint8Array>;
+  documentTitle?: string;
+  stayInfoLine?: string;
 };
 
 export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8Array> {
@@ -182,7 +184,8 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   }
 
   const edlHeaderTitle =
-    "ÉTAT DES LIEUX\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
+    params.documentTitle ??
+    ("ÉTAT DES LIEUX\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE"));
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
   drawProplioPdfHeader(page, font, fontBold, edlHeaderTitle);
@@ -220,6 +223,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   line("Bailleur", params.bailleurNom);
   line("Preneur", params.preneurNom);
   line("Adresse du logement", params.logementAdresse);
+  if (params.stayInfoLine) line("Séjour", params.stayInfoLine);
   y -= 10;
 
   type StateCol =

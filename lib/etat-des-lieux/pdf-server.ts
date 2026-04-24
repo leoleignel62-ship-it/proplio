@@ -37,8 +37,9 @@ export async function buildEdlPdfBufferFromDb(
 ): Promise<Uint8Array> {
   const logementId = edl.logement_id as string | undefined;
   const locataireId = edl.locataire_id as string | undefined;
+  const reservationId = edl.bail_id as string | undefined;
 
-  const [logementRes, locataireRes] = await Promise.all([
+  const [logementRes, locataireRes, reservationRes] = await Promise.all([
     logementId
       ? supabase
           .from("logements")
@@ -49,14 +50,26 @@ export async function buildEdlPdfBufferFromDb(
     locataireId
       ? supabase.from("locataires").select("id, prenom, nom").eq("id", locataireId).maybeSingle()
       : Promise.resolve({ data: null }),
+    reservationId
+      ? supabase
+          .from("reservations")
+          .select("id, date_arrivee, date_depart, voyageurs(prenom, nom)")
+          .eq("id", reservationId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const logement = logementRes.data;
   const locataire = locataireRes.data;
+  const reservation = reservationRes.data;
 
   const bailleurNom =
     `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—";
+  const reservationVoyageur = Array.isArray((reservation as Record<string, unknown> | null)?.voyageurs)
+    ? ((reservation as Record<string, unknown>).voyageurs as Array<Record<string, unknown>>)[0]
+    : ((reservation as Record<string, unknown> | null)?.voyageurs as Record<string, unknown> | null);
   const preneurNom =
     `${(locataire as Record<string, unknown> | null)?.prenom ?? ""} ${(locataire as Record<string, unknown> | null)?.nom ?? ""}`.trim() ||
+    `${String(reservationVoyageur?.prenom ?? "")} ${String(reservationVoyageur?.nom ?? "")}`.trim() ||
     "—";
   const logementAdresse = logement
     ? `${(logement as Record<string, unknown>).adresse ?? ""}, ${(logement as Record<string, unknown>).code_postal ?? ""} ${(logement as Record<string, unknown>).ville ?? ""}`.trim()
@@ -95,6 +108,12 @@ export async function buildEdlPdfBufferFromDb(
     if (entry) photoFiles.set(entry[0], entry[1]);
   }
 
+  const isSaisonnier = Boolean(reservation && !locataire);
+  const stayInfoLine =
+    reservation && reservation.date_arrivee && reservation.date_depart
+      ? `${new Date(String(reservation.date_arrivee)).toLocaleDateString("fr-FR")} → ${new Date(String(reservation.date_depart)).toLocaleDateString("fr-FR")}`
+      : undefined;
+
   const params: EdlPdfParams = {
     typeEtat,
     dateEtat,
@@ -111,6 +130,10 @@ export async function buildEdlPdfBufferFromDb(
     entryPiecesJson,
     signatureImage: signatureBytes,
     photoFiles,
+    documentTitle: isSaisonnier
+      ? `ÉTAT DES LIEUX - LOCATION SAISONNIÈRE\n${typeEtat === "entree" ? "ENTRÉE" : "SORTIE"}`
+      : undefined,
+    stayInfoLine,
   };
 
   return generateEdlPdfBuffer(params);
