@@ -109,14 +109,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "logement_id requis." }, { status: 400 });
     }
     const rows = parseCsv(csvText);
-    console.log("[import-csv] nb lignes trouvées après parsing:", rows.length);
     if (!rows.length) {
       return NextResponse.json({ error: "Le fichier CSV est vide ou invalide." }, { status: 400 });
     }
-    const reservationRowsCount = rows.filter(
-      (row) => String(row["Type"] ?? "").trim().normalize("NFC") === "Réservation",
-    ).length;
-    console.log("[import-csv] nb lignes Type=Réservation:", reservationRowsCount);
 
     const { data: logement, error: logementErr } = await supabase
       .from("logements")
@@ -134,7 +129,6 @@ export async function POST(request: Request) {
       .eq("proprietaire_id", ownerId)
       .not("airbnb_confirmation_code", "is", null);
     if (existingErr) {
-      console.log("[import-csv] vérification colonne airbnb_confirmation_code échouée:", JSON.stringify(existingErr));
       return NextResponse.json(
         {
           error:
@@ -189,7 +183,6 @@ export async function POST(request: Request) {
         voyageur_id: null,
         date_arrivee: dateArrivee,
         date_depart: dateDepart,
-        nb_nuits: nuits,
         nb_voyageurs: 1,
         tarif_total: revenusBruts,
         tarif_nuit: tarifNuit,
@@ -208,9 +201,7 @@ export async function POST(request: Request) {
       };
 
       try {
-        console.log("[import-csv] tentative insert:", JSON.stringify(reservation));
         const { error: insertErr } = await supabase.from("reservations").insert(reservation);
-        console.log("[import-csv] résultat insert:", JSON.stringify(insertErr));
         if (insertErr) {
           if (String(insertErr.message ?? "").includes("airbnb_confirmation_code")) {
             return NextResponse.json(
@@ -223,11 +214,7 @@ export async function POST(request: Request) {
           }
           continue;
         }
-      } catch (insertException) {
-        console.log(
-          "[import-csv] exception insert:",
-          JSON.stringify(insertException instanceof Error ? insertException.message : insertException),
-        );
+      } catch {
         continue;
       }
 
