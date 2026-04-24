@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
 import { IconPlus } from "@/components/proplio-icons";
 import {
@@ -445,6 +445,7 @@ export default function LogementsPage() {
   }
 
   function closeModal() {
+    if (csvImportLoading) return;
     setIsModalOpen(false);
     setEditingRow(null);
     setValues(baseDefaultValues);
@@ -772,7 +773,10 @@ export default function LogementsPage() {
     }
   }
 
-  async function importAirbnbCsvHistory() {
+  async function importAirbnbCsvHistory(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (csvImportLoading) return;
     if (!csvImportFile) {
       setIcalSyncMessage("Sélectionnez d'abord un fichier CSV Airbnb.");
       return;
@@ -786,10 +790,11 @@ export default function LogementsPage() {
     setCsvImportResult(null);
     try {
       const csvContent = await csvImportFile.text();
+      const requestBody = { csv: csvContent, logement_id: editingRow.id };
       const res = await fetch("/api/saisonnier/import-csv-airbnb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvContent, logement_id: editingRow.id }),
+        body: JSON.stringify(requestBody),
       });
       const data = (await res.json()) as {
         error?: string;
@@ -998,7 +1003,12 @@ export default function LogementsPage() {
           <div className="mx-auto max-w-3xl" style={LOGEMENT_MODAL_CARD}>
             <div className="mb-4 flex items-start justify-between">
               <h3 className="text-lg font-semibold">{isEditing ? "Modifier le logement" : "Créer un logement"}</h3>
-              <button type="button" className="rounded-lg px-2 py-1 text-sm pc-close-muted" onClick={closeModal}>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-sm pc-close-muted disabled:opacity-40"
+                onClick={closeModal}
+                disabled={csvImportLoading}
+              >
                 Fermer
               </button>
             </div>
@@ -1590,11 +1600,11 @@ export default function LogementsPage() {
                       className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
                       style={{ backgroundColor: PC.primary, color: PC.white }}
                       disabled={csvImportLoading || !csvImportFile}
-                      onClick={() => {
-                        void importAirbnbCsvHistory();
+                        onClick={(e) => {
+                          void importAirbnbCsvHistory(e);
                       }}
                     >
-                      {csvImportLoading ? "Import..." : "Importer"}
+                      {csvImportLoading ? "Import en cours..." : "Importer"}
                     </button>
                     {csvImportResult ? (
                       <div className="mt-3 space-y-1 text-xs" style={{ color: PC.muted }}>
@@ -1609,7 +1619,12 @@ export default function LogementsPage() {
               ) : null}
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" className="proplio-btn-secondary" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="proplio-btn-secondary"
+                  onClick={closeModal}
+                  disabled={csvImportLoading}
+                >
                   Annuler
                 </button>
                 <button type="submit" disabled={isSubmitting} className="proplio-btn-primary px-6">
