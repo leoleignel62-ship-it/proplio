@@ -1,23 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export type ModeLocation = "classique" | "saisonnier";
 
 const STORAGE_KEY = "proplio-mode-location";
 
-function readStoredMode(): ModeLocation {
-  if (typeof window === "undefined") return "classique";
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  return raw === "saisonnier" ? "saisonnier" : "classique";
-}
-
+/**
+ * Chaque session / rechargement démarre en classique.
+ * localStorage n’est mis à jour que lorsque l’utilisateur change le mode (toggle).
+ */
 export function useModeLocation() {
   const [mode, setModeState] = useState<ModeLocation>("classique");
-
-  useEffect(() => {
-    setModeState(readStoredMode());
-  }, []);
 
   const setMode = useCallback((next: ModeLocation) => {
     setModeState(next);
