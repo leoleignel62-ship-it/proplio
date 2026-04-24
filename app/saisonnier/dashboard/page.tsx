@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   getAnneesDisponibles,
@@ -53,6 +53,9 @@ export default function SaisonnierDashboardPage() {
   const [occupation, setOccupation] = useState(EMPTY_OCC);
   const [sources, setSources] = useState(EMPTY_SOURCES);
   const [mensuel, setMensuel] = useState<Array<{ mois: string; revenus: number; nuits: number; nbReservations: number }>>([]);
+  const [syncRefreshTick, setSyncRefreshTick] = useState(0);
+  const hasAutoSyncedIcalRef = useRef(false);
+  const [syncToast, setSyncToast] = useState<{ message: string; visible: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +78,7 @@ export default function SaisonnierDashboardPage() {
         getAnneesDisponibles(supabase, nextOwnerId),
         supabase
           .from("logements")
-          .select("id, nom, type_location")
+          .select("id, nom, type_location, ical_airbnb_url, ical_booking_url")
           .eq("proprietaire_id", nextOwnerId),
       ]);
 
@@ -88,12 +91,52 @@ export default function SaisonnierDashboardPage() {
           .filter((l) => l.type_location === "saisonnier" || l.type_location === "les_deux")
           .map((l) => ({ id: String(l.id), nom: String(l.nom ?? "Logement") })),
       );
+
+      if (!hasAutoSyncedIcalRef.current) {
+        hasAutoSyncedIcalRef.current = true;
+        const logementsAvecIcal = (logementsData.data ?? [])
+          .filter((l) => l.type_location === "saisonnier" || l.type_location === "les_deux")
+          .map((l) => ({
+            id: String(l.id),
+            airbnb: String((l as { ical_airbnb_url?: string | null }).ical_airbnb_url ?? "").trim(),
+            booking: String((l as { ical_booking_url?: string | null }).ical_booking_url ?? "").trim(),
+          }))
+          .filter((l) => l.airbnb.length > 0 || l.booking.length > 0);
+        if (logementsAvecIcal.length > 0) {
+          void (async () => {
+            const results = await Promise.allSettled(
+              logementsAvecIcal.map((logement) =>
+                fetch("/api/saisonnier/ical-sync", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ logement_id: logement.id }),
+                }),
+              ),
+            );
+            const successCount = results.filter(
+              (r) => r.status === "fulfilled" && r.value.ok,
+            ).length;
+            if (successCount > 0) {
+              const message =
+                successCount > 1
+                  ? `${successCount} calendriers synchronisés avec Airbnb/Booking`
+                  : "Calendrier synchronisé avec Airbnb/Booking";
+              setSyncToast({ message, visible: true });
+              window.setTimeout(() => {
+                setSyncToast((prev) => (prev ? { ...prev, visible: false } : prev));
+              }, 3000);
+              window.setTimeout(() => setSyncToast(null), 3300);
+            }
+            setSyncRefreshTick((n) => n + 1);
+          })().catch(() => {});
+        }
+      }
     };
     void loadOwner();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentYear]);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +164,7 @@ export default function SaisonnierDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [annee, logementId, ownerId]);
+  }, [annee, logementId, ownerId, syncRefreshTick]);
 
   const totalMensuel = useMemo(
     () =>
@@ -194,6 +237,24 @@ export default function SaisonnierDashboardPage() {
           </select>
         </div>
       </header>
+      {syncToast ? (
+        <div
+          className="fixed bottom-6 right-6 z-[90] flex items-center gap-2 px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "#13131a",
+            border: "1px solid #ffffff10",
+            borderRadius: 8,
+            color: "#e5e7eb",
+            opacity: syncToast.visible ? 1 : 0,
+            transform: syncToast.visible ? "translateY(0)" : "translateY(10px)",
+            transition: "opacity 300ms ease, transform 300ms ease",
+          }}
+          role="status"
+        >
+          <span style={{ color: "#22c55e", fontWeight: 700 }}>✓</span>
+          <span>{syncToast.message}</span>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="rounded-xl p-6 text-sm" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.muted }}>
