@@ -58,16 +58,11 @@ function parseFlexibleDateToIso(value: string): string | null {
   const v = value.trim();
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
   if (!m) return null;
-  const a = Number(m[1]);
-  const b = Number(m[2]);
+  const mm = Number(m[1]);
+  const dd = Number(m[2]);
   const yyyy = m[3]!;
-  if (a > 12 && b >= 1 && b <= 12) {
-    return `${yyyy}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
-  }
-  if (b > 12 && a >= 1 && a <= 12) {
-    return `${yyyy}-${String(a).padStart(2, "0")}-${String(b).padStart(2, "0")}`;
-  }
-  return `${yyyy}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
 
 function parseDecimal(value: string): number {
