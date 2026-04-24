@@ -35,11 +35,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Utilisateur non authentifié." }, { status: 401 });
     }
 
-    const body = (await request.json()) as { logement_id?: string };
+    const body = (await request.json()) as { logement_id?: string; sync_full_history?: boolean };
     const logementId = String(body.logement_id ?? "").trim();
+    const syncFullHistory = Boolean(body.sync_full_history);
     if (!logementId) {
       return NextResponse.json({ error: "logement_id requis." }, { status: 400 });
     }
+    const currentYear = new Date().getFullYear();
+    const startDate = syncFullHistory ? "2010-01-01" : `${currentYear}-01-01`;
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 18);
+    const endDate = maxDate.toISOString().slice(0, 10);
 
     const { data: proprietaire, error: pErr } = await supabase
       .from("proprietaires")
@@ -109,6 +115,9 @@ export async function POST(request: Request) {
 
       const events = parseVeventsFromIcs(text);
       for (const ev of events) {
+        if (ev.dateDepart < startDate || ev.dateArrivee > endDate) {
+          continue;
+        }
         const nbNuits = Math.max(
           0,
           Math.round(

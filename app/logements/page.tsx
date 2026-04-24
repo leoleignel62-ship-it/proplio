@@ -738,14 +738,14 @@ export default function LogementsPage() {
     }
   }
 
-  async function syncIcalForLogement(logementId: string) {
+  async function syncIcalForLogement(logementId: string, syncFullHistory = false) {
     setIcalSyncLoading(true);
     setIcalSyncMessage("");
     try {
       const res = await fetch("/api/saisonnier/ical-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logement_id: logementId }),
+        body: JSON.stringify({ logement_id: logementId, sync_full_history: syncFullHistory }),
       });
       const data = (await res.json()) as { error?: string; imported?: number; updated?: number };
       if (!res.ok) {
@@ -753,7 +753,7 @@ export default function LogementsPage() {
         return;
       }
       setIcalSyncMessage(
-        `Synchronisation : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`,
+        `${syncFullHistory ? "Import historique" : "Synchronisation"} : ${data.imported ?? 0} réservation(s) importée(s), ${data.updated ?? 0} mise(s) à jour.`,
       );
     } catch (e) {
       setIcalSyncMessage(formatSubmitError(e));
@@ -1477,17 +1477,31 @@ export default function LogementsPage() {
                     <p className="mt-2 text-xs leading-relaxed" style={{ color: PC.muted }}>
                       Même démarche sur Booking.com : extranet → synchronisation du calendrier → lien iCal.
                     </p>
-                    <button
-                      type="button"
-                      className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                      style={{ backgroundColor: PC.primary, color: PC.white }}
-                      disabled={icalSyncLoading || !isEditing}
-                      onClick={() => {
-                        if (editingRow) void syncIcalForLogement(editingRow.id);
-                      }}
-                    >
-                      {icalSyncLoading ? "Synchronisation…" : "Synchroniser maintenant"}
-                    </button>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                        style={{ backgroundColor: PC.primary, color: PC.white }}
+                        disabled={icalSyncLoading || !isEditing}
+                        onClick={() => {
+                          if (editingRow) void syncIcalForLogement(editingRow.id);
+                        }}
+                      >
+                        {icalSyncLoading ? "Synchronisation…" : "Synchroniser maintenant"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                        style={{ backgroundColor: PC.secondary, color: PC.white }}
+                        disabled={icalSyncLoading || !isEditing}
+                        title="Importe toutes les réservations disponibles depuis 2010. À utiliser une seule fois au démarrage."
+                        onClick={() => {
+                          if (editingRow) void syncIcalForLogement(editingRow.id, true);
+                        }}
+                      >
+                        {icalSyncLoading ? "Import en cours…" : "Importer tout l'historique"}
+                      </button>
+                    </div>
                     {!isEditing ? (
                       <p className="mt-2 text-xs" style={{ color: PC.warning }}>
                         Enregistrez le logement avant de synchroniser les calendriers.
