@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { getStripeServerClient } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { STRIPE_PRICE_IDS } from "@/lib/stripe-checkout";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,6 +15,18 @@ async function applyPlanUpdate(ownerId: string | null, userId: string | null, pl
   if (userId) {
     await supabaseAdmin.from("proprietaires").update({ plan }).eq("user_id", userId);
   }
+}
+
+function mapPriceIdToPlan(priceId: string | null | undefined): "starter" | "pro" | "expert" | null {
+  if (!priceId) return null;
+  if (priceId === STRIPE_PRICE_IDS.starter.monthly || priceId === STRIPE_PRICE_IDS.starter.yearly) return "starter";
+  if (priceId === STRIPE_PRICE_IDS.pro.monthly || priceId === STRIPE_PRICE_IDS.pro.yearly) return "pro";
+  if (priceId === STRIPE_PRICE_IDS.expert.monthly || priceId === STRIPE_PRICE_IDS.expert.yearly) return "expert";
+  return null;
+}
+
+async function applyPlanUpdateByEmail(email: string, plan: "starter" | "pro" | "expert") {
+  await supabaseAdmin.from("proprietaires").update({ plan }).eq("email", email);
 }
 
 export async function POST(request: Request) {
@@ -49,6 +62,22 @@ export async function POST(request: Request) {
       const subscription = event.data.object as Stripe.Subscription;
       const metadata = subscription.metadata ?? {};
       await applyPlanUpdate(metadata.proprietaireId ?? null, metadata.userId ?? null, "free");
+    }
+
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription;
+      const updatedPriceId = subscription.items.data[0]?.price?.id ?? null;
+      const nextPlan = mapPriceIdToPlan(updatedPriceId);
+      if (nextPlan) {
+        const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
+        if (customerId) {
+          const customer = await stripe.customers.retrieve(customerId);
+          const customerEmail = customer.deleted ? null : customer.email;
+          if (customerEmail) {
+            await applyPlanUpdateByEmail(customerEmail, nextPlan);
+          }
+        }
+      }
     }
 
     return NextResponse.json({ received: true });
