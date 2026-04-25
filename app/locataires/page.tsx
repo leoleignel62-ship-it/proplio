@@ -25,6 +25,10 @@ const LOCA_MODAL_CARD: CSSProperties = {
 };
 const GROUP_TITLE_STYLE: CSSProperties = { color: PC.text, fontWeight: 600, letterSpacing: "-0.01em" };
 const CARD_STYLE: CSSProperties = { ...panelCard, padding: 16 };
+const FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
+const FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de suppression du plan Découverte. Passez au plan Starter pour des suppressions illimitées.";
 
 type LogementRow = {
   id: string;
@@ -68,6 +72,8 @@ export default function LocatairesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Locataire | null>(null);
+  const [freeEditConfirmRow, setFreeEditConfirmRow] = useState<Locataire | null>(null);
+  const [freeDeleteConfirmTarget, setFreeDeleteConfirmTarget] = useState<Locataire | null>(null);
   const [error, setError] = useState("");
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [planWarningMessage, setPlanWarningMessage] = useState("");
@@ -91,6 +97,28 @@ export default function LocatairesPage() {
         )
       : null;
   const isPlanLimitReached = Boolean(planLimitMessage);
+
+  async function getFreeLocataireQuotas(ownerId: string): Promise<{
+    locataires_modifs_cumul: number;
+    locataires_suppressions_cumul: number;
+  }> {
+    const { data, error: qErr } = await supabase
+      .from("proprietaires")
+      .select("locataires_modifs_cumul, locataires_suppressions_cumul")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (qErr || !data) {
+      return { locataires_modifs_cumul: 0, locataires_suppressions_cumul: 0 };
+    }
+    const row = data as {
+      locataires_modifs_cumul?: number | null;
+      locataires_suppressions_cumul?: number | null;
+    };
+    return {
+      locataires_modifs_cumul: Number(row.locataires_modifs_cumul ?? 0),
+      locataires_suppressions_cumul: Number(row.locataires_suppressions_cumul ?? 0),
+    };
+  }
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const [plan, existingCount] = await Promise.all([
@@ -297,6 +325,44 @@ export default function LocatairesPage() {
     setIsModalOpen(true);
   }
 
+  async function handleEditClick(row: Locataire) {
+    if (currentPlan !== "free") {
+      openEditModal(row);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeLocataireQuotas(ownerId);
+    if (quotas.locataires_modifs_cumul >= 1) {
+      setError(FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE);
+      toast.error(FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeEditConfirmRow(row);
+  }
+
+  async function handleDeleteClick(row: Locataire) {
+    if (currentPlan !== "free") {
+      setDeleteTarget(row);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeLocataireQuotas(ownerId);
+    if (quotas.locataires_suppressions_cumul >= 1) {
+      setError(FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE);
+      toast.error(FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeDeleteConfirmTarget(row);
+  }
+
   function closeModal() {
     setIsModalOpen(false);
     setEditingRow(null);
@@ -398,11 +464,27 @@ export default function LocatairesPage() {
         ? supabase.from("locataires").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("locataires").insert(payload);
 
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeLocataireQuotas(ownerId);
+        if (quotas.locataires_modifs_cumul >= 1) {
+          setError(FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE);
+          toast.error(FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
       const { error: submitError } = await query;
 
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeLocataireQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ locataires_modifs_cumul: quotas.locataires_modifs_cumul + 1 })
+          .eq("id", ownerId);
       }
       closeModal();
       await loadRows(ownerId);
@@ -425,6 +507,16 @@ export default function LocatairesPage() {
         setError(ownerErr ? formatSubmitError(ownerErr) : "Session propriétaire introuvable.");
         setIsDeleting(false);
         return;
+      }
+
+      if (currentPlan === "free") {
+        const quotas = await getFreeLocataireQuotas(ownerId);
+        if (quotas.locataires_suppressions_cumul >= 1) {
+          setError(FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE);
+          toast.error(FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE);
+          setDeleteTarget(null);
+          return;
+        }
       }
 
       const { data: bailRows, error: bauxFetchError } = await supabase
@@ -497,6 +589,14 @@ export default function LocatairesPage() {
         return;
       }
 
+      if (currentPlan === "free") {
+        const quotas = await getFreeLocataireQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ locataires_suppressions_cumul: quotas.locataires_suppressions_cumul + 1 })
+          .eq("id", ownerId);
+      }
+
       await loadRows(ownerId);
       setDeleteTarget(null);
       toast.success("Locataire supprimé.");
@@ -527,7 +627,9 @@ export default function LocatairesPage() {
       {error ? (
         <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           <p>{error}</p>
-          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+          {error === PLAN_LIMIT_ERROR_MESSAGE ||
+          error === FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE ||
+          error === FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE ? (
             <p className="mt-2">
               <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
                 Voir les abonnements
@@ -638,14 +740,14 @@ export default function LocatairesPage() {
                             <>
                               <BtnSecondary
                                 size="small"
-                                onClick={() => openEditModal(row)}
+                                onClick={() => void handleEditClick(row)}
                               >
                                 Modifier
                               </BtnSecondary>
                               <BtnDanger
                                 size="small"
                                 disabled={isDeleting}
-                                onClick={() => setDeleteTarget(row)}
+                                onClick={() => void handleDeleteClick(row)}
                               >
                                 Supprimer
                               </BtnDanger>
@@ -802,6 +904,38 @@ export default function LocatairesPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) void onDelete(deleteTarget.id);
+        }}
+      />
+
+      <ConfirmModal
+        open={freeEditConfirmRow != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description="Vous bénéficiez d'une modification gratuite sur ce locataire. Après cela, toute modification nécessitera le plan Starter."
+        confirmLabel="Continuer"
+        cancelLabel="Annuler"
+        variant="primary"
+        onClose={() => setFreeEditConfirmRow(null)}
+        onConfirm={() => {
+          if (freeEditConfirmRow) {
+            openEditModal(freeEditConfirmRow);
+            setFreeEditConfirmRow(null);
+          }
+        }}
+      />
+
+      <ConfirmModal
+        open={freeDeleteConfirmTarget != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description="Vous bénéficiez d'une suppression gratuite sur ce locataire. Après cela, toute suppression nécessitera le plan Starter."
+        confirmLabel="Confirmer la suppression"
+        cancelLabel="Annuler"
+        variant="danger"
+        onClose={() => setFreeDeleteConfirmTarget(null)}
+        onConfirm={() => {
+          if (freeDeleteConfirmTarget) {
+            void onDelete(freeDeleteConfirmTarget.id);
+            setFreeDeleteConfirmTarget(null);
+          }
         }}
       />
     </section>

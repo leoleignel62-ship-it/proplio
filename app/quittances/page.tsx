@@ -93,6 +93,10 @@ const defaultValues = {
   total: "",
 };
 const GROUP_CARD_STYLE = { ...panelCard, padding: 16 } as const;
+const FREE_QUITTANCE_MODIF_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
+const FREE_QUITTANCE_DELETE_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de suppression du plan Découverte. Passez au plan Starter pour des suppressions illimitées.";
 
 export default function QuittancesPage() {
   const toast = useToast();
@@ -170,7 +174,31 @@ export default function QuittancesPage() {
   );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [freeEditConfirmRow, setFreeEditConfirmRow] = useState<Quittance | null>(null);
+  const [freeDeleteConfirmId, setFreeDeleteConfirmId] = useState<string | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
+
+  async function getFreeQuittanceQuotas(ownerId: string): Promise<{
+    quittances_modifs_cumul: number;
+    quittances_suppressions_cumul: number;
+  }> {
+    const { data, error: qErr } = await supabase
+      .from("proprietaires")
+      .select("quittances_modifs_cumul, quittances_suppressions_cumul")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (qErr || !data) {
+      return { quittances_modifs_cumul: 0, quittances_suppressions_cumul: 0 };
+    }
+    const row = data as {
+      quittances_modifs_cumul?: number | null;
+      quittances_suppressions_cumul?: number | null;
+    };
+    return {
+      quittances_modifs_cumul: Number(row.quittances_modifs_cumul ?? 0),
+      quittances_suppressions_cumul: Number(row.quittances_suppressions_cumul ?? 0),
+    };
+  }
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const [plan, totalCount] = await Promise.all([
@@ -351,6 +379,44 @@ export default function QuittancesPage() {
     if (proprietaireId) void loadRelations(proprietaireId);
   }
 
+  async function handleEditClick(row: Quittance) {
+    if (currentPlan !== "free") {
+      openEditModal(row);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeQuittanceQuotas(ownerId);
+    if (quotas.quittances_modifs_cumul >= 1) {
+      setError(FREE_QUITTANCE_MODIF_LIMIT_MESSAGE);
+      toast.error(FREE_QUITTANCE_MODIF_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeEditConfirmRow(row);
+  }
+
+  async function handleDeleteClick(quittanceId: string) {
+    if (currentPlan !== "free") {
+      setDeleteConfirmId(quittanceId);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeQuittanceQuotas(ownerId);
+    if (quotas.quittances_suppressions_cumul >= 1) {
+      setError(FREE_QUITTANCE_DELETE_LIMIT_MESSAGE);
+      toast.error(FREE_QUITTANCE_DELETE_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeDeleteConfirmId(quittanceId);
+  }
+
   function closeModal() {
     setIsModalOpen(false);
     setEditingRow(null);
@@ -489,11 +555,27 @@ export default function QuittancesPage() {
         ? supabase.from("quittances").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("quittances").insert({ ...payload, envoyee: false, date_envoi: null });
 
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeQuittanceQuotas(ownerId);
+        if (quotas.quittances_modifs_cumul >= 1) {
+          setError(FREE_QUITTANCE_MODIF_LIMIT_MESSAGE);
+          toast.error(FREE_QUITTANCE_MODIF_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
       const { error: submitError } = await query;
 
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeQuittanceQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ quittances_modifs_cumul: quotas.quittances_modifs_cumul + 1 })
+          .eq("id", ownerId);
       }
 
       closeModal();
@@ -517,6 +599,16 @@ export default function QuittancesPage() {
         return;
       }
 
+      if (currentPlan === "free") {
+        const quotas = await getFreeQuittanceQuotas(ownerId);
+        if (quotas.quittances_suppressions_cumul >= 1) {
+          setError(FREE_QUITTANCE_DELETE_LIMIT_MESSAGE);
+          toast.error(FREE_QUITTANCE_DELETE_LIMIT_MESSAGE);
+          setDeleteConfirmId(null);
+          return;
+        }
+      }
+
       const { error: deleteError } = await supabase
         .from("quittances")
         .delete()
@@ -526,6 +618,14 @@ export default function QuittancesPage() {
       if (deleteError) {
         setError(`Erreur de suppression : ${formatSubmitError(deleteError)}`);
         return;
+      }
+
+      if (currentPlan === "free") {
+        const quotas = await getFreeQuittanceQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ quittances_suppressions_cumul: quotas.quittances_suppressions_cumul + 1 })
+          .eq("id", ownerId);
       }
 
       setDeleteConfirmId(null);
@@ -635,7 +735,9 @@ export default function QuittancesPage() {
       {error ? (
         <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           <p>{error}</p>
-          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+          {error === PLAN_LIMIT_ERROR_MESSAGE ||
+          error === FREE_QUITTANCE_MODIF_LIMIT_MESSAGE ||
+          error === FREE_QUITTANCE_DELETE_LIMIT_MESSAGE ? (
             <p className="mt-2">
               <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
                 Voir les abonnements
@@ -713,11 +815,11 @@ export default function QuittancesPage() {
                         <BtnSecondary
                           size="small"
                           title="Modifier"
-                          onClick={() => openEditModal(row)}
+                          onClick={() => void handleEditClick(row)}
                         >
                           Modifier
                         </BtnSecondary>
-                        <BtnDanger size="small" onClick={() => setDeleteConfirmId(row.id)}>
+                        <BtnDanger size="small" onClick={() => void handleDeleteClick(row.id)}>
                           Supprimer
                         </BtnDanger>
                       </div>
@@ -750,6 +852,38 @@ export default function QuittancesPage() {
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => {
           if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
+
+      <ConfirmModal
+        open={freeEditConfirmRow != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description="Vous bénéficiez d'une modification gratuite sur cette quittance. Après cela, toute modification nécessitera le plan Starter."
+        confirmLabel="Continuer"
+        cancelLabel="Annuler"
+        variant="primary"
+        onClose={() => setFreeEditConfirmRow(null)}
+        onConfirm={() => {
+          if (freeEditConfirmRow) {
+            openEditModal(freeEditConfirmRow);
+            setFreeEditConfirmRow(null);
+          }
+        }}
+      />
+
+      <ConfirmModal
+        open={freeDeleteConfirmId != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description="Vous bénéficiez d'une suppression gratuite sur cette quittance. Après cela, toute suppression nécessitera le plan Starter."
+        confirmLabel="Confirmer la suppression"
+        cancelLabel="Annuler"
+        variant="danger"
+        onClose={() => setFreeDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (freeDeleteConfirmId) {
+            void onDelete(freeDeleteConfirmId);
+            setFreeDeleteConfirmId(null);
+          }
         }}
       />
     </section>
