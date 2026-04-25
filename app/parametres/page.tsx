@@ -355,6 +355,52 @@ export default function ParametresPage() {
               />
             </label>
 
+            <div className="sm:col-span-2 rounded-lg p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}>
+              <h3 className="text-base font-semibold" style={{ color: PC.text }}>
+                Signature
+              </h3>
+              <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                Ajoutez votre signature pour l&apos;intégrer automatiquement aux quittances PDF.
+              </p>
+              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <input
+                  ref={signatureFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void onUploadSignature(file);
+                  }}
+                />
+                <BtnSecondary
+                  disabled={isUploadingSignature}
+                  onClick={() => signatureFileRef.current?.click()}
+                >
+                  {isUploadingSignature ? "Upload en cours..." : "Uploader une signature"}
+                </BtnSecondary>
+
+                {signatureUrl ? (
+                  <div
+                    className="rounded-lg p-2"
+                    style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}
+                  >
+                    <Image
+                      src={signatureUrl}
+                      alt="Signature du propriétaire"
+                      width={224}
+                      height={96}
+                      className="max-h-24 max-w-56 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm" style={{ color: PC.muted }}>
+                    Aucune signature enregistrée.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {error ? (
               <p
                 className="sm:col-span-2 rounded-lg px-3 py-2 text-sm"
@@ -456,51 +502,6 @@ export default function ParametresPage() {
 
         <div className="mt-6">
           <BtnPrimary onClick={() => router.push("/parametres/abonnement")}>Gérer mon abonnement</BtnPrimary>
-        </div>
-      </div>
-
-      <div className="p-6" style={panelCard}>
-        <h2 className="text-lg font-semibold">Signature</h2>
-        <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-          Ajoutez votre signature pour l&apos;intégrer automatiquement aux quittances PDF.
-        </p>
-
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <input
-            ref={signatureFileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void onUploadSignature(file);
-            }}
-          />
-          <BtnSecondary
-            disabled={isUploadingSignature}
-            onClick={() => signatureFileRef.current?.click()}
-          >
-            {isUploadingSignature ? "Upload en cours..." : "Uploader une signature"}
-          </BtnSecondary>
-
-          {signatureUrl ? (
-            <div
-              className="rounded-lg p-2"
-              style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}
-            >
-              <Image
-                src={signatureUrl}
-                alt="Signature du propriétaire"
-                width={224}
-                height={96}
-                className="max-h-24 max-w-56 object-contain"
-              />
-            </div>
-          ) : (
-            <p className="text-sm" style={{ color: PC.muted }}>
-              Aucune signature enregistrée.
-            </p>
-          )}
         </div>
       </div>
     </section>
