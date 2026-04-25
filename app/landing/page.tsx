@@ -639,11 +639,17 @@ export default function LandingPage() {
             <Link href="/register" className="transition hover:text-white" style={{ transition: ease }}>
               Créer un compte
             </Link>
-            <Link href="/landing#footer" className="transition hover:text-white" style={{ transition: ease }}>
+            <Link href="/mentions-legales" className="transition hover:text-white" style={{ transition: ease }}>
               Mentions légales
             </Link>
-            <Link href="/landing#footer" className="transition hover:text-white" style={{ transition: ease }}>
+            <Link href="/cgu" className="transition hover:text-white" style={{ transition: ease }}>
               CGU
+            </Link>
+            <Link href="/politique-de-confidentialite" className="transition hover:text-white" style={{ transition: ease }}>
+              Politique de confidentialité
+            </Link>
+            <Link href="/qui-sommes-nous" className="transition hover:text-white" style={{ transition: ease }}>
+              Qui sommes-nous
             </Link>
           </nav>
         </div>

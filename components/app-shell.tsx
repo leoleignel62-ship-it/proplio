@@ -1,34 +1,39 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavigationSidebar } from "@/components/navigation-sidebar";
 import { ToastProvider } from "@/components/ui/toast";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/proplio-colors";
 
-const authPages = ["/landing", "/login", "/register", "/forgot-password", "/reset-password"];
+const publicPages = [
+  "/landing",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/mentions-legales",
+  "/cgu",
+  "/politique-de-confidentialite",
+];
 
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = authPages.includes(pathname);
+  const isPublicPage = publicPages.includes(pathname);
 
   useEffect(() => {
-    if (isAuthPage) return;
+    if (isPublicPage) return;
     void ensureProprietaireRow();
-  }, [isAuthPage]);
+  }, [isPublicPage]);
 
-  if (isAuthPage) {
+  if (isPublicPage) {
     return (
       <ToastProvider>
-        <main
-          className="flex min-h-screen items-center justify-center p-4"
-          style={shellStyle}
-        >
-          {children}
-        </main>
+        <main className="min-h-screen" style={shellStyle}>{children}</main>
       </ToastProvider>
     );
   }
@@ -37,7 +42,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <div className="min-h-screen" style={shellStyle}>
         <NavigationSidebar />
-        <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">{children}</main>
+        <main className="p-4 pt-[60px] md:ml-64 md:p-8 md:pt-[84px] md:pl-6">
+          {children}
+          <footer className="mt-10 pb-4 text-center text-xs" style={{ color: PC.tertiary }}>
+            © 2026 Proplio ·{" "}
+            <Link href="/mentions-legales" className="hover:underline">
+              Mentions légales
+            </Link>{" "}
+            ·{" "}
+            <Link href="/cgu" className="hover:underline">
+              CGU
+            </Link>{" "}
+            ·{" "}
+            <Link href="/politique-de-confidentialite" className="hover:underline">
+              Politique de confidentialité
+            </Link>
+          </footer>
+        </main>
       </div>
     </ToastProvider>
   );
