@@ -7,10 +7,8 @@ import { IconHome } from "@/components/proplio-icons";
 import { parseChambresDetails, totalLoyersChambres } from "@/lib/colocation";
 import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
-import { DocumentsTab } from "@/components/logement/documents-tab";
 import { BtnPrimary, BtnSecondary, StatusBadge } from "@/components/ui";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 
 type Logement = {
@@ -40,12 +38,11 @@ type Quittance = { id: string; mois: number; annee: number; total: number; envoy
 type Bail = { id: string; type_bail: string; date_debut: string; date_fin: string; statut: string; locataire_id: string };
 type Edl = { id: string; type: string | null; type_etat: string | null; date_etat: string | null; statut: string };
 
-const tabs = ["locataires", "quittances", "baux", "etats-des-lieux", "documents"] as const;
+const tabs = ["locataires", "quittances", "baux", "etats-des-lieux"] as const;
 type TabId = (typeof tabs)[number];
 
 function tabButtonLabel(tab: TabId): string {
   if (tab === "etats-des-lieux") return "États des lieux";
-  if (tab === "documents") return "Documents 📁";
   return tab[0].toUpperCase() + tab.slice(1);
 }
 
@@ -112,7 +109,6 @@ export default function LogementDetailPage() {
   const [quittances, setQuittances] = useState<Quittance[]>([]);
   const [baux, setBaux] = useState<Bail[]>([]);
   const [edls, setEdls] = useState<Edl[]>([]);
-  const [plan, setPlan] = useState<ProplioPlan>("free");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +116,7 @@ export default function LogementDetailPage() {
     (async () => {
       const { proprietaireId } = await getCurrentProprietaireId();
       if (!proprietaireId || cancelled) return;
-      const [logRes, locRes, quitRes, bauxRes, edlRes, ownerPlan] = await Promise.all([
+      const [logRes, locRes, quitRes, bauxRes, edlRes] = await Promise.all([
         supabase
           .from("logements")
           .select(
@@ -133,10 +129,8 @@ export default function LogementDetailPage() {
         supabase.from("quittances").select("id, mois, annee, total, envoyee, locataire_id").eq("proprietaire_id", proprietaireId).eq("logement_id", logementId).order("created_at", { ascending: false }),
         supabase.from("baux").select("id, type_bail, date_debut, date_fin, statut, locataire_id").eq("proprietaire_id", proprietaireId).eq("logement_id", logementId).order("created_at", { ascending: false }),
         supabase.from("etats_des_lieux").select("id, type, type_etat, date_etat, statut").eq("proprietaire_id", proprietaireId).eq("logement_id", logementId).order("created_at", { ascending: false }),
-        getOwnerPlan(proprietaireId),
       ]);
       if (cancelled) return;
-      setPlan(ownerPlan);
       setLogement((logRes.data as Logement | null) ?? null);
       setLocataires((locRes.data as Locataire[]) ?? []);
       setQuittances((quitRes.data as Quittance[]) ?? []);
@@ -404,11 +398,6 @@ export default function LogementDetailPage() {
         </section>
       ) : null}
 
-      {activeTab === "documents" ? (
-        <section className="space-y-3">
-          <DocumentsTab logementId={logement.id} plan={plan} />
-        </section>
-      ) : null}
     </section>
   );
 }

@@ -20,7 +20,6 @@ function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: st
         "📋 Baux illimités (PDF conforme loi ALUR)",
         "🔍 États des lieux illimités (photos + PDF)",
         "📈 Révision annuelle des loyers (IRL INSEE)",
-        "📁 Gestion des documents par logement",
         "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
         "🏠 Logements illimités",
         "👥 Locataires illimités",
@@ -35,7 +34,6 @@ function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: st
         "📋 Baux illimités (PDF conforme loi ALUR)",
         "🔍 États des lieux illimités (photos + PDF)",
         "📈 Révision annuelle des loyers (IRL INSEE)",
-        "📁 Gestion des documents par logement",
         "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
         "🏠 Jusqu'à 5 logements simultanés",
       ],
@@ -48,7 +46,6 @@ function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: st
       "📋 Baux illimités (PDF conforme loi ALUR)",
       "🔍 États des lieux illimités (photos + PDF)",
       "📈 Révision annuelle des loyers (IRL INSEE)",
-      "📁 Gestion des documents par logement",
       "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
     ],
   };

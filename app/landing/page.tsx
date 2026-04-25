@@ -74,7 +74,7 @@ const faqItems = [
   },
   {
     q: "Quels types de documents puis-je stocker par logement ?",
-    a: "Diagnostics obligatoires, assurances, contrats, factures de travaux et photos — tout est organisé par catégorie directement dans la fiche de chaque logement.",
+    a: "La gestion des documents logement n'est plus proposée. Les pièces d'identité voyageurs, signatures et photos d'états des lieux restent disponibles.",
   },
 ];
 
@@ -359,8 +359,8 @@ export default function LandingPage() {
             },
             {
               icon: IconFolder,
-              title: "Tous vos documents centralisés par logement",
-              body: "Stockez et retrouvez en un instant tous vos documents par logement : diagnostics obligatoires (DPE, électricité, gaz), assurances, contrats, factures de travaux et photos. Organisés par catégorie, accessibles partout, téléchargeables en un clic.",
+              title: "Données locatives centralisées",
+              body: "Concentrez-vous sur la gestion des quittances, baux, états des lieux et suivi financier dans une interface claire et rapide.",
               badge: "Plan Starter et plus",
               badgeTone: "starter" as const,
             },
@@ -575,7 +575,6 @@ export default function LandingPage() {
                   ["Baux", "~150-200€", "✓ Inclus"],
                   ["États des lieux", "~150-300€", "✓ Inclus + photos"],
                   ["Révision IRL", "Manuel", "✓ Automatique"],
-                  ["Documents centralisés", "✗", "✓ Par logement"],
                   ["Disponibilité", "Horaires agence", "✓ 24h/24"],
                   ["Contrôle total", "✗", "✓ Vous décidez"],
                 ].map(([a, b, c]) => (
