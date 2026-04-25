@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
+import type { User } from "@supabase/supabase-js";
 
 export type ProprietaireProfile = {
   id?: string;
@@ -91,7 +92,29 @@ export async function ensureProprietaireRow() {
       .maybeSingle();
 
     if (selectError) return { data: null, error: { ...selectError, message: formatSubmitError(selectError) } };
-    if (existing) return { data: existing, error: null };
+    if (existing) {
+      const md = (user.user_metadata ?? {}) as { prenom?: string; nom?: string };
+      const prenomMeta = String(md.prenom ?? "").trim();
+      const nomMeta = String(md.nom ?? "").trim();
+      const prenomExisting = String((existing as { prenom?: string | null }).prenom ?? "").trim();
+      const nomExisting = String((existing as { nom?: string | null }).nom ?? "").trim();
+
+      // Si un trigger a créé une ligne incomplète, on la complète avec les valeurs saisies à l'inscription.
+      if ((prenomMeta || nomMeta) && (!prenomExisting || !nomExisting)) {
+        const { data: patched, error: patchError } = await supabase
+          .from("proprietaires")
+          .update({
+            prenom: prenomMeta || prenomExisting,
+            nom: nomMeta || nomExisting,
+          })
+          .eq("user_id", user.id)
+          .select("*")
+          .single();
+        if (patchError) return { data: existing, error: null };
+        return { data: patched, error: null };
+      }
+      return { data: existing, error: null };
+    }
 
     const { data, error } = await supabase
       .from("proprietaires")
@@ -103,6 +126,38 @@ export async function ensureProprietaireRow() {
       .single();
 
     if (error) return { data, error: { ...error, message: formatSubmitError(error) } };
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: { message: formatSubmitError(e) } as { message: string } };
+  }
+}
+
+export async function upsertProprietaireIdentityFromSignup({
+  user,
+  prenom,
+  nom,
+}: {
+  user: User;
+  prenom: string;
+  nom: string;
+}) {
+  try {
+    const prenomTrimmed = prenom.trim();
+    const nomTrimmed = nom.trim();
+    const { data, error } = await supabase
+      .from("proprietaires")
+      .upsert(
+        {
+          user_id: user.id,
+          email: user.email ?? "",
+          prenom: prenomTrimmed,
+          nom: nomTrimmed,
+        },
+        { onConflict: "user_id" },
+      )
+      .select("*")
+      .single();
+    if (error) return { data: null, error: { ...error, message: formatSubmitError(error) } };
     return { data, error: null };
   } catch (e) {
     return { data: null, error: { message: formatSubmitError(e) } as { message: string } };

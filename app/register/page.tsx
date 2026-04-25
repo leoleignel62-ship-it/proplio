@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { IconHome } from "@/components/proplio-icons";
-import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
+import { ensureProprietaireRow, upsertProprietaireIdentityFromSignup } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/proplio-colors";
 import { fieldInputStyle } from "@/lib/proplio-field-styles";
@@ -53,6 +53,19 @@ export default function RegisterPage() {
 
       if (data.user && data.session) {
         await ensureProprietaireRow();
+      }
+
+      if (data.user) {
+        // Upsert explicite du profil propriétaire avec prénom/nom saisis à l'inscription.
+        const upsertRes = await upsertProprietaireIdentityFromSignup({
+          user: data.user,
+          prenom,
+          nom,
+        });
+        if (upsertRes.error) {
+          // Ne bloque pas le flux d'inscription : le backfill est aussi assuré dans ensureProprietaireRow.
+          console.warn("Upsert proprietaire post-signup non bloquant:", upsertRes.error.message);
+        }
       }
 
       setSuccess("Compte créé. Vérifie ta boîte email pour confirmer ton inscription.");
