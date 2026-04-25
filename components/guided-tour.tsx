@@ -156,8 +156,9 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const steps = tourType === "free" ? FREE_TOUR_STEPS : PAID_TOUR_STEPS;
-  const step = steps[stepIndex];
-  const isLastStep = stepIndex === steps.length - 1;
+  const safeStepIndex = Math.min(Math.max(stepIndex, 0), Math.max(steps.length - 1, 0));
+  const step = steps[safeStepIndex];
+  const isLastStep = safeStepIndex === steps.length - 1;
   const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step.lockedOnFree);
 
   function switchMode(nextMode: "classique" | "saisonnier") {
@@ -181,7 +182,13 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
   useEffect(() => {
     if (!open) return;
     setStepIndex(0);
-  }, [open]);
+  }, [open, tourType]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Temp debug log requested by user.
+    console.log("GuidedTour monté", tourType, steps.length);
+  }, [open, tourType, steps.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -233,7 +240,7 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
     };
   }, [open, step.targetId, targetRect]);
 
-  if (!open) return null;
+  if (!open || steps.length === 0) return null;
 
   function finishTour() {
     switchMode("classique");
@@ -257,7 +264,7 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
         style={{ top: bubblePos.top, left: bubblePos.left, backgroundColor: "#7c3aed" }}
       >
         <p className="text-xs" style={{ color: "#d1d5db" }}>
-          Étape {stepIndex + 1} sur {steps.length}
+          Étape {safeStepIndex + 1} sur {steps.length}
         </p>
         <h2 id="guided-tour-title" className="mt-2 text-lg font-bold text-white">
           {step.title}

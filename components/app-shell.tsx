@@ -96,6 +96,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isPublicPage || !onboardingReady) return;
     if (plan !== "free") return;
+    // Temp debug log requested by user.
+    console.log("guided_tour_free_done", window.localStorage.getItem("guided_tour_free_done"));
     if (window.localStorage.getItem(GUIDED_TOUR_FREE_DONE_KEY)) return;
     setShowGuidedTour("free");
   }, [isPublicPage, onboardingReady, plan]);
