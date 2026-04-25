@@ -18,11 +18,6 @@ import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
 type BillingPeriod = "monthly" | "yearly";
-type PendingPlanChange = {
-  mode: "upgrade" | "downgrade";
-  targetPlan: Exclude<ProplioPlan, "free">;
-  interval: BillingPeriod;
-};
 
 type PlanMarketing = {
   id: ProplioPlan;
@@ -100,10 +95,6 @@ function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
   return plan === "starter" || plan === "pro" || plan === "expert";
 }
 
-function getPlanRank(plan: ProplioPlan): number {
-  return PLAN_ORDER.indexOf(plan);
-}
-
 export default function AbonnementPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -113,7 +104,6 @@ export default function AbonnementPage() {
   const [loading, setLoading] = useState(true);
   const [loadingCheckoutKey, setLoadingCheckoutKey] = useState<string | null>(null);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
-  const [pendingPlanChange, setPendingPlanChange] = useState<PendingPlanChange | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [billing, setBilling] = useState<BillingPeriod>("yearly");
@@ -172,13 +162,6 @@ export default function AbonnementPage() {
     } finally {
       setLoadingCheckoutKey(null);
     }
-  }
-
-  async function confirmPlanChange() {
-    if (!pendingPlanChange) return;
-    const { targetPlan, interval } = pendingPlanChange;
-    await startCheckout(targetPlan, interval);
-    setPendingPlanChange(null);
   }
 
   async function openPortal() {
@@ -405,16 +388,7 @@ export default function AbonnementPage() {
                   style={isCurrent ? { opacity: 0.55, cursor: "not-allowed", backgroundColor: "#6b7280", borderColor: "#6b7280" } : undefined}
                   onClick={() => {
                     if (!isPaidPlan(p.id)) return;
-                    const targetRank = getPlanRank(p.id);
-                    const currentRank = getPlanRank(plan);
-                    if (targetRank > currentRank) {
-                      setPendingPlanChange({ mode: "upgrade", targetPlan: p.id, interval: billing });
-                      return;
-                    }
-                    if (targetRank < currentRank) {
-                      setPendingPlanChange({ mode: "downgrade", targetPlan: p.id, interval: billing });
-                      return;
-                    }
+                    void startCheckout(p.id, billing);
                   }}
                 >
                   {isCurrent ? "Plan actuel ✓" : "Choisir ce plan"}
@@ -454,56 +428,6 @@ export default function AbonnementPage() {
         .
       </p>
 
-      {pendingPlanChange ? (
-        <div
-          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="plan-change-confirmation-title"
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl p-6 sm:p-7"
-            style={{ ...panelCard, border: "1px solid rgba(124, 58, 237, 0.4)" }}
-          >
-            <h2 id="plan-change-confirmation-title" className="text-xl font-extrabold" style={{ color: PC.text }}>
-              {pendingPlanChange.mode === "upgrade"
-                ? "Confirmer votre upgrade"
-                : "Confirmer votre changement de plan"}
-            </h2>
-            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-              {PLAN_DISPLAY_LABELS[plan]} {"->"} {PLAN_DISPLAY_LABELS[pendingPlanChange.targetPlan]}
-            </p>
-            {pendingPlanChange.mode === "upgrade" ? (
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-                Votre carte enregistrée sera débitée du montant proratisé pour la période restante. Aucune nouvelle
-                information de paiement n&apos;est requise.
-              </p>
-            ) : (
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-                Vous allez passer au plan {PLAN_DISPLAY_LABELS[pendingPlanChange.targetPlan]}. Un avoir correspondant
-                à la période non utilisée sera automatiquement appliqué sur votre prochaine facture. Votre accès aux
-                fonctionnalités du plan {PLAN_DISPLAY_LABELS[plan]} sera retiré immédiatement.
-              </p>
-            )}
-            <div className="mt-6 flex justify-end gap-3">
-              <BtnSecondary
-                type="button"
-                onClick={() => setPendingPlanChange(null)}
-                disabled={loadingCheckoutKey !== null}
-              >
-                Annuler
-              </BtnSecondary>
-              <BtnPrimary
-                type="button"
-                loading={loadingCheckoutKey === `${pendingPlanChange.targetPlan}-${pendingPlanChange.interval}`}
-                onClick={() => void confirmPlanChange()}
-              >
-                {pendingPlanChange.mode === "upgrade" ? "Confirmer l'upgrade" : "Confirmer le changement"}
-              </BtnPrimary>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

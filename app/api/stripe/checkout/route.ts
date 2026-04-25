@@ -68,19 +68,12 @@ export async function POST(request: Request) {
       }
     }
 
-    if (existingSubscription) {
-      const firstItem = existingSubscription.items.data[0];
-      if (!firstItem) {
-        return NextResponse.json({ error: "Abonnement Stripe invalide." }, { status: 500 });
-      }
-
-      await stripe.subscriptions.update(existingSubscription.id, {
-        items: [{ id: firstItem.id, price: priceId }],
-        proration_behavior: "create_prorations",
+    if (existingSubscription && customerId) {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${origin}/parametres/abonnement`,
       });
-
-      await supabase.from("proprietaires").update({ plan: requestedPlan }).eq("id", proprietaire.id);
-      return NextResponse.json({ url: `${origin}/parametres/abonnement?success=true&upgraded=true` });
+      return NextResponse.json({ url: portalSession.url });
     }
 
     const session = await stripe.checkout.sessions.create({
