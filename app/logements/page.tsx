@@ -166,6 +166,8 @@ export default function LogementsPage() {
   const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const [isDeleteBlockedModalOpen, setIsDeleteBlockedModalOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [freeEditConfirmRow, setFreeEditConfirmRow] = useState<Logement | null>(null);
+  const [freeDeleteConfirmId, setFreeDeleteConfirmId] = useState<string | null>(null);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [locatairesByLogement, setLocatairesByLogement] = useState<Record<string, number>>({});
   const [hoveredLogementId, setHoveredLogementId] = useState<string | null>(null);
@@ -457,6 +459,44 @@ export default function LogementsPage() {
     setActiveChambreTab(0);
     loadSaisonnierFromRow(row);
     setIsModalOpen(true);
+  }
+
+  async function handleEditClick(row: Logement) {
+    if (currentPlan !== "free") {
+      openEditModal(row);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeLogementQuotas(ownerId);
+    if (quotas.logements_modifs_cumul >= 1) {
+      setError(FREE_LOGEMENT_MODIF_LIMIT_MESSAGE);
+      toast.error(FREE_LOGEMENT_MODIF_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeEditConfirmRow(row);
+  }
+
+  async function handleDeleteClick(logementId: string) {
+    if (currentPlan !== "free") {
+      setDeleteConfirmId(logementId);
+      return;
+    }
+    const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+    if (!ownerId) {
+      toast.error("Session propriétaire introuvable.");
+      return;
+    }
+    const quotas = await getFreeLogementQuotas(ownerId);
+    if (quotas.logements_suppressions_cumul >= 1) {
+      setError(FREE_LOGEMENT_DELETE_LIMIT_MESSAGE);
+      toast.error(FREE_LOGEMENT_DELETE_LIMIT_MESSAGE);
+      return;
+    }
+    setFreeDeleteConfirmId(logementId);
   }
 
   function closeModal() {
@@ -1000,9 +1040,9 @@ export default function LogementsPage() {
                       <BtnSecondary
                         size="small"
                         className="w-full sm:w-auto"
-                        onClick={(event) => {
+                        onClick={async (event) => {
                           event.stopPropagation();
-                          openEditModal(row);
+                          await handleEditClick(row);
                         }}
                       >
                         Modifier
@@ -1011,9 +1051,9 @@ export default function LogementsPage() {
                         size="small"
                         className="w-full sm:w-auto"
                         disabled={isDeleting}
-                        onClick={(event) => {
+                        onClick={async (event) => {
                           event.stopPropagation();
-                          setDeleteConfirmId(row.id);
+                          await handleDeleteClick(row.id);
                         }}
                       >
                         Supprimer
@@ -1700,6 +1740,42 @@ export default function LogementsPage() {
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => {
           if (deleteConfirmId) void onDelete(deleteConfirmId);
+        }}
+      />
+
+      <ConfirmModal
+        open={freeEditConfirmRow != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description={
+          "Vous bénéficiez d'une modification gratuite sur ce logement. Après cela, toute modification nécessitera le plan Starter.\n\nVoulez-vous utiliser votre modification ?"
+        }
+        confirmLabel="Continuer"
+        cancelLabel="Annuler"
+        variant="primary"
+        onClose={() => setFreeEditConfirmRow(null)}
+        onConfirm={() => {
+          if (freeEditConfirmRow) {
+            openEditModal(freeEditConfirmRow);
+            setFreeEditConfirmRow(null);
+          }
+        }}
+      />
+
+      <ConfirmModal
+        open={freeDeleteConfirmId != null}
+        title="⚠️ Droit à l'erreur — Plan Découverte"
+        description={
+          "Vous bénéficiez d'une suppression gratuite sur ce logement. Après cela, toute suppression nécessitera le plan Starter.\n\nVoulez-vous utiliser votre suppression ?"
+        }
+        confirmLabel="Confirmer la suppression"
+        cancelLabel="Annuler"
+        variant="danger"
+        onClose={() => setFreeDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (freeDeleteConfirmId) {
+            void onDelete(freeDeleteConfirmId);
+            setFreeDeleteConfirmId(null);
+          }
         }}
       />
     </section>
