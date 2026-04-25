@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavigationSidebar } from "@/components/navigation-sidebar";
 import { ToastProvider } from "@/components/ui/toast";
@@ -17,6 +16,7 @@ const publicPages = [
   "/mentions-legales",
   "/cgu",
   "/politique-de-confidentialite",
+  "/qui-sommes-nous",
 ];
 
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
@@ -46,17 +46,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
           <footer className="mt-10 pb-4 text-center text-xs" style={{ color: PC.tertiary }}>
             © 2026 Proplio ·{" "}
-            <Link href="/mentions-legales" className="hover:underline">
+            <a href="/mentions-legales" className="hover:underline">
               Mentions légales
-            </Link>{" "}
+            </a>{" "}
             ·{" "}
-            <Link href="/cgu" className="hover:underline">
+            <a href="/cgu" className="hover:underline">
               CGU
-            </Link>{" "}
+            </a>{" "}
             ·{" "}
-            <Link href="/politique-de-confidentialite" className="hover:underline">
+            <a href="/politique-de-confidentialite" className="hover:underline">
               Politique de confidentialité
-            </Link>
+            </a>
           </footer>
         </main>
       </div>
