@@ -52,38 +52,53 @@ export async function POST(request: Request) {
     }
 
     const email = String(proprietaire.email ?? user.email ?? "").trim();
-    let previousSubscriptionId: string | null = null;
+    let customerId: string | null = null;
+    let existingSubscription: Awaited<ReturnType<typeof stripe.subscriptions.list>>["data"][number] | null = null;
     if (email) {
       const customers = await stripe.customers.list({ email, limit: 1 });
       const customer = customers.data[0];
       if (customer) {
+        customerId = customer.id;
         const activeSubscriptions = await stripe.subscriptions.list({
           customer: customer.id,
           status: "active",
           limit: 1,
         });
-        previousSubscriptionId = activeSubscriptions.data[0]?.id ?? null;
+        existingSubscription = activeSubscriptions.data[0] ?? null;
       }
+    }
+
+    if (existingSubscription) {
+      const firstItem = existingSubscription.items.data[0];
+      if (!firstItem) {
+        return NextResponse.json({ error: "Abonnement Stripe invalide." }, { status: 500 });
+      }
+
+      await stripe.subscriptions.update(existingSubscription.id, {
+        items: [{ id: firstItem.id, price: priceId }],
+        proration_behavior: "create_prorations",
+      });
+
+      await supabase.from("proprietaires").update({ plan: requestedPlan }).eq("id", proprietaire.id);
+      return NextResponse.json({ url: `${origin}/parametres/abonnement?success=true&upgraded=true` });
     }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: email,
+      ...(customerId ? { customer: customerId } : { customer_email: email }),
       success_url: `${origin}/parametres/abonnement?success=true`,
       cancel_url: `${origin}/parametres/abonnement?canceled=true`,
       metadata: {
         userId: user.id,
         proprietaireId: String(proprietaire.id),
         plan: requestedPlan,
-        ...(previousSubscriptionId ? { previous_subscription_id: previousSubscriptionId } : {}),
       },
       subscription_data: {
         metadata: {
           userId: user.id,
           proprietaireId: String(proprietaire.id),
           plan: requestedPlan,
-          ...(previousSubscriptionId ? { previous_subscription_id: previousSubscriptionId } : {}),
         },
       },
     });
