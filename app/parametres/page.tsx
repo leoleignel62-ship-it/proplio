@@ -247,15 +247,13 @@ export default function ParametresPage() {
       setProfile((prev) => ({ ...prev, id: data.id }));
     }
     toast.success("Profil enregistré.");
-    if (plan === "free" && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("onboarding:check"));
-    }
     setIsSaving(false);
   }
 
-  function reopenOnboardingGuide() {
+  function reopenGuidedTour() {
     if (typeof window === "undefined") return;
-    window.dispatchEvent(new Event("proplio:onboarding:open"));
+    window.localStorage.removeItem("guided_tour_done");
+    window.dispatchEvent(new Event("start:guided-tour"));
   }
 
   return (
@@ -427,9 +425,9 @@ export default function ParametresPage() {
                 type="button"
                 className="text-sm transition hover:underline"
                 style={{ color: PC.muted }}
-                onClick={reopenOnboardingGuide}
+                onClick={reopenGuidedTour}
               >
-                📋 Revoir le guide de démarrage
+                🗺️ Revoir le tour de l&apos;application
               </button>
             </div>
           </form>

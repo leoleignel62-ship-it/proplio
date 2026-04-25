@@ -152,6 +152,7 @@ function NavLink({
   isActive,
   onNavigate,
   starterOnlyLock = false,
+  tourId,
 }: {
   href: string;
   label: string;
@@ -160,6 +161,7 @@ function NavLink({
   onNavigate?: () => void;
   /** Plan Free : lien cliquable vers la page upsell, avec 🔒 + tooltip. */
   starterOnlyLock?: boolean;
+  tourId?: string;
 }) {
   const [hover, setHover] = useState(false);
 
@@ -177,6 +179,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      data-tour-id={tourId}
       className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-[background-color,color] duration-200 ease-out"
       style={isActive ? activeStyle : idleStyle}
       title={starterOnlyLock ? SIDEBAR_STARTER_ONLY_TOOLTIP : undefined}
@@ -286,6 +289,15 @@ export function NavigationSidebar() {
   function renderNavItem(item: NavSidebarItem, closeMobile?: () => void) {
     const locked = isSidebarStarterOnlyLocked(item.href);
     const href = locked && item.href.startsWith("/saisonnier") ? PLAN_UPGRADE_PATH : item.href;
+    const tourIdMap: Record<string, string> = {
+      "/": "dashboard",
+      "/logements": "logements",
+      "/locataires": "locataires",
+      "/quittances": "quittances",
+      "/baux": "baux",
+      "/etats-des-lieux": "etats-des-lieux",
+      "/revisions-irl": "revisions-irl",
+    };
     return (
       <NavLink
         key={`${mode}-${item.href}`}
@@ -295,6 +307,7 @@ export function NavigationSidebar() {
         isActive={pathIsActive(pathname, item.href)}
         onNavigate={closeMobile}
         starterOnlyLock={locked}
+        tourId={tourIdMap[item.href]}
       />
     );
   }
