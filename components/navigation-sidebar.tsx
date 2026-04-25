@@ -478,8 +478,7 @@ export function NavigationSidebar() {
               Location saisonnière
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Disponible à partir du plan Starter. Passez à un plan payant pour gérer réservations, voyageurs, taxes de
-              séjour et synchronisation iCal.
+              Le mode saisonnier est disponible à partir du plan Starter.
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <BtnNeutral onClick={() => setSaisonnierUpsellOpen(false)}>Fermer</BtnNeutral>

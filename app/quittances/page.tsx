@@ -9,8 +9,6 @@ import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, St
 import { useToast } from "@/components/ui/toast";
 import {
   canCreateQuittance,
-  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
-  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnerPlan,
   getQuittancesTotalCount,
   PLAN_FREE_QUITTANCE_LIMIT_MESSAGE,
@@ -339,15 +337,6 @@ export default function QuittancesPage() {
   }
 
   function openEditModal(row: Quittance) {
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
-      return;
-    }
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
-      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
-        return;
-      }
-    }
     setEditingRow(row);
     setValues({
       logement_id: row.logement_id ?? "",
@@ -496,13 +485,8 @@ export default function QuittancesPage() {
         total,
       };
 
-      const updatePayload =
-        plan === "free"
-          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
-          : { ...payload };
-
       const query = isEditing
-        ? supabase.from("quittances").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
+        ? supabase.from("quittances").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("quittances").insert({ ...payload, envoyee: false, date_envoi: null });
 
       const { error: submitError } = await query;
@@ -728,20 +712,7 @@ export default function QuittancesPage() {
                         </BtnPdf>
                         <BtnSecondary
                           size="small"
-                          disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
-                          title={
-                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                              ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
-                              : "Modifier"
-                          }
-                          style={{
-                            opacity:
-                              currentPlan === "free" && (row.nb_modifications ?? 0) >= 1 ? 0.5 : 1,
-                            cursor:
-                              currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
+                          title="Modifier"
                           onClick={() => openEditModal(row)}
                         >
                           Modifier

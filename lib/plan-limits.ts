@@ -5,6 +5,12 @@ export type ProplioPlan = "free" | "starter" | "pro" | "expert";
 type PlanLimits = {
   maxLogements: number | null;
   maxLocataires: number | null;
+  maxQuittances: number | null;
+  baux: boolean;
+  etatsDesLieux: boolean;
+  saisonnier: boolean;
+  revisionIrl: boolean;
+  documents: boolean;
 };
 
 export const PLAN_LIMIT_ERROR_MESSAGE = "Limite atteinte - Passez au plan supérieur";
@@ -22,30 +28,46 @@ export const PLAN_FREE_BAUX_BANNER =
 export const PLAN_FREE_EDL_BANNER =
   "Les états des lieux ne sont pas disponibles en plan Gratuit. Passez au plan Starter.";
 
-/** Avant d'ouvrir le formulaire de modification (logement / locataire / quittance) en plan Gratuit. */
-export const FREE_PLAN_EDIT_CONFIRM_MESSAGE =
-  "⚠️ Attention : vous disposez d'1 seule modification (droit à l'erreur) pour le plan Gratuit. Cette action utilisera votre droit à l'erreur.";
-
-/** Infobulle / message bouton Modifier grisé après consommation du droit à l'erreur. */
-export const FREE_PLAN_EDIT_LIMIT_REACHED_HINT =
-  "Limite de modification atteinte. Passez au plan Starter pour modifier sans limite.";
-
 export const PLAN_LIMITS: Record<ProplioPlan, PlanLimits> = {
   free: {
     maxLogements: 1,
     maxLocataires: 1,
+    maxQuittances: 1,
+    baux: false,
+    etatsDesLieux: false,
+    saisonnier: false,
+    revisionIrl: false,
+    documents: false,
   },
   starter: {
     maxLogements: 3,
     maxLocataires: 3,
+    maxQuittances: null,
+    baux: true,
+    etatsDesLieux: true,
+    saisonnier: true,
+    revisionIrl: true,
+    documents: true,
   },
   pro: {
-    maxLogements: 10,
-    maxLocataires: 10,
+    maxLogements: 5,
+    maxLocataires: 5,
+    maxQuittances: null,
+    baux: true,
+    etatsDesLieux: true,
+    saisonnier: true,
+    revisionIrl: true,
+    documents: true,
   },
   expert: {
     maxLogements: null,
     maxLocataires: null,
+    maxQuittances: null,
+    baux: true,
+    etatsDesLieux: true,
+    saisonnier: true,
+    revisionIrl: true,
+    documents: true,
   },
 };
 
@@ -71,10 +93,9 @@ export function canCreateLogement(
   existingLogementsCount = 0,
 ): boolean {
   const max = PLAN_LIMITS[plan].maxLogements;
-  const referenceCount = Math.max(
-    Number.isFinite(totalCreeCount) ? totalCreeCount : 0,
-    Number.isFinite(existingLogementsCount) ? existingLogementsCount : 0,
-  );
+  const referenceCount = Number.isFinite(existingLogementsCount)
+    ? existingLogementsCount
+    : totalCreeCount;
   return max == null || referenceCount < max;
 }
 
@@ -84,17 +105,15 @@ export function canCreateLocataire(
   existingCount = 0,
 ): boolean {
   const max = PLAN_LIMITS[plan].maxLocataires;
-  const referenceCount = Math.max(
-    Number.isFinite(totalCreeCount) ? totalCreeCount : 0,
-    Number.isFinite(existingCount) ? existingCount : 0,
-  );
+  const referenceCount = Number.isFinite(existingCount) ? existingCount : totalCreeCount;
   return max == null || referenceCount < max;
 }
 
 export function canCreateQuittance(plan: ProplioPlan, totalCount: number): boolean {
-  if (plan !== "free") return true;
+  const max = PLAN_LIMITS[plan].maxQuittances;
+  if (max == null) return true;
   const referenceCount = Number.isFinite(totalCount) ? totalCount : 0;
-  return referenceCount < 1;
+  return referenceCount < max;
 }
 
 export function canCreateBail(_plan: ProplioPlan, _monthlyCount: number): boolean {

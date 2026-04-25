@@ -7,12 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import {
   canCreateLocataire,
-  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
-  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnedCount,
-  getLocatairesCumulCount,
   getOwnerPlan,
-  incrementLocatairesCumul,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -97,20 +93,19 @@ export default function LocatairesPage() {
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const [plan, totalCree, existingCount] = await Promise.all([
+    const [plan, existingCount] = await Promise.all([
       getOwnerPlan(ownerId),
-      getLocatairesCumulCount(ownerId),
       getOwnedCount("locataires", ownerId),
     ]);
     setCurrentPlan(plan);
-    if (!canCreateLocataire(plan, totalCree, existingCount)) {
+    if (!canCreateLocataire(plan, existingCount, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de locataires.");
       setPlanWarningMessage("");
       return;
     }
     setPlanLimitMessage("");
-    const max = plan === "free" ? 1 : null;
-    const remaining = max == null ? null : max - Math.max(totalCree, existingCount);
+    const max = plan === "free" ? 1 : plan === "starter" ? 3 : plan === "pro" ? 5 : null;
+    const remaining = max == null ? null : max - existingCount;
     setPlanWarningMessage(
       plan === "free" && remaining === 1
         ? "ℹ️ Attention : il s'agit de votre dernière création disponible pour le plan Gratuit."
@@ -272,12 +267,11 @@ export default function LocatairesPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const [plan, totalCree, existingCount] = await Promise.all([
+      const [plan, existingCount] = await Promise.all([
         getOwnerPlan(ownerId),
-        getLocatairesCumulCount(ownerId),
         getOwnedCount("locataires", ownerId),
       ]);
-      if (!canCreateLocataire(plan, totalCree, existingCount)) {
+      if (!canCreateLocataire(plan, existingCount, existingCount)) {
         setError(
           "Limite atteinte. Passez au plan supérieur pour créer plus de locataires.",
         );
@@ -290,15 +284,6 @@ export default function LocatairesPage() {
   }
 
   function openEditModal(row: Locataire) {
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
-      return;
-    }
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
-      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
-        return;
-      }
-    }
     setEditingRow(row);
     setValues({
       nom: row.nom ?? "",
@@ -344,13 +329,10 @@ export default function LocatairesPage() {
         return;
       }
       setProprietaireId(ownerId);
-      const plan = await getOwnerPlan(ownerId);
       if (!isEditing) {
-        const [totalCree, existingCount] = await Promise.all([
-          getLocatairesCumulCount(ownerId),
-          getOwnedCount("locataires", ownerId),
-        ]);
-        if (!canCreateLocataire(plan, totalCree, existingCount)) {
+        const existingCount = await getOwnedCount("locataires", ownerId);
+        const plan = await getOwnerPlan(ownerId);
+        if (!canCreateLocataire(plan, existingCount, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -412,13 +394,8 @@ export default function LocatairesPage() {
         colocation_chambre_index,
       };
 
-      const updatePayload =
-        plan === "free"
-          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
-          : { ...payload };
-
       const query = isEditing
-        ? supabase.from("locataires").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
+        ? supabase.from("locataires").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("locataires").insert(payload);
 
       const { error: submitError } = await query;
@@ -427,10 +404,6 @@ export default function LocatairesPage() {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
       }
-      if (!isEditing) {
-        await incrementLocatairesCumul(ownerId);
-      }
-
       closeModal();
       await loadRows(ownerId);
       await loadLogements(ownerId);
@@ -665,22 +638,6 @@ export default function LocatairesPage() {
                             <>
                               <BtnSecondary
                                 size="small"
-                                disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
-                                title={
-                                  currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                                    ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
-                                    : undefined
-                                }
-                                style={{
-                                  opacity:
-                                    currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                                      ? 0.5
-                                      : 1,
-                                  cursor:
-                                    currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                                      ? "not-allowed"
-                                      : "pointer",
-                                }}
                                 onClick={() => openEditModal(row)}
                               >
                                 Modifier

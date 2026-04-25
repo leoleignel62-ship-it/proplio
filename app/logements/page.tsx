@@ -13,12 +13,8 @@ import {
 } from "@/lib/colocation";
 import {
   canCreateLogement,
-  FREE_PLAN_EDIT_CONFIRM_MESSAGE,
-  FREE_PLAN_EDIT_LIMIT_REACHED_HINT,
   getOwnedCount,
-  getLogementsCumulCount,
   getOwnerPlan,
-  incrementLogementsCumul,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -209,20 +205,19 @@ export default function LogementsPage() {
   const isPlanLimitReached = Boolean(planLimitMessage);
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const [plan, totalCree, existingCount] = await Promise.all([
+    const [plan, existingCount] = await Promise.all([
       getOwnerPlan(ownerId),
-      getLogementsCumulCount(ownerId),
       getOwnedCount("logements", ownerId),
     ]);
     setCurrentPlan(plan);
-    if (!canCreateLogement(plan, totalCree, existingCount)) {
+    if (!canCreateLogement(plan, existingCount, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
       setPlanWarningMessage("");
       return;
     }
     setPlanLimitMessage("");
-    const max = plan === "free" ? 1 : null;
-    const remaining = max == null ? null : max - Math.max(totalCree, existingCount);
+    const max = plan === "free" ? 1 : plan === "starter" ? 3 : plan === "pro" ? 5 : null;
+    const remaining = max == null ? null : max - existingCount;
     setPlanWarningMessage(
       plan === "free" && remaining === 1
         ? "ℹ️ Attention : il s'agit de votre dernière création disponible pour le plan Gratuit."
@@ -392,12 +387,11 @@ export default function LogementsPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const [plan, totalCree, existingCount] = await Promise.all([
+      const [plan, existingCount] = await Promise.all([
         getOwnerPlan(ownerId),
-        getLogementsCumulCount(ownerId),
         getOwnedCount("logements", ownerId),
       ]);
-      if (!canCreateLogement(plan, totalCree, existingCount)) {
+      if (!canCreateLogement(plan, existingCount, existingCount)) {
         setError(
           "Limite atteinte. Passez au plan supérieur pour créer plus de logements.",
         );
@@ -414,15 +408,6 @@ export default function LogementsPage() {
   }
 
   function openEditModal(row: Logement) {
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) >= 1) {
-      setError(FREE_PLAN_EDIT_LIMIT_REACHED_HINT);
-      return;
-    }
-    if (currentPlan === "free" && (row.nb_modifications ?? 0) === 0) {
-      if (typeof window !== "undefined" && !window.confirm(FREE_PLAN_EDIT_CONFIRM_MESSAGE)) {
-        return;
-      }
-    }
     setEditingRow(row);
     setValues({
       nom: row.nom ?? "",
@@ -545,13 +530,10 @@ export default function LogementsPage() {
         return;
       }
       setProprietaireId(ownerId);
-      const plan = await getOwnerPlan(ownerId);
       if (!isEditing) {
-        const [totalCree, existingCount] = await Promise.all([
-          getLogementsCumulCount(ownerId),
-          getOwnedCount("logements", ownerId),
-        ]);
-        if (!canCreateLogement(plan, totalCree, existingCount)) {
+        const existingCount = await getOwnedCount("logements", ownerId);
+        const plan = await getOwnerPlan(ownerId);
+        if (!canCreateLogement(plan, existingCount, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -684,13 +666,8 @@ export default function LogementsPage() {
         payload.ical_booking_url = null;
       }
 
-      const updatePayload =
-        plan === "free"
-          ? { ...payload, nb_modifications: (editingRow?.nb_modifications ?? 0) + 1 }
-          : { ...payload };
-
       const query = isEditing
-        ? supabase.from("logements").update(updatePayload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
+        ? supabase.from("logements").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("logements").insert(payload);
 
       const { error: submitError } = await query;
@@ -699,10 +676,6 @@ export default function LogementsPage() {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
       }
-      if (!isEditing) {
-        await incrementLogementsCumul(ownerId);
-      }
-
       closeModal();
       await loadRows(ownerId);
       toast.success(isEditing ? "Logement mis à jour." : "Logement créé.");
@@ -965,20 +938,6 @@ export default function LogementsPage() {
                       <BtnSecondary
                         size="small"
                         className="w-full sm:w-auto"
-                        disabled={currentPlan === "free" && (row.nb_modifications ?? 0) >= 1}
-                        title={
-                          currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                            ? FREE_PLAN_EDIT_LIMIT_REACHED_HINT
-                            : undefined
-                        }
-                        style={{
-                          opacity:
-                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1 ? 0.5 : 1,
-                          cursor:
-                            currentPlan === "free" && (row.nb_modifications ?? 0) >= 1
-                              ? "not-allowed"
-                              : "pointer",
-                        }}
                         onClick={(event) => {
                           event.stopPropagation();
                           openEditModal(row);
@@ -1635,7 +1594,7 @@ export default function LogementsPage() {
         open={isDeleteBlockedModalOpen}
         title="Impossible de supprimer ce logement"
         description={
-          "Ce logement a des données associées qui doivent être supprimées avant :\n- Locataires assignés\n- Baux actifs ou terminés\n- Quittances générées\n- États des lieux\n\n⚠️ Ce logement compte dans votre quota cumulatif. Même après suppression, vous ne pourrez pas en créer un nouveau si vous avez atteint la limite.\n\nVeuillez d'abord supprimer ces éléments depuis leurs sections respectives."
+          "Ce logement a des données associées qui doivent être supprimées avant :\n- Locataires assignés\n- Baux actifs ou terminés\n- Quittances générées\n- États des lieux\n\nVeuillez d'abord supprimer ces éléments depuis leurs sections respectives."
         }
         confirmLabel="Compris"
         cancelLabel="Fermer"
