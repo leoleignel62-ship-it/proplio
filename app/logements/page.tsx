@@ -67,6 +67,10 @@ type Logement = {
 };
 
 const EXPLOITATION_CARD_BG = "#13131a";
+const FREE_LOGEMENT_MODIF_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
+const FREE_LOGEMENT_DELETE_LIMIT_MESSAGE =
+  "Vous avez atteint la limite de suppression du plan Découverte. Passez au plan Starter pour des suppressions illimitées.";
 
 const MOIS_FR = [
   "Janvier",
@@ -203,6 +207,28 @@ export default function LogementsPage() {
   const loyerGlobal = Number(values.loyer || 0);
   const ecartLoyer = totalChambresLoyers - loyerGlobal;
   const isPlanLimitReached = Boolean(planLimitMessage);
+
+  async function getFreeLogementQuotas(ownerId: string): Promise<{
+    logements_modifs_cumul: number;
+    logements_suppressions_cumul: number;
+  }> {
+    const { data, error: qErr } = await supabase
+      .from("proprietaires")
+      .select("logements_modifs_cumul, logements_suppressions_cumul")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (qErr || !data) {
+      return { logements_modifs_cumul: 0, logements_suppressions_cumul: 0 };
+    }
+    const row = data as {
+      logements_modifs_cumul?: number | null;
+      logements_suppressions_cumul?: number | null;
+    };
+    return {
+      logements_modifs_cumul: Number(row.logements_modifs_cumul ?? 0),
+      logements_suppressions_cumul: Number(row.logements_suppressions_cumul ?? 0),
+    };
+  }
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
     const [plan, existingCount] = await Promise.all([
@@ -670,11 +696,27 @@ export default function LogementsPage() {
         ? supabase.from("logements").update(payload).eq("id", editingRow!.id).eq("proprietaire_id", ownerId)
         : supabase.from("logements").insert(payload);
 
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeLogementQuotas(ownerId);
+        if (quotas.logements_modifs_cumul >= 1) {
+          setError(FREE_LOGEMENT_MODIF_LIMIT_MESSAGE);
+          toast.error(FREE_LOGEMENT_MODIF_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
       const { error: submitError } = await query;
 
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (isEditing && currentPlan === "free") {
+        const quotas = await getFreeLogementQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ logements_modifs_cumul: quotas.logements_modifs_cumul + 1 })
+          .eq("id", ownerId);
       }
       closeModal();
       await loadRows(ownerId);
@@ -697,6 +739,16 @@ export default function LogementsPage() {
         return;
       }
 
+      if (currentPlan === "free") {
+        const quotas = await getFreeLogementQuotas(ownerId);
+        if (quotas.logements_suppressions_cumul >= 1) {
+          setError(FREE_LOGEMENT_DELETE_LIMIT_MESSAGE);
+          toast.error(FREE_LOGEMENT_DELETE_LIMIT_MESSAGE);
+          setDeleteConfirmId(null);
+          return;
+        }
+      }
+
       const { error: deleteError } = await supabase
         .from("logements")
         .delete()
@@ -714,6 +766,14 @@ export default function LogementsPage() {
         }
         setError(`Erreur de suppression : ${formatSubmitError(deleteError)}`);
         return;
+      }
+
+      if (currentPlan === "free") {
+        const quotas = await getFreeLogementQuotas(ownerId);
+        await supabase
+          .from("proprietaires")
+          .update({ logements_suppressions_cumul: quotas.logements_suppressions_cumul + 1 })
+          .eq("id", ownerId);
       }
 
       setDeleteConfirmId(null);
@@ -822,7 +882,9 @@ export default function LogementsPage() {
       {error ? (
         <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           <p>{error}</p>
-          {error === PLAN_LIMIT_ERROR_MESSAGE ? (
+          {error === PLAN_LIMIT_ERROR_MESSAGE ||
+          error === FREE_LOGEMENT_MODIF_LIMIT_MESSAGE ||
+          error === FREE_LOGEMENT_DELETE_LIMIT_MESSAGE ? (
             <p className="mt-2">
               <a href={PLAN_UPGRADE_PATH} className="underline" style={{ color: PC.danger }}>
                 Voir les abonnements
@@ -1070,7 +1132,7 @@ export default function LogementsPage() {
                   ).map((opt) => {
                     const active = typeLocation === opt.id;
                     const isFreeLockedExploitationOption =
-                      !isEditing && currentPlan === "free" && (opt.id === "saisonnier" || opt.id === "les_deux");
+                      currentPlan === "free" && (opt.id === "saisonnier" || opt.id === "les_deux");
                     return (
                       <button
                         key={opt.id}
