@@ -250,6 +250,11 @@ export default function ParametresPage() {
     setIsSaving(false);
   }
 
+  function reopenOnboardingGuide() {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new Event("proplio:onboarding:open"));
+  }
+
   return (
     <section className="proplio-page-wrap max-w-4xl space-y-8" style={{ color: PC.text }}>
       <header>
@@ -413,6 +418,16 @@ export default function ParametresPage() {
               <BtnPrimary type="submit" disabled={isSaving} loading={isSaving}>
                 Enregistrer mon profil
               </BtnPrimary>
+            </div>
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                className="text-sm transition hover:underline"
+                style={{ color: PC.muted }}
+                onClick={reopenOnboardingGuide}
+              >
+                📋 Revoir le guide de démarrage
+              </button>
             </div>
           </form>
         )}
