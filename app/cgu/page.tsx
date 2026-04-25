@@ -2,116 +2,116 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 
 export default function CguPage() {
   return (
-    <LegalPageShell title="Conditions Generales d'Utilisation">
+    <LegalPageShell title="Conditions Générales d'Utilisation">
       <p className="text-sm" style={{ color: "#a1a1aa" }}>
-        Derniere mise a jour : avril 2026
+        Dernière mise à jour : avril 2026.
       </p>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 1 - Objet
+          Article 1 — Objet
         </h2>
         <p>
-          Les presentes Conditions Generales d&apos;Utilisation (CGU) regissent l&apos;acces et l&apos;utilisation de la
-          plateforme [NOM APPLICATION] editee par [NOM SOCIETE]. En creant un compte, l&apos;utilisateur accepte sans
-          reserve les presentes CGU.
+          Les présentes Conditions Générales d&apos;Utilisation (CGU) régissent l&apos;accès et l&apos;utilisation de la
+          plateforme [NOM APPLICATION] éditée par [NOM SOCIÉTÉ]. En créant un compte, l&apos;utilisateur accepte sans
+          réserve les présentes CGU.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 2 - Description du service
+          Article 2 — Description du service
         </h2>
         <p>
-          [NOM APPLICATION] est une plateforme SaaS de gestion locative permettant aux proprietaires bailleurs de gerer
-          leurs logements, locataires, quittances, baux, etats des lieux et locations saisonnieres.
+          [NOM APPLICATION] est une plateforme SaaS de gestion locative permettant aux propriétaires bailleurs de gérer
+          leurs logements, locataires, quittances, baux, états des lieux et locations saisonnières.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 3 - Acces au service
+          Article 3 — Accès au service
         </h2>
         <p>
-          L&apos;acces au service necessite la creation d&apos;un compte avec une adresse email valide. L&apos;utilisateur
-          est responsable de la confidentialite de ses identifiants. [NOM APPLICATION] propose plusieurs formules
-          d&apos;abonnement (Decouverte, Starter, Pro, Expert) dont les caracteristiques sont detaillees sur la page
+          L&apos;accès au service nécessite la création d&apos;un compte avec une adresse email valide. L&apos;utilisateur
+          est responsable de la confidentialité de ses identifiants. [NOM APPLICATION] propose plusieurs formules
+          d&apos;abonnement (Découverte, Starter, Pro, Expert) dont les caractéristiques sont détaillées sur la page
           Tarifs.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 4 - Obligations de l&apos;utilisateur
+          Article 4 — Obligations de l&apos;utilisateur
         </h2>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Fournir des informations exactes lors de son inscription</li>
-          <li>Utiliser le service conformement a sa destination</li>
-          <li>Ne pas tenter de porter atteinte au bon fonctionnement de la plateforme</li>
-          <li>Respecter la vie privee des tiers dont il renseigne les donnees (locataires, voyageurs)</li>
+          <li>Fournir des informations exactes lors de son inscription.</li>
+          <li>Utiliser le service conformément à sa destination.</li>
+          <li>Ne pas tenter de porter atteinte au bon fonctionnement de la plateforme.</li>
+          <li>Respecter la vie privée des tiers dont il renseigne les données (locataires, voyageurs).</li>
         </ul>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 5 - Donnees personnelles
+          Article 5 — Données personnelles
         </h2>
         <p>
-          Le traitement des donnees personnelles est detaille dans notre Politique de confidentialite disponible a
-          l&apos;adresse /politique-de-confidentialite. Conformement au RGPD, l&apos;utilisateur dispose d&apos;un droit
-          d&apos;acces, de rectification, de suppression et de portabilite de ses donnees.
+          Le traitement des données personnelles est détaillé dans notre Politique de confidentialité disponible à
+          l&apos;adresse /politique-de-confidentialite. Conformément au RGPD, l&apos;utilisateur dispose d&apos;un droit
+          d&apos;accès, de rectification, de suppression et de portabilité de ses données.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 6 - Tarifs et paiement
+          Article 6 — Tarifs et paiement
         </h2>
         <p>
-          Les abonnements payants sont factures via Stripe. Les prix sont indiques en euros TTC. Tout abonnement
-          commence est du dans son integralite. L&apos;utilisateur peut resilier a tout moment depuis son espace
-          abonnement, sans frais ni preavis.
+          Les abonnements payants sont facturés via Stripe. Les prix sont indiqués en euros TTC. Tout abonnement
+          commencé est dû dans son intégralité. L&apos;utilisateur peut résilier à tout moment depuis son espace
+          abonnement, sans frais ni préavis.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 7 - Resiliation
+          Article 7 — Résiliation
         </h2>
         <p>
-          L&apos;utilisateur peut supprimer son compte a tout moment. [NOM SOCIETE] se reserve le droit de suspendre ou
-          supprimer un compte en cas de non-respect des presentes CGU.
+          L&apos;utilisateur peut supprimer son compte à tout moment. [NOM SOCIÉTÉ] se réserve le droit de suspendre ou
+          supprimer un compte en cas de non-respect des présentes CGU.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 8 - Limitation de responsabilite
+          Article 8 — Limitation de responsabilité
         </h2>
         <p>
-          [NOM APPLICATION] est un outil d&apos;aide a la gestion locative. [NOM SOCIETE] ne saurait etre tenu
-          responsable des erreurs de saisie, des litiges entre proprietaires et locataires, ou de toute decision prise
-          sur la base des informations generees par la plateforme.
+          [NOM APPLICATION] est un outil d&apos;aide à la gestion locative. [NOM SOCIÉTÉ] ne saurait être tenu
+          responsable des erreurs de saisie, des litiges entre propriétaires et locataires, ou de toute décision prise
+          sur la base des informations générées par la plateforme.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 9 - Modification des CGU
+          Article 9 — Modification des CGU
         </h2>
         <p>
-          [NOM SOCIETE] se reserve le droit de modifier les presentes CGU a tout moment. Les utilisateurs seront informes
+          [NOM SOCIÉTÉ] se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés
           par email de toute modification substantielle.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
-          Article 10 - Droit applicable
+          Article 10 — Droit applicable
         </h2>
         <p>
-          Les presentes CGU sont soumises au droit francais. En cas de litige, les tribunaux francais seront seuls
-          competents.
+          Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront seuls
+          compétents.
         </p>
       </section>
     </LegalPageShell>
