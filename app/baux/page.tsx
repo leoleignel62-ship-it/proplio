@@ -914,9 +914,6 @@ export default function BauxPage() {
       closeModal();
       await loadRows(ownerId);
       toast.success(isEditing ? "Bail mis à jour." : "Bail créé.");
-      if (!isEditing && typeof window !== "undefined") {
-        window.dispatchEvent(new Event("onboarding:check"));
-      }
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {

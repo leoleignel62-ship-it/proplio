@@ -599,9 +599,6 @@ export default function ReservationsSaisonnierPage() {
     setModalOpen(false);
     void load();
     uxToast.success("Réservation créée.");
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("onboarding:check"));
-    }
   }
 
   async function saveTarifTotalReservation(id: string, valueStr: string) {

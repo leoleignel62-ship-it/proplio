@@ -490,7 +490,7 @@ export default function LocatairesPage() {
       await loadRows(ownerId);
       await loadLogements(ownerId);
       toast.success(isEditing ? "Locataire mis à jour." : "Locataire créé.");
-      if (!isEditing && typeof window !== "undefined") {
+      if (!isEditing && currentPlan === "free" && typeof window !== "undefined") {
         window.dispatchEvent(new Event("onboarding:check"));
       }
     } catch (e) {

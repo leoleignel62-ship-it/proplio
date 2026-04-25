@@ -58,38 +58,11 @@ const FREE_BASE_STEPS = [
   },
 ] as const;
 
-const PAID_EXTRA_STEPS = [
-  {
-    key: "baux",
-    emoji: "📋",
-    title: "Créez votre bail",
-    description: "Générez un bail conforme loi ALUR en quelques minutes.",
-    href: "/baux",
-  },
-  {
-    key: "etats_des_lieux",
-    emoji: "🔍",
-    title: "Faites un état des lieux",
-    description: "Documentez l'état du logement à l'entrée ou à la sortie.",
-    href: "/etats-des-lieux",
-  },
-  {
-    key: "reservations",
-    emoji: "🌴",
-    title: "Activez le mode saisonnier",
-    description: "Gérez vos réservations courte durée et synchronisez Airbnb.",
-    href: "/saisonnier/reservations",
-  },
-] as const;
-
 type StepProgress = {
   profile: boolean;
   logements: boolean;
   locataires: boolean;
   quittances: boolean;
-  baux: boolean;
-  etats_des_lieux: boolean;
-  reservations: boolean;
 };
 
 function makeSnoozeStorageKey(ownerId: string, plan: ProplioPlan): string {
@@ -97,9 +70,8 @@ function makeSnoozeStorageKey(ownerId: string, plan: ProplioPlan): string {
 }
 
 function buildOnboardingSteps(plan: ProplioPlan, progress: StepProgress): OnboardingStep[] {
-  const base = [...FREE_BASE_STEPS];
-  const list = plan === "free" ? base : [...base, ...PAID_EXTRA_STEPS];
-  return list.map((step) => ({ ...step, done: Boolean(progress[step.key as keyof StepProgress]) }));
+  if (plan !== "free") return [];
+  return [...FREE_BASE_STEPS].map((step) => ({ ...step, done: Boolean(progress[step.key as keyof StepProgress]) }));
 }
 
 function countDone(steps: OnboardingStep[]): number {
@@ -161,16 +133,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [plan, proprietaireId]);
 
   const fetchStepProgress = useCallback(async (): Promise<StepProgress | null> => {
-    if (!proprietaireId || !onboardingPending) return null;
-    const [ownerResult, logementsResult, locatairesResult, quittancesResult, bauxResult, edlResult, reservationsResult] =
+    if (!proprietaireId || !onboardingPending || plan !== "free") return null;
+    const [ownerResult, logementsResult, locatairesResult, quittancesResult] =
       await Promise.all([
         supabase.from("proprietaires").select("nom, prenom, adresse").eq("id", proprietaireId).maybeSingle(),
         supabase.from("logements").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
         supabase.from("locataires").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
         supabase.from("quittances").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("baux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("etats_des_lieux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("reservations").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
       ]);
     const owner = ownerResult.data as { nom?: string | null; prenom?: string | null; adresse?: string | null } | null;
     return {
@@ -178,11 +147,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       logements: Number(logementsResult.count ?? 0) >= 1,
       locataires: Number(locatairesResult.count ?? 0) >= 1,
       quittances: Number(quittancesResult.count ?? 0) >= 1,
-      baux: Number(bauxResult.count ?? 0) >= 1,
-      etats_des_lieux: Number(edlResult.count ?? 0) >= 1,
-      reservations: Number(reservationsResult.count ?? 0) >= 1,
     };
-  }, [onboardingPending, proprietaireId]);
+  }, [onboardingPending, plan, proprietaireId]);
 
   const refreshOnboardingSteps = useCallback(async () => {
     const progress = await fetchStepProgress();
@@ -194,15 +160,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!onboardingPending) return;
+    if (plan !== "free") {
+      setOnboardingOpen(true);
+      return;
+    }
     void (async () => {
       await refreshOnboardingSteps();
       const canAutoOpenInitially = Date.now() >= suppressedUntil && !waitingStep;
       if (canAutoOpenInitially) setOnboardingOpen(true);
     })();
-  }, [onboardingPending, refreshOnboardingSteps, suppressedUntil, waitingStep]);
+  }, [onboardingPending, plan, refreshOnboardingSteps, suppressedUntil, waitingStep]);
 
   useEffect(() => {
-    if (!onboardingPending) return;
+    if (!onboardingPending || plan !== "free") return;
     void (async () => {
       const progress = await refreshOnboardingSteps();
       if (!progress || !waitingStep) return;
@@ -213,10 +183,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setOnboardingOpen(true);
       setForceOpenOnboarding(false);
     })();
-  }, [onboardingPending, pathname, refreshOnboardingSteps, waitingStep]);
+  }, [onboardingPending, pathname, plan, refreshOnboardingSteps, waitingStep]);
 
   useEffect(() => {
-    if (isPublicPage || !onboardingPending) return;
+    if (isPublicPage || !onboardingPending || plan !== "free") return;
     const handleOnboardingCheck = () => {
       void (async () => {
         const previousSteps = onboardingSteps;
@@ -240,11 +210,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const handler = () => {
       setForceOpenOnboarding(true);
       setOnboardingOpen(true);
-      void refreshOnboardingSteps();
+      if (plan === "free") {
+        void refreshOnboardingSteps();
+      }
     };
     window.addEventListener("proplio:onboarding:open", handler);
     return () => window.removeEventListener("proplio:onboarding:open", handler);
-  }, [isPublicPage, refreshOnboardingSteps]);
+  }, [isPublicPage, plan, refreshOnboardingSteps]);
 
   const shouldShowOnboarding = useMemo(() => {
     if (isPublicPage || !onboardingPending) return false;

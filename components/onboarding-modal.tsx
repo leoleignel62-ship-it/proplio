@@ -54,6 +54,49 @@ function playSuccessBeep() {
   oscillator.stop(context.currentTime + 0.08);
 }
 
+function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: string; bullets: string[] } {
+  if (plan === "expert") {
+    return {
+      title: "🎉 Bienvenue sur le plan Expert !",
+      subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
+      bullets: [
+        "📋 Baux illimités (PDF conforme loi ALUR)",
+        "🔍 États des lieux illimités (photos + PDF)",
+        "📈 Révision annuelle des loyers (IRL INSEE)",
+        "📁 Gestion des documents par logement",
+        "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+        "🏠 Logements illimités",
+        "👥 Locataires illimités",
+      ],
+    };
+  }
+  if (plan === "pro") {
+    return {
+      title: "🎉 Bienvenue sur le plan Pro !",
+      subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
+      bullets: [
+        "📋 Baux illimités (PDF conforme loi ALUR)",
+        "🔍 États des lieux illimités (photos + PDF)",
+        "📈 Révision annuelle des loyers (IRL INSEE)",
+        "📁 Gestion des documents par logement",
+        "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+        "🏠 Jusqu'à 5 logements simultanés",
+      ],
+    };
+  }
+  return {
+    title: "🎉 Bienvenue sur le plan Starter !",
+    subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
+    bullets: [
+      "📋 Baux illimités (PDF conforme loi ALUR)",
+      "🔍 États des lieux illimités (photos + PDF)",
+      "📈 Révision annuelle des loyers (IRL INSEE)",
+      "📁 Gestion des documents par logement",
+      "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+    ],
+  };
+}
+
 export function OnboardingModal({
   open,
   plan,
@@ -70,6 +113,7 @@ export function OnboardingModal({
   const previousDoneRef = useRef<Record<string, boolean>>({});
 
   const isPaid = plan !== "free";
+  const paidWelcome = useMemo(() => getPaidWelcomeContent(plan), [plan]);
 
   const completedCount = useMemo(() => steps.filter((step) => step.done).length, [steps]);
   const totalCount = steps.length;
@@ -164,116 +208,147 @@ export function OnboardingModal({
           </div>
         ) : null}
 
-        <header>
-          <h2 id="onboarding-title" className="text-2xl font-extrabold tracking-tight" style={{ color: PC.text }}>
-            🎉 Bienvenue sur Proplio !
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
-            {isPaid
-              ? "Voici comment tirer le meilleur parti de votre abonnement."
-              : "Voici comment bien démarrer avec votre plan Découverte."}
-          </p>
+        {isPaid ? (
+          <>
+            <header>
+              <h2 id="onboarding-title" className="text-2xl font-extrabold tracking-tight" style={{ color: PC.text }}>
+                {paidWelcome.title}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+                {paidWelcome.subtitle}
+              </p>
+            </header>
 
-          <div className="mt-4">
-            <div className="mb-2 text-xs font-medium" style={{ color: PC.secondary }}>
-              {completedCount} étapes complétées sur {totalCount}
-            </div>
-            <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: "#1c1c2e" }}>
-              <div
-                className="h-full transition-all duration-500 ease-out"
-                style={{
-                  width: `${progressPct}%`,
-                  background: "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)",
-                }}
-              />
-            </div>
-            <p className="mt-3 text-xs leading-relaxed" style={{ color: "#c4c4cf" }}>
-              {progressMessage}
-            </p>
-          </div>
-        </header>
+            <ul className="mt-5 space-y-2.5 text-sm" style={{ color: "#d8d8e2" }}>
+              {paidWelcome.bullets.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
 
-        <div className="mt-6 space-y-3">
-          {steps.map((step) => {
-            const isNextStep = !step.done && step.key === nextStepKey;
-            const rowBorder = isNextStep ? "#7c3aed" : PC.border;
-            const rowBg = step.done ? "rgba(255,255,255,0.02)" : PC.card;
-            return (
-              <div
-                key={step.key}
-                className="flex items-start justify-between gap-3 rounded-xl border px-4 py-3 transition"
-                style={{ borderColor: rowBorder, backgroundColor: rowBg }}
+            <footer className="mt-6">
+              <BtnPrimary
+                type="button"
+                loading={closing}
+                onClick={() => void handleCompleteAndClose()}
+                className="w-full justify-center"
+                style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed" }}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-xl leading-none" style={{ opacity: step.done ? 0.65 : 1 }}>
-                    {step.emoji}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p
-                        className="text-sm font-bold"
-                        style={{ color: step.done ? "#b8b8c3" : PC.text }}
-                      >
-                        {step.title}
-                      </p>
-                      {isNextStep ? (
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}
-                        >
-                          → Étape suivante
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed" style={{ color: step.done ? "#8c8c98" : "#c4c4cf" }}>
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-                {step.done ? (
-                  <span
-                    className="text-lg"
-                    style={{
-                      color: PC.success,
-                      animation: justCompleted[step.key] ? "onboardingCheckIn 260ms ease-out" : undefined,
-                      transformOrigin: "center",
-                    }}
-                    aria-label="Étape complétée"
-                  >
-                    ✅
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-                    style={{ backgroundColor: "#7c3aed", color: PC.white }}
-                    onClick={() => handleGoTo(step)}
-                  >
-                    Y aller →
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                Commencer à explorer →
+              </BtnPrimary>
+            </footer>
+          </>
+        ) : (
+          <>
+            <header>
+              <h2 id="onboarding-title" className="text-2xl font-extrabold tracking-tight" style={{ color: PC.text }}>
+                🎉 Bienvenue sur Proplio !
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+                Voici comment bien démarrer avec votre plan Découverte.
+              </p>
 
-        <footer className="mt-6 flex justify-end">
-          {allDone ? (
-            <BtnPrimary type="button" loading={closing} onClick={() => void handleCompleteAndClose()}>
-              Terminer 🎉
-            </BtnPrimary>
-          ) : (
-            <button
-              type="button"
-              disabled={closing}
-              className="text-sm transition disabled:opacity-60"
-              style={{ color: PC.muted }}
-              onClick={onDismiss}
-            >
-              Fermer
-            </button>
-          )}
-        </footer>
+              <div className="mt-4">
+                <div className="mb-2 text-xs font-medium" style={{ color: PC.secondary }}>
+                  {completedCount} étapes complétées sur {totalCount}
+                </div>
+                <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: "#1c1c2e" }}>
+                  <div
+                    className="h-full transition-all duration-500 ease-out"
+                    style={{
+                      width: `${progressPct}%`,
+                      background: "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)",
+                    }}
+                  />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: "#c4c4cf" }}>
+                  {progressMessage}
+                </p>
+              </div>
+            </header>
+
+            <div className="mt-6 space-y-3">
+              {steps.map((step) => {
+                const isNextStep = !step.done && step.key === nextStepKey;
+                const rowBorder = isNextStep ? "#7c3aed" : PC.border;
+                const rowBg = step.done ? "rgba(255,255,255,0.02)" : PC.card;
+                return (
+                  <div
+                    key={step.key}
+                    className="flex items-start justify-between gap-3 rounded-xl border px-4 py-3 transition"
+                    style={{ borderColor: rowBorder, backgroundColor: rowBg }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl leading-none" style={{ opacity: step.done ? 0.65 : 1 }}>
+                        {step.emoji}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p
+                            className="text-sm font-bold"
+                            style={{ color: step.done ? "#b8b8c3" : PC.text }}
+                          >
+                            {step.title}
+                          </p>
+                          {isNextStep ? (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                              style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}
+                            >
+                              → Étape suivante
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed" style={{ color: step.done ? "#8c8c98" : "#c4c4cf" }}>
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                    {step.done ? (
+                      <span
+                        className="text-lg"
+                        style={{
+                          color: PC.success,
+                          animation: justCompleted[step.key] ? "onboardingCheckIn 260ms ease-out" : undefined,
+                          transformOrigin: "center",
+                        }}
+                        aria-label="Étape complétée"
+                      >
+                        ✅
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+                        style={{ backgroundColor: "#7c3aed", color: PC.white }}
+                        onClick={() => handleGoTo(step)}
+                      >
+                        Y aller →
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <footer className="mt-6 flex justify-end">
+              {allDone ? (
+                <BtnPrimary type="button" loading={closing} onClick={() => void handleCompleteAndClose()}>
+                  Terminer 🎉
+                </BtnPrimary>
+              ) : (
+                <button
+                  type="button"
+                  disabled={closing}
+                  className="text-sm transition disabled:opacity-60"
+                  style={{ color: PC.muted }}
+                  onClick={onDismiss}
+                >
+                  Fermer
+                </button>
+              )}
+            </footer>
+          </>
+        )}
       </div>
       <style jsx>{`
         @keyframes onboardingCheckIn {

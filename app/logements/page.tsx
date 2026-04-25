@@ -761,7 +761,7 @@ export default function LogementsPage() {
       closeModal();
       await loadRows(ownerId);
       toast.success(isEditing ? "Logement mis à jour." : "Logement créé.");
-      if (!isEditing && typeof window !== "undefined") {
+      if (!isEditing && currentPlan === "free" && typeof window !== "undefined") {
         window.dispatchEvent(new Event("onboarding:check"));
       }
     } catch (e) {
