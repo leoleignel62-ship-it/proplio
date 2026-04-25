@@ -18,7 +18,8 @@ import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
 type BillingPeriod = "monthly" | "yearly";
-type PendingUpgrade = {
+type PendingPlanChange = {
+  mode: "upgrade" | "downgrade";
   targetPlan: Exclude<ProplioPlan, "free">;
   interval: BillingPeriod;
 };
@@ -111,7 +112,7 @@ export default function AbonnementPage() {
   const [loading, setLoading] = useState(true);
   const [loadingCheckoutKey, setLoadingCheckoutKey] = useState<string | null>(null);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
-  const [pendingUpgrade, setPendingUpgrade] = useState<PendingUpgrade | null>(null);
+  const [pendingPlanChange, setPendingPlanChange] = useState<PendingPlanChange | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [billing, setBilling] = useState<BillingPeriod>("yearly");
@@ -172,11 +173,11 @@ export default function AbonnementPage() {
     }
   }
 
-  async function confirmUpgrade() {
-    if (!pendingUpgrade) return;
-    const { targetPlan, interval } = pendingUpgrade;
+  async function confirmPlanChange() {
+    if (!pendingPlanChange) return;
+    const { targetPlan, interval } = pendingPlanChange;
     await startCheckout(targetPlan, interval);
-    setPendingUpgrade(null);
+    setPendingPlanChange(null);
   }
 
   async function openPortal() {
@@ -388,16 +389,24 @@ export default function AbonnementPage() {
               ) : (
                 <BtnPrimary
                   className={`mt-6 w-full ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
-                  disabled={isCurrent || loadingCheckoutKey !== null}
+                  disabled={loadingCheckoutKey !== null || isOpeningPortal}
                   loading={loadingCheckoutKey === `${p.id}-${billing}`}
                   onClick={() => {
                     if (!isPaidPlan(p.id)) return;
-                    const isUpgrade = getPlanRank(p.id) > getPlanRank(plan);
-                    if (isUpgrade) {
-                      setPendingUpgrade({ targetPlan: p.id, interval: billing });
+                    if (isCurrent) {
+                      void openPortal();
                       return;
                     }
-                    void startCheckout(p.id, billing);
+                    const targetRank = getPlanRank(p.id);
+                    const currentRank = getPlanRank(plan);
+                    if (targetRank > currentRank) {
+                      setPendingPlanChange({ mode: "upgrade", targetPlan: p.id, interval: billing });
+                      return;
+                    }
+                    if (targetRank < currentRank) {
+                      setPendingPlanChange({ mode: "downgrade", targetPlan: p.id, interval: billing });
+                      return;
+                    }
                   }}
                 >
                   Choisir ce plan
@@ -437,37 +446,51 @@ export default function AbonnementPage() {
         .
       </p>
 
-      {pendingUpgrade ? (
+      {pendingPlanChange ? (
         <div
           className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="upgrade-confirmation-title"
+          aria-labelledby="plan-change-confirmation-title"
         >
           <div
             className="w-full max-w-lg rounded-2xl p-6 sm:p-7"
             style={{ ...panelCard, border: "1px solid rgba(124, 58, 237, 0.4)" }}
           >
-            <h2 id="upgrade-confirmation-title" className="text-xl font-extrabold" style={{ color: PC.text }}>
-              Confirmer votre upgrade
+            <h2 id="plan-change-confirmation-title" className="text-xl font-extrabold" style={{ color: PC.text }}>
+              {pendingPlanChange.mode === "upgrade"
+                ? "Confirmer votre upgrade"
+                : "Confirmer votre changement de plan"}
             </h2>
             <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-              {PLAN_DISPLAY_LABELS[plan]} {"->"} {PLAN_DISPLAY_LABELS[pendingUpgrade.targetPlan]}
+              {PLAN_DISPLAY_LABELS[plan]} {"->"} {PLAN_DISPLAY_LABELS[pendingPlanChange.targetPlan]}
             </p>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Votre carte enregistrée sera débitée du montant proratisé pour la période restante. Aucune nouvelle
-              information de paiement n&apos;est requise.
-            </p>
+            {pendingPlanChange.mode === "upgrade" ? (
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+                Votre carte enregistrée sera débitée du montant proratisé pour la période restante. Aucune nouvelle
+                information de paiement n&apos;est requise.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+                Vous allez passer au plan {PLAN_DISPLAY_LABELS[pendingPlanChange.targetPlan]}. Un avoir correspondant
+                à la période non utilisée sera automatiquement appliqué sur votre prochaine facture. Votre accès aux
+                fonctionnalités du plan {PLAN_DISPLAY_LABELS[plan]} sera retiré immédiatement.
+              </p>
+            )}
             <div className="mt-6 flex justify-end gap-3">
-              <BtnSecondary type="button" onClick={() => setPendingUpgrade(null)} disabled={loadingCheckoutKey !== null}>
+              <BtnSecondary
+                type="button"
+                onClick={() => setPendingPlanChange(null)}
+                disabled={loadingCheckoutKey !== null}
+              >
                 Annuler
               </BtnSecondary>
               <BtnPrimary
                 type="button"
-                loading={loadingCheckoutKey === `${pendingUpgrade.targetPlan}-${pendingUpgrade.interval}`}
-                onClick={() => void confirmUpgrade()}
+                loading={loadingCheckoutKey === `${pendingPlanChange.targetPlan}-${pendingPlanChange.interval}`}
+                onClick={() => void confirmPlanChange()}
               >
-                Confirmer l&apos;upgrade
+                {pendingPlanChange.mode === "upgrade" ? "Confirmer l'upgrade" : "Confirmer le changement"}
               </BtnPrimary>
             </div>
           </div>
