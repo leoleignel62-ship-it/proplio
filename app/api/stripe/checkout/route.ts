@@ -51,22 +51,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "URL du site indisponible." }, { status: 500 });
     }
 
+    const email = String(proprietaire.email ?? user.email ?? "").trim();
+    let previousSubscriptionId: string | null = null;
+    if (email) {
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      const customer = customers.data[0];
+      if (customer) {
+        const activeSubscriptions = await stripe.subscriptions.list({
+          customer: customer.id,
+          status: "active",
+          limit: 1,
+        });
+        previousSubscriptionId = activeSubscriptions.data[0]?.id ?? null;
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: String(proprietaire.email ?? user.email ?? ""),
+      customer_email: email,
       success_url: `${origin}/parametres/abonnement?success=true`,
       cancel_url: `${origin}/parametres/abonnement?canceled=true`,
       metadata: {
         userId: user.id,
         proprietaireId: String(proprietaire.id),
         plan: requestedPlan,
+        ...(previousSubscriptionId ? { previous_subscription_id: previousSubscriptionId } : {}),
       },
       subscription_data: {
         metadata: {
           userId: user.id,
           proprietaireId: String(proprietaire.id),
           plan: requestedPlan,
+          ...(previousSubscriptionId ? { previous_subscription_id: previousSubscriptionId } : {}),
         },
       },
     });
