@@ -15,6 +15,20 @@ const LEFT_BG: CSSProperties = {
     "radial-gradient(circle at 20% 20%, rgba(124,58,237,0.35), transparent 45%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.18), transparent 40%)",
 };
 
+function translateSupabaseError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("invalid login credentials")) {
+    return "Email ou mot de passe incorrect.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Veuillez confirmer votre email avant de vous connecter.";
+  }
+  if (normalized.includes("too many requests")) {
+    return "Trop de tentatives. Veuillez réessayer dans quelques minutes.";
+  }
+  return "Une erreur est survenue. Veuillez réessayer.";
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -37,7 +51,7 @@ function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        setError(translateSupabaseError(signInError.message));
         return;
       }
 
@@ -45,7 +59,7 @@ function LoginForm() {
       // Navigation complète : garantit l’envoi des cookies au middleware / RSC sur Vercel (évite écran « page introuvable » après soft navigation).
       window.location.assign("/");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Connexion impossible.");
+      setError(e instanceof Error ? translateSupabaseError(e.message) : "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);
     }

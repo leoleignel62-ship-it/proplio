@@ -15,6 +15,23 @@ const LEFT_BG: CSSProperties = {
     "radial-gradient(circle at 20% 20%, rgba(124,58,237,0.35), transparent 45%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.18), transparent 40%)",
 };
 
+function translateSupabaseError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("email rate limit exceeded")) {
+    return "Trop de tentatives d'inscription. Veuillez réessayer dans quelques minutes.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "Un compte existe déjà avec cet email.";
+  }
+  if (normalized.includes("password should be at least 6 characters")) {
+    return "Le mot de passe doit contenir au moins 6 caractères.";
+  }
+  if (normalized.includes("invalid email")) {
+    return "Adresse email invalide.";
+  }
+  return "Une erreur est survenue. Veuillez réessayer.";
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [prenom, setPrenom] = useState("");
@@ -47,7 +64,7 @@ export default function RegisterPage() {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError(translateSupabaseError(signUpError.message));
         return;
       }
 
@@ -71,7 +88,7 @@ export default function RegisterPage() {
       setSuccess("Compte créé. Vérifie ta boîte email pour confirmer ton inscription.");
       router.push("/login?check_email=1");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Inscription impossible.");
+      setError(e instanceof Error ? translateSupabaseError(e.message) : "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);
     }
