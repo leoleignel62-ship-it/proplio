@@ -19,6 +19,7 @@ type TourStep = {
 
 const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
 const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
+const MODE_LOCATION_KEY = "proplio-mode-location";
 
 const FREE_TOUR_STEPS: TourStep[] = [
   {
@@ -110,14 +111,42 @@ const PAID_TOUR_STEPS: TourStep[] = [
     targetId: "mode-saisonnier",
     title: "🌴 Mode saisonnier — Débloqué ✅",
     description:
-      "Basculez en mode saisonnier pour accéder à la gestion des réservations courte durée, voyageurs et contrats de séjour.",
+      "Basculez en mode saisonnier pour accéder à la gestion complète de vos locations courte durée.",
   },
   {
-    key: "pages-saisonnieres",
-    targetId: "mode-saisonnier",
-    title: "📅 Réservations & Voyageurs",
+    key: "saisonnier-reservations",
+    targetId: "saisonnier-reservations",
+    title: "📅 Réservations",
     description:
-      "En mode saisonnier vous accédez à : Réservations, Voyageurs, Contrats de séjour, Taxes de séjour, Ménage et synchronisation iCal Airbnb/Booking.",
+      "Gérez toutes vos réservations courte durée. Vue liste ou calendrier planning, statuts, sources (Airbnb, Booking, Direct) et actions rapides.",
+  },
+  {
+    key: "saisonnier-voyageurs",
+    targetId: "saisonnier-voyageurs",
+    title: "👤 Voyageurs",
+    description:
+      "Centralisez les informations de vos voyageurs : coordonnées, pièce d'identité et historique des séjours.",
+  },
+  {
+    key: "saisonnier-contrats",
+    targetId: "saisonnier-contrats",
+    title: "📋 Contrats de séjour",
+    description:
+      "Générez et envoyez automatiquement les contrats de séjour à vos voyageurs par email en PDF.",
+  },
+  {
+    key: "saisonnier-menage",
+    targetId: "saisonnier-menage",
+    title: "🧹 Ménage",
+    description:
+      "Suivez les interventions de ménage entre chaque séjour. Planifiez et marquez les tâches comme effectuées.",
+  },
+  {
+    key: "saisonnier-taxes",
+    targetId: "saisonnier-taxes",
+    title: "💰 Taxes de séjour",
+    description:
+      "Calculez et exportez automatiquement les taxes de séjour à déclarer auprès de votre commune.",
   },
 ];
 
@@ -138,6 +167,14 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
   const isLastStep = stepIndex === steps.length - 1;
   const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step.lockedOnFree);
 
+  function switchMode(nextMode: "classique" | "saisonnier") {
+    window.localStorage.setItem(MODE_LOCATION_KEY, nextMode);
+    window.dispatchEvent(new Event("storage"));
+    const targetButtonId = nextMode === "saisonnier" ? "mode-saisonnier" : "mode-classique";
+    const button = findVisibleTourTarget(targetButtonId);
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  }
+
   const bubblePos = useMemo(() => {
     if (!targetRect) return { top: 120, left: 290 };
     const margin = 16;
@@ -155,23 +192,32 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
 
   useEffect(() => {
     if (!open) return;
+    if (tourType !== "paid") return;
+    if (step.key !== "mode-saisonnier") return;
+    switchMode("saisonnier");
+  }, [open, step.key, tourType]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const updateTarget = () => {
       const node = findVisibleTourTarget(step.targetId);
       setTargetRect(node?.getBoundingClientRect() ?? null);
     };
 
-    updateTarget();
+    const delay = tourType === "paid" && step.key === "mode-saisonnier" ? 300 : 0;
+    const delayed = window.setTimeout(updateTarget, delay);
     window.addEventListener("resize", updateTarget);
     window.addEventListener("scroll", updateTarget, true);
     const raf = window.requestAnimationFrame(updateTarget);
 
     return () => {
+      window.clearTimeout(delayed);
       window.removeEventListener("resize", updateTarget);
       window.removeEventListener("scroll", updateTarget, true);
       window.cancelAnimationFrame(raf);
     };
-  }, [open, step.targetId]);
+  }, [open, step.key, step.targetId, tourType]);
 
   useEffect(() => {
     if (!open || !targetRect) return;
@@ -197,6 +243,7 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
   if (!open) return null;
 
   function finishTour() {
+    switchMode("classique");
     const doneKey = tourType === "free" ? GUIDED_TOUR_FREE_DONE_KEY : GUIDED_TOUR_PAID_DONE_KEY;
     window.localStorage.setItem(doneKey, "true");
     onClose();
