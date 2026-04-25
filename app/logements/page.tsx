@@ -1069,18 +1069,43 @@ export default function LogementsPage() {
                     ] as const
                   ).map((opt) => {
                     const active = typeLocation === opt.id;
+                    const isFreeLockedExploitationOption =
+                      !isEditing && currentPlan === "free" && (opt.id === "saisonnier" || opt.id === "les_deux");
                     return (
                       <button
                         key={opt.id}
                         type="button"
-                        className="flex flex-col items-start gap-1 rounded-xl p-4 text-left transition duration-200"
+                        className="relative flex flex-col items-start gap-1 rounded-xl p-4 text-left transition duration-200"
                         style={{
                           backgroundColor: EXPLOITATION_CARD_BG,
                           border: `2px solid ${active ? PC.primary : PC.border}`,
                           boxShadow: active ? PC.activeRing : "none",
+                          cursor: isFreeLockedExploitationOption ? "not-allowed" : "pointer",
                         }}
-                        onClick={() => setTypeLocation(opt.id)}
+                        onClick={() => {
+                          if (isFreeLockedExploitationOption) {
+                            toast.info("Disponible à partir du plan Starter");
+                            return;
+                          }
+                          setTypeLocation(opt.id);
+                        }}
                       >
+                        {isFreeLockedExploitationOption ? (
+                          <>
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-0 rounded-[10px]"
+                              style={{ backgroundColor: "rgba(10, 10, 14, 0.55)" }}
+                            />
+                            <span
+                              aria-hidden
+                              className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-xs"
+                              style={{ backgroundColor: "rgba(0,0,0,0.45)", color: PC.warning }}
+                            >
+                              🔒
+                            </span>
+                          </>
+                        ) : null}
                         <span className="text-xl" aria-hidden>
                           {opt.icon}
                         </span>
@@ -1120,18 +1145,20 @@ export default function LogementsPage() {
                       onChange={(e) => onChange("charges", e.target.value)}
                     />
                   </label>
-                  <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
-                    <span className="font-medium">Mode</span>
-                    <select
-                      required
-                      style={fieldSelectStyle}
-                      value={values.est_colocation}
-                      onChange={(e) => onChange("est_colocation", e.target.value)}
-                    >
-                      <option value="non">Location classique</option>
-                      <option value="oui">Colocation</option>
-                    </select>
-                  </label>
+                  {currentPlan !== "free" ? (
+                    <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+                      <span className="font-medium">Mode</span>
+                      <select
+                        required
+                        style={fieldSelectStyle}
+                        value={values.est_colocation}
+                        onChange={(e) => onChange("est_colocation", e.target.value)}
+                      >
+                        <option value="non">Location classique</option>
+                        <option value="oui">Colocation</option>
+                      </select>
+                    </label>
+                  ) : null}
                 </div>
               ) : null}
 
