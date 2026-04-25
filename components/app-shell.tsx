@@ -24,8 +24,10 @@ const publicPages = [
 ];
 
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
-const GUIDED_TOUR_DONE_KEY = "guided_tour_done";
-const START_GUIDED_TOUR_EVENT = "start:guided-tour";
+const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
+const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
+const START_GUIDED_TOUR_FREE_EVENT = "start:guided-tour-free";
+const START_GUIDED_TOUR_PAID_EVENT = "start:guided-tour-paid";
 const PLAN_LEVEL: Record<ProplioPlan, number> = {
   free: 0,
   starter: 1,
@@ -41,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [onboardingPlanVu, setOnboardingPlanVu] = useState<string | null>(null);
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [showGuidedTour, setShowGuidedTour] = useState(false);
+  const [showGuidedTour, setShowGuidedTour] = useState<"free" | "paid" | null>(null);
 
   const normalizedOnboardingPlanVu = onboardingPlanVu == null ? null : normalizePlan(onboardingPlanVu);
   const isPaidPlan = plan !== "free";
@@ -93,16 +95,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isPublicPage || !onboardingReady) return;
-    if (window.localStorage.getItem(GUIDED_TOUR_DONE_KEY)) return;
-    if (needsPaidWelcome) return;
-    setShowGuidedTour(true);
-  }, [isPublicPage, onboardingReady, needsPaidWelcome]);
+    if (plan !== "free") return;
+    if (window.localStorage.getItem(GUIDED_TOUR_FREE_DONE_KEY)) return;
+    setShowGuidedTour("free");
+  }, [isPublicPage, onboardingReady, plan]);
 
   useEffect(() => {
     if (isPublicPage) return;
-    const handler = () => setShowGuidedTour(true);
-    window.addEventListener(START_GUIDED_TOUR_EVENT, handler);
-    return () => window.removeEventListener(START_GUIDED_TOUR_EVENT, handler);
+    const startFreeTour = () => setShowGuidedTour("free");
+    const startPaidTour = () => setShowGuidedTour("paid");
+    window.addEventListener(START_GUIDED_TOUR_FREE_EVENT, startFreeTour);
+    window.addEventListener(START_GUIDED_TOUR_PAID_EVENT, startPaidTour);
+    return () => {
+      window.removeEventListener(START_GUIDED_TOUR_FREE_EVENT, startFreeTour);
+      window.removeEventListener(START_GUIDED_TOUR_PAID_EVENT, startPaidTour);
+    };
   }, [isPublicPage]);
 
   async function handleCompleteOnboarding() {
@@ -111,7 +118,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await supabase.from("proprietaires").update(patch).eq("id", proprietaireId);
     setOnboardingPlanVu(plan);
     setOnboardingOpen(false);
-    window.setTimeout(() => setShowGuidedTour(true), 500);
+    if (!window.localStorage.getItem(GUIDED_TOUR_PAID_DONE_KEY)) {
+      window.setTimeout(() => setShowGuidedTour("paid"), 500);
+    }
   }
 
   if (isPublicPage) {
@@ -136,9 +145,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           ) : null}
           <GuidedTour
-            open={showGuidedTour}
-            plan={plan}
-            onClose={() => setShowGuidedTour(false)}
+            open={showGuidedTour !== null}
+            tourType={showGuidedTour ?? "free"}
+            currentPlan={plan}
+            onClose={() => setShowGuidedTour(null)}
           />
           <footer className="mt-10 pb-4 text-center text-xs" style={{ color: PC.tertiary }}>
             © 2026 Proplio ·{" "}

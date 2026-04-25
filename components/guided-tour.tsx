@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 type GuidedTourProps = {
-  plan: "free" | "starter" | "pro" | "expert";
+  currentPlan: "free" | "starter" | "pro" | "expert";
+  tourType: "free" | "paid";
   open: boolean;
   onClose: () => void;
 };
@@ -16,9 +17,10 @@ type TourStep = {
   lockedOnFree?: boolean;
 };
 
-const GUIDED_TOUR_DONE_KEY = "guided_tour_done";
+const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
+const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
 
-const TOUR_STEPS: TourStep[] = [
+const FREE_TOUR_STEPS: TourStep[] = [
   {
     key: "dashboard",
     targetId: "dashboard",
@@ -71,6 +73,52 @@ const TOUR_STEPS: TourStep[] = [
       "Calculez automatiquement la révision annuelle de vos loyers selon l'indice IRL de l'INSEE. Ne ratez plus jamais une révision.",
     lockedOnFree: true,
   },
+  {
+    key: "mode-saisonnier",
+    targetId: "mode-saisonnier",
+    title: "🌴 Mode saisonnier",
+    description:
+      "Gérez vos locations courte durée : réservations, voyageurs, contrats de séjour, calendrier iCal et synchronisation Airbnb.",
+    lockedOnFree: true,
+  },
+];
+
+const PAID_TOUR_STEPS: TourStep[] = [
+  {
+    key: "baux",
+    targetId: "baux",
+    title: "📋 Baux de location — Débloqué ✅",
+    description:
+      "Vous avez maintenant accès aux baux. Créez des baux conformes loi ALUR, envoyez-les par email et suivez leur statut en temps réel.",
+  },
+  {
+    key: "etats-des-lieux",
+    targetId: "etats-des-lieux",
+    title: "🔍 États des lieux — Débloqué ✅",
+    description:
+      "Documentez l'entrée et la sortie de vos locataires avec photos, commentaires et génération PDF automatique.",
+  },
+  {
+    key: "revisions-irl",
+    targetId: "revisions-irl",
+    title: "📈 Révision des loyers — Débloqué ✅",
+    description:
+      "Ne ratez plus jamais une révision de loyer. L'indice IRL est récupéré automatiquement depuis l'INSEE.",
+  },
+  {
+    key: "mode-saisonnier",
+    targetId: "mode-saisonnier",
+    title: "🌴 Mode saisonnier — Débloqué ✅",
+    description:
+      "Basculez en mode saisonnier pour accéder à la gestion des réservations courte durée, voyageurs et contrats de séjour.",
+  },
+  {
+    key: "pages-saisonnieres",
+    targetId: "mode-saisonnier",
+    title: "📅 Réservations & Voyageurs",
+    description:
+      "En mode saisonnier vous accédez à : Réservations, Voyageurs, Contrats de séjour, Taxes de séjour, Ménage et synchronisation iCal Airbnb/Booking.",
+  },
 ];
 
 function findVisibleTourTarget(targetId: string): HTMLElement | null {
@@ -82,12 +130,13 @@ function findVisibleTourTarget(targetId: string): HTMLElement | null {
   return null;
 }
 
-export function GuidedTour({ plan, open, onClose }: GuidedTourProps) {
+export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const step = TOUR_STEPS[stepIndex];
-  const isLastStep = stepIndex === TOUR_STEPS.length - 1;
-  const showLockBadge = plan === "free" && Boolean(step.lockedOnFree);
+  const steps = tourType === "free" ? FREE_TOUR_STEPS : PAID_TOUR_STEPS;
+  const step = steps[stepIndex];
+  const isLastStep = stepIndex === steps.length - 1;
+  const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step.lockedOnFree);
 
   const bubblePos = useMemo(() => {
     if (!targetRect) return { top: 120, left: 290 };
@@ -148,7 +197,8 @@ export function GuidedTour({ plan, open, onClose }: GuidedTourProps) {
   if (!open) return null;
 
   function finishTour() {
-    window.localStorage.setItem(GUIDED_TOUR_DONE_KEY, "true");
+    const doneKey = tourType === "free" ? GUIDED_TOUR_FREE_DONE_KEY : GUIDED_TOUR_PAID_DONE_KEY;
+    window.localStorage.setItem(doneKey, "true");
     onClose();
   }
 
@@ -167,7 +217,7 @@ export function GuidedTour({ plan, open, onClose }: GuidedTourProps) {
         style={{ top: bubblePos.top, left: bubblePos.left, backgroundColor: "#7c3aed" }}
       >
         <p className="text-xs" style={{ color: "#d1d5db" }}>
-          Étape {stepIndex + 1} sur {TOUR_STEPS.length}
+          Étape {stepIndex + 1} sur {steps.length}
         </p>
         <h2 id="guided-tour-title" className="mt-2 text-lg font-bold text-white">
           {step.title}

@@ -118,6 +118,7 @@ function ModeLocationPill({
       <div className="grid grid-cols-2 gap-1">
         <button
           type="button"
+          data-tour-id="mode-classique"
           className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
             backgroundColor: mode === "classique" ? pillActive : pillInactive,
@@ -130,6 +131,7 @@ function ModeLocationPill({
         </button>
         <button
           type="button"
+          data-tour-id="mode-saisonnier"
           className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
             backgroundColor: mode === "saisonnier" ? pillActive : pillInactive,

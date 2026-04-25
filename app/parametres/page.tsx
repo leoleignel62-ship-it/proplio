@@ -250,10 +250,16 @@ export default function ParametresPage() {
     setIsSaving(false);
   }
 
-  function reopenGuidedTour() {
+  function reopenFreeGuidedTour() {
     if (typeof window === "undefined") return;
-    window.localStorage.removeItem("guided_tour_done");
-    window.dispatchEvent(new Event("start:guided-tour"));
+    window.localStorage.removeItem("guided_tour_free_done");
+    window.dispatchEvent(new Event("start:guided-tour-free"));
+  }
+
+  function reopenPaidGuidedTour() {
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem("guided_tour_paid_done");
+    window.dispatchEvent(new Event("start:guided-tour-paid"));
   }
 
   return (
@@ -421,14 +427,26 @@ export default function ParametresPage() {
               </BtnPrimary>
             </div>
             <div className="sm:col-span-2">
-              <button
-                type="button"
-                className="text-sm transition hover:underline"
-                style={{ color: PC.muted }}
-                onClick={reopenGuidedTour}
-              >
-                🗺️ Revoir le tour de l&apos;application
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  className="text-sm transition hover:underline"
+                  style={{ color: PC.muted }}
+                  onClick={reopenFreeGuidedTour}
+                >
+                  🗺️ Revoir le tour de l&apos;application
+                </button>
+                {plan !== "free" ? (
+                  <button
+                    type="button"
+                    className="text-sm transition hover:underline"
+                    style={{ color: PC.muted }}
+                    onClick={reopenPaidGuidedTour}
+                  >
+                    ✨ Revoir le tour des fonctionnalités avancées
+                  </button>
+                ) : null}
+              </div>
             </div>
           </form>
         )}
