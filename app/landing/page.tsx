@@ -188,10 +188,15 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/qui-sommes-nous"
-            className="text-sm font-medium transition duration-200 ease-out hover:text-[#7c3aed]"
-            style={{ color: PC.white, textDecoration: "none" }}
+            className="group relative text-sm font-medium transition duration-200 ease-out hover:text-white"
+            style={{ color: "#c4b5fd", textDecoration: "none", letterSpacing: "0.02em", fontWeight: 500 }}
           >
             Qui sommes-nous ?
+            <span
+              aria-hidden
+              className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 transition-transform duration-200 ease-out group-hover:scale-x-100"
+              style={{ backgroundColor: "#c4b5fd" }}
+            />
           </Link>
           <Link
             href="/login"
