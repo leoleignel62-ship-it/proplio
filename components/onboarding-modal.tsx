@@ -12,7 +12,7 @@ type OnboardingModalProps = {
   steps: OnboardingStep[];
   onDismiss: () => void;
   onComplete: () => Promise<void> | void;
-  onNavigateStep: (href: string) => void;
+  onNavigateStep: (step: OnboardingStep) => void;
   enableSuccessSound?: boolean;
 };
 
@@ -127,9 +127,9 @@ export function OnboardingModal({
     }
   }
 
-  function handleGoTo(href: string) {
-    onNavigateStep(href);
-    router.push(href);
+  function handleGoTo(step: OnboardingStep) {
+    onNavigateStep(step);
+    router.push(step.href);
   }
 
   return (
@@ -247,7 +247,7 @@ export function OnboardingModal({
                     type="button"
                     className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition"
                     style={{ backgroundColor: "#7c3aed", color: PC.white }}
-                    onClick={() => handleGoTo(step.href)}
+                    onClick={() => handleGoTo(step)}
                   >
                     Y aller →
                   </button>

@@ -24,6 +24,7 @@ const publicPages = [
 
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 const ONBOARDING_SNOOZE_MS = 24 * 60 * 60 * 1000;
+const ONBOARDING_WAITING_STEP_KEY = "onboarding_waiting_step";
 
 const FREE_BASE_STEPS = [
   {
@@ -111,9 +112,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [forceOpenOnboarding, setForceOpenOnboarding] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
-  const [lastCompletedCount, setLastCompletedCount] = useState<number | null>(null);
   const [suppressedUntil, setSuppressedUntil] = useState(0);
-  const [resumeAfterStepAction, setResumeAfterStepAction] = useState(false);
+  const [waitingStep, setWaitingStep] = useState<string | null>(null);
 
   const onboardingDbDone = plan === "free" ? onboardingFreeDone : onboardingPaidDone;
   const onboardingPending = onboardingReady && Boolean(proprietaireId) && !onboardingDbDone;
@@ -152,96 +152,70 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const raw = typeof window === "undefined" ? null : window.localStorage.getItem(key);
     const parsed = raw ? Number(raw) : 0;
     setSuppressedUntil(Number.isFinite(parsed) ? parsed : 0);
+    setWaitingStep(window.localStorage.getItem(ONBOARDING_WAITING_STEP_KEY));
   }, [plan, proprietaireId]);
 
-  const refreshOnboardingSteps = useCallback(
-    async (reason: "init" | "navigation" | "interval" | "manual-open") => {
-      if (!proprietaireId || !onboardingPending) return;
+  const fetchStepProgress = useCallback(async (): Promise<StepProgress | null> => {
+    if (!proprietaireId || !onboardingPending) return null;
+    const [ownerResult, logementsResult, locatairesResult, quittancesResult, bauxResult, edlResult, reservationsResult] =
+      await Promise.all([
+        supabase.from("proprietaires").select("nom, prenom, adresse").eq("id", proprietaireId).maybeSingle(),
+        supabase.from("logements").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+        supabase.from("locataires").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+        supabase.from("quittances").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+        supabase.from("baux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+        supabase.from("etats_des_lieux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+        supabase.from("reservations").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
+      ]);
+    const owner = ownerResult.data as { nom?: string | null; prenom?: string | null; adresse?: string | null } | null;
+    return {
+      profile: Boolean(owner?.nom?.trim()) && Boolean(owner?.prenom?.trim()) && Boolean(owner?.adresse?.trim()),
+      logements: Number(logementsResult.count ?? 0) >= 1,
+      locataires: Number(locatairesResult.count ?? 0) >= 1,
+      quittances: Number(quittancesResult.count ?? 0) >= 1,
+      baux: Number(bauxResult.count ?? 0) >= 1,
+      etats_des_lieux: Number(edlResult.count ?? 0) >= 1,
+      reservations: Number(reservationsResult.count ?? 0) >= 1,
+    };
+  }, [onboardingPending, proprietaireId]);
 
-      const [ownerResult, logementsResult, locatairesResult, quittancesResult, bauxResult, edlResult, reservationsResult] =
-        await Promise.all([
-          supabase.from("proprietaires").select("nom, prenom, adresse").eq("id", proprietaireId).maybeSingle(),
-          supabase.from("logements").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-          supabase.from("locataires").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-          supabase.from("quittances").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-          supabase.from("baux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-          supabase.from("etats_des_lieux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-          supabase.from("reservations").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        ]);
-
-      const owner = ownerResult.data as { nom?: string | null; prenom?: string | null; adresse?: string | null } | null;
-      const progress: StepProgress = {
-        profile: Boolean(owner?.nom?.trim()) && Boolean(owner?.prenom?.trim()) && Boolean(owner?.adresse?.trim()),
-        logements: Number(logementsResult.count ?? 0) >= 1,
-        locataires: Number(locatairesResult.count ?? 0) >= 1,
-        quittances: Number(quittancesResult.count ?? 0) >= 1,
-        baux: Number(bauxResult.count ?? 0) >= 1,
-        etats_des_lieux: Number(edlResult.count ?? 0) >= 1,
-        reservations: Number(reservationsResult.count ?? 0) >= 1,
-      };
-
-      const nextSteps = buildOnboardingSteps(plan, progress);
-      const nextCompletedCount = nextSteps.filter((step) => step.done).length;
-      const hasNewCompletion = lastCompletedCount != null && nextCompletedCount > lastCompletedCount;
-
-      setOnboardingSteps(nextSteps);
-      setLastCompletedCount(nextCompletedCount);
-
-      const snoozeExpired = Date.now() >= suppressedUntil;
-      if (forceOpenOnboarding) {
-        setOnboardingOpen(true);
-        return;
-      }
-      if (hasNewCompletion) {
-        setOnboardingOpen(true);
-        setResumeAfterStepAction(false);
-        return;
-      }
-      if (resumeAfterStepAction && reason === "navigation") {
-        setOnboardingOpen(true);
-        setResumeAfterStepAction(false);
-        return;
-      }
-      if (!onboardingOpen && snoozeExpired && (reason === "init" || reason === "interval")) {
-        setOnboardingOpen(true);
-      }
-    },
-    [
-      forceOpenOnboarding,
-      lastCompletedCount,
-      onboardingOpen,
-      onboardingPending,
-      plan,
-      proprietaireId,
-      resumeAfterStepAction,
-      suppressedUntil,
-    ],
-  );
+  const refreshOnboardingSteps = useCallback(async () => {
+    const progress = await fetchStepProgress();
+    if (!progress) return null;
+    const nextSteps = buildOnboardingSteps(plan, progress);
+    setOnboardingSteps(nextSteps);
+    return progress;
+  }, [fetchStepProgress, plan]);
 
   useEffect(() => {
     if (!onboardingPending) return;
-    void refreshOnboardingSteps("init");
-  }, [onboardingPending, refreshOnboardingSteps]);
+    void (async () => {
+      await refreshOnboardingSteps();
+      const canAutoOpenInitially = Date.now() >= suppressedUntil && !waitingStep;
+      if (canAutoOpenInitially) setOnboardingOpen(true);
+    })();
+  }, [onboardingPending, refreshOnboardingSteps, suppressedUntil, waitingStep]);
 
   useEffect(() => {
     if (!onboardingPending) return;
-    void refreshOnboardingSteps("navigation");
-  }, [onboardingPending, pathname, refreshOnboardingSteps]);
-
-  useEffect(() => {
-    if (!onboardingPending || onboardingOpen) return;
-    const intervalId = window.setInterval(() => {
-      void refreshOnboardingSteps("interval");
-    }, 3000);
-    return () => window.clearInterval(intervalId);
-  }, [onboardingOpen, onboardingPending, refreshOnboardingSteps]);
+    void (async () => {
+      const progress = await refreshOnboardingSteps();
+      if (!progress || !waitingStep) return;
+      const waitingDone = Boolean(progress[waitingStep as keyof StepProgress]);
+      if (!waitingDone) return;
+      window.localStorage.removeItem(ONBOARDING_WAITING_STEP_KEY);
+      setWaitingStep(null);
+      setOnboardingOpen(true);
+      setForceOpenOnboarding(false);
+    })();
+  }, [onboardingPending, pathname, refreshOnboardingSteps, waitingStep]);
 
   useEffect(() => {
     if (isPublicPage) return;
     const handler = () => {
       setForceOpenOnboarding(true);
       setOnboardingOpen(true);
-      void refreshOnboardingSteps("manual-open");
+      void refreshOnboardingSteps();
     };
     window.addEventListener("proplio:onboarding:open", handler);
     return () => window.removeEventListener("proplio:onboarding:open", handler);
@@ -265,7 +239,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     else setOnboardingPaidDone(true);
     setForceOpenOnboarding(false);
     setOnboardingOpen(false);
-    setResumeAfterStepAction(false);
+    window.localStorage.removeItem(ONBOARDING_WAITING_STEP_KEY);
+    setWaitingStep(null);
   }
 
   function handleDismissOnboarding() {
@@ -275,14 +250,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem(makeSnoozeStorageKey(proprietaireId, plan), String(nextSuppressedUntil));
     setOnboardingOpen(false);
     setForceOpenOnboarding(false);
-    setResumeAfterStepAction(false);
   }
 
-  function handleNavigateFromOnboarding(_href: string) {
-    void _href;
+  function handleNavigateFromOnboarding(step: OnboardingStep) {
+    window.localStorage.setItem(ONBOARDING_WAITING_STEP_KEY, step.key);
+    setWaitingStep(step.key);
     setOnboardingOpen(false);
     setForceOpenOnboarding(false);
-    setResumeAfterStepAction(true);
   }
 
   if (isPublicPage) {
