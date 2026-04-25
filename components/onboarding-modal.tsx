@@ -54,10 +54,8 @@ function playSuccessBeep() {
   oscillator.stop(context.currentTime + 0.08);
 }
 
-function getPaidWelcomeContent(plan: string): { title: string; subtitle: string; bullets: string[] } {
-  const normalizedPlan = plan.toLowerCase();
-
-  if (normalizedPlan === "expert") {
+function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: string; bullets: string[] } {
+  if (plan === "expert") {
     return {
       title: "🎉 Bienvenue sur le plan Expert !",
       subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
@@ -72,7 +70,7 @@ function getPaidWelcomeContent(plan: string): { title: string; subtitle: string;
       ],
     };
   }
-  if (normalizedPlan === "pro") {
+  if (plan === "pro") {
     return {
       title: "🎉 Bienvenue sur le plan Pro !",
       subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
@@ -114,9 +112,8 @@ export function OnboardingModal({
   const [justCompleted, setJustCompleted] = useState<Record<string, boolean>>({});
   const previousDoneRef = useRef<Record<string, boolean>>({});
 
-  const normalizedPlan = plan.toLowerCase();
-  const isPaid = normalizedPlan !== "free";
-  const paidWelcome = useMemo(() => getPaidWelcomeContent(normalizedPlan), [normalizedPlan]);
+  const isPaid = plan !== "free";
+  const paidWelcome = useMemo(() => getPaidWelcomeContent(plan), [plan]);
 
   const completedCount = useMemo(() => steps.filter((step) => step.done).length, [steps]);
   const totalCount = steps.length;

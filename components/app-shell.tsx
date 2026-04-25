@@ -98,11 +98,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [suppressedUntil, setSuppressedUntil] = useState(0);
   const [waitingStep, setWaitingStep] = useState<string | null>(null);
 
-  const normalizedOnboardingPlanVu = normalizePlan(onboardingPlanVu);
-  const isPaidUpgradeNeedingWelcome =
-    plan !== "free" &&
-    (onboardingPlanVu == null || PLAN_LEVEL[plan] > PLAN_LEVEL[normalizedOnboardingPlanVu]);
-  const onboardingDbDone = plan === "free" ? onboardingFreeDone : !isPaidUpgradeNeedingWelcome;
+  const normalizedOnboardingPlanVu = onboardingPlanVu == null ? null : normalizePlan(onboardingPlanVu);
+  const isPaidPlan = plan !== "free";
+  const isPaidDowngrade =
+    isPaidPlan &&
+    normalizedOnboardingPlanVu != null &&
+    PLAN_LEVEL[plan] < PLAN_LEVEL[normalizedOnboardingPlanVu];
+  const needsPaidWelcome =
+    isPaidPlan &&
+    (normalizedOnboardingPlanVu == null || (!isPaidDowngrade && normalizedOnboardingPlanVu !== plan));
+  const onboardingDbDone = plan === "free" ? onboardingFreeDone : !needsPaidWelcome;
   const onboardingPending = onboardingReady && Boolean(proprietaireId) && !onboardingDbDone;
 
   useEffect(() => {
