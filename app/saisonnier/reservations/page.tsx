@@ -730,6 +730,29 @@ export default function ReservationsSaisonnierPage() {
     return true;
   }
 
+  async function downloadContratPdf(id: string): Promise<void> {
+    setError("");
+    try {
+      const res = await fetch(`/api/saisonnier/contrats/${id}/pdf`, { method: "GET" });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(typeof j.error === "string" ? j.error : "Impossible de télécharger le contrat PDF.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contrat-sejour-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Erreur réseau lors du téléchargement du PDF.");
+    }
+  }
+
   function requestSendConfirm(kind: "contrat", row: ReservationRow) {
     const email = row.voyageurs?.email?.trim();
     if (!email) {
@@ -1132,9 +1155,18 @@ export default function ReservationsSaisonnierPage() {
                             </BtnDanger>
                           ) : null}
                           {canDirectActions && row.voyageurs ? (
-                            <BtnPdf size="small" className="!w-full justify-center" onClick={() => requestSendConfirm("contrat", row)}>
-                              Contrat PDF
-                            </BtnPdf>
+                            <div className="flex gap-1">
+                              <BtnPdf size="small" className="!flex-1 justify-center" onClick={() => requestSendConfirm("contrat", row)}>
+                                Envoyer contrat
+                              </BtnPdf>
+                              <BtnSecondary
+                                size="small"
+                                className="!flex-1 justify-center"
+                                onClick={() => void downloadContratPdf(row.id)}
+                              >
+                                📄 Contrat PDF
+                              </BtnSecondary>
+                            </div>
                           ) : null}
                           {canDirectActions && row.voyageurs && row.source === "direct" ? (
                             <div className="flex flex-col gap-1">

@@ -140,6 +140,29 @@ export default function ContratsSejourPage() {
     void load();
   }
 
+  async function downloadContratPdf(id: string): Promise<void> {
+    setError("");
+    try {
+      const res = await fetch(`/api/saisonnier/contrats/${id}/pdf`, { method: "GET" });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(j.error ?? "Impossible de télécharger le PDF.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contrat-sejour-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Erreur réseau lors du téléchargement du PDF.");
+    }
+  }
+
   async function toggleSigne(id: string, next: boolean) {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
     if (e || !proprietaireId) return;
@@ -242,13 +265,23 @@ export default function ContratsSejourPage() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <BtnEmail
-                      size="small"
-                      disabled={!row.voyageurs?.email}
-                      onClick={() => void sendContrat(row.id)}
-                    >
-                      Envoyer par email
-                    </BtnEmail>
+                    <div className="flex gap-2">
+                      <BtnEmail
+                        size="small"
+                        className="!flex-1 justify-center"
+                        disabled={!row.voyageurs?.email}
+                        onClick={() => void sendContrat(row.id)}
+                      >
+                        Envoyer
+                      </BtnEmail>
+                      <BtnSecondary
+                        size="small"
+                        className="!flex-1 justify-center"
+                        onClick={() => void downloadContratPdf(row.id)}
+                      >
+                        📄 Télécharger PDF
+                      </BtnSecondary>
+                    </div>
                     <BtnSecondary
                       size="small"
                       icon={<IconArrowPath className="h-3 w-3" />}
