@@ -157,7 +157,7 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
         }
         return;
       }
-      if (j?.document) setRows((prev) => [j.document, ...prev]);
+      if (j?.document) setRows((prev) => [j.document as DocumentRow, ...prev]);
       toast.success("Document ajouté.");
     } catch {
       setError("Erreur réseau.");
