@@ -108,6 +108,7 @@ export default function AbonnementPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const [plan, setPlan] = useState<ProplioPlan>("free");
+  const currentPlan = plan;
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingCheckoutKey, setLoadingCheckoutKey] = useState<string | null>(null);
@@ -314,7 +315,7 @@ export default function AbonnementPage() {
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {PLANS_MARKETING.map((p) => {
-          const isCurrent = p.id === plan;
+          const isCurrent = p.id === currentPlan;
           const isPaid = isPaidPlan(p.id);
           const showYearly = billing === "yearly";
           const priceLine = p.id === "free" ? "Gratuit" : showYearly ? p.yearlyPriceLabel : p.monthlyPriceLabel;
@@ -327,12 +328,22 @@ export default function AbonnementPage() {
               style={{
                 ...panelCard,
                 border:
-                  p.popular || isCurrent
-                    ? `1px solid rgba(124, 58, 237, ${p.popular ? 0.5 : 0.35})`
+                  isCurrent
+                    ? "1px solid #7c3aed"
+                    : p.popular
+                      ? "1px solid rgba(124, 58, 237, 0.5)"
                     : `1px solid ${PC.border}`,
                 boxShadow: p.popular ? PC.activeRing : undefined,
               }}
             >
+              {isCurrent ? (
+                <p
+                  className="absolute -top-3 right-4 w-max rounded-full px-3 py-1 text-[11px] font-bold"
+                  style={{ backgroundColor: "#7c3aed", color: PC.white }}
+                >
+                  Votre plan actuel
+                </p>
+              ) : null}
               {p.popular ? (
                 <p
                   className="absolute -top-3 left-1/2 w-max -translate-x-1/2 rounded-full px-3 py-1 text-[11px] font-bold"
@@ -389,14 +400,11 @@ export default function AbonnementPage() {
               ) : (
                 <BtnPrimary
                   className={`mt-6 w-full ${p.id === "pro" || p.id === "expert" ? "py-3 text-base" : ""}`}
-                  disabled={loadingCheckoutKey !== null || isOpeningPortal}
+                  disabled={isCurrent || loadingCheckoutKey !== null || isOpeningPortal}
                   loading={loadingCheckoutKey === `${p.id}-${billing}`}
+                  style={isCurrent ? { opacity: 0.55, cursor: "not-allowed", backgroundColor: "#6b7280", borderColor: "#6b7280" } : undefined}
                   onClick={() => {
                     if (!isPaidPlan(p.id)) return;
-                    if (isCurrent) {
-                      void openPortal();
-                      return;
-                    }
                     const targetRank = getPlanRank(p.id);
                     const currentRank = getPlanRank(plan);
                     if (targetRank > currentRank) {
@@ -409,7 +417,7 @@ export default function AbonnementPage() {
                     }
                   }}
                 >
-                  Choisir ce plan
+                  {isCurrent ? "Plan actuel ✓" : "Choisir ce plan"}
                 </BtnPrimary>
               )}
             </article>
