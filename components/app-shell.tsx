@@ -25,6 +25,7 @@ const publicPages = [
 const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 const ONBOARDING_SNOOZE_MS = 24 * 60 * 60 * 1000;
 const ONBOARDING_WAITING_STEP_KEY = "onboarding_waiting_step";
+const ONBOARDING_CHECK_EVENT = "onboarding:check";
 
 const FREE_BASE_STEPS = [
   {
@@ -99,6 +100,10 @@ function buildOnboardingSteps(plan: ProplioPlan, progress: StepProgress): Onboar
   const base = [...FREE_BASE_STEPS];
   const list = plan === "free" ? base : [...base, ...PAID_EXTRA_STEPS];
   return list.map((step) => ({ ...step, done: Boolean(progress[step.key as keyof StepProgress]) }));
+}
+
+function countDone(steps: OnboardingStep[]): number {
+  return steps.reduce((acc, step) => acc + (step.done ? 1 : 0), 0);
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -209,6 +214,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setForceOpenOnboarding(false);
     })();
   }, [onboardingPending, pathname, refreshOnboardingSteps, waitingStep]);
+
+  useEffect(() => {
+    if (isPublicPage || !onboardingPending) return;
+    const handleOnboardingCheck = () => {
+      void (async () => {
+        const previousSteps = onboardingSteps;
+        const progress = await refreshOnboardingSteps();
+        if (!progress) return;
+        const nextSteps = buildOnboardingSteps(plan, progress);
+        const hasNewCompletion = countDone(nextSteps) > countDone(previousSteps);
+        if (!hasNewCompletion) return;
+        window.localStorage.removeItem(ONBOARDING_WAITING_STEP_KEY);
+        setWaitingStep(null);
+        setOnboardingOpen(true);
+        setForceOpenOnboarding(false);
+      })();
+    };
+    window.addEventListener(ONBOARDING_CHECK_EVENT, handleOnboardingCheck);
+    return () => window.removeEventListener(ONBOARDING_CHECK_EVENT, handleOnboardingCheck);
+  }, [isPublicPage, onboardingPending, onboardingSteps, plan, refreshOnboardingSteps]);
 
   useEffect(() => {
     if (isPublicPage) return;

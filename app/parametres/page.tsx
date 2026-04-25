@@ -247,6 +247,9 @@ export default function ParametresPage() {
       setProfile((prev) => ({ ...prev, id: data.id }));
     }
     toast.success("Profil enregistré.");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("onboarding:check"));
+    }
     setIsSaving(false);
   }
 

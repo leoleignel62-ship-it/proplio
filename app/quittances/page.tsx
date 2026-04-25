@@ -581,6 +581,9 @@ export default function QuittancesPage() {
       closeModal();
       await loadRows(ownerId);
       toast.success(isEditing ? "Quittance mise à jour." : "Quittance créée.");
+      if (!isEditing && typeof window !== "undefined") {
+        window.dispatchEvent(new Event("onboarding:check"));
+      }
     } catch (e) {
       setError(formatSubmitError(e));
     } finally {

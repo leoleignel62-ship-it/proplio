@@ -332,6 +332,9 @@ export default function EtatsDesLieuxPage() {
     }
     setModal(false);
     toast.success("État des lieux créé.");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("onboarding:check"));
+    }
     router.push(`/etats-des-lieux/${inserted.id}`);
   }
 
