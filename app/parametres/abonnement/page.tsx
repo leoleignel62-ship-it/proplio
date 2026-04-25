@@ -18,6 +18,10 @@ import { PC } from "@/lib/proplio-colors";
 import { panelCard } from "@/lib/proplio-field-styles";
 
 type BillingPeriod = "monthly" | "yearly";
+type PendingUpgrade = {
+  targetPlan: Exclude<ProplioPlan, "free">;
+  interval: BillingPeriod;
+};
 
 type PlanMarketing = {
   id: ProplioPlan;
@@ -95,6 +99,10 @@ function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
   return plan === "starter" || plan === "pro" || plan === "expert";
 }
 
+function getPlanRank(plan: ProplioPlan): number {
+  return PLAN_ORDER.indexOf(plan);
+}
+
 export default function AbonnementPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -103,6 +111,7 @@ export default function AbonnementPage() {
   const [loading, setLoading] = useState(true);
   const [loadingCheckoutKey, setLoadingCheckoutKey] = useState<string | null>(null);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+  const [pendingUpgrade, setPendingUpgrade] = useState<PendingUpgrade | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [billing, setBilling] = useState<BillingPeriod>("yearly");
@@ -161,6 +170,13 @@ export default function AbonnementPage() {
     } finally {
       setLoadingCheckoutKey(null);
     }
+  }
+
+  async function confirmUpgrade() {
+    if (!pendingUpgrade) return;
+    const { targetPlan, interval } = pendingUpgrade;
+    await startCheckout(targetPlan, interval);
+    setPendingUpgrade(null);
   }
 
   async function openPortal() {
@@ -375,7 +391,13 @@ export default function AbonnementPage() {
                   disabled={isCurrent || loadingCheckoutKey !== null}
                   loading={loadingCheckoutKey === `${p.id}-${billing}`}
                   onClick={() => {
-                    if (isPaidPlan(p.id)) void startCheckout(p.id, billing);
+                    if (!isPaidPlan(p.id)) return;
+                    const isUpgrade = getPlanRank(p.id) > getPlanRank(plan);
+                    if (isUpgrade) {
+                      setPendingUpgrade({ targetPlan: p.id, interval: billing });
+                      return;
+                    }
+                    void startCheckout(p.id, billing);
                   }}
                 >
                   Choisir ce plan
@@ -414,6 +436,43 @@ export default function AbonnementPage() {
         </Link>
         .
       </p>
+
+      {pendingUpgrade ? (
+        <div
+          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upgrade-confirmation-title"
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 sm:p-7"
+            style={{ ...panelCard, border: "1px solid rgba(124, 58, 237, 0.4)" }}
+          >
+            <h2 id="upgrade-confirmation-title" className="text-xl font-extrabold" style={{ color: PC.text }}>
+              Confirmer votre upgrade
+            </h2>
+            <p className="mt-3 text-sm" style={{ color: PC.muted }}>
+              {PLAN_DISPLAY_LABELS[plan]} {"->"} {PLAN_DISPLAY_LABELS[pendingUpgrade.targetPlan]}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Votre carte enregistrée sera débitée du montant proratisé pour la période restante. Aucune nouvelle
+              information de paiement n&apos;est requise.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <BtnSecondary type="button" onClick={() => setPendingUpgrade(null)} disabled={loadingCheckoutKey !== null}>
+                Annuler
+              </BtnSecondary>
+              <BtnPrimary
+                type="button"
+                loading={loadingCheckoutKey === `${pendingUpgrade.targetPlan}-${pendingUpgrade.interval}`}
+                onClick={() => void confirmUpgrade()}
+              >
+                Confirmer l&apos;upgrade
+              </BtnPrimary>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
