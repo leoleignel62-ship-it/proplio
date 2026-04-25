@@ -26,6 +26,12 @@ const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
 const ONBOARDING_SNOOZE_MS = 24 * 60 * 60 * 1000;
 const ONBOARDING_WAITING_STEP_KEY = "onboarding_waiting_step";
 const ONBOARDING_CHECK_EVENT = "onboarding:check";
+const PLAN_LEVEL: Record<ProplioPlan, number> = {
+  free: 0,
+  starter: 1,
+  pro: 2,
+  expert: 3,
+};
 
 const FREE_BASE_STEPS = [
   {
@@ -84,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [onboardingFreeDone, setOnboardingFreeDone] = useState(true);
-  const [onboardingPaidDone, setOnboardingPaidDone] = useState(true);
+  const [onboardingPlanVu, setOnboardingPlanVu] = useState<string | null>(null);
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [forceOpenOnboarding, setForceOpenOnboarding] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -92,7 +98,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [suppressedUntil, setSuppressedUntil] = useState(0);
   const [waitingStep, setWaitingStep] = useState<string | null>(null);
 
-  const onboardingDbDone = plan === "free" ? onboardingFreeDone : onboardingPaidDone;
+  const normalizedOnboardingPlanVu = normalizePlan(onboardingPlanVu);
+  const isPaidUpgradeNeedingWelcome =
+    plan !== "free" &&
+    (onboardingPlanVu == null || PLAN_LEVEL[plan] > PLAN_LEVEL[normalizedOnboardingPlanVu]);
+  const onboardingDbDone = plan === "free" ? onboardingFreeDone : !isPaidUpgradeNeedingWelcome;
   const onboardingPending = onboardingReady && Boolean(proprietaireId) && !onboardingDbDone;
 
   useEffect(() => {
@@ -110,12 +120,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         id?: string | null;
         plan?: string | null;
         onboarding_free_done?: boolean | null;
-        onboarding_paid_done?: boolean | null;
+        onboarding_plan_vu?: string | null;
       };
       setProprietaireId(ownerData.id ?? null);
       setPlan(normalizePlan(ownerData.plan));
       setOnboardingFreeDone(Boolean(ownerData.onboarding_free_done));
-      setOnboardingPaidDone(Boolean(ownerData.onboarding_paid_done));
+      setOnboardingPlanVu(ownerData.onboarding_plan_vu ?? null);
       setOnboardingReady(true);
     })();
     return () => {
@@ -230,10 +240,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleCompleteOnboarding() {
     if (!proprietaireId) return;
-    const patch = plan === "free" ? { onboarding_free_done: true } : { onboarding_paid_done: true };
+    const patch = plan === "free" ? { onboarding_free_done: true } : { onboarding_plan_vu: plan };
     await supabase.from("proprietaires").update(patch).eq("id", proprietaireId);
     if (plan === "free") setOnboardingFreeDone(true);
-    else setOnboardingPaidDone(true);
+    else setOnboardingPlanVu(plan);
     setForceOpenOnboarding(false);
     setOnboardingOpen(false);
     window.localStorage.removeItem(ONBOARDING_WAITING_STEP_KEY);

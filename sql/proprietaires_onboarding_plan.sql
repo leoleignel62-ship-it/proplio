@@ -1,0 +1,2 @@
+ALTER TABLE proprietaires
+ADD COLUMN IF NOT EXISTS onboarding_plan_vu TEXT DEFAULT NULL;
