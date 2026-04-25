@@ -141,12 +141,23 @@ export function DocumentsTab({ logementId, plan }: { logementId: string; plan: P
       fd.set("logement_id", logementId);
       fd.set("categorie", cat);
       const res = await fetch("/api/documents/upload", { method: "POST", body: fd, credentials: "include" });
-      const j = (await res.json()) as { error?: string; document?: DocumentRow };
+      let j: { error?: string; document?: DocumentRow } | null = null;
+      try {
+        j = (await res.json()) as { error?: string; document?: DocumentRow };
+      } catch {
+        j = null;
+      }
       if (!res.ok) {
-        setError(j.error ?? "Échec de l’envoi.");
+        if (j?.error) {
+          setError(j.error);
+        } else if (res.status === 413) {
+          setError("Fichier trop volumineux (max. 10 Mo).");
+        } else {
+          setError("Échec de l’envoi.");
+        }
         return;
       }
-      if (j.document) setRows((prev) => [j.document!, ...prev]);
+      if (j?.document) setRows((prev) => [j.document, ...prev]);
       toast.success("Document ajouté.");
     } catch {
       setError("Erreur réseau.");
