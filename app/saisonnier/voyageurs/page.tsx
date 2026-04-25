@@ -6,6 +6,7 @@ import { IconPlus, IconTrash } from "@/components/proplio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { compressImage } from "@/lib/compress-image";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -162,8 +163,9 @@ export default function VoyageursSaisonnierPage() {
 
   async function onUploadPi(voyageurId: string, file: File | null) {
     if (!file) return;
+    const uploadFile = file.type.startsWith("image/") ? await compressImage(file) : file;
     const fd = new FormData();
-    fd.set("file", file);
+    fd.set("file", uploadFile);
     fd.set("voyageur_id", voyageurId);
     const res = await fetch("/api/saisonnier/voyageurs/upload-identite", { method: "POST", body: fd });
     const j = await res.json();

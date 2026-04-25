@@ -10,7 +10,7 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
-import { compressImageForEdl } from "@/lib/etat-des-lieux/compress-image";
+import { compressImage } from "@/lib/compress-image";
 import {
   createDefaultSaisonnierPayload,
   parseSaisonnierPayload,
@@ -379,11 +379,11 @@ export function SaisonnierEdlWizard({
     setUploading((u) => ({ ...u, [key]: true }));
     setError("");
     try {
-      const blob = await compressImageForEdl(file);
+      const compressed = await compressImage(file);
       const elementKey = `img_${crypto.randomUUID()}`;
       const path = `${proprietaireId}/${edlId}/${roomId}/${elementKey}.jpg`;
-      const { error: upErr } = await supabase.storage.from("etats-des-lieux").upload(path, blob, {
-        contentType: "image/jpeg",
+      const { error: upErr } = await supabase.storage.from("etats-des-lieux").upload(path, compressed, {
+        contentType: compressed.type || "image/jpeg",
         upsert: false,
       });
       if (upErr) throw upErr;

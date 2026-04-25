@@ -17,7 +17,7 @@ import { addChambreToPieces, ELEMENT_LABELS, normalizePiecesData } from "@/lib/e
 import { ETAT_LABELS, formatEtatLabel, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { compareRoomElements } from "@/lib/etat-des-lieux/compare";
-import { compressImageForEdl } from "@/lib/etat-des-lieux/compress-image";
+import { compressImage } from "@/lib/compress-image";
 import type { PiecesEdlData, ElementEdl } from "@/lib/etat-des-lieux/types";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -338,10 +338,10 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     setUploading((u) => ({ ...u, [pk]: true }));
     setError("");
     try {
-      const blob = await compressImageForEdl(file);
+      const compressed = await compressImage(file);
       const path = `${proprietaireId}/${edlId}/${roomId}/${elementKey}_${crypto.randomUUID()}.jpg`;
-      const { error: upErr } = await supabase.storage.from("etats-des-lieux").upload(path, blob, {
-        contentType: "image/jpeg",
+      const { error: upErr } = await supabase.storage.from("etats-des-lieux").upload(path, compressed, {
+        contentType: compressed.type || "image/jpeg",
         upsert: false,
       });
       if (upErr) throw upErr;
