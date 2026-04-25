@@ -275,7 +275,7 @@ export default function BauxPage() {
       return;
     }
     const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
-    if (!canCreateBail(plan, monthlyCount)) {
+    if (!canCreateBail(plan)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
       return;
     }
@@ -465,7 +465,7 @@ export default function BauxPage() {
         return;
       }
       const monthlyCount = await getMonthlyCreatedCount("baux", proprietaireId);
-      if (!canCreateBail(plan, monthlyCount)) {
+      if (!canCreateBail(plan)) {
         setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
         return;
       }
@@ -775,7 +775,7 @@ export default function BauxPage() {
       }
       if (!isEditing) {
         const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
-        if (!canCreateBail(plan, monthlyCount)) {
+        if (!canCreateBail(plan)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }

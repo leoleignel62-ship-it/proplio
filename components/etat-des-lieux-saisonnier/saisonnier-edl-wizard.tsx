@@ -291,7 +291,7 @@ export function SaisonnierEdlWizard({
     }
     const plan = await getOwnerPlan(proprietaireId);
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+    if (!canCreateEtatDesLieux(plan)) {
       setError(PLAN_LIMIT_ERROR_MESSAGE);
       setSaving(false);
       return null;

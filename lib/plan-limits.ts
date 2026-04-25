@@ -116,16 +116,12 @@ export function canCreateQuittance(plan: ProplioPlan, totalCount: number): boole
   return referenceCount < max;
 }
 
-export function canCreateBail(_plan: ProplioPlan, _monthlyCount: number): boolean {
-  void _plan;
-  void _monthlyCount;
-  return true;
+export function canCreateBail(plan: ProplioPlan): boolean {
+  return plan !== "free";
 }
 
-export function canCreateEtatDesLieux(_plan: ProplioPlan, _monthlyCount: number): boolean {
-  void _plan;
-  void _monthlyCount;
-  return true;
+export function canCreateEtatDesLieux(plan: ProplioPlan): boolean {
+  return plan !== "free";
 }
 
 export async function getMonthlyCreatedCount(

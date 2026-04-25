@@ -134,7 +134,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
     setReservations(resaList);
 
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+    if (!canCreateEtatDesLieux(plan)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus d'états des lieux.");
     } else {
       setPlanLimitMessage("");

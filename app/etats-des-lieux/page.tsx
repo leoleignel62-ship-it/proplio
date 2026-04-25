@@ -198,7 +198,7 @@ export default function EtatsDesLieuxPage() {
     });
     setBauxOptions(bailList);
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(planEarly, monthlyCount)) {
+    if (!canCreateEtatDesLieux(planEarly)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus d'états des lieux.");
     } else {
       setPlanLimitMessage("");
@@ -284,7 +284,7 @@ export default function EtatsDesLieuxPage() {
       return;
     }
     const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan, monthlyCount)) {
+    if (!canCreateEtatDesLieux(plan)) {
       setError(PLAN_LIMIT_ERROR_MESSAGE);
       setSubmitting(false);
       return;
