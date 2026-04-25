@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/proplio-colors";
 import type { ProplioPlan } from "@/lib/plan-limits";
-import { supabase } from "@/lib/supabase";
 
 type OnboardingModalProps = {
   open: boolean;
   plan: ProplioPlan;
-  proprietaireId: string;
-  onClose: () => Promise<void> | void;
+  steps: OnboardingStep[];
+  onDismiss: () => void;
+  onComplete: () => Promise<void> | void;
+  onNavigateStep: (href: string) => void;
+  enableSuccessSound?: boolean;
 };
 
-type OnboardingStep = {
+export type OnboardingStep = {
   key: string;
   emoji: string;
   title: string;
@@ -23,137 +25,58 @@ type OnboardingStep = {
   done: boolean;
 };
 
-const FREE_BASE_STEPS = [
-  {
-    key: "profile",
-    emoji: "👤",
-    title: "Complétez votre profil",
-    description: "Ajoutez votre nom, adresse et signature pour personnaliser vos documents.",
-    href: "/parametres",
-  },
-  {
-    key: "logements",
-    emoji: "🏠",
-    title: "Créez votre logement",
-    description: "Ajoutez votre bien immobilier pour commencer à le gérer.",
-    href: "/logements",
-  },
-  {
-    key: "locataires",
-    emoji: "👥",
-    title: "Ajoutez votre locataire",
-    description: "Renseignez les informations de votre locataire.",
-    href: "/locataires",
-  },
-  {
-    key: "quittances",
-    emoji: "📄",
-    title: "Générez votre première quittance",
-    description: "Créez et envoyez votre quittance en quelques clics.",
-    href: "/quittances",
-  },
-] as const;
-
-const PAID_EXTRA_STEPS = [
-  {
-    key: "baux",
-    emoji: "📋",
-    title: "Créez votre bail",
-    description: "Générez un bail conforme loi ALUR en quelques minutes.",
-    href: "/baux",
-  },
-  {
-    key: "etats_des_lieux",
-    emoji: "🔍",
-    title: "Faites un état des lieux",
-    description: "Documentez l'état du logement à l'entrée ou à la sortie.",
-    href: "/etats-des-lieux",
-  },
-  {
-    key: "reservations",
-    emoji: "🌴",
-    title: "Activez le mode saisonnier",
-    description: "Gérez vos réservations courte durée et synchronisez Airbnb.",
-    href: "/saisonnier/reservations",
-  },
-] as const;
-
 const CELEBRATION_BURST = ["🎉", "✨", "🎊", "🥳", "💜"];
 
-export function OnboardingModal({ open, plan, proprietaireId, onClose }: OnboardingModalProps) {
+function getProgressMessage(completedCount: number, totalCount: number, isPaid: boolean): string {
+  if (totalCount > 0 && completedCount >= totalCount) return "🎉 Vous avez tout configuré ! Proplio est prêt.";
+  if (completedCount <= 0) return "Commençons par compléter votre profil !";
+  if (completedCount === 1) return "Parfait ! Ajoutons maintenant votre logement.";
+  if (completedCount === 2) return "Très bien ! Ajoutez votre premier locataire.";
+  if (completedCount === 3) return "Super ! Générez votre première quittance.";
+  if (!isPaid) return "Continuez, vous êtes sur la bonne voie.";
+  if (completedCount === 4) return "Excellent ! Créez maintenant votre bail.";
+  if (completedCount === 5) return "Presque là ! Faites un état des lieux.";
+  if (completedCount === 6) return "Dernière étape ! Activez le mode saisonnier.";
+  return "Continuez, vous êtes sur la bonne voie.";
+}
+
+function playSuccessBeep() {
+  const context = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+  if (!context) return;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.value = 880;
+  gain.gain.value = 0.03;
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.08);
+}
+
+export function OnboardingModal({
+  open,
+  plan,
+  steps,
+  onDismiss,
+  onComplete,
+  onNavigateStep,
+  enableSuccessSound = false,
+}: OnboardingModalProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [steps, setSteps] = useState<OnboardingStep[]>([]);
+  const [justCompleted, setJustCompleted] = useState<Record<string, boolean>>({});
+  const previousDoneRef = useRef<Record<string, boolean>>({});
 
   const isPaid = plan !== "free";
-
-  useEffect(() => {
-    if (!open || !proprietaireId) return;
-    let cancelled = false;
-
-    const loadStepProgress = async () => {
-      setLoading(true);
-
-      const [
-        ownerResult,
-        logementsResult,
-        locatairesResult,
-        quittancesResult,
-        bauxResult,
-        edlResult,
-        reservationsResult,
-      ] = await Promise.all([
-        supabase
-          .from("proprietaires")
-          .select("nom, prenom, adresse")
-          .eq("id", proprietaireId)
-          .maybeSingle(),
-        supabase.from("logements").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("locataires").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("quittances").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase.from("baux").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-        supabase
-          .from("etats_des_lieux")
-          .select("id", { count: "exact", head: true })
-          .eq("proprietaire_id", proprietaireId),
-        supabase.from("reservations").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId),
-      ]);
-
-      if (cancelled) return;
-
-      const owner = ownerResult.data as { nom?: string | null; prenom?: string | null; adresse?: string | null } | null;
-      const profileDone =
-        Boolean(owner?.nom?.trim()) && Boolean(owner?.prenom?.trim()) && Boolean(owner?.adresse?.trim());
-
-      const doneMap: Record<string, boolean> = {
-        profile: profileDone,
-        logements: Number(logementsResult.count ?? 0) >= 1,
-        locataires: Number(locatairesResult.count ?? 0) >= 1,
-        quittances: Number(quittancesResult.count ?? 0) >= 1,
-        baux: Number(bauxResult.count ?? 0) >= 1,
-        etats_des_lieux: Number(edlResult.count ?? 0) >= 1,
-        reservations: Number(reservationsResult.count ?? 0) >= 1,
-      };
-
-      const base = [...FREE_BASE_STEPS];
-      const list = isPaid ? [...base, ...PAID_EXTRA_STEPS] : base;
-      setSteps(list.map((step) => ({ ...step, done: doneMap[step.key] ?? false })));
-      setLoading(false);
-    };
-
-    void loadStepProgress();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, proprietaireId, isPaid]);
 
   const completedCount = useMemo(() => steps.filter((step) => step.done).length, [steps]);
   const totalCount = steps.length;
   const allDone = totalCount > 0 && completedCount === totalCount;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const nextStepKey = useMemo(() => steps.find((step) => !step.done)?.key ?? null, [steps]);
+  const progressMessage = useMemo(() => getProgressMessage(completedCount, totalCount, isPaid), [completedCount, totalCount, isPaid]);
 
   useEffect(() => {
     if (!open || !allDone) {
@@ -165,19 +88,47 @@ export function OnboardingModal({ open, plan, proprietaireId, onClose }: Onboard
     return () => window.clearTimeout(timeout);
   }, [open, allDone]);
 
+  useEffect(() => {
+    const nextJustCompleted: Record<string, boolean> = {};
+    let hasNewlyCompletedStep = false;
+    const prev = previousDoneRef.current;
+
+    for (const step of steps) {
+      if (!prev[step.key] && step.done) {
+        nextJustCompleted[step.key] = true;
+        hasNewlyCompletedStep = true;
+      }
+    }
+
+    previousDoneRef.current = Object.fromEntries(steps.map((step) => [step.key, step.done]));
+    setJustCompleted(nextJustCompleted);
+
+    if (hasNewlyCompletedStep && enableSuccessSound) {
+      try {
+        playSuccessBeep();
+      } catch {
+        // Ignore browser audio restrictions.
+      }
+    }
+
+    if (!hasNewlyCompletedStep) return;
+    const timeout = window.setTimeout(() => setJustCompleted({}), 700);
+    return () => window.clearTimeout(timeout);
+  }, [enableSuccessSound, steps]);
+
   if (!open) return null;
 
-  async function handleMarkDoneAndClose() {
+  async function handleCompleteAndClose() {
     setClosing(true);
     try {
-      await onClose();
+      await onComplete();
     } finally {
       setClosing(false);
     }
   }
 
   function handleGoTo(href: string) {
-    void handleMarkDoneAndClose();
+    onNavigateStep(href);
     router.push(href);
   }
 
@@ -236,34 +187,59 @@ export function OnboardingModal({ open, plan, proprietaireId, onClose }: Onboard
                 }}
               />
             </div>
+            <p className="mt-3 text-xs leading-relaxed" style={{ color: "#c4c4cf" }}>
+              {progressMessage}
+            </p>
           </div>
         </header>
 
         <div className="mt-6 space-y-3">
-          {loading ? (
-            <div className="rounded-xl border px-4 py-6 text-center text-sm" style={{ borderColor: PC.border, color: PC.muted }}>
-              Vérification de vos étapes en cours...
-            </div>
-          ) : (
-            steps.map((step) => (
+          {steps.map((step) => {
+            const isNextStep = !step.done && step.key === nextStepKey;
+            const rowBorder = isNextStep ? "#7c3aed" : PC.border;
+            const rowBg = step.done ? "rgba(255,255,255,0.02)" : PC.card;
+            return (
               <div
                 key={step.key}
-                className="flex items-start justify-between gap-3 rounded-xl border px-4 py-3"
-                style={{ borderColor: PC.border, backgroundColor: PC.card }}
+                className="flex items-start justify-between gap-3 rounded-xl border px-4 py-3 transition"
+                style={{ borderColor: rowBorder, backgroundColor: rowBg }}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-xl leading-none">{step.emoji}</span>
+                  <span className="text-xl leading-none" style={{ opacity: step.done ? 0.65 : 1 }}>
+                    {step.emoji}
+                  </span>
                   <div>
-                    <p className="text-sm font-bold" style={{ color: PC.text }}>
-                      {step.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed" style={{ color: "#c4c4cf" }}>
+                    <div className="flex items-center gap-2">
+                      <p
+                        className="text-sm font-bold"
+                        style={{ color: step.done ? "#b8b8c3" : PC.text }}
+                      >
+                        {step.title}
+                      </p>
+                      {isNextStep ? (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ backgroundColor: PC.primaryBg20, color: PC.secondary }}
+                        >
+                          → Étape suivante
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed" style={{ color: step.done ? "#8c8c98" : "#c4c4cf" }}>
                       {step.description}
                     </p>
                   </div>
                 </div>
                 {step.done ? (
-                  <span className="animate-pulse text-lg" style={{ color: PC.success }} aria-label="Étape complétée">
+                  <span
+                    className="text-lg"
+                    style={{
+                      color: PC.success,
+                      animation: justCompleted[step.key] ? "onboardingCheckIn 260ms ease-out" : undefined,
+                      transformOrigin: "center",
+                    }}
+                    aria-label="Étape complétée"
+                  >
                     ✅
                   </span>
                 ) : (
@@ -277,13 +253,13 @@ export function OnboardingModal({ open, plan, proprietaireId, onClose }: Onboard
                   </button>
                 )}
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
 
         <footer className="mt-6 flex justify-end">
           {allDone ? (
-            <BtnPrimary type="button" loading={closing} onClick={() => void handleMarkDoneAndClose()}>
+            <BtnPrimary type="button" loading={closing} onClick={() => void handleCompleteAndClose()}>
               Terminer 🎉
             </BtnPrimary>
           ) : (
@@ -292,13 +268,29 @@ export function OnboardingModal({ open, plan, proprietaireId, onClose }: Onboard
               disabled={closing}
               className="text-sm transition disabled:opacity-60"
               style={{ color: PC.muted }}
-              onClick={() => void handleMarkDoneAndClose()}
+              onClick={onDismiss}
             >
               Fermer
             </button>
           )}
         </footer>
       </div>
+      <style jsx>{`
+        @keyframes onboardingCheckIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.55);
+          }
+          70% {
+            opacity: 1;
+            transform: scale(1.15);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
