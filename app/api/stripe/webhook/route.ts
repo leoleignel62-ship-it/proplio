@@ -39,14 +39,9 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata ?? {};
       const plan = metadata.plan;
-      const previousSubscriptionId = metadata.previous_subscription_id;
 
       if (plan === "starter" || plan === "pro" || plan === "expert") {
         await applyPlanUpdate(metadata.proprietaireId ?? null, metadata.userId ?? null, plan);
-      }
-
-      if (previousSubscriptionId) {
-        await stripe.subscriptions.cancel(previousSubscriptionId);
       }
     }
 
