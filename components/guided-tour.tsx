@@ -186,8 +186,6 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
 
   useEffect(() => {
     if (!open) return;
-    // Temp debug log requested by user.
-    console.log("GuidedTour monté", tourType, steps.length);
   }, [open, tourType, steps.length]);
 
   useEffect(() => {

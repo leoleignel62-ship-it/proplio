@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature || !webhookSecret) {
-    return NextResponse.json({ error: "Signature webhook invalide." }, { status: 400 });
+    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
   try {
@@ -82,8 +82,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
+    console.error("Webhook Stripe error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erreur webhook Stripe." },
+      { error: "Webhook error" },
       { status: 400 },
     );
   }

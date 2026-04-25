@@ -1,4 +1,10 @@
 import { LegalPageShell } from "@/components/legal-page-shell";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Conditions Générales d'Utilisation — Proplio",
+  description: "Conditions générales d'utilisation de Proplio.",
+};
 
 export default function CguPage() {
   return (

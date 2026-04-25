@@ -1,5 +1,20 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/legal-page-shell";
+
+export const metadata: Metadata = {
+  title: "Qui sommes-nous — Proplio",
+  description:
+    "Découvrez l'histoire de Proplio, créé par Tony et Léo pour simplifier la gestion locative des propriétaires français.",
+  openGraph: {
+    title: "Qui sommes-nous — Proplio",
+    description: "Découvrez l'histoire de Proplio.",
+    url: "https://proplio-red.vercel.app/qui-sommes-nous",
+    siteName: "Proplio",
+    locale: "fr_FR",
+    type: "website",
+  },
+};
 
 export default function QuiSommesNousPage() {
   return (
