@@ -68,7 +68,6 @@ const navigationModeSaisonnier = [
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
-  { href: "/saisonnier/menage", label: "Ménage", icon: IconClipboard },
   { href: "/saisonnier/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
   { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
 ] as const;
@@ -303,7 +302,6 @@ export function NavigationSidebar() {
       "/saisonnier/reservations": "saisonnier-reservations",
       "/saisonnier/voyageurs": "saisonnier-voyageurs",
       "/saisonnier/contrats": "saisonnier-contrats",
-      "/saisonnier/menage": "saisonnier-menage",
       "/saisonnier/taxes-sejour": "saisonnier-taxes",
     };
     return (

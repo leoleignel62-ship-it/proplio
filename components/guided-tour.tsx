@@ -135,13 +135,6 @@ const PAID_TOUR_STEPS: TourStep[] = [
       "Générez et envoyez automatiquement les contrats de séjour à vos voyageurs par email en PDF.",
   },
   {
-    key: "saisonnier-menage",
-    targetId: "saisonnier-menage",
-    title: "🧹 Ménage",
-    description:
-      "Suivez les interventions de ménage entre chaque séjour. Planifiez et marquez les tâches comme effectuées.",
-  },
-  {
     key: "saisonnier-taxes",
     targetId: "saisonnier-taxes",
     title: "💰 Taxes de séjour",
