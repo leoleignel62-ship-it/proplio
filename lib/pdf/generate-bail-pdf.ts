@@ -12,7 +12,9 @@ import {
   PDF_TABLE_HIGHLIGHT_BG,
   PDF_TEXT_MAIN as TEXT_BODY,
   PDF_TEXT_SECONDARY as TEXT_MUTED,
+  PDF_SUCCESS,
   PDF_VIOLET as PRIMARY,
+  PDF_VIOLET_DARK,
   PDF_VIOLET_LINE as SECONDARY,
   PDF_WHITE as WHITE,
   drawProplioPdfFooterOnAllPages,
@@ -233,23 +235,30 @@ function ensureSpaceMinLines(ctx: PdfCtx, lines = 3) {
 
 function drawArticleTitle(ctx: PdfCtx, num: number, title: string) {
   ensureSpaceMinLines(ctx, 4);
-  const barH = 22;
+  const barH = 24;
   const titleText = `Article ${num} — ${title}`;
   ctx.page.drawRectangle({
-    x: MARGIN,
+    x: MARGIN + 3,
     y: ctx.y - barH,
-    width: PAGE_W - MARGIN * 2,
+    width: PAGE_W - MARGIN * 2 - 3,
     height: barH,
     color: ARTICLE_TITLE_BG,
     borderColor: SECONDARY,
     borderWidth: 0.6,
   });
+  ctx.page.drawRectangle({
+    x: MARGIN,
+    y: ctx.y - barH,
+    width: 3,
+    height: barH,
+    color: PRIMARY,
+  });
   ctx.page.drawText(titleText, {
     x: MARGIN + 10,
-    y: ctx.y - 15,
+    y: ctx.y - 16,
     size: 10.5,
     font: ctx.fontBold,
-    color: PRIMARY,
+    color: PDF_VIOLET_DARK,
   });
   ctx.y -= barH + 12;
 }
@@ -388,12 +397,15 @@ function drawSinglePageTable(
       color: TEXT_BODY,
     });
     const rFont = row.rightBold !== false ? ctx.fontBold : ctx.font;
+    let rightColor = PRIMARY;
+    if (row.right === "Oui") rightColor = PDF_SUCCESS;
+    if (row.right === "Non") rightColor = TEXT_MUTED;
     ctx.page.drawText(row.right, {
       x: x0 + tw * 0.52,
       y: ty - 13,
       size: row.rightBold !== false ? 10 : 9,
       font: rFont,
-      color: PRIMARY,
+      color: rightColor,
     });
     ty -= rowH;
   });

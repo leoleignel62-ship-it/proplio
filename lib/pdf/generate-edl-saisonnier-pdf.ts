@@ -17,6 +17,7 @@ import {
   PDF_MARGIN_X as MARGIN,
   PDF_PAGE_H as PAGE_H,
   PDF_PAGE_W as PAGE_W,
+  PDF_VIOLET_LIGHT,
   PDF_TABLE_ALT as ROW_ALT,
   PDF_TEXT_MAIN as BODY,
   PDF_TEXT_SECONDARY as MUTED,
@@ -27,7 +28,11 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import { PDF_FOOTER_HEIGHT, PDF_SIGNATURE_FOOTER_RESERVE } from "@/lib/pdf/pdf-utils";
+import {
+  PDF_FOOTER_HEIGHT,
+  PDF_SIGNATURE_FOOTER_RESERVE,
+  drawSignatureBlock,
+} from "@/lib/pdf/pdf-utils";
 
 /** Helvetica StandardFonts = WinAnsi : pas de ✓ ✗ ⚠️ etc. */
 function sanitizePdfText(text: string): string {
@@ -99,122 +104,9 @@ function drawImageCoverInBox(
 }
 
 function etatIcon(e: SaisonnierEtatPiece): string {
-  if (e === "bon") return "OK Bon";
-  if (e === "moyen") return "~ Moyen";
-  return "Non Mauvais";
-}
-
-function drawSaisonnierSignatureBlock(
-  page: PDFPage,
-  font: PDFFont,
-  fontBold: PDFFont,
-  props: {
-    ville: string;
-    dateStr: string;
-    proprietaireNom: string;
-    preneurNom: string;
-    signatureImage: PDFImage | null;
-  },
-) {
-  const pw = PAGE_W;
-  const margin = MARGIN;
-  const bb = PDF_FOOTER_HEIGHT;
-  const h = 130;
-  const top = bb + h;
-  const lineY = top - 20;
-  page.drawLine({
-    start: { x: margin, y: lineY },
-    end: { x: pw - margin, y: lineY },
-    thickness: 0.35,
-    color: BORDER,
-  });
-  const fait = sanitizePdfText(`Fait à ${props.ville || "—"}, le ${props.dateStr || "—"}`);
-  const faitW = font.widthOfTextAtSize(fait, 10);
-  page.drawText(fait, {
-    x: pw - margin - faitW,
-    y: lineY - 14,
-    size: 10,
-    font,
-    color: MUTED,
-  });
-  const labelY = lineY - 34;
-  const mid = pw / 2;
-  const colGap = 16;
-  const colW = (pw - 2 * margin - colGap) / 2;
-  page.drawText(sanitizePdfText("Le preneur (voyageur)"), {
-    x: margin + 4,
-    y: labelY,
-    size: 10,
-    font,
-    color: MUTED,
-  });
-  page.drawText(sanitizePdfText("Le bailleur"), {
-    x: mid + colGap / 2 + 4,
-    y: labelY,
-    size: 10,
-    font,
-    color: MUTED,
-  });
-  const zoneTop = labelY - 12;
-  const zoneH = 44;
-  const zoneBottom = zoneTop - zoneH;
-  const leftColX = margin + 4;
-  const rightColX = mid + colGap / 2 + 4;
-  page.drawRectangle({
-    x: leftColX,
-    y: zoneBottom,
-    width: colW - 8,
-    height: zoneH,
-    borderColor: BORDER,
-    borderWidth: 0.5,
-    color: rgb(1, 1, 1),
-  });
-  const lu = sanitizePdfText("Lu et approuvé");
-  page.drawText(lu, {
-    x: leftColX + 8,
-    y: zoneBottom + zoneH / 2 - 4,
-    size: 9,
-    font: fontBold,
-    color: BODY,
-  });
-  page.drawText(sanitizePdfText(props.preneurNom || "—"), {
-    x: leftColX,
-    y: zoneBottom - 16,
-    size: 9,
-    font,
-    color: MUTED,
-  });
-  if (props.signatureImage) {
-    const img = props.signatureImage;
-    const maxW = colW - 16;
-    const maxH = zoneH - 8;
-    const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
-    const dw = img.width * ratio;
-    const dh = img.height * ratio;
-    page.drawImage(img, {
-      x: rightColX,
-      y: zoneBottom + (zoneH - dh) / 2,
-      width: dw,
-      height: dh,
-    });
-  } else {
-    page.drawRectangle({
-      x: rightColX,
-      y: zoneBottom,
-      width: colW - 8,
-      height: zoneH,
-      borderColor: BORDER,
-      borderWidth: 0.5,
-      color: rgb(1, 1, 1),
-    });
-  }
-  page.drawText(sanitizePdfText(props.proprietaireNom || "—"), {
-    x: rightColX,
-    y: zoneBottom - 18,
-    size: 11,
-    font: fontBold,
-    color: BODY,
-  });
+  if (e === "bon") return "Bon état";
+  if (e === "moyen") return "État moyen";
+  return "Mauvais état";
 }
 
 export type SaisonnierEdlPdfParams = {
@@ -312,22 +204,36 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   if (blockBottom < sigFloor()) newPage();
   const y0 = y;
   page.drawRectangle({
+    x: MARGIN + 3,
+    y: blockBottom,
+    width: colW2 - 3,
+    height: blockH,
+    color: PDF_VIOLET_LIGHT,
+    borderColor: BORDER,
+    borderWidth: 0.5,
+  });
+  page.drawRectangle({
     x: MARGIN,
     y: blockBottom,
-    width: colW2,
+    width: 3,
     height: blockH,
-    color: rgb(0.98, 0.98, 1),
+    color: PRIMARY,
+  });
+  page.drawRectangle({
+    x: MARGIN + colW2 + 12 + 3,
+    y: blockBottom,
+    width: colW2 - 3,
+    height: blockH,
+    color: PDF_VIOLET_LIGHT,
     borderColor: BORDER,
     borderWidth: 0.5,
   });
   page.drawRectangle({
     x: MARGIN + colW2 + 12,
     y: blockBottom,
-    width: colW2,
+    width: 3,
     height: blockH,
-    color: rgb(0.98, 0.98, 1),
-    borderColor: BORDER,
-    borderWidth: 0.5,
+    color: PRIMARY,
   });
   let ty = y0 - 12;
   page.drawText(sanitizePdfText("Bailleur"), { x: MARGIN + 6, y: ty, size: 9, font: fontBold, color: PRIMARY });
@@ -443,7 +349,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
       height: rowH,
       color: idx % 2 === 0 ? rgb(1, 1, 1) : ROW_ALT,
       borderColor: BORDER,
-      borderWidth: 0.35,
+      borderWidth: 0.3,
     });
     const topL = y - 10;
     page.drawText(sanitizePdfText(room.label), {
@@ -453,12 +359,33 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
       font: fontBold,
       color: BODY,
     });
-    page.drawText(sanitizePdfText(etatIcon(room.etat)), {
+    let badgeBg = rgb(220 / 255, 252 / 255, 231 / 255);
+    let badgeFg = rgb(22 / 255, 101 / 255, 52 / 255);
+    if (room.etat === "moyen") {
+      badgeBg = rgb(255 / 255, 237 / 255, 213 / 255);
+      badgeFg = rgb(194 / 255, 65 / 255, 12 / 255);
+    }
+    if (room.etat === "mauvais") {
+      badgeBg = rgb(254 / 255, 226 / 255, 226 / 255);
+      badgeFg = rgb(185 / 255, 28 / 255, 28 / 255);
+    }
+    const badgeText = sanitizePdfText(etatIcon(room.etat));
+    const badgeW = fontBold.widthOfTextAtSize(badgeText, 8.5) + 10;
+    page.drawRectangle({
+      x: MARGIN + USABLE_W * 0.38 - 4,
+      y: topL - 11,
+      width: badgeW,
+      height: 12,
+      color: badgeBg,
+      borderColor: BORDER,
+      borderWidth: 0.25,
+    });
+    page.drawText(badgeText, {
       x: MARGIN + USABLE_W * 0.38,
       y: topL,
-      size: 9,
+      size: 8.5,
       font: fontBold,
-      color: BODY,
+      color: badgeFg,
     });
     let oy = topL - 14;
     for (const ln of obsLines) {
@@ -578,12 +505,16 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
       .filter(Boolean)
       .pop() || "—";
 
-  drawSaisonnierSignatureBlock(page, font, fontBold, {
+  drawSignatureBlock(page, {
+    font,
+    fontBold,
     ville: villeSig,
     dateStr: dateFr,
     proprietaireNom: params.bailleur.nom,
-    preneurNom: params.preneur.nom,
     signatureImage: sigImg,
+    marginX: MARGIN,
+    pageWidth: PAGE_W,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
   drawProplioPdfFooterOnAllPages(doc, font, fontBold);

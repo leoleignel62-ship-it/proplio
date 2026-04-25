@@ -10,6 +10,7 @@ import {
   PDF_TEXT_MAIN,
   PDF_TEXT_SECONDARY,
   PDF_VIOLET,
+  PDF_VIOLET_DARK,
   PDF_WHITE,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
@@ -102,7 +103,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   y -= 28;
 
   const colsTop = y;
-  const colsHeight = 138;
+  const colsHeight = 144;
   const gap = 12;
   const colWidth = (right - left - gap) / 2;
   const leftColX = left;
@@ -131,7 +132,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
       y: cy,
       size: 9,
       font: fontBold,
-      color: PDF_TEXT_SECONDARY,
+      color: PDF_VIOLET_DARK,
     });
     cy -= lineHeight;
     cy = drawLines(cy);
@@ -143,7 +144,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     page.drawText(`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim(), {
       x: leftColX + 14,
       y: ly,
-      size: 10.5,
+      size: 11,
       font,
       color: PDF_TEXT_MAIN,
     });
@@ -164,9 +165,9 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
       color: PDF_TEXT_MAIN,
     });
     ly -= 16;
-    page.drawText(`Email: ${proprietaire.email || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_MAIN });
+    page.drawText(`Email: ${proprietaire.email || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     ly -= 13;
-    page.drawText(`Tél: ${proprietaire.telephone || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_MAIN });
+    page.drawText(`Tél: ${proprietaire.telephone || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     return ly;
   });
 
@@ -175,27 +176,39 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     page.drawText(`${locataire.prenom || ""} ${locataire.nom || ""}`.trim(), {
       x: rightColX + 14,
       y: ry,
-      size: 10.5,
+      size: 11,
       font,
       color: PDF_TEXT_MAIN,
     });
     ry -= lineHeight;
-    page.drawText(`Email: ${locataire.email || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_MAIN });
+    page.drawText(`Email: ${locataire.email || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     ry -= 13;
-    page.drawText(`Tél: ${locataire.telephone || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_MAIN });
+    page.drawText(`Tél: ${locataire.telephone || "—"}`, { x: rightColX + 14, y: ry, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     return ry;
   });
 
-  y = colsTop - colsHeight - 24;
+  y = colsTop - colsHeight - 28;
   const homeTitle = "Logement";
+  const homeCardW = right - left;
+  const homeCardH = 78;
+  const homeCardY = y - homeCardH + 10;
+  page.drawRectangle({
+    x: left,
+    y: homeCardY,
+    width: homeCardW,
+    height: homeCardH,
+    color: PDF_INFO_BLOCK_BG,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.6,
+  });
   page.drawText(homeTitle, {
     x: pageWidth / 2 - fontBold.widthOfTextAtSize(homeTitle, 12) / 2,
-    y,
+    y: y - 8,
     size: 12,
     font: fontBold,
-    color: PDF_TEXT_MAIN,
+    color: PDF_VIOLET_DARK,
   });
-  y -= lineHeight;
+  y -= lineHeight + 4;
   const logementLine = `${logement.nom || ""} - ${logement.adresse || ""}`.trim();
   page.drawText(logementLine, {
     x: pageWidth / 2 - font.widthOfTextAtSize(logementLine, 10.5) / 2,
@@ -213,14 +226,14 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     font,
     color: PDF_TEXT_MAIN,
   });
-  y -= 20;
+  y -= 24;
   page.drawLine({
     start: { x: left, y },
     end: { x: right, y },
     thickness: 0.5,
     color: PDF_BORDER,
   });
-  y -= 16;
+  y -= 20;
 
   page.drawText(`Période: ${monthLabel} ${quittance.annee}`, {
     x: left,
@@ -242,7 +255,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     y: y - tableHeaderH,
     width: tableW,
     height: tableHeaderH,
-    color: PDF_VIOLET,
+    color: PDF_VIOLET_DARK,
   });
   page.drawText("Désignation", {
     x: tableX + 10,
@@ -270,8 +283,9 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     borderWidth: 0.5,
   });
   page.drawText("Loyer nu", { x: tableX + 10, y: y - 15, size: 10.5, font, color: PDF_TEXT_MAIN });
-  page.drawText(`${Number(quittance.loyer).toFixed(2)} €`, {
-    x: tableColSplit + 10,
+  const loyerText = `${Number(quittance.loyer).toFixed(2)} €`;
+  page.drawText(loyerText, {
+    x: tableX + tableW - font.widthOfTextAtSize(loyerText, 10.5) - 10,
     y: y - 15,
     size: 10.5,
     font,
@@ -289,8 +303,9 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     borderWidth: 0.5,
   });
   page.drawText("Charges", { x: tableX + 10, y: y - 15, size: 10.5, font, color: PDF_TEXT_MAIN });
-  page.drawText(`${Number(quittance.charges).toFixed(2)} €`, {
-    x: tableColSplit + 10,
+  const chargesText = `${Number(quittance.charges).toFixed(2)} €`;
+  page.drawText(chargesText, {
+    x: tableX + tableW - font.widthOfTextAtSize(chargesText, 10.5) - 10,
     y: y - 15,
     size: 10.5,
     font,
@@ -314,14 +329,15 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     font: fontBold,
     color: PDF_TEXT_MAIN,
   });
-  page.drawText(`${Number(quittance.total).toFixed(2)} €`, {
-    x: tableColSplit + 10,
+  const totalText = `${Number(quittance.total).toFixed(2)} €`;
+  page.drawText(totalText, {
+    x: tableX + tableW - fontBold.widthOfTextAtSize(totalText, 11.5) - 10,
     y: y - 15,
     size: 11.5,
     font: fontBold,
-    color: PDF_TEXT_MAIN,
+    color: PDF_VIOLET_DARK,
   });
-  y -= tableRowH + 16;
+  y -= tableRowH + 24;
 
   page.drawLine({
     start: { x: left, y },
@@ -331,7 +347,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   });
   y -= 20;
 
-  const legalText = `Je soussigné ${proprietaire.nom || ""}, bailleur, déclare avoir reçu de ${
+  const legalText = `Je soussigné ${`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim()}, bailleur, déclare avoir reçu de ${
     `${locataire.prenom || ""} ${locataire.nom || ""}`.trim()
   }, locataire, la somme de ${Number(quittance.total).toFixed(
     2,

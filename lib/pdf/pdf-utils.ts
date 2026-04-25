@@ -4,19 +4,21 @@
  */
 import { type PDFDocument, type PDFPage, rgb, type PDFFont, type PDFImage } from "pdf-lib";
 
-export const PDF_FOOTER_HEIGHT = 30;
+export const PDF_FOOTER_HEIGHT = 28;
 export const PDF_SIGNATURE_BLOCK_HEIGHT = 130;
 /** Espace minimal à réserver en bas de page pour signature + pied (évite page quasi vide). */
 export const PDF_SIGNATURE_FOOTER_RESERVE =
   PDF_FOOTER_HEIGHT + PDF_SIGNATURE_BLOCK_HEIGHT + 24;
 
-const FOOTER_CENTER = "Document généré par Proplio — proplio-red.vercel.app";
+const FOOTER_CENTER = "Document généré par Proplio";
 
 const VIOLET = rgb(124 / 255, 58 / 255, 237 / 255);
-const WHITE = rgb(1, 1, 1);
-const BORDER = rgb(229 / 255, 229 / 255, 229 / 255);
-const TEXT_MAIN = rgb(26 / 255, 26 / 255, 26 / 255);
-const TEXT_SECONDARY = rgb(107 / 255, 107 / 255, 128 / 255);
+const VIOLET_LIGHT = rgb(237 / 255, 233 / 255, 254 / 255);
+const FOOTER_BG = rgb(248 / 255, 247 / 255, 252 / 255);
+const BORDER = rgb(220 / 255, 218 / 255, 228 / 255);
+const TEXT_MAIN = rgb(15 / 255, 15 / 255, 20 / 255);
+const TEXT_SECONDARY = rgb(100 / 255, 100 / 255, 115 / 255);
+const TEXT_OWNER = rgb(91 / 255, 33 / 255, 182 / 255);
 
 export function sanitizePdfText(text: string): string {
   return text
@@ -39,7 +41,7 @@ export type DrawFooterProps = {
 };
 
 /**
- * Bandeau pied de page 30 pt, violet #7c3aed, texte centré 9 pt blanc.
+ * Pied de page premium : fond clair, filet violet, texte centré et pagination à droite.
  */
 export function drawFooter(page: PDFPage, props: DrawFooterProps) {
   const w = props.pageWidth ?? 595.28;
@@ -49,27 +51,32 @@ export function drawFooter(page: PDFPage, props: DrawFooterProps) {
     y: 0,
     width: w,
     height: PDF_FOOTER_HEIGHT,
-    color: VIOLET,
+    color: FOOTER_BG,
+  });
+  page.drawRectangle({
+    x: 0,
+    y: PDF_FOOTER_HEIGHT - 1.2,
+    width: w,
+    height: 1.2,
+    color: VIOLET_LIGHT,
   });
   const tw = props.font.widthOfTextAtSize(line, 9);
   page.drawText(line, {
     x: (w - tw) / 2,
-    y: 12,
+    y: 10,
     size: 9,
     font: props.font,
-    color: WHITE,
+    color: TEXT_SECONDARY,
   });
-  if (props.totalPages > 1) {
-    const pg = sanitizePdfText(`Page ${props.pageIndex + 1} / ${props.totalPages}`);
-    const pw = props.fontBold.widthOfTextAtSize(pg, 9);
-    page.drawText(pg, {
-      x: w - 40 - pw,
-      y: 12,
-      size: 9,
-      font: props.fontBold,
-      color: WHITE,
-    });
-  }
+  const pg = sanitizePdfText(`Page ${props.pageIndex + 1} / ${props.totalPages}`);
+  const pw = props.fontBold.widthOfTextAtSize(pg, 9);
+  page.drawText(pg, {
+    x: w - 40 - pw,
+    y: 10,
+    size: 9,
+    font: props.fontBold,
+    color: TEXT_SECONDARY,
+  });
 }
 
 export type DrawSignatureBlockProps = {
@@ -89,8 +96,7 @@ export type DrawSignatureBlockProps = {
 };
 
 /**
- * Bloc signature standardisé (130 pt), au-dessus du pied : filet, « Fait à… » à droite,
- * deux colonnes (locataire / propriétaire + image + nom).
+ * Bloc signature standardisé premium (2 colonnes), ancré au-dessus du footer.
  */
 export function drawSignatureBlock(page: PDFPage, props: DrawSignatureBlockProps) {
   const margin = props.marginX ?? 40;
@@ -99,11 +105,11 @@ export function drawSignatureBlock(page: PDFPage, props: DrawSignatureBlockProps
   const h = props.blockHeight ?? PDF_SIGNATURE_BLOCK_HEIGHT;
   const top = bb + h;
 
-  const lineY = top - 20;
+  const lineY = top - 18;
   page.drawLine({
     start: { x: margin, y: lineY },
     end: { x: pw - margin, y: lineY },
-    thickness: 0.35,
+    thickness: 0.5,
     color: BORDER,
   });
 
@@ -112,43 +118,51 @@ export function drawSignatureBlock(page: PDFPage, props: DrawSignatureBlockProps
   const fait = sanitizePdfText(`Fait à ${villeS}, le ${dateS}`);
   const faitW = props.font.widthOfTextAtSize(fait, 10);
   page.drawText(fait, {
-    x: pw - margin - faitW,
-    y: lineY - 14,
+    x: (pw - faitW) / 2,
+    y: lineY - 15,
     size: 10,
     font: props.font,
     color: TEXT_SECONDARY,
   });
 
-  const labelY = lineY - 34;
-  const mid = pw / 2;
+  const labelY = lineY - 33;
   const colGap = 16;
   const colW = (pw - 2 * margin - colGap) / 2;
   page.drawText(sanitizePdfText("Le locataire"), {
     x: margin + 4,
     y: labelY,
-    size: 10,
+    size: 9,
     font: props.font,
     color: TEXT_SECONDARY,
   });
   page.drawText(sanitizePdfText("Le propriétaire"), {
-    x: mid + colGap / 2 + 4,
+    x: margin + colW + colGap + 4,
     y: labelY,
-    size: 10,
+    size: 9,
     font: props.font,
     color: TEXT_SECONDARY,
   });
 
-  const zoneTop = labelY - 12;
-  /** Hauteur des zones de paraphe (nom propriétaire sous le bloc, au-dessus du pied 30 pt). */
-  const zoneH = 44;
+  const zoneTop = labelY - 10;
+  const zoneH = 60;
   const zoneBottom = zoneTop - zoneH;
   const leftColX = margin + 4;
-  const rightColX = mid + colGap / 2 + 4;
+  const rightColX = margin + colW + colGap + 4;
+  const zoneW = colW - 8;
 
   page.drawRectangle({
     x: leftColX,
     y: zoneBottom,
-    width: colW - 8,
+    width: zoneW,
+    height: zoneH,
+    borderColor: BORDER,
+    borderWidth: 0.5,
+    color: rgb(1, 1, 1),
+  });
+  page.drawRectangle({
+    x: rightColX,
+    y: zoneBottom,
+    width: zoneW,
     height: zoneH,
     borderColor: BORDER,
     borderWidth: 0.5,
@@ -159,34 +173,37 @@ export function drawSignatureBlock(page: PDFPage, props: DrawSignatureBlockProps
 
   if (props.signatureImage) {
     const img = props.signatureImage;
-    const maxW = colW - 16;
-    const maxH = zoneH - 8;
+    const maxW = 100;
+    const maxH = 50;
     const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
     const dw = img.width * ratio;
     const dh = img.height * ratio;
-    const imgX = rightColX;
+    const imgX = rightColX + (zoneW - dw) / 2;
     const imgY = zoneBottom + (zoneH - dh) / 2;
     page.drawImage(img, { x: imgX, y: imgY, width: dw, height: dh });
-  } else {
-    page.drawRectangle({
-      x: rightColX,
-      y: zoneBottom,
-      width: colW - 8,
-      height: zoneH,
-      borderColor: BORDER,
-      borderWidth: 0.5,
-      color: rgb(1, 1, 1),
-    });
   }
 
-  /** Sous la zone de signature (évite chevauchement avec l’image). */
-  const nameBaseline = zoneBottom - 18;
-  page.drawText(nomBold, {
+  const nameBaseline = zoneBottom - 16;
+  page.drawText(sanitizePdfText("Le preneur"), {
+    x: leftColX,
+    y: nameBaseline,
+    size: 9,
+    font: props.font,
+    color: TEXT_SECONDARY,
+  });
+  page.drawText(sanitizePdfText("Le bailleur"), {
     x: rightColX,
     y: nameBaseline,
+    size: 9,
+    font: props.font,
+    color: TEXT_SECONDARY,
+  });
+  page.drawText(nomBold, {
+    x: rightColX,
+    y: nameBaseline - 12,
     size: 11,
     font: props.fontBold,
-    color: TEXT_MAIN,
+    color: TEXT_OWNER,
   });
 }
 

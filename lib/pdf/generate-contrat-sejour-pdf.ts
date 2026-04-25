@@ -2,18 +2,22 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFP
 import {
   PDF_MARGIN_X,
   PDF_FOOTER_HEIGHT,
+  PDF_INFO_BLOCK_BG,
   PDF_PAGE_H,
   PDF_PAGE_W,
+  PDF_TABLE_ALT,
   PDF_TEXT_MAIN,
   PDF_TEXT_SECONDARY,
   PDF_VIOLET,
+  PDF_VIOLET_DARK,
+  PDF_VIOLET_LIGHT,
   PDF_BORDER,
   PDF_TABLE_HIGHLIGHT_BG,
   drawProplioPdfFooterOnAllPages,
   drawProplioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/proplio-pdf-theme";
-import { sanitizePdfText } from "@/lib/pdf/pdf-utils";
+import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const words = sanitizePdfText(text).split(/\s+/).filter(Boolean);
@@ -71,14 +75,31 @@ function ensureSpace(ctx: PdfCtx, minYNeeded: number): void {
 
 function drawSectionTitle(ctx: PdfCtx, title: string, size = 11): void {
   ensureSpace(ctx, 36);
-  ctx.page.drawText(sanitizePdfText(title), {
+  const barH = 22;
+  ctx.page.drawRectangle({
+    x: PDF_MARGIN_X + 3,
+    y: ctx.y - barH + 2,
+    width: PDF_PAGE_W - 2 * PDF_MARGIN_X - 3,
+    height: barH,
+    color: PDF_VIOLET_LIGHT,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  ctx.page.drawRectangle({
     x: PDF_MARGIN_X,
-    y: ctx.y,
-    size,
-    font: ctx.fontBold,
+    y: ctx.y - barH + 2,
+    width: 3,
+    height: barH,
     color: PDF_VIOLET,
   });
-  ctx.y -= size + 8;
+  ctx.page.drawText(sanitizePdfText(title), {
+    x: PDF_MARGIN_X + 10,
+    y: ctx.y - 12,
+    size,
+    font: ctx.fontBold,
+    color: PDF_VIOLET_DARK,
+  });
+  ctx.y -= barH + 8;
 }
 
 function drawParagraph(ctx: PdfCtx, text: string, size = 9, bold = false): void {
@@ -113,6 +134,40 @@ function drawTwoColBlock(
   const xL = PDF_MARGIN_X;
   const xR = mid + gap / 2;
   let yTop = ctx.y;
+  const cardH = 94;
+
+  ctx.page.drawRectangle({
+    x: xL + 3,
+    y: yTop - cardH,
+    width: colW - 3,
+    height: cardH,
+    color: PDF_INFO_BLOCK_BG,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  ctx.page.drawRectangle({
+    x: xL,
+    y: yTop - cardH,
+    width: 3,
+    height: cardH,
+    color: PDF_VIOLET,
+  });
+  ctx.page.drawRectangle({
+    x: xR + 3,
+    y: yTop - cardH,
+    width: colW - 3,
+    height: cardH,
+    color: PDF_INFO_BLOCK_BG,
+    borderColor: PDF_BORDER,
+    borderWidth: 0.5,
+  });
+  ctx.page.drawRectangle({
+    x: xR,
+    y: yTop - cardH,
+    width: 3,
+    height: cardH,
+    color: PDF_VIOLET,
+  });
 
   ctx.page.drawText(sanitizePdfText(leftTitle), { x: xL, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
   ctx.page.drawText(sanitizePdfText(rightTitle), { x: xR, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
@@ -188,7 +243,7 @@ function drawTarifRow(
     height: rowH,
     borderColor: PDF_BORDER,
     borderWidth: 0.4,
-    color: opts?.highlight ? PDF_TABLE_HIGHLIGHT_BG : rgb(1, 1, 1),
+    color: opts?.highlight ? PDF_TABLE_HIGHLIGHT_BG : Math.floor((ctx.y / rowH)) % 2 === 0 ? rgb(1, 1, 1) : PDF_TABLE_ALT,
   });
   const font = opts?.bold ? ctx.fontBold : ctx.font;
   const fs = opts?.bold ? 9.5 : 9;
@@ -197,7 +252,7 @@ function drawTarifRow(
     y: ctx.y - 13,
     size: fs,
     font,
-    color: PDF_TEXT_MAIN,
+    color: opts?.bold ? PDF_VIOLET_DARK : PDF_TEXT_MAIN,
   });
   ctx.page.drawText(sanitizePdfText(col2), {
     x: PDF_MARGIN_X + w1 + 5,
@@ -366,6 +421,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   drawKeyValueRow(ctx, "Personnes", `${nv}`);
 
   drawSectionTitle(ctx, "TARIFS");
+  drawTarifRow(ctx, "Libellé", "Détail", "Montant", { bold: true, highlight: true });
   const nuitsTarifStr = `${nn} nuit(s) × ${reservation.tarif_nuit.toFixed(2)} €`;
   drawTarifRow(ctx, "Hébergement", nuitsTarifStr, formatEuro(reservation.tarif_total));
   drawTarifRow(ctx, "Taxe de séjour", taxeDetailStr, formatEuro(taxe));
@@ -441,22 +497,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   /* Signatures */
   ensureSpace(ctx, 200);
   drawSectionTitle(ctx, "SIGNATURES");
-  ctx.y -= 4;
-
-  const pageW = PDF_PAGE_W;
-  const mid = pageW / 2;
-  const colGap = 16;
-  const colW = (pageW - 2 * PDF_MARGIN_X - colGap) / 2;
-  const xL = PDF_MARGIN_X;
-  const xR = mid + colGap / 2;
-  const sigTop = ctx.y;
-
-  ctx.page.drawText("Le Bailleur", { x: xL, y: sigTop, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
-  ctx.page.drawText("Le Preneur", { x: xR, y: sigTop, size: 10, font: fontBold, color: PDF_TEXT_MAIN });
-
-  let yNames = sigTop - 16;
-  ctx.page.drawText(sanitizePdfText(pNom || "—"), { x: xL, y: yNames, size: 10, font, color: PDF_TEXT_MAIN });
-  ctx.page.drawText(sanitizePdfText(vNom || "—"), { x: xR, y: yNames, size: 10, font, color: PDF_TEXT_MAIN });
+  ctx.y -= 6;
 
   let img: PDFImage | null = null;
   if (signatureImage?.bytes?.length) {
@@ -467,44 +508,17 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     }
   }
 
-  const boxH = 48;
-  const boxY = yNames - 14 - boxH;
-  ctx.page.drawRectangle({
-    x: xL,
-    y: boxY,
-    width: colW - 8,
-    height: boxH,
-    borderColor: PDF_BORDER,
-    borderWidth: 0.5,
-    color: rgb(1, 1, 1),
+  drawSignatureBlock(ctx.page, {
+    font,
+    fontBold,
+    ville: villeBailleur,
+    dateStr,
+    proprietaireNom: pNom || "—",
+    signatureImage: img,
+    marginX: PDF_MARGIN_X,
+    pageWidth: PDF_PAGE_W,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
-  ctx.page.drawRectangle({
-    x: xR,
-    y: boxY,
-    width: colW - 8,
-    height: boxH,
-    borderColor: PDF_BORDER,
-    borderWidth: 0.5,
-    color: rgb(1, 1, 1),
-  });
-
-  if (img) {
-    const maxWImg = colW - 20;
-    const maxH = boxH - 8;
-    const ratio = Math.min(maxWImg / img.width, maxH / img.height, 1);
-    const dw = img.width * ratio;
-    const dh = img.height * ratio;
-    ctx.page.drawImage(img, {
-      x: xL + 4,
-      y: boxY + (boxH - dh) / 2,
-      width: dw,
-      height: dh,
-    });
-  }
-
-  const fait = sanitizePdfText(`Fait à ${villeBailleur}, le ${dateStr}`);
-  ctx.page.drawText(fait, { x: xL, y: boxY - 16, size: 9, font, color: PDF_TEXT_SECONDARY });
-  ctx.page.drawText("Lu et approuvé", { x: xR, y: boxY - 16, size: 9, font, color: PDF_TEXT_SECONDARY });
 
   drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();

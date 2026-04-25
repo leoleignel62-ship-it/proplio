@@ -27,6 +27,7 @@ import {
   PDF_TABLE_ALT as ROW_ALT_BG,
   PDF_TEXT_MAIN as BODY,
   PDF_TEXT_SECONDARY as MUTED,
+  PDF_VIOLET_LIGHT,
   PDF_VIOLET as PRIMARY,
   PDF_WHITE as WHITE,
   drawProplioPdfFooterOnAllPages,
@@ -52,7 +53,7 @@ const EMPTY_PHOTO_BG = rgb(0.96, 0.96, 0.98);
 const PHOTO_BORDER_W = 0.5;
 const PHOTO_BORDER_COLOR = BORDER;
 /** Bandeau titre de pièce (léger violet) */
-const BAR_BG = rgb(244 / 255, 241 / 255, 252 / 255);
+const BAR_BG = PDF_VIOLET_LIGHT;
 
 function hexToRgb01(hex: string) {
   const h = hex.replace("#", "").slice(0, 6);
@@ -311,7 +312,10 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       const b8 = parseInt(hh.slice(4, 6), 16) / 255;
       const fillRgb = hexToRgb01(sc.hex);
       const lum = relativeLuminance(r8, g8, b8);
-      const badgeTextColor = lum > 0.65 ? BODY : rgb(1, 1, 1);
+      let badgeTextColor = lum > 0.65 ? BODY : rgb(1, 1, 1);
+      if (/bon/i.test(sc.label)) badgeTextColor = rgb(22 / 255, 101 / 255, 52 / 255);
+      if (/moyen/i.test(sc.label)) badgeTextColor = rgb(194 / 255, 65 / 255, 12 / 255);
+      if (/mauvais/i.test(sc.label)) badgeTextColor = rgb(185 / 255, 28 / 255, 28 / 255);
       let labelW = font.widthOfTextAtSize(sc.label, badgeSize);
       const maxBadgeW = twInner - 4;
       let displayLabel = sc.label;
@@ -428,6 +432,13 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       borderColor: BORDER,
       borderWidth: 0.8,
     });
+    page.drawRectangle({
+      x: MARGIN,
+      y: y - 22,
+      width: 3,
+      height: 22,
+      color: PRIMARY,
+    });
     page.drawText(room.label, {
       x: MARGIN + 8,
       y: y - 15,
@@ -448,13 +459,19 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
       const nEtat = normalizeEtatNiveau(el.state);
       const meta = ETAT_LABELS[nEtat];
+      const badgeLabel = meta.label.toLowerCase();
+      const badgeBg = badgeLabel.includes("bon")
+        ? "#dcfce7"
+        : badgeLabel.includes("moyen")
+          ? "#ffedd5"
+          : "#fee2e2";
       const img =
         el.photoPath && photoImages.has(el.photoPath) ? photoImages.get(el.photoPath)! : null;
 
       entries.push({
         nameLines: nameLines.length ? nameLines : [""],
         commLine,
-        stateCol: { kind: "badge", hex: meta.color, label: meta.label },
+        stateCol: { kind: "badge", hex: badgeBg, label: meta.label },
         photoImg: img,
       });
     }
