@@ -187,6 +187,13 @@ export default function LandingPage() {
             Proplio
           </Link>
           <Link
+            href="/qui-sommes-nous"
+            className="text-sm font-medium transition duration-200 ease-out hover:text-[#7c3aed]"
+            style={{ color: PC.white, textDecoration: "none" }}
+          >
+            Qui sommes-nous ?
+          </Link>
+          <Link
             href="/login"
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out"
             style={{
