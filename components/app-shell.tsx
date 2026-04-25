@@ -40,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPublicPage = publicPages.includes(pathname);
   const [plan, setPlan] = useState<ProplioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [onboardingPlanVu, setOnboardingPlanVu] = useState<string | null>(null);
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -69,10 +70,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       const ownerData = owner as {
         id?: string | null;
+        user_id?: string | null;
         plan?: string | null;
         onboarding_plan_vu?: string | null;
       };
       setProprietaireId(ownerData.id ?? null);
+      setUserId(ownerData.user_id ?? null);
       setPlan(normalizePlan(ownerData.plan));
       setOnboardingPlanVu(ownerData.onboarding_plan_vu ?? null);
       setOnboardingReady(true);
@@ -94,13 +97,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isPublicPage, onboardingOpen, onboardingPending]);
 
   useEffect(() => {
-    if (isPublicPage || !onboardingReady) return;
-    if (plan !== "free") return;
-    // Temp debug log requested by user.
-    console.log("guided_tour_free_done", window.localStorage.getItem("guided_tour_free_done"));
-    if (window.localStorage.getItem(GUIDED_TOUR_FREE_DONE_KEY)) return;
-    setShowGuidedTour("free");
-  }, [isPublicPage, onboardingReady, plan]);
+    if (isPublicPage || !onboardingReady || !userId) return;
+
+    async function loadGuidedTourStatus() {
+      const cachedFree = window.localStorage.getItem(GUIDED_TOUR_FREE_DONE_KEY);
+      const cachedPaid = window.localStorage.getItem(GUIDED_TOUR_PAID_DONE_KEY);
+
+      if (cachedFree !== null && cachedPaid !== null) {
+        return {
+          freeDone: cachedFree === "true",
+          paidDone: cachedPaid === "true",
+        };
+      }
+
+      const { data } = await supabase
+        .from("proprietaires")
+        .select("guided_tour_free_done, guided_tour_paid_done")
+        .eq("user_id", userId)
+        .single();
+
+      const freeDone = Boolean(
+        (data as { guided_tour_free_done?: boolean | null } | null)?.guided_tour_free_done ?? false,
+      );
+      const paidDone = Boolean(
+        (data as { guided_tour_paid_done?: boolean | null } | null)?.guided_tour_paid_done ?? false,
+      );
+
+      window.localStorage.setItem(GUIDED_TOUR_FREE_DONE_KEY, freeDone ? "true" : "false");
+      window.localStorage.setItem(GUIDED_TOUR_PAID_DONE_KEY, paidDone ? "true" : "false");
+
+      return { freeDone, paidDone };
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const status = await loadGuidedTourStatus();
+      if (cancelled) return;
+      if (plan === "free" && !status.freeDone) {
+        setShowGuidedTour("free");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPublicPage, onboardingReady, plan, userId]);
 
   useEffect(() => {
     if (isPublicPage) return;
@@ -120,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await supabase.from("proprietaires").update(patch).eq("id", proprietaireId);
     setOnboardingPlanVu(plan);
     setOnboardingOpen(false);
-    if (!window.localStorage.getItem(GUIDED_TOUR_PAID_DONE_KEY)) {
+    if (window.localStorage.getItem(GUIDED_TOUR_PAID_DONE_KEY) !== "true") {
       window.setTimeout(() => setShowGuidedTour("paid"), 500);
     }
   }
@@ -150,6 +191,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             open={showGuidedTour !== null}
             tourType={showGuidedTour ?? "free"}
             currentPlan={plan}
+            userId={userId}
             onClose={() => setShowGuidedTour(null)}
           />
           <footer className="mt-10 pb-4 text-center text-xs" style={{ color: PC.tertiary }}>

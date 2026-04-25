@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type GuidedTourProps = {
   currentPlan: "free" | "starter" | "pro" | "expert";
   tourType: "free" | "paid";
   open: boolean;
+  userId: string | null;
   onClose: () => void;
 };
 
@@ -17,8 +19,6 @@ type TourStep = {
   lockedOnFree?: boolean;
 };
 
-const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
-const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
 const MODE_LOCATION_KEY = "proplio-mode-location";
 
 const FREE_TOUR_STEPS: TourStep[] = [
@@ -152,7 +152,7 @@ function findVisibleTourTarget(targetId: string): HTMLElement | null {
   return null;
 }
 
-export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourProps) {
+export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: GuidedTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const steps = tourType === "free" ? FREE_TOUR_STEPS : PAID_TOUR_STEPS;
@@ -242,10 +242,20 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
 
   if (!open || steps.length === 0) return null;
 
-  function finishTour() {
+  async function markTourDone(type: "free" | "paid", ownerUserId: string | null) {
+    const column = type === "free" ? "guided_tour_free_done" : "guided_tour_paid_done";
+    if (ownerUserId) {
+      await supabase
+        .from("proprietaires")
+        .update({ [column]: true })
+        .eq("user_id", ownerUserId);
+    }
+    window.localStorage.setItem(`guided_tour_${type}_done`, "true");
+  }
+
+  async function finishTour() {
     switchMode("classique");
-    const doneKey = tourType === "free" ? GUIDED_TOUR_FREE_DONE_KEY : GUIDED_TOUR_PAID_DONE_KEY;
-    window.localStorage.setItem(doneKey, "true");
+    await markTourDone(tourType, userId);
     onClose();
   }
 
@@ -281,7 +291,7 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
           </p>
         ) : null}
         <div className="mt-4 flex items-center justify-between">
-          <button type="button" className="text-sm" style={{ color: "#d1d5db" }} onClick={finishTour}>
+          <button type="button" className="text-sm" style={{ color: "#d1d5db" }} onClick={() => void finishTour()}>
             Passer le tour
           </button>
           <button
@@ -289,7 +299,7 @@ export function GuidedTour({ currentPlan, tourType, open, onClose }: GuidedTourP
             className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-[#7c3aed]"
             onClick={() => {
               if (isLastStep) {
-                finishTour();
+                void finishTour();
                 return;
               }
               setStepIndex((prev) => prev + 1);

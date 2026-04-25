@@ -71,11 +71,18 @@ export default function ParametresPage() {
   const [stripeSubscription, setStripeSubscription] = useState<StripeSubscriptionInfo | null>(null);
   const [stripeSubscriptionLoading, setStripeSubscriptionLoading] = useState(false);
   const signatureFileRef = useRef<HTMLInputElement | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      setUserId(user?.id ?? null);
+
       const { profile: existingProfile, error: profileError } = await fetchProprietaireProfile();
       if (!isMounted) return;
 
@@ -250,16 +257,15 @@ export default function ParametresPage() {
     setIsSaving(false);
   }
 
-  function reopenFreeGuidedTour() {
-    if (typeof window === "undefined") return;
-    window.localStorage.removeItem("guided_tour_free_done");
-    window.dispatchEvent(new Event("start:guided-tour-free"));
-  }
-
-  function reopenPaidGuidedTour() {
-    if (typeof window === "undefined") return;
-    window.localStorage.removeItem("guided_tour_paid_done");
-    window.dispatchEvent(new Event("start:guided-tour-paid"));
+  async function resetTour(type: "free" | "paid") {
+    if (typeof window === "undefined" || !userId) return;
+    const column = type === "free" ? "guided_tour_free_done" : "guided_tour_paid_done";
+    await supabase
+      .from("proprietaires")
+      .update({ [column]: false })
+      .eq("user_id", userId);
+    window.localStorage.removeItem(`guided_tour_${type}_done`);
+    window.dispatchEvent(new Event(`start:guided-tour-${type}`));
   }
 
   return (
@@ -432,7 +438,7 @@ export default function ParametresPage() {
                   type="button"
                   className="text-sm transition hover:underline"
                   style={{ color: PC.muted }}
-                  onClick={reopenFreeGuidedTour}
+                  onClick={() => void resetTour("free")}
                 >
                   🗺️ Revoir le tour de l&apos;application
                 </button>
@@ -441,7 +447,7 @@ export default function ParametresPage() {
                     type="button"
                     className="text-sm transition hover:underline"
                     style={{ color: PC.muted }}
-                    onClick={reopenPaidGuidedTour}
+                    onClick={() => void resetTour("paid")}
                   >
                     ✨ Revoir le tour des fonctionnalités avancées
                   </button>
