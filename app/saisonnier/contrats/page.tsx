@@ -279,7 +279,7 @@ export default function ContratsSejourPage() {
                         className="!flex-1 justify-center"
                         onClick={() => void downloadContratPdf(row.id)}
                       >
-                        📄 Télécharger PDF
+                        Télécharger PDF
                       </BtnSecondary>
                     </div>
                     <BtnSecondary

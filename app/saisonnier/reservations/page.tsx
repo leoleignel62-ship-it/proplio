@@ -1164,7 +1164,7 @@ export default function ReservationsSaisonnierPage() {
                                 className="!flex-1 justify-center"
                                 onClick={() => void downloadContratPdf(row.id)}
                               >
-                                📄 Contrat PDF
+                                Contrat PDF
                               </BtnSecondary>
                             </div>
                           ) : null}
