@@ -1,5 +1,5 @@
 -- Fix des policies Storage
--- - documents-logements : remplace les policies permissives par un contrôle d'ownership via chemin
+-- - documents-logements : restauration temporaire des policies permissives (authentifié)
 -- - voyageurs-identite : ajoute des policies d'ownership via chemin
 -- - signatures : inchangé (déjà correct)
 
@@ -18,41 +18,48 @@ drop policy if exists "delete_own_documents" on storage.objects;
 drop policy if exists "documents_select_own" on storage.objects;
 drop policy if exists "documents_insert_own" on storage.objects;
 drop policy if exists "documents_delete_own" on storage.objects;
+drop policy if exists "documents_update_own" on storage.objects;
+drop policy if exists "documents_authenticated_select" on storage.objects;
+drop policy if exists "documents_authenticated_insert" on storage.objects;
+drop policy if exists "documents_authenticated_delete" on storage.objects;
 
--- Nouvelle policy SELECT
-create policy "documents_select_own"
+-- Policy UPDATE (signed URLs / update ownership path)
+create policy "documents_update_own"
+on storage.objects for update
+using (
+  bucket_id = 'documents-logements'
+  and split_part(name, '/', 1) = (
+    select id::text
+    from public.proprietaires
+    where user_id = auth.uid()
+  )
+);
+
+-- Restauration temporaire : policies permissives pour ne pas bloquer l'app
+drop policy if exists "documents_select_own" on storage.objects;
+drop policy if exists "documents_insert_own" on storage.objects;
+drop policy if exists "documents_delete_own" on storage.objects;
+drop policy if exists "documents_update_own" on storage.objects;
+
+create policy "documents_authenticated_select"
 on storage.objects for select
 using (
   bucket_id = 'documents-logements'
-  and split_part(name, '/', 1) = (
-    select id::text
-    from public.proprietaires
-    where user_id = auth.uid()
-  )
+  and auth.uid() is not null
 );
 
--- Nouvelle policy INSERT
-create policy "documents_insert_own"
+create policy "documents_authenticated_insert"
 on storage.objects for insert
 with check (
   bucket_id = 'documents-logements'
-  and split_part(name, '/', 1) = (
-    select id::text
-    from public.proprietaires
-    where user_id = auth.uid()
-  )
+  and auth.uid() is not null
 );
 
--- Nouvelle policy DELETE
-create policy "documents_delete_own"
+create policy "documents_authenticated_delete"
 on storage.objects for delete
 using (
   bucket_id = 'documents-logements'
-  and split_part(name, '/', 1) = (
-    select id::text
-    from public.proprietaires
-    where user_id = auth.uid()
-  )
+  and auth.uid() is not null
 );
 
 -- ============================================================================
