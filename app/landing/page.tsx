@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, type CSSProperties } from "react";
 import {
-  IconChart,
+  IconCalendar,
   IconContract,
   IconDeviceCamera,
   IconDocument,
@@ -15,6 +15,10 @@ import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/
 import { PC } from "@/lib/proplio-colors";
 
 type BillingMode = "mensuel" | "annuel";
+type LandingExempleType = "quittance" | "bail" | "etat-des-lieux" | "contrat-sejour";
+type ExempleRequestState = "idle" | "success" | "error";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ease = "200ms ease-out";
 
@@ -142,6 +146,67 @@ const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
 
 export default function LandingPage() {
   const [billing, setBilling] = useState<BillingMode>("annuel");
+  const [exampleEmails, setExampleEmails] = useState<Record<LandingExempleType, string>>({
+    quittance: "",
+    bail: "",
+    "etat-des-lieux": "",
+    "contrat-sejour": "",
+  });
+  const [exampleLoading, setExampleLoading] = useState<Record<LandingExempleType, boolean>>({
+    quittance: false,
+    bail: false,
+    "etat-des-lieux": false,
+    "contrat-sejour": false,
+  });
+  const [exampleState, setExampleState] = useState<Record<LandingExempleType, ExempleRequestState>>({
+    quittance: "idle",
+    bail: "idle",
+    "etat-des-lieux": "idle",
+    "contrat-sejour": "idle",
+  });
+  const [exampleErrors, setExampleErrors] = useState<Record<LandingExempleType, string>>({
+    quittance: "",
+    bail: "",
+    "etat-des-lieux": "",
+    "contrat-sejour": "",
+  });
+
+  const handleExampleSubmit = async (type: LandingExempleType) => {
+    const email = exampleEmails[type].trim().toLowerCase();
+    if (!EMAIL_REGEX.test(email)) {
+      setExampleState((prev) => ({ ...prev, [type]: "error" }));
+      setExampleErrors((prev) => ({ ...prev, [type]: "Merci de renseigner un email valide." }));
+      return;
+    }
+
+    setExampleLoading((prev) => ({ ...prev, [type]: true }));
+    setExampleState((prev) => ({ ...prev, [type]: "idle" }));
+    setExampleErrors((prev) => ({ ...prev, [type]: "" }));
+
+    try {
+      const response = await fetch("/api/landing/send-exemple", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, type }),
+      });
+
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible d'envoyer l'exemple pour le moment.");
+      }
+
+      setExampleState((prev) => ({ ...prev, [type]: "success" }));
+      setExampleErrors((prev) => ({ ...prev, [type]: "" }));
+    } catch (error) {
+      setExampleState((prev) => ({ ...prev, [type]: "error" }));
+      setExampleErrors((prev) => ({
+        ...prev,
+        [type]: error instanceof Error ? error.message : "Une erreur est survenue.",
+      }));
+    } finally {
+      setExampleLoading((prev) => ({ ...prev, [type]: false }));
+    }
+  };
 
   const pricingPlans = useMemo(
     () =>
@@ -328,6 +393,7 @@ export default function LandingPage() {
               body: "Générez et envoyez vos quittances en 1 clic dès réception du loyer. PDF conforme généré instantanément, envoyé par email à votre locataire en un seul clic.",
               badge: "Disponible sur tous les plans",
               badgeTone: "all" as const,
+              exampleType: "quittance" as const,
             },
             {
               icon: IconContract,
@@ -335,6 +401,7 @@ export default function LandingPage() {
               body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Proplio génère un bail complet et conforme, prêt à signer et envoyer par email.",
               badge: "Plan Starter et plus",
               badgeTone: "starter" as const,
+              exampleType: "bail" as const,
             },
             {
               icon: IconDeviceCamera,
@@ -342,13 +409,15 @@ export default function LandingPage() {
               body: "Réalisez votre état des lieux sur place en prenant des photos pièce par pièce directement depuis l'application. Le rapport PDF complet est généré automatiquement et envoyé aux deux parties.",
               badge: "Plan Starter et plus",
               badgeTone: "starter" as const,
+              exampleType: "etat-des-lieux" as const,
             },
             {
-              icon: IconChart,
-              title: "Vue complète sur vos revenus locatifs",
-              body: "Suivez vos loyers encaissés, vos logements occupés et vos performances financières sur un tableau de bord clair et actualisé en temps réel.",
-              badge: "Disponible sur tous les plans",
-              badgeTone: "all" as const,
+              icon: IconCalendar,
+              title: "Contrats saisonniers prêts à envoyer en quelques minutes",
+              body: "Préparez des contrats de séjour complets avec toutes les informations de réservation. Le document PDF est prêt à l'envoi immédiatement, sans ressaisie.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              exampleType: "contrat-sejour" as const,
             },
             {
               icon: IconTrendingUp,
@@ -401,6 +470,60 @@ export default function LandingPage() {
                 <p className="mt-4 text-base font-normal leading-[1.7]" style={{ color: PC.muted }}>
                   {f.body}
                 </p>
+                {f.exampleType ? (
+                  <div className="mt-5">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="email"
+                        value={exampleEmails[f.exampleType]}
+                        onChange={(event) => {
+                          const nextEmail = event.target.value;
+                          setExampleEmails((prev) => ({ ...prev, [f.exampleType]: nextEmail }));
+                          if (exampleState[f.exampleType] !== "idle") {
+                            setExampleState((prev) => ({ ...prev, [f.exampleType]: "idle" }));
+                          }
+                          if (exampleErrors[f.exampleType]) {
+                            setExampleErrors((prev) => ({ ...prev, [f.exampleType]: "" }));
+                          }
+                        }}
+                        placeholder="Votre email"
+                        className="min-h-[42px] flex-1 rounded-xl px-3 text-sm outline-none"
+                        style={{
+                          backgroundColor: PC.inputBg,
+                          border: `1px solid ${PC.border}`,
+                          color: PC.text,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleExampleSubmit(f.exampleType)}
+                        disabled={exampleLoading[f.exampleType]}
+                        className="inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 text-sm font-semibold"
+                        style={{
+                          backgroundColor: "#7c3aed",
+                          color: PC.white,
+                          opacity: exampleLoading[f.exampleType] ? 0.75 : 1,
+                          cursor: exampleLoading[f.exampleType] ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {exampleLoading[f.exampleType] ? "Envoi..." : "Recevoir un exemple →"}
+                      </button>
+                    </div>
+                    <p className="mt-3 text-sm" style={{ color: PC.muted }}>
+                      Vous voyez ? Sur Proplio, c&apos;est aussi simple, rapide et fonctionnel que ça.
+                    </p>
+                    {exampleState[f.exampleType] === "success" ? (
+                      <p className="mt-2 text-sm font-semibold" style={{ color: PC.success }}>
+                        C&apos;est parti ! Vérifiez votre boîte mail 📬
+                      </p>
+                    ) : null}
+                    {exampleState[f.exampleType] === "error" && exampleErrors[f.exampleType] ? (
+                      <p className="mt-2 text-sm font-medium" style={{ color: "#fca5a5" }}>
+                        {exampleErrors[f.exampleType]}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
