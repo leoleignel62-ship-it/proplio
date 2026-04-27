@@ -55,11 +55,19 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+      const emailRedirectTo = siteUrl
+        ? `${siteUrl}/auth/callback`
+        : typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : undefined;
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { prenom, nom },
+          emailRedirectTo,
         },
       });
 

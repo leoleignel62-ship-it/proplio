@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/utils/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Locavio — Gestion locative simplifiée",
@@ -7,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Locavio — Gestion locative simplifiée",
     description: "Gérez vos locations sans perdre votre temps.",
-    url: "https://proplio-red.vercel.app/landing",
+    url: `${siteUrl}/landing`,
     siteName: "Locavio",
     locale: "fr_FR",
     type: "website",

@@ -1,33 +1,36 @@
 import { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/utils/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const siteUrl = getSiteUrl();
+
   return [
     {
-      url: "https://proplio-red.vercel.app/landing",
+      url: `${siteUrl}/landing`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: "https://proplio-red.vercel.app/qui-sommes-nous",
+      url: `${siteUrl}/qui-sommes-nous`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: "https://proplio-red.vercel.app/mentions-legales",
+      url: `${siteUrl}/mentions-legales`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "https://proplio-red.vercel.app/cgu",
+      url: `${siteUrl}/cgu`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "https://proplio-red.vercel.app/politique-de-confidentialite",
+      url: `${siteUrl}/politique-de-confidentialite`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,

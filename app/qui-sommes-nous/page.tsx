@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/legal-page-shell";
+import { getSiteUrl } from "@/lib/utils/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Qui sommes-nous — Locavio",
@@ -9,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Qui sommes-nous — Locavio",
     description: "Découvrez l'histoire de Locavio.",
-    url: "https://proplio-red.vercel.app/qui-sommes-nous",
+    url: `${siteUrl}/qui-sommes-nous`,
     siteName: "Locavio",
     locale: "fr_FR",
     type: "website",

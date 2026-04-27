@@ -1,6 +1,9 @@
 import { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/utils/site-url";
 
 export default function robots(): MetadataRoute.Robots {
+  const siteUrl = getSiteUrl();
+
   return {
     rules: {
       userAgent: "*",
@@ -25,6 +28,6 @@ export default function robots(): MetadataRoute.Robots {
         "/api",
       ],
     },
-    sitemap: "https://proplio-red.vercel.app/sitemap.xml",
+    sitemap: `${siteUrl}/sitemap.xml`,
   };
 }
