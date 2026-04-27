@@ -130,7 +130,7 @@ export async function POST(
     const to = [...new Set([ownerEmail, ...uniqueTenantEmails])];
 
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: "Locavio <noreply@locavio.fr>",
       to,
       subject,
       html: `<p>Bonjour,</p>

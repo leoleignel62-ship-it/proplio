@@ -170,7 +170,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const subject = "Révision annuelle du loyer (IRL)";
 
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: "Locavio <noreply@locavio.fr>",
       to: [tenantEmail],
       subject,
       html: `<p>Bonjour,</p>

@@ -113,7 +113,7 @@ export async function POST(
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
 
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: "Locavio <noreply@locavio.fr>",
       to: [locataire.email],
       subject: `Quittance de loyer - ${monthLabel} ${quittance.annee}`,
       html: `<p>Bonjour ${locataire.prenom || ""},</p>

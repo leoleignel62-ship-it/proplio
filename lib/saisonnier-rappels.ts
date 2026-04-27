@@ -90,7 +90,7 @@ Solde restant : ${escapeHtml(euro(soldeRestant))}€</p>
 `.trim();
 
   const { error: sendErr } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+    from: "Locavio <noreply@locavio.fr>",
     to: [to],
     subject,
     html,
@@ -178,7 +178,7 @@ Solde à régler : ${escapeHtml(euro(montantSolde))}€</p>
 `.trim();
 
   const { error: sendErr } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+    from: "Locavio <noreply@locavio.fr>",
     to: [to],
     subject,
     html,

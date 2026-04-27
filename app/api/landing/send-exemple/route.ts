@@ -239,7 +239,7 @@ export async function POST(request: Request) {
 
     const pdfBytes = await buildPdfBuffer(type);
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: "Locavio <noreply@locavio.fr>",
       to: [email],
       subject: SUBJECT_BY_TYPE[type],
       html: `<p>Bonjour,</p><p>Voici votre exemple de document Locavio en pièce jointe.</p><p>Bonne découverte 👋</p>`,

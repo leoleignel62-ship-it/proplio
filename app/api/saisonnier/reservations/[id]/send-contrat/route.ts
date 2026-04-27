@@ -96,7 +96,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const to = voyageur.email as string;
     const emailResult = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: "Locavio <noreply@locavio.fr>",
       to: [to],
       subject: "Contrat de location saisonnière",
       html: `<p>Bonjour ${voyageur.prenom ?? ""},</p><p>Veuillez trouver votre contrat de location saisonnière en pièce jointe.</p><p>Cordialement,<br/>${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}</p>`,
