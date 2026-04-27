@@ -7,8 +7,8 @@ import { NavigationSidebar } from "@/components/navigation-sidebar";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { ToastProvider } from "@/components/ui/toast";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
-import { normalizePlan, type ProplioPlan } from "@/lib/plan-limits";
-import { PC } from "@/lib/proplio-colors";
+import { normalizePlan, type LocavioPlan } from "@/lib/plan-limits";
+import { PC } from "@/lib/locavio-colors";
 import { supabase } from "@/lib/supabase";
 
 const publicPages = [
@@ -28,7 +28,7 @@ const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
 const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
 const START_GUIDED_TOUR_FREE_EVENT = "start:guided-tour-free";
 const START_GUIDED_TOUR_PAID_EVENT = "start:guided-tour-paid";
-const PLAN_LEVEL: Record<ProplioPlan, number> = {
+const PLAN_LEVEL: Record<LocavioPlan, number> = {
   free: 0,
   starter: 1,
   pro: 2,
@@ -38,7 +38,7 @@ const PLAN_LEVEL: Record<ProplioPlan, number> = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicPage = publicPages.includes(pathname);
-  const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [plan, setPlan] = useState<LocavioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [onboardingPlanVu, setOnboardingPlanVu] = useState<string | null>(null);
@@ -195,7 +195,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClose={() => setShowGuidedTour(null)}
           />
           <footer className="mt-10 pb-4 text-center text-xs" style={{ color: PC.tertiary }}>
-            © 2026 Proplio ·{" "}
+            © 2026 Locavio ·{" "}
             <a href="/mentions-legales" className="hover:underline">
               Mentions légales
             </a>{" "}

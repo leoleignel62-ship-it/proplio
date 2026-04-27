@@ -8,10 +8,10 @@ import {
   PDF_TEXT_MAIN,
   PDF_TEXT_SECONDARY,
   PDF_WHITE,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 export type TaxeSejourRowPdf = {
@@ -40,7 +40,7 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
   const pageH = page.getHeight();
   const right = pageW - PDF_MARGIN_X;
 
-  drawProplioPdfHeader(page, font, fontBold, "RÉCAPITULATIF TAXE DE SÉJOUR", pageH, pageW);
+  drawLocavioPdfHeader(page, font, fontBold, "RÉCAPITULATIF TAXE DE SÉJOUR", pageH, pageW);
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   page.drawText(sanitizePdfText(`Période : ${periodeLabel}`), {
@@ -127,6 +127,6 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
     color: PDF_TEXT_MAIN,
   });
 
-  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();
 }

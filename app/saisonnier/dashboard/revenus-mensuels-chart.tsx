@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 type Row = { mois: string; revenus: number; nuits: number; nbReservations: number };
 

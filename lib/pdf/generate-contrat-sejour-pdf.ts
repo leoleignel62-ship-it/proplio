@@ -13,10 +13,10 @@ import {
   PDF_VIOLET_LIGHT,
   PDF_BORDER,
   PDF_TABLE_HIGHLIGHT_BG,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxW: number): string[] {
@@ -64,7 +64,7 @@ const HEADER_RIGHT =
 
 function startPage(ctx: PdfCtx): void {
   ctx.page = ctx.doc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
-  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
 }
 
@@ -365,7 +365,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
   const ctx: PdfCtx = { doc: pdfDoc, page: pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]), y: 0, font, fontBold };
-  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
 
   /* Titre corps */
@@ -520,6 +520,6 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();
 }

@@ -6,10 +6,10 @@ import {
   PDF_PAGE_W,
   PDF_TEXT_MAIN,
   PDF_TEXT_SECONDARY,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 function sanitizePdfText(text: string): string {
@@ -50,7 +50,7 @@ export async function generateRecuSoldePdfBuffer(input: RecuSoldePdfInput): Prom
   const pageW = page.getWidth();
   const pageH = page.getHeight();
 
-  drawProplioPdfHeader(page, font, fontBold, "REÇU DE PAIEMENT", pageH, pageW);
+  drawLocavioPdfHeader(page, font, fontBold, "REÇU DE PAIEMENT", pageH, pageW);
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const lines = [
@@ -100,6 +100,6 @@ export async function generateRecuSoldePdfBuffer(input: RecuSoldePdfInput): Prom
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();
 }

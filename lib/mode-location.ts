@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 
 export type ModeLocation = "classique" | "saisonnier";
 
-const STORAGE_KEY = "proplio-mode-location";
+const STORAGE_KEY = "locavio-mode-location";
 
 /**
  * Chaque session / rechargement démarre en classique.

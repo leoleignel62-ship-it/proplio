@@ -2,8 +2,8 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mentions légales — Proplio",
-  description: "Mentions légales de Proplio.",
+  title: "Mentions légales — Locavio",
+  description: "Mentions légales de Locavio.",
 };
 
 export default function MentionsLegalesPage() {

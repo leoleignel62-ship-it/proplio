@@ -2,17 +2,17 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { IconPlus, IconTrash } from "@/components/proplio-icons";
+import { IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { compressImage } from "@/lib/compress-image";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, panelCard } from "@/lib/locavio-field-styles";
 
 type Voyageur = {
   id: string;
@@ -27,7 +27,7 @@ type Voyageur = {
 
 export default function VoyageursSaisonnierPage() {
   const toast = useToast();
-  const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [plan, setPlan] = useState<LocavioPlan>("free");
   const [rows, setRows] = useState<Voyageur[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,7 +85,7 @@ export default function VoyageursSaisonnierPage() {
 
   if (loading) {
     return (
-      <section className="proplio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
+      <section className="locavio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
         Chargement…
       </section>
     );
@@ -175,11 +175,11 @@ export default function VoyageursSaisonnierPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Voyageurs</h1>
-          <p className="proplio-page-subtitle">Profils pour la location saisonnière.</p>
+          <h1 className="locavio-page-title">Voyageurs</h1>
+          <p className="locavio-page-subtitle">Profils pour la location saisonnière.</p>
         </div>
         <BtnPrimary icon={<IconPlus className="h-4 w-4" />} onClick={openCreate}>
           Nouveau voyageur

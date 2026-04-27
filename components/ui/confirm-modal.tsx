@@ -1,7 +1,7 @@
 "use client";
 
-import { PC } from "@/lib/proplio-colors";
-import { BtnDanger, BtnNeutral, BtnPrimary } from "@/components/ui/proplio-ui";
+import { PC } from "@/lib/locavio-colors";
+import { BtnDanger, BtnNeutral, BtnPrimary } from "@/components/ui/locavio-ui";
 
 export type ConfirmModalProps = {
   open: boolean;

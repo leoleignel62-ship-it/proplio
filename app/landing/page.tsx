@@ -10,9 +10,9 @@ import {
   IconFolder,
   IconHome,
   IconTrendingUp,
-} from "@/components/proplio-icons";
+} from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 type BillingMode = "mensuel" | "annuel";
 type LandingExempleType = "quittance" | "bail" | "etat-des-lieux" | "contrat-sejour";
@@ -53,7 +53,7 @@ const pageBg: CSSProperties = {
 
 const faqItems = [
   {
-    q: "Est-ce que Proplio est conforme à la loi ALUR ?",
+    q: "Est-ce que Locavio est conforme à la loi ALUR ?",
     a: "Oui, tous les documents générés (baux, quittances, états des lieux) respectent les obligations légales en vigueur.",
   },
   {
@@ -66,7 +66,7 @@ const faqItems = [
   },
   {
     q: "Puis-je gérer de la colocation ?",
-    a: "Oui, Proplio supporte nativement la colocation avec assignation par chambre.",
+    a: "Oui, Locavio supporte nativement la colocation avec assignation par chambre.",
   },
   {
     q: "Comment fonctionne l'état des lieux depuis le smartphone ?",
@@ -74,7 +74,7 @@ const faqItems = [
   },
   {
     q: "Comment fonctionne la révision automatique des loyers ?",
-    a: "Proplio détecte automatiquement chaque année les baux éligibles à la révision et calcule le nouveau loyer selon l'IRL publié par l'INSEE. Vous validez la révision en un clic et une lettre officielle est générée et envoyée à votre locataire.",
+    a: "Locavio détecte automatiquement chaque année les baux éligibles à la révision et calcule le nouveau loyer selon l'IRL publié par l'INSEE. Vous validez la révision en un clic et une lettre officielle est générée et envoyée à votre locataire.",
   },
   {
     q: "Quels types de documents puis-je stocker par logement ?",
@@ -97,7 +97,7 @@ const LANDING_PRICING_META: Record<
   }
 > = {
   free: {
-    subtitle: "Pour tester Proplio",
+    subtitle: "Pour tester Locavio",
     monthly: "Gratuit",
     yearly: "Gratuit",
     yearlySave: null,
@@ -249,7 +249,7 @@ export default function LandingPage() {
             >
               <IconHome className="h-5 w-5" aria-hidden />
             </span>
-            Proplio
+            Locavio
           </Link>
           <Link
             href="/qui-sommes-nous"
@@ -286,7 +286,7 @@ export default function LandingPage() {
               style={{ backgroundColor: PC.primaryBg15, color: PC.secondary, border: `1px solid ${PC.border}` }}
             >
               <IconHome className="h-4 w-4" style={{ color: PC.primaryLight }} aria-hidden />
-              Proplio
+              Locavio
             </p>
             <h1
               className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
@@ -298,7 +298,7 @@ export default function LandingPage() {
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg" style={{ color: PC.muted }}>
               Quittances, baux, états des lieux, révision des loyers, gestion des documents — tout est centralisé et
-              automatisé en quelques clics. Proplio vous libère des tâches administratives pour que vous vous concentriez
+              automatisé en quelques clics. Locavio vous libère des tâches administratives pour que vous vous concentriez
               sur l&apos;essentiel : investir.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -373,7 +373,7 @@ export default function LandingPage() {
             ))}
           </div>
           <p className="mt-8 text-center text-base font-semibold" style={{ color: PC.primaryLight }}>
-            Avec Proplio, toutes ces tâches prennent moins de 5 minutes.
+            Avec Locavio, toutes ces tâches prennent moins de 5 minutes.
           </p>
         </section>
 
@@ -398,7 +398,7 @@ export default function LandingPage() {
             {
               icon: IconContract,
               title: "Baux légaux générés en quelques minutes",
-              body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Proplio génère un bail complet et conforme, prêt à signer et envoyer par email.",
+              body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Locavio génère un bail complet et conforme, prêt à signer et envoyer par email.",
               badge: "Plan Starter et plus",
               badgeTone: "starter" as const,
               exampleType: "bail" as const,
@@ -422,7 +422,7 @@ export default function LandingPage() {
             {
               icon: IconTrendingUp,
               title: "Révision annuelle des loyers calculée automatiquement",
-              body: "Proplio détecte automatiquement les baux éligibles à la révision annuelle et calcule le nouveau loyer selon l'Indice de Référence des Loyers (IRL) publié par l'INSEE. Validez en un clic et envoyez la lettre de révision officielle à votre locataire par email.",
+              body: "Locavio détecte automatiquement les baux éligibles à la révision annuelle et calcule le nouveau loyer selon l'Indice de Référence des Loyers (IRL) publié par l'INSEE. Validez en un clic et envoyez la lettre de révision officielle à votre locataire par email.",
               badge: "Plan Starter et plus",
               badgeTone: "starter" as const,
             },
@@ -510,7 +510,7 @@ export default function LandingPage() {
                       </button>
                     </div>
                     <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-                      Vous voyez ? Sur Proplio, c&apos;est aussi simple, rapide et fonctionnel que ça.
+                      Vous voyez ? Sur Locavio, c&apos;est aussi simple, rapide et fonctionnel que ça.
                     </p>
                     {exampleState[f.exampleType] === "success" ? (
                       <p className="mt-2 text-sm font-semibold" style={{ color: PC.success }}>
@@ -674,7 +674,7 @@ export default function LandingPage() {
         {/* COMPARISON */}
         <section className="mt-28">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
-            Proplio vs agence traditionnelle
+            Locavio vs agence traditionnelle
           </h2>
           <div className="mt-10 overflow-x-auto rounded-2xl" style={solidCard}>
             <table className="min-w-full border-collapse text-sm">
@@ -687,7 +687,7 @@ export default function LandingPage() {
                     Agence trad.
                   </th>
                   <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.primaryLight }}>
-                    Proplio Pro
+                    Locavio Pro
                   </th>
                 </tr>
               </thead>
@@ -760,7 +760,7 @@ export default function LandingPage() {
               <IconHome className="h-6 w-6" aria-hidden />
             </span>
             <span className="text-lg font-bold tracking-tight" style={{ color: PC.text }}>
-              Proplio
+              Locavio
             </span>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
@@ -788,7 +788,7 @@ export default function LandingPage() {
           </nav>
         </div>
         <p className="mx-auto mt-8 max-w-6xl text-center text-sm sm:text-left" style={{ color: PC.tertiary }}>
-          © {new Date().getFullYear()} Proplio. Tous droits réservés.
+          © {new Date().getFullYear()} Locavio. Tous droits réservés.
         </p>
         <p className="mx-auto mt-2 max-w-6xl text-center text-xs sm:text-left" style={{ color: PC.tertiary }}>
           Gestion locative simplifiée pour les propriétaires français.

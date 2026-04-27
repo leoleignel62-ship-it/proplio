@@ -11,7 +11,7 @@ export function rowUsesSaisonnierPdf(edl: Record<string, unknown>): boolean {
   if (edl.reservation_id != null && String(edl.reservation_id).length > 0) return true;
   const p = edl.pieces;
   if (!p || typeof p !== "object") return false;
-  return (p as Record<string, unknown>)._proplio_saisonnier === true;
+  return (p as Record<string, unknown>)._locavio_saisonnier === true;
 }
 
 export async function buildSaisonnierEdlPdfBufferFromDb(

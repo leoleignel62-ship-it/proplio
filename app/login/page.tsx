@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconHome } from "@/components/proplio-icons";
+import { IconHome } from "@/components/locavio-icons";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle } from "@/lib/locavio-field-styles";
 
 const LEFT_BG: CSSProperties = {
   backgroundColor: "#1a0a2e",
@@ -72,7 +72,7 @@ function LoginForm() {
           <span className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: "rgba(124,58,237,0.2)", color: "#c4b5fd" }}>
             <IconHome className="h-7 w-7" />
           </span>
-          <span className="text-2xl font-bold tracking-tight">Proplio</span>
+          <span className="text-2xl font-bold tracking-tight">Locavio</span>
         </div>
         <div className="mx-auto max-w-md text-center">
           <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em]">Gérez vos locations.</p>

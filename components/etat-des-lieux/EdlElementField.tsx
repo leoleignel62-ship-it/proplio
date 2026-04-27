@@ -5,8 +5,8 @@ import { useState } from "react";
 import type { ElementEdl, EtatNiveau } from "@/lib/etat-des-lieux/types";
 import { ETAT_LABELS, ETAT_OPTIONS, normalizeEtatNiveau } from "@/lib/etat-des-lieux/types";
 import { SOL_TYPES } from "@/lib/etat-des-lieux/defaults";
-import { PC } from "@/lib/proplio-colors";
-import { edlFieldCardStyle, fieldInputStyle, fieldSelectStyle } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { edlFieldCardStyle, fieldInputStyle, fieldSelectStyle } from "@/lib/locavio-field-styles";
 
 type Props = {
   label: string;

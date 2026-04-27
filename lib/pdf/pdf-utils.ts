@@ -1,6 +1,6 @@
 /**
  * Utilitaires PDF partagés (pied de page, bloc signature) — pas d’import depuis
- * proplio-pdf-theme pour éviter les dépendances circulaires.
+ * locavio-pdf-theme pour éviter les dépendances circulaires.
  */
 import { type PDFDocument, type PDFPage, rgb, type PDFFont, type PDFImage } from "pdf-lib";
 
@@ -10,7 +10,7 @@ export const PDF_SIGNATURE_BLOCK_HEIGHT = 130;
 export const PDF_SIGNATURE_FOOTER_RESERVE =
   PDF_FOOTER_HEIGHT + PDF_SIGNATURE_BLOCK_HEIGHT + 24;
 
-const FOOTER_CENTER = "Document généré par Proplio";
+const FOOTER_CENTER = "Document généré par Locavio";
 
 const VIOLET = rgb(124 / 255, 58 / 255, 237 / 255);
 const VIOLET_LIGHT = rgb(237 / 255, 233 / 255, 254 / 255);

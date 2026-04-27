@@ -2,168 +2,168 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Source unique des couleurs Proplio (variables + composants) */
+/* Source unique des couleurs Locavio (variables + composants) */
 :root {
   color-scheme: dark;
-  --proplio-bg: #0a0a0f;
-  --proplio-sidebar: #0d0d14;
-  --proplio-input: #0d0d14;
-  --proplio-card: #13131a;
-  --proplio-card-hover: #1c1c26;
-  --proplio-border: rgba(255, 255, 255, 0.08);
-  --proplio-border-strong: rgba(255, 255, 255, 0.12);
-  --proplio-text: #f8f8ff;
-  --proplio-muted: #94949f;
-  --proplio-tertiary: #5a5a6a;
-  --proplio-primary: #7c3aed;
-  --proplio-primary-hover: #6d28d9;
-  --proplio-primary-light: #8b5cf6;
-  --proplio-secondary: #a78bfa;
-  --proplio-success: #10b981;
-  --proplio-danger: #ef4444;
-  --proplio-warning: #f59e0b;
-  --proplio-accent-blue: #6366f1;
-  --proplio-white: #ffffff;
-  --radius-proplio-card: 12px;
-  --shadow-proplio-card: 0 1px 3px rgba(0, 0, 0, 0.25);
-  --proplio-ease: cubic-bezier(0.33, 1, 0.68, 1);
-  --proplio-dur: 200ms;
+  --locavio-bg: #0a0a0f;
+  --locavio-sidebar: #0d0d14;
+  --locavio-input: #0d0d14;
+  --locavio-card: #13131a;
+  --locavio-card-hover: #1c1c26;
+  --locavio-border: rgba(255, 255, 255, 0.08);
+  --locavio-border-strong: rgba(255, 255, 255, 0.12);
+  --locavio-text: #f8f8ff;
+  --locavio-muted: #94949f;
+  --locavio-tertiary: #5a5a6a;
+  --locavio-primary: #7c3aed;
+  --locavio-primary-hover: #6d28d9;
+  --locavio-primary-light: #8b5cf6;
+  --locavio-secondary: #a78bfa;
+  --locavio-success: #10b981;
+  --locavio-danger: #ef4444;
+  --locavio-warning: #f59e0b;
+  --locavio-accent-blue: #6366f1;
+  --locavio-white: #ffffff;
+  --radius-locavio-card: 12px;
+  --shadow-locavio-card: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --locavio-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --locavio-dur: 200ms;
 }
 
 /* Formulaires & boutons — CSS pur */
 @layer components {
-  .proplio-input {
+  .locavio-input {
     border-radius: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: var(--proplio-input);
+    background-color: var(--locavio-input);
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.7;
     font-weight: 400;
-    color: var(--proplio-text);
+    color: var(--locavio-text);
     outline: none;
     transition:
-      border-color var(--proplio-dur) var(--proplio-ease),
-      box-shadow var(--proplio-dur) var(--proplio-ease);
+      border-color var(--locavio-dur) var(--locavio-ease),
+      box-shadow var(--locavio-dur) var(--locavio-ease);
   }
 
-  .proplio-input::placeholder {
+  .locavio-input::placeholder {
     color: rgba(148, 148, 159, 0.65);
   }
 
-  .proplio-input:focus {
-    border-color: var(--proplio-primary);
+  .locavio-input:focus {
+    border-color: var(--locavio-primary);
     box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 4px 20px rgba(124, 58, 237, 0.12);
   }
 
-  .proplio-label {
+  .locavio-label {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
     font-size: 0.8125rem;
     line-height: 1.25rem;
     font-weight: 500;
-    color: var(--proplio-muted);
+    color: var(--locavio-muted);
   }
 
-  .proplio-label > span.font-medium {
-    color: var(--proplio-muted);
+  .locavio-label > span.font-medium {
+    color: var(--locavio-muted);
   }
 
-  .proplio-select {
+  .locavio-select {
     cursor: pointer;
     border-radius: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: var(--proplio-input);
+    background-color: var(--locavio-input);
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.7;
-    color: var(--proplio-text);
+    color: var(--locavio-text);
     outline: none;
     transition:
-      border-color var(--proplio-dur) var(--proplio-ease),
-      box-shadow var(--proplio-dur) var(--proplio-ease);
+      border-color var(--locavio-dur) var(--locavio-ease),
+      box-shadow var(--locavio-dur) var(--locavio-ease);
   }
 
-  .proplio-select:focus {
-    border-color: var(--proplio-primary);
+  .locavio-select:focus {
+    border-color: var(--locavio-primary);
     box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 4px 20px rgba(124, 58, 237, 0.12);
   }
 
-  .proplio-btn-primary {
+  .locavio-btn-primary {
     border-radius: 0.75rem;
-    background-color: var(--proplio-primary);
+    background-color: var(--locavio-primary);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 600;
-    color: var(--proplio-white);
+    color: var(--locavio-white);
     box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.25), 0 4px 24px rgba(124, 58, 237, 0.12);
     transition:
-      background-color var(--proplio-dur) var(--proplio-ease),
-      box-shadow var(--proplio-dur) var(--proplio-ease);
+      background-color var(--locavio-dur) var(--locavio-ease),
+      box-shadow var(--locavio-dur) var(--locavio-ease);
   }
 
-  .proplio-btn-primary:hover:not(:disabled) {
-    background-color: var(--proplio-primary-light);
+  .locavio-btn-primary:hover:not(:disabled) {
+    background-color: var(--locavio-primary-light);
     box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 6px 28px rgba(124, 58, 237, 0.18);
   }
 
-  .proplio-btn-primary:disabled {
+  .locavio-btn-primary:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
 
-  .proplio-btn-secondary {
+  .locavio-btn-secondary {
     border-radius: 0.75rem;
-    border: 1px solid var(--proplio-border-strong);
+    border: 1px solid var(--locavio-border-strong);
     background-color: transparent;
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 600;
-    color: var(--proplio-text);
+    color: var(--locavio-text);
     transition:
-      border-color var(--proplio-dur) var(--proplio-ease),
-      background-color var(--proplio-dur) var(--proplio-ease);
+      border-color var(--locavio-dur) var(--locavio-ease),
+      background-color var(--locavio-dur) var(--locavio-ease);
   }
 
-  .proplio-btn-secondary:hover:not(:disabled) {
+  .locavio-btn-secondary:hover:not(:disabled) {
     border-color: rgba(255, 255, 255, 0.18);
     background-color: rgba(255, 255, 255, 0.05);
   }
 
-  .proplio-card {
-    border-radius: var(--radius-proplio-card);
-    border: 1px solid var(--proplio-border);
-    background-color: var(--proplio-card);
-    box-shadow: var(--shadow-proplio-card);
+  .locavio-card {
+    border-radius: var(--radius-locavio-card);
+    border: 1px solid var(--locavio-border);
+    background-color: var(--locavio-card);
+    box-shadow: var(--shadow-locavio-card);
   }
 
-  .proplio-stat-icon--violet {
+  .locavio-stat-icon--violet {
     background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
   }
 
-  .proplio-stat-icon--blue {
+  .locavio-stat-icon--blue {
     background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
   }
 
-  .proplio-stat-icon--green {
+  .locavio-stat-icon--green {
     background: linear-gradient(135deg, #10b981 0%, #047857 100%);
   }
 
-  .proplio-stat-icon--orange {
+  .locavio-stat-icon--orange {
     background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
   }
 
-  .proplio-page-wrap {
+  .locavio-page-wrap {
     margin-left: auto;
     margin-right: auto;
     width: 100%;
     max-width: 72rem;
   }
 
-  .proplio-alert-error {
+  .locavio-alert-error {
     margin-bottom: 1rem;
     border-radius: 0.75rem;
     border: 1px solid rgba(239, 68, 68, 0.3);
@@ -171,47 +171,47 @@
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    color: var(--proplio-danger);
+    color: var(--locavio-danger);
   }
 
-  .proplio-alert-success {
+  .locavio-alert-success {
     border-radius: 0.75rem;
     border: 1px solid rgba(16, 185, 129, 0.3);
     background-color: rgba(16, 185, 129, 0.1);
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    color: var(--proplio-success);
+    color: var(--locavio-success);
   }
 
-  .proplio-link {
+  .locavio-link {
     font-weight: 500;
-    color: var(--proplio-secondary);
+    color: var(--locavio-secondary);
     text-underline-offset: 2px;
   }
 
-  .proplio-link:hover {
-    color: var(--proplio-text);
+  .locavio-link:hover {
+    color: var(--locavio-text);
     text-decoration: underline;
   }
 
-  .proplio-page-title {
+  .locavio-page-title {
     font-size: clamp(1.75rem, 2.5vw, 2rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.15;
-    color: var(--proplio-text);
+    color: var(--locavio-text);
   }
 
-  .proplio-page-subtitle {
+  .locavio-page-subtitle {
     margin-top: 0.5rem;
     font-size: 0.9375rem;
     font-weight: 500;
     line-height: 1.7;
-    color: var(--proplio-muted);
+    color: var(--locavio-muted);
   }
 
-  .proplio-glass-card {
+  .locavio-glass-card {
     background: rgba(255, 255, 255, 0.05);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
@@ -222,15 +222,15 @@
 html {
   color-scheme: dark;
   min-height: 100%;
-  background-color: var(--proplio-bg);
-  color: var(--proplio-text);
+  background-color: var(--locavio-bg);
+  color: var(--locavio-text);
 }
 
 body {
   min-height: 100%;
   margin: 0;
-  background-color: var(--proplio-bg);
-  color: var(--proplio-text);
+  background-color: var(--locavio-bg);
+  color: var(--locavio-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -245,21 +245,21 @@ body {
   }
 }
 
-/* Focus champs — même effet que ring-proplio-primary (sans utility Tailwind couleur) */
+/* Focus champs — même effet que ring-locavio-primary (sans utility Tailwind couleur) */
 .pc-field-focus:focus {
   outline: none;
-  border-color: var(--proplio-primary);
+  border-color: var(--locavio-primary);
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.35);
 }
 
-/* Séparateurs tableau (remplace divide-proplio-border) */
+/* Séparateurs tableau (remplace divide-locavio-border) */
 .pc-divide-y-border > :not([hidden]) ~ :not([hidden]) {
-  border-top: 1px solid var(--proplio-border);
+  border-top: 1px solid var(--locavio-border);
 }
 
 .pc-outline-primary {
   border: 1px solid rgba(124, 58, 237, 0.5);
-  color: var(--proplio-secondary);
+  color: var(--locavio-secondary);
   background-color: transparent;
 }
 .pc-outline-primary:hover:not(:disabled) {
@@ -268,7 +268,7 @@ body {
 
 .pc-outline-success {
   border: 1px solid rgba(16, 185, 129, 0.4);
-  color: var(--proplio-success);
+  color: var(--locavio-success);
   background-color: transparent;
 }
 .pc-outline-success:hover:not(:disabled) {
@@ -276,45 +276,45 @@ body {
 }
 
 .pc-outline-muted {
-  border: 1px solid var(--proplio-border);
-  color: var(--proplio-muted);
+  border: 1px solid var(--locavio-border);
+  color: var(--locavio-muted);
   background-color: transparent;
 }
 .pc-outline-muted:hover:not(:disabled) {
-  background-color: var(--proplio-bg);
+  background-color: var(--locavio-bg);
 }
 
 .pc-solid-primary {
-  background-color: var(--proplio-primary);
-  color: var(--proplio-white);
+  background-color: var(--locavio-primary);
+  color: var(--locavio-white);
 }
 .pc-solid-primary:hover:not(:disabled) {
-  background-color: var(--proplio-primary-hover);
+  background-color: var(--locavio-primary-hover);
 }
 
 .pc-ghost-card {
-  border: 1px solid var(--proplio-border);
-  background-color: var(--proplio-card);
-  color: var(--proplio-text);
+  border: 1px solid var(--locavio-border);
+  background-color: var(--locavio-card);
+  color: var(--locavio-text);
 }
 .pc-ghost-card:hover:not(:disabled) {
-  background-color: var(--proplio-card);
+  background-color: var(--locavio-card);
 }
 
 .pc-icon-danger-hover:hover {
-  background-color: var(--proplio-border);
-  color: var(--proplio-danger);
+  background-color: var(--locavio-border);
+  color: var(--locavio-danger);
 }
 
 .pc-tab-log-active {
-  background-color: var(--proplio-card);
-  color: var(--proplio-secondary);
-  box-shadow: 0 0 0 1px var(--proplio-border);
+  background-color: var(--locavio-card);
+  color: var(--locavio-secondary);
+  box-shadow: 0 0 0 1px var(--locavio-border);
   border-bottom: 0;
 }
 
 .pc-tab-log-inactive {
-  color: var(--proplio-muted);
+  color: var(--locavio-muted);
   background-color: transparent;
 }
 
@@ -339,17 +339,17 @@ body {
 }
 
 .pc-close-muted {
-  color: var(--proplio-muted);
+  color: var(--locavio-muted);
 }
 
 .pc-close-muted:hover {
-  background-color: var(--proplio-bg);
-  color: var(--proplio-text);
+  background-color: var(--locavio-bg);
+  color: var(--locavio-text);
 }
 
 .pc-outline-danger {
   border: 1px solid rgba(239, 68, 68, 0.4);
-  color: var(--proplio-danger);
+  color: var(--locavio-danger);
   background-color: transparent;
 }
 
@@ -360,7 +360,7 @@ body {
 .pc-danger-fill {
   border: 1px solid rgba(239, 68, 68, 0.5);
   background-color: rgba(239, 68, 68, 0.15);
-  color: var(--proplio-danger);
+  color: var(--locavio-danger);
 }
 
 .pc-danger-fill:hover:not(:disabled) {

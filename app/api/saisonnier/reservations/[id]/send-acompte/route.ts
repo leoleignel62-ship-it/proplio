@@ -91,7 +91,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
       to: [to],
       subject: "Reçu d'acompte — séjour",
       html: `<p>Bonjour ${voyageur.prenom ?? ""},</p><p>Veuillez trouver votre reçu d'acompte en pièce jointe.</p>`,
-      attachments: [{ filename: "recu-acompte-proplio.pdf", content: pdfBase64 }],
+      attachments: [{ filename: "recu-acompte-locavio.pdf", content: pdfBase64 }],
     });
     if (emailResult.error) {
       return NextResponse.json({ error: emailResult.error.message }, { status: 502 });

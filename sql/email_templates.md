@@ -5,12 +5,12 @@ Configurer ces templates dans **Supabase Dashboard > Authentication > Email Temp
 ## 1) Confirm signup (vérification email)
 
 **Subject**  
-Confirmez votre inscription sur Proplio
+Confirmez votre inscription sur Locavio
 
 **Body HTML**
 ```html
-<h2>Bienvenue sur Proplio !</h2>
-<p>Merci de vous être inscrit sur Proplio, votre plateforme de gestion locative.</p>
+<h2>Bienvenue sur Locavio !</h2>
+<p>Merci de vous être inscrit sur Locavio, votre plateforme de gestion locative.</p>
 <p>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email :</p>
 <a href="{{ .ConfirmationURL }}" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Confirmer mon email</a>
 <p>Si vous n'avez pas créé de compte, ignorez cet email.</p>
@@ -19,12 +19,12 @@ Confirmez votre inscription sur Proplio
 ## 2) Reset password
 
 **Subject**  
-Réinitialisez votre mot de passe Proplio
+Réinitialisez votre mot de passe Locavio
 
 **Body HTML**
 ```html
 <h2>Réinitialisation de mot de passe</h2>
-<p>Vous avez demandé à réinitialiser votre mot de passe Proplio.</p>
+<p>Vous avez demandé à réinitialiser votre mot de passe Locavio.</p>
 <a href="{{ .ConfirmationURL }}" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Réinitialiser mon mot de passe</a>
 <p>Si vous n'avez pas fait cette demande, ignorez cet email.</p>
 ```

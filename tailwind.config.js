@@ -7,7 +7,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        proplio: {
+        locavio: {
           bg: "#0f0f13",
           sidebar: "#13131a",
           card: "#1a1a24",
@@ -25,10 +25,10 @@ module.exports = {
         },
       },
       borderRadius: {
-        "proplio-card": "12px",
+        "locavio-card": "12px",
       },
       boxShadow: {
-        "proplio-card": "0 4px 24px -4px rgba(0, 0, 0, 0.45)",
+        "locavio-card": "0 4px 24px -4px rgba(0, 0, 0, 0.45)",
       },
       fontFamily: {
         sans: [

@@ -6,11 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 
 const SaisonnierEdlWizard = dynamic(
   () =>
@@ -35,7 +35,7 @@ export default function SaisonnierEdlDetailPage() {
   const id = typeof routeParams?.id === "string" ? routeParams.id : null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
   const [edlStatut, setEdlStatut] = useState<string | null>(null);
 
@@ -101,7 +101,7 @@ export default function SaisonnierEdlDetailPage() {
 
   if (loading || !id) {
     return (
-      <section className="proplio-page-wrap p-8 text-sm" style={{ ...panelCard, color: PC.muted }}>
+      <section className="locavio-page-wrap p-8 text-sm" style={{ ...panelCard, color: PC.muted }}>
         Chargement…
       </section>
     );
@@ -109,7 +109,7 @@ export default function SaisonnierEdlDetailPage() {
 
   if (error) {
     return (
-      <section className="proplio-page-wrap p-8 text-sm" style={{ color: PC.danger }}>
+      <section className="locavio-page-wrap p-8 text-sm" style={{ color: PC.danger }}>
         {error}
       </section>
     );
@@ -118,7 +118,7 @@ export default function SaisonnierEdlDetailPage() {
   const isEdlFinalise = edlStatut === "termine";
 
   return (
-    <section className="proplio-page-wrap relative min-h-[60vh]">
+    <section className="locavio-page-wrap relative min-h-[60vh]">
       {isEdlFinalise ? (
         <div
           className="fixed left-0 right-0 top-0 z-[90] border-b px-4 py-3 text-sm shadow-sm"

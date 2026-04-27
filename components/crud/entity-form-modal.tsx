@@ -2,8 +2,8 @@
 
 import { FormEvent, useState, type CSSProperties } from "react";
 import { BtnNeutral, BtnPrimary } from "@/components/ui";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, fieldSelectStyle } from "@/lib/locavio-field-styles";
 
 type SelectOption = {
   value: string;

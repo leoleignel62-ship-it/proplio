@@ -100,7 +100,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
       to: [to],
       subject: "Contrat de location saisonnière",
       html: `<p>Bonjour ${voyageur.prenom ?? ""},</p><p>Veuillez trouver votre contrat de location saisonnière en pièce jointe.</p><p>Cordialement,<br/>${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}</p>`,
-      attachments: [{ filename: "contrat-sejour-proplio.pdf", content: pdfBase64 }],
+      attachments: [{ filename: "contrat-sejour-locavio.pdf", content: pdfBase64 }],
     });
     if (emailResult.error) {
       return NextResponse.json({ error: emailResult.error.message }, { status: 502 });

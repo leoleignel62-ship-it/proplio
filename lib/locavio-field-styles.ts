@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 /** Champ texte / textarea (inline, sans utilitaires Tailwind couleur) */
 export const fieldInputStyle: CSSProperties = {

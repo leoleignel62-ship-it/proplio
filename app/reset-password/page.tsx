@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { FormEvent, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { IconHome } from "@/components/proplio-icons";
+import { IconHome } from "@/components/locavio-icons";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle } from "@/lib/locavio-field-styles";
 
 const CARD: CSSProperties = {
   width: "100%",
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
         </span>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PC.secondary }}>
-            Proplio
+            Locavio
           </p>
           <h1 className="text-xl font-semibold" style={{ color: PC.text }}>
             Réinitialiser le mot de passe
@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
           </p>
         ) : null}
 
-        <button type="submit" className="proplio-btn-primary w-full py-3" disabled={isSubmitting}>
+        <button type="submit" className="locavio-btn-primary w-full py-3" disabled={isSubmitting}>
           {isSubmitting ? "Mise à jour..." : "Mettre à jour le mot de passe"}
         </button>
       </form>

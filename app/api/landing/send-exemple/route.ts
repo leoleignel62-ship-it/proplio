@@ -19,10 +19,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const ipRateStore = new Map<string, number[]>();
 
 const SUBJECT_BY_TYPE: Record<ExampleType, string> = {
-  quittance: "Voici votre exemple de quittance Proplio 🏠",
-  bail: "Voici votre exemple de bail Proplio 📄",
-  "etat-des-lieux": "Voici votre exemple d'état des lieux Proplio 🔑",
-  "contrat-sejour": "Voici votre exemple de contrat saisonnier Proplio 🌊",
+  quittance: "Voici votre exemple de quittance Locavio 🏠",
+  bail: "Voici votre exemple de bail Locavio 📄",
+  "etat-des-lieux": "Voici votre exemple d'état des lieux Locavio 🔑",
+  "contrat-sejour": "Voici votre exemple de contrat saisonnier Locavio 🌊",
 };
 
 const FICTIVE_OWNER = {
@@ -207,10 +207,10 @@ async function buildPdfBuffer(type: ExampleType): Promise<Uint8Array> {
 }
 
 function fileNameForType(type: ExampleType): string {
-  if (type === "quittance") return "exemple-quittance-proplio.pdf";
-  if (type === "bail") return "exemple-bail-proplio.pdf";
-  if (type === "etat-des-lieux") return "exemple-etat-des-lieux-proplio.pdf";
-  return "exemple-contrat-saisonnier-proplio.pdf";
+  if (type === "quittance") return "exemple-quittance-locavio.pdf";
+  if (type === "bail") return "exemple-bail-locavio.pdf";
+  if (type === "etat-des-lieux") return "exemple-etat-des-lieux-locavio.pdf";
+  return "exemple-contrat-saisonnier-locavio.pdf";
 }
 
 export async function POST(request: Request) {
@@ -242,7 +242,7 @@ export async function POST(request: Request) {
       from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
       to: [email],
       subject: SUBJECT_BY_TYPE[type],
-      html: `<p>Bonjour,</p><p>Voici votre exemple de document Proplio en pièce jointe.</p><p>Bonne découverte 👋</p>`,
+      html: `<p>Bonjour,</p><p>Voici votre exemple de document Locavio en pièce jointe.</p><p>Bonne découverte 👋</p>`,
       attachments: [
         {
           filename: fileNameForType(type),

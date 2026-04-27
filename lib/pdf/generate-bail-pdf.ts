@@ -17,11 +17,11 @@ import {
   PDF_VIOLET_DARK,
   PDF_VIOLET_LINE as SECONDARY,
   PDF_WHITE as WHITE,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentMinY,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { PDF_FOOTER_HEIGHT, drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 /** Marge réservée sous le corps du document */
@@ -217,7 +217,7 @@ type PdfCtx = {
 
 function newPage(ctx: PdfCtx) {
   ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(ctx.page, ctx.font, ctx.fontBold, BAIL_HEADER_TITLE);
+  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, BAIL_HEADER_TITLE);
   ctx.y = pdfContentTopAfterHeader();
 }
 
@@ -499,7 +499,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   const dateDocFr = formatDateFrLong(new Date());
 
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(page, font, fontBold, BAIL_HEADER_TITLE);
+  drawLocavioPdfHeader(page, font, fontBold, BAIL_HEADER_TITLE);
   let y = pdfContentTopAfterHeader();
 
   const subLaw =
@@ -1006,7 +1006,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   ctx.y = PDF_FOOTER_HEIGHT;
 
-  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }

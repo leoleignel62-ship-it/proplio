@@ -12,16 +12,16 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { IconPencil } from "@/components/proplio-icons";
+import { IconPencil } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 import { calculerMontantReservation } from "@/lib/saisonnier-tarifs";
 
 const SaisonnierReservationsPlanningCalendar = dynamic(
@@ -185,7 +185,7 @@ function logementTarifPayload(lg: LogementOption) {
 
 export default function ReservationsSaisonnierPage() {
   const uxToast = useToast();
-  const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [plan, setPlan] = useState<LocavioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState<ReservationRow[]>([]);
@@ -706,13 +706,13 @@ export default function ReservationsSaisonnierPage() {
     if (ok) setDeleteConfirmId(null);
   }
 
-  async function confirmDeleteOtaFromProplio() {
+  async function confirmDeleteOtaFromLocavio() {
     if (!deleteOtaConfirmId) return;
     const ok = await deleteReservationPermanently(deleteOtaConfirmId);
     if (ok) setDeleteOtaConfirmId(null);
   }
 
-  async function confirmDeleteBlocageFromProplio() {
+  async function confirmDeleteBlocageFromLocavio() {
     if (!deleteBlocageConfirmId) return;
     const ok = await deleteReservationPermanently(deleteBlocageConfirmId);
     if (ok) setDeleteBlocageConfirmId(null);
@@ -788,7 +788,7 @@ export default function ReservationsSaisonnierPage() {
 
   if (loading) {
     return (
-      <section className="proplio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
+      <section className="locavio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
         Chargement…
       </section>
     );
@@ -798,11 +798,11 @@ export default function ReservationsSaisonnierPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="proplio-page-title">Réservations</h1>
-          <p className="proplio-page-subtitle">Location saisonnière — liste des réservations.</p>
+          <h1 className="locavio-page-title">Réservations</h1>
+          <p className="locavio-page-subtitle">Location saisonnière — liste des réservations.</p>
           <div className="mt-3 inline-flex rounded-lg p-0.5" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
             <button
               type="button"
@@ -1553,11 +1553,11 @@ export default function ReservationsSaisonnierPage() {
 
       <ConfirmModal
         open={deleteOtaConfirmId != null}
-        title="Supprimer de Proplio"
-        description="Êtes-vous sûr de vouloir supprimer cette réservation de Proplio ? Elle restera sur Airbnb/Booking. Cette action est irréversible."
+        title="Supprimer de Locavio"
+        description="Êtes-vous sûr de vouloir supprimer cette réservation de Locavio ? Elle restera sur Airbnb/Booking. Cette action est irréversible."
         loading={deleteSubmitting}
         onClose={() => setDeleteOtaConfirmId(null)}
-        onConfirm={() => void confirmDeleteOtaFromProplio()}
+        onConfirm={() => void confirmDeleteOtaFromLocavio()}
       />
 
       <ConfirmModal
@@ -1566,7 +1566,7 @@ export default function ReservationsSaisonnierPage() {
         description="Êtes-vous sûr de vouloir supprimer ce blocage ? Cette action est irréversible."
         loading={deleteSubmitting}
         onClose={() => setDeleteBlocageConfirmId(null)}
-        onConfirm={() => void confirmDeleteBlocageFromProplio()}
+        onConfirm={() => void confirmDeleteBlocageFromLocavio()}
       />
     </section>
   );

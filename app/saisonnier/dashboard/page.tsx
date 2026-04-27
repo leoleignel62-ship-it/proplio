@@ -12,7 +12,7 @@ import {
   getTauxOccupation,
 } from "@/lib/saisonnier-dashboard-metrics";
 import { useToast } from "@/components/ui/toast";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 const RevenusMensuelsChart = dynamic(
   () => import("./revenus-mensuels-chart").then((m) => m.RevenusMensuelsChart),
@@ -198,10 +198,10 @@ export default function SaisonnierDashboardPage() {
   const canGoNextYear = yearIndex > 0;
 
   return (
-    <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="proplio-page-title">Dashboard Saisonnier</h1>
+          <h1 className="locavio-page-title">Dashboard Saisonnier</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button

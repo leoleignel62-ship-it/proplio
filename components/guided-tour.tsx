@@ -19,7 +19,7 @@ type TourStep = {
   lockedOnFree?: boolean;
 };
 
-const MODE_LOCATION_KEY = "proplio-mode-location";
+const MODE_LOCATION_KEY = "locavio-mode-location";
 
 const FREE_TOUR_STEPS: TourStep[] = [
   {

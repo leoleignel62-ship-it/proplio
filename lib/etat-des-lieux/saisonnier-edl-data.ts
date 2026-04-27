@@ -1,9 +1,9 @@
 /**
- * Données JSON des EDL saisonniers (colonne `pieces` quand `_proplio_saisonnier` est true).
+ * Données JSON des EDL saisonniers (colonne `pieces` quand `_locavio_saisonnier` est true).
  * Les EDL classiques utilisent un autre schéma — ne pas mélanger.
  */
 
-export const SAISONNIER_EDL_MARK = "_proplio_saisonnier" as const;
+export const SAISONNIER_EDL_MARK = "_locavio_saisonnier" as const;
 export const SAISONNIER_EDL_VERSION = 2 as const;
 
 export type SaisonnierRoomId =

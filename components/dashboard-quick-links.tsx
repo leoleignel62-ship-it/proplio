@@ -3,8 +3,8 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { IconContract, IconDocument } from "@/components/proplio-icons";
-import { PC } from "@/lib/proplio-colors";
+import { IconContract, IconDocument } from "@/components/locavio-icons";
+import { PC } from "@/lib/locavio-colors";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 
@@ -126,7 +126,7 @@ export function DashboardQuickLinks() {
               ))}
             </div>
             <div className="mt-4 flex justify-end">
-              <button type="button" className="proplio-btn-secondary" onClick={() => setPicker(null)}>
+              <button type="button" className="locavio-btn-secondary" onClick={() => setPicker(null)}>
                 Annuler
               </button>
             </div>

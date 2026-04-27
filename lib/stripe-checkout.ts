@@ -1,7 +1,7 @@
-import type { ProplioPlan } from "@/lib/plan-limits";
+import type { LocavioPlan } from "@/lib/plan-limits";
 
 export const STRIPE_PRICE_IDS: Record<
-  Exclude<ProplioPlan, "free">,
+  Exclude<LocavioPlan, "free">,
   { monthly: string; yearly: string }
 > = {
   starter: {
@@ -23,7 +23,7 @@ export const STRIPE_PRICE_IDS: Record<
  * @throws Error si la réponse API est en erreur ou sans URL.
  */
 export async function startStripeCheckout(
-  targetPlan: Exclude<ProplioPlan, "free">,
+  targetPlan: Exclude<LocavioPlan, "free">,
   interval: "monthly" | "yearly" = "monthly",
 ): Promise<void> {
   const response = await fetch("/api/stripe/checkout", {

@@ -23,7 +23,7 @@ import {
   IconHome,
   IconTrendingUp,
   IconUsers,
-} from "@/components/proplio-icons";
+} from "@/components/locavio-icons";
 import { detecterBauxEligibles } from "@/lib/irl-revision";
 import { useModeLocation, type ModeLocation } from "@/lib/mode-location";
 import {
@@ -32,10 +32,10 @@ import {
   montantSoldeRestant,
   type SaisonnierRappelReservationRow,
 } from "@/lib/saisonnier-rappel-conditions";
-import { normalizePlan, PLAN_UPGRADE_PATH, type ProplioPlan } from "@/lib/plan-limits";
+import { normalizePlan, PLAN_UPGRADE_PATH, type LocavioPlan } from "@/lib/plan-limits";
 import { BtnEmail, BtnNeutral, BtnPrimary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 import { supabase } from "@/lib/supabase";
 
 const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
@@ -231,7 +231,7 @@ export function NavigationSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string | null>(null);
-  const [ownerPlan, setOwnerPlan] = useState<ProplioPlan | null>(null);
+  const [ownerPlan, setOwnerPlan] = useState<LocavioPlan | null>(null);
   const [saisonnierUpsellOpen, setSaisonnierUpsellOpen] = useState(false);
 
   useEffect(() => {
@@ -470,7 +470,7 @@ export function NavigationSidebar() {
               <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
             </span>
             <span className="text-lg font-semibold tracking-tight" style={{ color: PC.text }}>
-              Proplio
+              Locavio
             </span>
           </Link>
 
@@ -578,7 +578,7 @@ export function NavigationSidebar() {
                     <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
                   </span>
                   <span className="truncate text-lg font-semibold tracking-tight" style={{ color: PC.text }}>
-                    Proplio
+                    Locavio
                   </span>
                 </Link>
                 <button

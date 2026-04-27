@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-export type ProplioPlan = "free" | "starter" | "pro" | "expert";
+export type LocavioPlan = "free" | "starter" | "pro" | "expert";
 
 type PlanLimits = {
   maxLogements: number | null;
@@ -28,7 +28,7 @@ export const PLAN_FREE_BAUX_BANNER =
 export const PLAN_FREE_EDL_BANNER =
   "Les états des lieux ne sont pas disponibles en plan Gratuit. Passez au plan Starter.";
 
-export const PLAN_LIMITS: Record<ProplioPlan, PlanLimits> = {
+export const PLAN_LIMITS: Record<LocavioPlan, PlanLimits> = {
   free: {
     maxLogements: 1,
     maxLocataires: 1,
@@ -71,12 +71,12 @@ export const PLAN_LIMITS: Record<ProplioPlan, PlanLimits> = {
   },
 };
 
-export function normalizePlan(plan: string | null | undefined): ProplioPlan {
+export function normalizePlan(plan: string | null | undefined): LocavioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
   return "free";
 }
 
-export async function getOwnerPlan(proprietaireId: string): Promise<ProplioPlan> {
+export async function getOwnerPlan(proprietaireId: string): Promise<LocavioPlan> {
   if (!proprietaireId) return "free";
   const { data } = await supabase
     .from("proprietaires")
@@ -88,7 +88,7 @@ export async function getOwnerPlan(proprietaireId: string): Promise<ProplioPlan>
 }
 
 export function canCreateLogement(
-  plan: ProplioPlan,
+  plan: LocavioPlan,
   totalCreeCount: number,
   existingLogementsCount = 0,
 ): boolean {
@@ -100,7 +100,7 @@ export function canCreateLogement(
 }
 
 export function canCreateLocataire(
-  plan: ProplioPlan,
+  plan: LocavioPlan,
   totalCreeCount: number,
   existingCount = 0,
 ): boolean {
@@ -109,18 +109,18 @@ export function canCreateLocataire(
   return max == null || referenceCount < max;
 }
 
-export function canCreateQuittance(plan: ProplioPlan, totalCount: number): boolean {
+export function canCreateQuittance(plan: LocavioPlan, totalCount: number): boolean {
   const max = PLAN_LIMITS[plan].maxQuittances;
   if (max == null) return true;
   const referenceCount = Number.isFinite(totalCount) ? totalCount : 0;
   return referenceCount < max;
 }
 
-export function canCreateBail(plan: ProplioPlan): boolean {
+export function canCreateBail(plan: LocavioPlan): boolean {
   return plan !== "free";
 }
 
-export function canCreateEtatDesLieux(plan: ProplioPlan): boolean {
+export function canCreateEtatDesLieux(plan: LocavioPlan): boolean {
   return plan !== "free";
 }
 

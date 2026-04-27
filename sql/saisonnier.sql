@@ -1,4 +1,4 @@
--- Mode location saisonnière Proplio
+-- Mode location saisonnière Locavio
 -- Exécuter dans Supabase SQL Editor après déploiement.
 -- Storage : créer un bucket privé `voyageurs-identite` (upload pièces d’identité voyageurs).
 

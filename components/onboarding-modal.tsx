@@ -2,16 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { BtnPrimary } from "@/components/ui";
-import { PC } from "@/lib/proplio-colors";
-import type { ProplioPlan } from "@/lib/plan-limits";
+import { PC } from "@/lib/locavio-colors";
+import type { LocavioPlan } from "@/lib/plan-limits";
 
 type OnboardingModalProps = {
   open: boolean;
-  plan: ProplioPlan;
+  plan: LocavioPlan;
   onComplete: () => Promise<void> | void;
 };
 
-function getPaidWelcomeContent(plan: ProplioPlan): { title: string; subtitle: string; bullets: string[] } {
+function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: string; bullets: string[] } {
   if (plan === "expert") {
     return {
       title: "🎉 Bienvenue sur le plan Expert !",

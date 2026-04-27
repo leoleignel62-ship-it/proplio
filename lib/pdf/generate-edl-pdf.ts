@@ -30,11 +30,11 @@ import {
   PDF_VIOLET_LIGHT,
   PDF_VIOLET as PRIMARY,
   PDF_WHITE as WHITE,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentMinY,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_FOOTER_RESERVE,
@@ -189,7 +189,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     ("ÉTAT DES LIEUX\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE"));
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(page, font, fontBold, edlHeaderTitle);
+  drawLocavioPdfHeader(page, font, fontBold, edlHeaderTitle);
   let y = pdfContentTopAfterHeader();
   /** À partir des compteurs : réserver le bas de page pour les signatures (pas de page vide dédiée). */
   let reserveForSig = false;
@@ -201,7 +201,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawProplioPdfHeader(page, font, fontBold, edlHeaderTitle);
+    drawLocavioPdfHeader(page, font, fontBold, edlHeaderTitle);
     y = pdfContentTopAfterHeader();
   };
 
@@ -624,7 +624,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }

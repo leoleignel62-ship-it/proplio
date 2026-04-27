@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
-import { IconPlus } from "@/components/proplio-icons";
+import { IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
@@ -16,12 +16,12 @@ import {
   getOwnerPlan,
   PLAN_FREE_EDL_BANNER,
   PLAN_UPGRADE_PATH,
-  type ProplioPlan,
+  type LocavioPlan,
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 
 const SaisonnierEdlWizard = dynamic(
   () =>
@@ -54,7 +54,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [rows, setRows] = useState<EdlRow[]>([]);
   const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -210,11 +210,11 @@ export default function EtatsDesLieuxSaisonnierPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">États des lieux</h1>
-          <p className="proplio-page-subtitle max-w-xl">
+          <h1 className="locavio-page-title">États des lieux</h1>
+          <p className="locavio-page-subtitle max-w-xl">
             Formulaire simplifié (pièces, inventaire, PDF dédié location saisonnière).
           </p>
         </div>

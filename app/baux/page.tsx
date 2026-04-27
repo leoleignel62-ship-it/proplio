@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
@@ -15,13 +15,13 @@ import {
   PLAN_FREE_BAUX_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
-  type ProplioPlan,
+  type LocavioPlan,
 } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputLg, fieldInputMd, fieldSelectLg, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputLg, fieldInputMd, fieldSelectLg, panelCard } from "@/lib/locavio-field-styles";
 
 const BAIL_MODAL_CARD: CSSProperties = {
   ...panelCard,
@@ -246,7 +246,7 @@ export default function BauxPage() {
   }, [values.logement_id, locataires]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("logement_id") ?? "";
@@ -1028,11 +1028,11 @@ export default function BauxPage() {
   const freeBauxBlock = currentPlan === "free";
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Baux</h1>
-          <p className="proplio-page-subtitle max-w-xl">
+          <h1 className="locavio-page-title">Baux</h1>
+          <p className="locavio-page-subtitle max-w-xl">
             Création de baux conformes loi Alur et loi du 6 juillet 1989.
           </p>
         </div>

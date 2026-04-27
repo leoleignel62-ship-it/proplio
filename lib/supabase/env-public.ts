@@ -10,7 +10,7 @@ export function getSupabasePublicConfig(): { url: string; anonKey: string } {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anonKey) {
     throw new Error(
-      "[Proplio] NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont requis (Vercel → Settings → Environment Variables).",
+      "[Locavio] NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont requis (Vercel → Settings → Environment Variables).",
     );
   }
   return { url, anonKey };

@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { IconArrowPath } from "@/components/proplio-icons";
+import { IconArrowPath } from "@/components/locavio-icons";
 import { BtnEmail, BtnSecondary, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 
 type ContratStatut = "Généré" | "Envoyé" | "Signé";
 
@@ -47,7 +47,7 @@ type StatutFiltre = "tous" | "genere" | "envoye" | "signe";
 
 export default function ContratsSejourPage() {
   const toast = useToast();
-  const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [plan, setPlan] = useState<LocavioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState("");
@@ -173,7 +173,7 @@ export default function ContratsSejourPage() {
 
   if (loading) {
     return (
-      <section className="proplio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
+      <section className="locavio-page-wrap p-6 text-sm" style={{ color: PC.muted }}>
         Chargement…
       </section>
     );
@@ -183,11 +183,11 @@ export default function ContratsSejourPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
       <div>
-        <h1 className="proplio-page-title">Contrats de séjour</h1>
-        <p className="proplio-page-subtitle">
-          Réservations directes ou autres sources uniquement (pas Airbnb / Booking : contrats gérés par les plateformes). PDF Proplio et suivi
+        <h1 className="locavio-page-title">Contrats de séjour</h1>
+        <p className="locavio-page-subtitle">
+          Réservations directes ou autres sources uniquement (pas Airbnb / Booking : contrats gérés par les plateformes). PDF Locavio et suivi
           d&apos;envoi.
         </p>
       </div>

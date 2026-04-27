@@ -7,7 +7,7 @@ import {
   IconCalendar,
   IconChart,
   IconEuroCircle,
-} from "@/components/proplio-icons";
+} from "@/components/locavio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
 import {
   emptySaisonnierDash,
@@ -15,7 +15,7 @@ import {
   type SaisonnierDashData,
 } from "@/lib/saisonnier-dashboard-metrics";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 function StatCard({
   titre,
@@ -171,8 +171,8 @@ export function SaisonnierDashboardContent() {
 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
-          <p className="proplio-page-subtitle capitalize">{dateLong}</p>
+          <h1 className="locavio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
+          <p className="locavio-page-subtitle capitalize">{dateLong}</p>
           <p className="mt-2 text-sm" style={{ color: PC.muted }}>
             Tableau de bord — location saisonnière
           </p>

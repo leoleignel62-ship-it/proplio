@@ -1,9 +1,9 @@
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 /** Skeleton affiché pendant le chargement des segments (Next.js `loading.tsx`). */
 export function PageSkeleton() {
   return (
-    <div className="proplio-page-wrap animate-pulse space-y-6 p-4 md:p-8">
+    <div className="locavio-page-wrap animate-pulse space-y-6 p-4 md:p-8">
       <div className="space-y-2">
         <div className="h-8 w-56 max-w-full rounded-lg" style={{ backgroundColor: PC.card }} />
         <div

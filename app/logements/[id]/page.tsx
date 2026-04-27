@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { IconHome } from "@/components/proplio-icons";
+import { IconHome } from "@/components/locavio-icons";
 import { parseChambresDetails, totalLoyersChambres } from "@/lib/colocation";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 import { BtnPrimary, BtnSecondary, StatusBadge } from "@/components/ui";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
@@ -171,11 +171,11 @@ export default function LogementDetailPage() {
     return map;
   }, [locataires]);
 
-  if (loading) return <section className="proplio-page-wrap text-sm" style={{ color: PC.muted }}>Chargement…</section>;
-  if (!logement) return <section className="proplio-page-wrap text-sm" style={{ color: PC.muted }}>Logement introuvable.</section>;
+  if (loading) return <section className="locavio-page-wrap text-sm" style={{ color: PC.muted }}>Chargement…</section>;
+  if (!logement) return <section className="locavio-page-wrap text-sm" style={{ color: PC.muted }}>Logement introuvable.</section>;
   if (logement.verrouille) {
     return (
-      <section className="proplio-page-wrap text-sm" style={{ color: PC.warning }}>
+      <section className="locavio-page-wrap text-sm" style={{ color: PC.warning }}>
         🔒 Passez à un plan supérieur pour accéder à ce logement.
       </section>
     );
@@ -194,7 +194,7 @@ export default function LogementDetailPage() {
   const tenantBadgeLabel = tenantVacant ? "Vacant" : locataires.length === 1 ? "Locataire actif" : "Locataires actifs";
 
   return (
-    <section className="proplio-page-wrap space-y-6" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
       <nav className="text-sm" style={{ color: PC.muted }}>
         <Link href="/logements" style={{ color: PC.secondary }}>Logements</Link> &gt; {logement.nom}
       </nav>

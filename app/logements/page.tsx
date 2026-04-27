@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
-import { IconPlus } from "@/components/proplio-icons";
+import { IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -21,8 +21,8 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputMd, fieldInputStyle, fieldSelectMd, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputMd, fieldInputStyle, fieldSelectMd, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 import { type TarifCreneau, parseTarifsCreneauxJson } from "@/lib/saisonnier-tarifs";
 
 const LOGEMENT_MODAL_CARD: CSSProperties = {
@@ -906,11 +906,11 @@ export default function LogementsPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Logements</h1>
-          <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion de vos biens.</p>
+          <h1 className="locavio-page-title">Logements</h1>
+          <p className="locavio-page-subtitle max-w-xl">Liste, création et gestion de vos biens.</p>
         </div>
         <BtnPrimary
           icon={<IconPlus className="h-4 w-4" />}

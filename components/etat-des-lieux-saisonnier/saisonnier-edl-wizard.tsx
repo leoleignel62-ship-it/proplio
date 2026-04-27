@@ -29,8 +29,8 @@ import {
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 
 export type SaisonnierReservationOption = {
   id: string;

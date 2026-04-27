@@ -1,6 +1,6 @@
 "use client";
 
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 const MAP: Record<
   string,

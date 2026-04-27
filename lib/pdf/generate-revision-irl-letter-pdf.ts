@@ -10,12 +10,12 @@ import {
   PDF_TEXT_MAIN as TEXT_MAIN,
   PDF_TEXT_SECONDARY as TEXT_SEC,
   PDF_VIOLET as VIOLET,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   PDF_MARGIN_Y,
   pdfContentMinY,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { PDF_FOOTER_HEIGHT, drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 const CONTENT_BOTTOM = pdfContentMinY();
@@ -259,7 +259,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const dateLine = `${input.villeSignature}, le ${input.dateLettre}`;
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+  drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
 
   let y = pdfContentTopAfterHeader() - 8;
 
@@ -271,7 +271,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const ensureSpace = (needed: number) => {
     if (y < CONTENT_BOTTOM + needed) {
       page = doc.addPage([PAGE_W, PAGE_H]);
-      drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+      drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
       y = pdfContentTopAfterHeader() - 12;
     }
   };
@@ -345,7 +345,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const closingBlockApprox = 120;
   if (y < yMinAboveSignatureBand + closingBlockApprox) {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawProplioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+    drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
     y = pdfContentTopAfterHeader() - 12;
   }
 
@@ -381,7 +381,7 @@ export async function generateRevisionIrlLetterPdfBuffer(
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(doc, font, fontBold);
 
   return doc.save();
 }

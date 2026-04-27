@@ -5,10 +5,10 @@ import {
   PDF_PAGE_H,
   PDF_PAGE_W,
   PDF_TEXT_MAIN,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import { drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 function sanitizePdfText(text: string): string {
@@ -47,7 +47,7 @@ export async function generateRecuAcomptePdfBuffer(input: RecuAcomptePdfInput): 
   const pageW = page.getWidth();
   const pageH = page.getHeight();
 
-  drawProplioPdfHeader(page, font, fontBold, "REÇU D'ACOMPTE", pageH, pageW);
+  drawLocavioPdfHeader(page, font, fontBold, "REÇU D'ACOMPTE", pageH, pageW);
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const lines = [
@@ -84,6 +84,6 @@ export async function generateRecuAcomptePdfBuffer(input: RecuAcomptePdfInput): 
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);
   return pdfDoc.save();
 }

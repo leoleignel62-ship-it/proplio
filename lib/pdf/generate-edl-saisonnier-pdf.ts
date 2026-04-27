@@ -23,11 +23,11 @@ import {
   PDF_TEXT_SECONDARY as MUTED,
   PDF_VIOLET as PRIMARY,
   PDF_WHITE as WHITE,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentMinY,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_FOOTER_RESERVE,
@@ -160,7 +160,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     "ÉTAT DES LIEUX - LOCATION SAISONNIÈRE\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawProplioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
+  drawLocavioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
   let y = pdfContentTopAfterHeader();
   const reserveSig = { on: false };
   const sigFloor = () =>
@@ -168,7 +168,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
 
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawProplioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
+    drawLocavioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
     y = pdfContentTopAfterHeader();
   };
 
@@ -517,6 +517,6 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(doc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(doc, font, fontBold);
   return doc.save();
 }

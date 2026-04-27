@@ -6,7 +6,7 @@ import type { SupabaseClientOptions } from "@supabase/supabase-js";
  * cross-tab qui provoque l’erreur « Lock was released because another request stole it ».
  */
 export const supabaseAuthOptions: NonNullable<SupabaseClientOptions<"public">["auth"]> = {
-  storageKey: "proplio-auth-token",
+  storageKey: "locavio-auth-token",
   autoRefreshToken: true,
   persistSession: true,
   detectSessionInUrl: true,

@@ -13,7 +13,7 @@ export default async function EtatDesLieuxDetailPage({
 }) {
   const { id } = await params;
   return (
-    <section className="proplio-page-wrap space-y-8">
+    <section className="locavio-page-wrap space-y-8">
       <EdlEditorLazy edlId={id} />
     </section>
   );

@@ -10,17 +10,17 @@ import {
   type PlanDisplayId,
 } from "@/lib/plan-display-copy";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
-import { PLAN_LIMITS, type ProplioPlan } from "@/lib/plan-limits";
+import { PLAN_LIMITS, type LocavioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 import { BtnDanger, BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 
 type BillingPeriod = "monthly" | "yearly";
 
 type PlanMarketing = {
-  id: ProplioPlan;
+  id: LocavioPlan;
   title: string;
   subtitle: string;
   monthlyPriceLabel: string;
@@ -86,19 +86,19 @@ const PLANS_MARKETING: PlanMarketing[] = PLAN_ORDER.map((id) => {
   };
 });
 
-function normalizePlan(plan: string | null | undefined): ProplioPlan {
+function normalizePlan(plan: string | null | undefined): LocavioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
   return "free";
 }
 
-function isPaidPlan(plan: ProplioPlan): plan is Exclude<ProplioPlan, "free"> {
+function isPaidPlan(plan: LocavioPlan): plan is Exclude<LocavioPlan, "free"> {
   return plan === "starter" || plan === "pro" || plan === "expert";
 }
 
 export default function AbonnementPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
-  const [plan, setPlan] = useState<ProplioPlan>("free");
+  const [plan, setPlan] = useState<LocavioPlan>("free");
   const currentPlan = plan;
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,7 +149,7 @@ export default function AbonnementPage() {
 
   const currentLimits = useMemo(() => PLAN_LIMITS[plan], [plan]);
 
-  async function startCheckout(targetPlan: Exclude<ProplioPlan, "free">, interval: "monthly" | "yearly") {
+  async function startCheckout(targetPlan: Exclude<LocavioPlan, "free">, interval: "monthly" | "yearly") {
     if (!proprietaireId) return;
     const key = `${targetPlan}-${interval}`;
     setLoadingCheckoutKey(key);
@@ -186,7 +186,7 @@ export default function AbonnementPage() {
 
   if (loading) {
     return (
-      <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+      <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
         <div className="rounded-xl p-5" style={panelCard}>
           <p style={{ color: PC.muted }}>Chargement du plan...</p>
         </div>
@@ -195,11 +195,11 @@ export default function AbonnementPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-10" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-10" style={{ color: PC.text }}>
       <header>
-        <h1 className="proplio-page-title">Abonnement</h1>
-        <p className="proplio-page-subtitle max-w-2xl">
-          Gérez votre plan Proplio, vos limites et votre facturation sécurisée via Stripe.
+        <h1 className="locavio-page-title">Abonnement</h1>
+        <p className="locavio-page-subtitle max-w-2xl">
+          Gérez votre plan Locavio, vos limites et votre facturation sécurisée via Stripe.
         </p>
       </header>
 

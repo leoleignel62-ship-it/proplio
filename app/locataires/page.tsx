@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
@@ -15,8 +15,8 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputLg, fieldSelectLg, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputLg, fieldSelectLg, panelCard } from "@/lib/locavio-field-styles";
 
 const LOCA_MODAL_CARD: CSSProperties = {
   ...panelCard,
@@ -611,11 +611,11 @@ export default function LocatairesPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Locataires</h1>
-          <p className="proplio-page-subtitle max-w-xl">Liste, création et gestion des profils locataires.</p>
+          <h1 className="locavio-page-title">Locataires</h1>
+          <p className="locavio-page-subtitle max-w-xl">Liste, création et gestion des profils locataires.</p>
         </div>
         <BtnPrimary
           icon={<IconPlus className="h-4 w-4" />}

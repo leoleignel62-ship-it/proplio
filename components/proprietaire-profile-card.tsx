@@ -1,6 +1,6 @@
 import type { ProprietaireProfile } from "@/lib/proprietaire-profile";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 
 type ProprietaireProfileCardProps = {
   profile: ProprietaireProfile | null;

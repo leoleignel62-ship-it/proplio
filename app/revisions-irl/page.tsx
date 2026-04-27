@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
-import { IconArrowPath, IconHome } from "@/components/proplio-icons";
+import { IconArrowPath, IconHome } from "@/components/locavio-icons";
 import {
   calculerNouveauLoyer,
   detecterBauxEligibles,
@@ -13,11 +13,11 @@ import {
 } from "@/lib/irl-revision";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
-import { getOwnerPlan, type ProplioPlan } from "@/lib/plan-limits";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { BtnEmail, BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 import { supabase } from "@/lib/supabase";
 import type { CSSProperties } from "react";
 
@@ -70,7 +70,7 @@ function formatDateFr(d: string) {
 
 export default function RevisionsIrlPage() {
   const toast = useToast();
-  const [plan, setPlan] = useState<ProplioPlan | null>(null);
+  const [plan, setPlan] = useState<LocavioPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [irl, setIrl] = useState<IrlApi>({ valeur: 143.46, trimestre: "T4 2024" });
   const [baux, setBaux] = useState<BailRow[]>([]);

@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Proplio — Gestion locative",
-  description: "Proplio : plateforme premium de gestion locative pour propriétaires bailleurs.",
+  title: "Locavio — Gestion locative",
+  description: "Locavio : plateforme premium de gestion locative pour propriétaires bailleurs.",
 };
 
 /** Équivaut à <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /> */

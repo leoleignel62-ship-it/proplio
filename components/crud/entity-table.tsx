@@ -2,8 +2,8 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
-import { IconPencil, IconTrash } from "@/components/proplio-icons";
-import { PC } from "@/lib/proplio-colors";
+import { IconPencil, IconTrash } from "@/components/locavio-icons";
+import { PC } from "@/lib/locavio-colors";
 
 const CARD: CSSProperties = {
   backgroundColor: PC.card,

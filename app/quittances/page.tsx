@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
-import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -24,8 +24,8 @@ import {
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
-import { PC } from "@/lib/proplio-colors";
-import { panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { panelCard } from "@/lib/locavio-field-styles";
 
 type Quittance = {
   id: string;
@@ -696,7 +696,7 @@ export default function QuittancesPage() {
   }
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <ProprietaireProfileCard
         profile={proprietaireProfile}
         title="Profil propriétaire utilisé automatiquement pour les quittances"
@@ -704,8 +704,8 @@ export default function QuittancesPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">Quittances</h1>
-          <p className="proplio-page-subtitle max-w-xl">Liste, création et suivi des quittances.</p>
+          <h1 className="locavio-page-title">Quittances</h1>
+          <p className="locavio-page-subtitle max-w-xl">Liste, création et suivi des quittances.</p>
         </div>
         <div className="flex items-center gap-3">
           <select

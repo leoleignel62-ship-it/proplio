@@ -1,4 +1,4 @@
-/** Palette Proplio — utiliser en `style={{ ... }}` (pas d’utilitaires Tailwind couleur). */
+/** Palette Locavio — utiliser en `style={{ ... }}` (pas d’utilitaires Tailwind couleur). */
 export const PC = {
   bg: "#0a0a0f",
   card: "#13131a",

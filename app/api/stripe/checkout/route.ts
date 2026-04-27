@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient } from "@/lib/stripe";
-import type { ProplioPlan } from "@/lib/plan-limits";
+import type { LocavioPlan } from "@/lib/plan-limits";
 
 type CheckoutPayload = {
   priceId?: string;
   userId?: string;
-  plan?: ProplioPlan;
+  plan?: LocavioPlan;
 };
 
-const ALLOWED_PLANS: ProplioPlan[] = ["starter", "pro", "expert"];
+const ALLOWED_PLANS: LocavioPlan[] = ["starter", "pro", "expert"];
 
 export async function POST(request: Request) {
   try {

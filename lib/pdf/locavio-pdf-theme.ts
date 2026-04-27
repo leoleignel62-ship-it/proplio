@@ -1,5 +1,5 @@
 /**
- * Charte graphique commune aux PDF Proplio (quittances, baux, EDL, lettre IRL).
+ * Charte graphique commune aux PDF Locavio (quittances, baux, EDL, lettre IRL).
  */
 import { type PDFDocument, type PDFPage, rgb, type PDFFont } from "pdf-lib";
 import {
@@ -59,10 +59,10 @@ export function pdfContentTopAfterHeader(pageHeight = PDF_PAGE_H): number {
 }
 
 /**
- * Bandeau Proplio : violet pleine largeur, marque à gauche, type de document à droite.
+ * Bandeau Locavio : violet pleine largeur, marque à gauche, type de document à droite.
  * `documentTypeRight` peut contenir des retours à la ligne.
  */
-export function drawProplioPdfHeader(
+export function drawLocavioPdfHeader(
   page: PDFPage,
   font: PDFFont,
   fontBold: PDFFont,
@@ -77,7 +77,7 @@ export function drawProplioPdfHeader(
     height: PDF_HEADER_H,
     color: PDF_VIOLET,
   });
-  page.drawText("Proplio", {
+  page.drawText("Locavio", {
     x: PDF_MARGIN_X,
     y: pageHeight - 27,
     size: 22,
@@ -127,7 +127,7 @@ export function drawProplioPdfHeader(
   });
 }
 
-export function drawProplioPdfFooter(
+export function drawLocavioPdfFooter(
   page: PDFPage,
   pageIndex: number,
   totalPages: number,
@@ -138,6 +138,6 @@ export function drawProplioPdfFooter(
   drawFooter(page, { pageIndex, totalPages, font, fontBold, pageWidth });
 }
 
-export function drawProplioPdfFooterOnAllPages(doc: PDFDocument, font: PDFFont, fontBold: PDFFont) {
+export function drawLocavioPdfFooterOnAllPages(doc: PDFDocument, font: PDFFont, fontBold: PDFFont) {
   drawFooterOnAllPages(doc, font, fontBold);
 }

@@ -17,8 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { PLAN_DISPLAY_FEATURES, PLAN_DISPLAY_LABELS, type PlanDisplayId } from "@/lib/plan-display-copy";
 import { BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, panelCard } from "@/lib/locavio-field-styles";
 
 function scrollAbonnementIntoView() {
   if (typeof window === "undefined" || window.location.hash !== "#abonnement") return;
@@ -269,10 +269,10 @@ export default function ParametresPage() {
   }
 
   return (
-    <section className="proplio-page-wrap max-w-4xl space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap max-w-4xl space-y-8" style={{ color: PC.text }}>
       <header>
-        <h1 className="proplio-page-title">Paramètres</h1>
-        <p className="proplio-page-subtitle max-w-2xl">
+        <h1 className="locavio-page-title">Paramètres</h1>
+        <p className="locavio-page-subtitle max-w-2xl">
           Configurez votre profil propriétaire utilisé automatiquement dans les quittances et baux.
         </p>
       </header>

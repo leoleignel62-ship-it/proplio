@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/legal-page-shell";
 
 export const metadata: Metadata = {
-  title: "Qui sommes-nous — Proplio",
+  title: "Qui sommes-nous — Locavio",
   description:
-    "Découvrez l'histoire de Proplio, créé par Tony et Léo pour simplifier la gestion locative des propriétaires français.",
+    "Découvrez l'histoire de Locavio, créé par Tony et Léo pour simplifier la gestion locative des propriétaires français.",
   openGraph: {
-    title: "Qui sommes-nous — Proplio",
-    description: "Découvrez l'histoire de Proplio.",
+    title: "Qui sommes-nous — Locavio",
+    description: "Découvrez l'histoire de Locavio.",
     url: "https://proplio-red.vercel.app/qui-sommes-nous",
-    siteName: "Proplio",
+    siteName: "Locavio",
     locale: "fr_FR",
     type: "website",
   },
@@ -50,7 +50,7 @@ export default function QuiSommesNousPage() {
         </p>
 
         <p>
-          C&apos;est comme ça que Proplio est né. D&apos;une phrase, d&apos;un problème réel, et de l&apos;envie de changer
+          C&apos;est comme ça que Locavio est né. D&apos;une phrase, d&apos;un problème réel, et de l&apos;envie de changer
           les choses.
         </p>
 
@@ -67,7 +67,7 @@ export default function QuiSommesNousPage() {
             className="inline-flex items-center justify-center rounded-lg px-8 py-3 text-sm font-semibold"
             style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
           >
-            Essayer Proplio gratuitement
+            Essayer Locavio gratuitement
           </Link>
         </div>
       </div>

@@ -89,7 +89,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
       to: [to],
       subject: "Reçu de paiement — solde séjour",
       html: `<p>Bonjour ${voyageur.prenom ?? ""},</p><p>Veuillez trouver votre reçu de paiement en pièce jointe.</p>`,
-      attachments: [{ filename: "recu-solde-proplio.pdf", content: pdfBase64 }],
+      attachments: [{ filename: "recu-solde-locavio.pdf", content: pdfBase64 }],
     });
     if (emailResult.error) {
       return NextResponse.json({ error: emailResult.error.message }, { status: 502 });

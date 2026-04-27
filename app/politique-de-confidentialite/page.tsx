@@ -2,8 +2,8 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité — Proplio",
-  description: "Politique de confidentialité et protection des données de Proplio.",
+  title: "Politique de confidentialité — Locavio",
+  description: "Politique de confidentialité et protection des données de Locavio.",
 };
 
 export default function PolitiqueConfidentialitePage() {

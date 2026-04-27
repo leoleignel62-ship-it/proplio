@@ -130,7 +130,7 @@ export async function POST(
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const typeLabel = getEdlTypeEtatFromRow(edl as Record<string, unknown>) === "sortie" ? "sortie" : "entrée";
-    const subject = `État des lieux (${typeLabel}) — Proplio`;
+    const subject = `État des lieux (${typeLabel}) — Locavio`;
     const bailleurNom = `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim();
 
     const to = [...new Set([ownerEmail, tenantEmail])];
@@ -140,7 +140,7 @@ export async function POST(
       to,
       subject,
       html: `<p>Bonjour,</p>
-<p>Veuillez trouver en pièce jointe l'état des lieux (${typeLabel}) établi via Proplio.</p>
+<p>Veuillez trouver en pièce jointe l'état des lieux (${typeLabel}) établi via Locavio.</p>
 <p>Ce message est adressé au bailleur et au ${isSaisonnierPdf ? "preneur (voyageur)" : "locataire"} pour conservation.</p>
 <p>Cordialement,<br/>${bailleurNom}</p>`,
       attachments: [

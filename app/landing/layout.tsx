@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Proplio — Gestion locative simplifiée",
+  title: "Locavio — Gestion locative simplifiée",
   description:
     "Gérez vos locations sans perdre votre temps. Quittances, baux, états des lieux, révision des loyers — tout est centralisé et automatisé en quelques clics.",
   openGraph: {
-    title: "Proplio — Gestion locative simplifiée",
+    title: "Locavio — Gestion locative simplifiée",
     description: "Gérez vos locations sans perdre votre temps.",
     url: "https://proplio-red.vercel.app/landing",
-    siteName: "Proplio",
+    siteName: "Locavio",
     locale: "fr_FR",
     type: "website",
   },

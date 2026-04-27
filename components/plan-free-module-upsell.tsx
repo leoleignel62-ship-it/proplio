@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BtnPrimary } from "@/components/ui";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
-import type { ProplioPlan } from "@/lib/plan-limits";
-import { panelCard } from "@/lib/proplio-field-styles";
+import type { LocavioPlan } from "@/lib/plan-limits";
+import { panelCard } from "@/lib/locavio-field-styles";
 import type { CSSProperties } from "react";
 
 const HERO_CARD: CSSProperties = {
@@ -23,7 +23,7 @@ const PLAN_CARD: CSSProperties = {
   border: `1px solid ${PC.border}`,
 };
 
-type PaidPlan = Exclude<ProplioPlan, "free">;
+type PaidPlan = Exclude<LocavioPlan, "free">;
 
 const PLAN_ROWS: Array<{
   id: PaidPlan;
@@ -64,7 +64,7 @@ const copy = {
   "etats-des-lieux": {
     kicker: "États des lieux",
     benefits:
-      "Débloquez les états des lieux d’entrée et de sortie : pièces détaillées, photos, compteurs et PDF Proplio, pour une traçabilité complète et des comparaisons entrée / sortie.",
+      "Débloquez les états des lieux d’entrée et de sortie : pièces détaillées, photos, compteurs et PDF Locavio, pour une traçabilité complète et des comparaisons entrée / sortie.",
   },
   "revisions-irl": {
     kicker: "Révision IRL",
@@ -98,7 +98,7 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
   }
 
   return (
-    <section className="proplio-page-wrap space-y-10" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-10" style={{ color: PC.text }}>
       <div className="mx-auto max-w-2xl space-y-5 text-center">
         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PC.secondary }}>
           {kicker}

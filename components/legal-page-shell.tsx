@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { IconHome } from "@/components/proplio-icons";
-import { PC } from "@/lib/proplio-colors";
+import { IconHome } from "@/components/locavio-icons";
+import { PC } from "@/lib/locavio-colors";
 
 export function LegalPageShell({
   title,
@@ -31,7 +31,7 @@ export function LegalPageShell({
             >
               <IconHome className="h-5 w-5" aria-hidden />
             </span>
-            Proplio
+            Locavio
           </Link>
           <Link href="/landing" className="text-sm font-medium underline" style={{ color: PC.muted }}>
             Retour vers l&apos;accueil
@@ -58,7 +58,7 @@ export function LegalPageShell({
               <IconHome className="h-6 w-6" aria-hidden />
             </span>
             <span className="text-lg font-bold tracking-tight" style={{ color: PC.text }}>
-              Proplio
+              Locavio
             </span>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
@@ -86,7 +86,7 @@ export function LegalPageShell({
           </nav>
         </div>
         <p className="mx-auto mt-8 max-w-6xl text-center text-sm sm:text-left" style={{ color: PC.tertiary }}>
-          © {new Date().getFullYear()} Proplio. Tous droits réservés.
+          © {new Date().getFullYear()} Locavio. Tous droits réservés.
         </p>
       </footer>
     </div>

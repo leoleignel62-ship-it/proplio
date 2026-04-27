@@ -1,4 +1,4 @@
--- Performance indexes for common Proplio filters.
+-- Performance indexes for common Locavio filters.
 -- Safe to run multiple times.
 
 create index if not exists idx_proprietaires_user_id

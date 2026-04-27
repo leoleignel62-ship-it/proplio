@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { IconHome, IconPlus } from "@/components/proplio-icons";
+import { IconHome, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
@@ -15,13 +15,13 @@ import {
   PLAN_FREE_EDL_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
-  type ProplioPlan,
+  type LocavioPlan,
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PC } from "@/lib/proplio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/proplio-field-styles";
+import { PC } from "@/lib/locavio-colors";
+import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 import type { CSSProperties } from "react";
 const EDL_GROUP_CARD: CSSProperties = { ...panelCard, padding: 16 };
 
@@ -91,7 +91,7 @@ export default function EtatsDesLieuxPage() {
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<ProplioPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -432,12 +432,12 @@ export default function EtatsDesLieuxPage() {
   const edlFreeBlocked = currentPlan === "free";
 
   return (
-    <section className="proplio-page-wrap space-y-8" style={{ color: PC.text }}>
+    <section className="locavio-page-wrap space-y-8" style={{ color: PC.text }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">États des lieux</h1>
-          <p className="proplio-page-subtitle max-w-xl">
-            États d&apos;entrée et de sortie, photos, compteurs et PDF Proplio.
+          <h1 className="locavio-page-title">États des lieux</h1>
+          <p className="locavio-page-subtitle max-w-xl">
+            États d&apos;entrée et de sortie, photos, compteurs et PDF Locavio.
           </p>
         </div>
         <select

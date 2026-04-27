@@ -13,10 +13,10 @@ import {
   YAxis,
 } from "recharts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/proplio-icons";
+import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/locavio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
 import { BtnPrimary } from "@/components/ui";
-import { PC } from "@/lib/proplio-colors";
+import { PC } from "@/lib/locavio-colors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type DashboardStats = {
@@ -425,8 +425,8 @@ export function DashboardContent() {
 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="proplio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
-          <p className="proplio-page-subtitle capitalize">{dateLong}</p>
+          <h1 className="locavio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
+          <p className="locavio-page-subtitle capitalize">{dateLong}</p>
         </div>
       </header>
 
@@ -434,7 +434,7 @@ export function DashboardContent() {
         <StatCard
           titre="Logements actifs"
           valeur={stats.logements}
-          description="Biens enregistrés sur Proplio."
+          description="Biens enregistrés sur Locavio."
           icon={IconBuilding}
           iconTint={PC.primaryLight}
         />

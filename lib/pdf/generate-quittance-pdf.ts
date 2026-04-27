@@ -12,10 +12,10 @@ import {
   PDF_VIOLET,
   PDF_VIOLET_DARK,
   PDF_WHITE,
-  drawProplioPdfFooterOnAllPages,
-  drawProplioPdfHeader,
+  drawLocavioPdfFooterOnAllPages,
+  drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
-} from "@/lib/pdf/proplio-pdf-theme";
+} from "@/lib/pdf/locavio-pdf-theme";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_BLOCK_HEIGHT,
@@ -84,7 +84,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   const right = pageWidth - PDF_MARGIN_X;
   const lineHeight = 18;
 
-  drawProplioPdfHeader(page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth);
+  drawLocavioPdfHeader(page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth);
 
   let y = pdfContentTopAfterHeader(pageHeight);
 
@@ -422,7 +422,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
-  drawProplioPdfFooterOnAllPages(pdfDoc, font, fontBold);
+  drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);
 
   return pdfDoc.save();
 }
