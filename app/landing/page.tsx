@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   IconCalendar,
   IconContract,
@@ -141,6 +141,18 @@ const LANDING_PRICING_META: Record<
 
 const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
 
+function AnimatedBackground() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden" aria-hidden>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.08),transparent_55%)]" />
+      <div className="absolute left-[6%] top-[8%] h-[420px] w-[420px] rounded-full bg-[#7c3aed] opacity-[0.14] blur-[110px] animate-[locavio-orbit-1_18s_linear_infinite]" />
+      <div className="absolute right-[8%] top-[12%] h-[500px] w-[500px] rounded-full bg-[#4f46e5] opacity-[0.13] blur-[115px] animate-[locavio-orbit-2_24s_linear_infinite]" />
+      <div className="absolute left-[22%] bottom-[6%] h-[360px] w-[360px] rounded-full bg-[#a78bfa] opacity-[0.15] blur-[95px] animate-[locavio-orbit-3_20s_linear_infinite]" />
+      <div className="absolute right-[18%] bottom-[12%] h-[320px] w-[320px] rounded-full bg-[#6366f1] opacity-[0.12] blur-[90px] animate-[locavio-orbit-4_16s_linear_infinite]" />
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [billing, setBilling] = useState<BillingMode>("annuel");
   const [exampleEmails, setExampleEmails] = useState<Record<LandingExempleType, string>>({
@@ -167,6 +179,46 @@ export default function LandingPage() {
     "etat-des-lieux": "",
     "contrat-sejour": "",
   });
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [parallax, setParallax] = useState(0);
+  const [featureVisible, setFeatureVisible] = useState<Record<number, boolean>>({});
+  const featureRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 50);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setParallax(window.scrollY * 0.06));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const index = Number((entry.target as HTMLElement).dataset.featureIndex ?? "-1");
+          if (index >= 0 && entry.isIntersecting) {
+            setFeatureVisible((prev) => ({ ...prev, [index]: true }));
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+    featureRefs.current.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   const handleExampleSubmit = async (type: LandingExempleType) => {
     const email = exampleEmails[type].trim().toLowerCase();
@@ -228,14 +280,16 @@ export default function LandingPage() {
   );
 
   return (
-    <div style={pageBg}>
+    <div className="relative isolate" style={pageBg}>
+      <AnimatedBackground />
       <header
         className="sticky top-0 z-[60] border-b"
         style={{
           borderColor: PC.border,
-          backgroundColor: "rgba(6,6,15,0.8)",
+          backgroundColor: isScrolled ? "rgba(6,6,15,0.92)" : "rgba(6,6,15,0.8)",
           WebkitBackdropFilter: "blur(20px)",
           backdropFilter: "blur(20px)",
+          transition: "background-color 200ms ease-out",
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -269,16 +323,34 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
+        <section className="landing-shell relative overflow-hidden rounded-2xl px-6 py-20 sm:px-12 sm:py-24" style={glassCard}>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px)",
+              backgroundSize: "48px 48px",
+              transform: `translateY(${parallax}px)`,
+              animation: "locavio-grid-drift 20s linear infinite",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-[34%] h-44 w-96 -translate-x-1/2 rounded-full"
+            style={{
+              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.28) 0%, rgba(124,58,237,0) 70%)",
+              filter: "blur(60px)",
+              animation: "locavio-pulse 3s ease infinite",
+            }}
+          />
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
             <LogoMarkColor className="mx-auto h-16 w-16" />
             <h1
               className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
               style={{ color: PC.text }}
             >
-              <span className="locavio-gradient-text">Gérez vos locations.</span>
+              <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
               <br />
               Sans perdre votre temps.
             </h1>
@@ -321,6 +393,21 @@ export default function LandingPage() {
               <li>✓ Sans carte bancaire</li>
               <li>✓ Données sécurisées</li>
             </ul>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span
+                key={i}
+                className="pointer-events-none absolute rounded-full"
+                style={{
+                  width: 4,
+                  height: 4,
+                  left: `${12 + i * 11}%`,
+                  top: `${18 + (i % 3) * 16}%`,
+                  backgroundColor: i % 2 === 0 ? "#a78bfa" : "#6366f1",
+                  opacity: 0.3,
+                  animation: `locavio-float-y ${3 + i * 0.7}s ease-in-out ${i * 0.3}s infinite`,
+                }}
+              />
+            ))}
           </div>
         </section>
 
@@ -364,7 +451,7 @@ export default function LandingPage() {
         </section>
 
         {/* FEATURES */}
-        <section className="mt-24 space-y-16">
+        <section className="mt-28 space-y-16">
           <h2
             className="text-center text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl"
             style={{ color: PC.text }}
@@ -422,7 +509,16 @@ export default function LandingPage() {
           ].map((f, i) => (
             <div
               key={f.title}
+              ref={(el) => {
+                featureRefs.current[i] = el;
+              }}
+              data-feature-index={i}
               className={`flex flex-col gap-8 lg:flex-row lg:items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
+              style={{
+                opacity: featureVisible[i] ? 1 : 0,
+                transform: featureVisible[i] ? "translateY(0)" : "translateY(16px)",
+                transition: "opacity 400ms ease-out, transform 400ms ease-out",
+              }}
             >
               <div
                 className="flex flex-1 items-center justify-center rounded-2xl p-10"
@@ -574,7 +670,8 @@ export default function LandingPage() {
                       plan.popular || plan.highlight
                         ? `1px solid rgba(124, 58, 237, 0.45)`
                         : `1px solid ${PC.border}`,
-                    boxShadow: plan.highlight ? PC.activeRing : "0 1px 3px rgba(0, 0, 0, 0.25)",
+                    boxShadow: plan.highlight ? PC.cardShadowHover : "0 1px 3px rgba(0, 0, 0, 0.25)",
+                    transform: plan.highlight ? "scale(1.01)" : undefined,
                   }}
                 >
                   {plan.popular ? (

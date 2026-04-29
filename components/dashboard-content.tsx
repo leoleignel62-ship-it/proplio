@@ -271,7 +271,7 @@ function StatCard({
 }) {
   return (
     <article
-      className="locavio-glow-card relative overflow-hidden p-5 transition-shadow duration-200 ease-out"
+      className="locavio-glow-card relative overflow-hidden p-6 transition-shadow duration-200 ease-out"
       style={{
         borderRadius: 12,
       }}
