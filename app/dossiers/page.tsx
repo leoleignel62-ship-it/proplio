@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { IconFolder, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnPrimary, ConfirmModal } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
+import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { NOTE_COLORS } from "@/lib/candidature";
 
@@ -17,7 +18,7 @@ type DossierRow = {
   candidature_formulaires?: Array<{ score?: number; note?: string }>;
 };
 
-type LogementOption = { id: string; label: string };
+type LogementOption = { id: string; label: string; nom: string; adresse: string };
 
 export default function DossiersPage() {
   const [rows, setRows] = useState<DossierRow[]>([]);
@@ -31,10 +32,12 @@ export default function DossiersPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setLoading(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      const { proprietaireId: ownerId } = await getCurrentProprietaireId();
       const [{ data: dossiersData }, { data: logementsData }] = await Promise.all([
         supabase
           .from("candidature_dossiers")
@@ -43,17 +46,21 @@ export default function DossiersPage() {
           )
           .eq("proprietaire_id", user.id)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("logements")
-          .select("id, nom, adresse")
-          .eq("proprietaire_id", user.id)
-          .order("created_at", { ascending: false }),
+        ownerId
+          ? supabase
+              .from("logements")
+              .select("id, nom, adresse")
+              .eq("proprietaire_id", ownerId)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (!cancelled) {
         setRows((dossiersData as DossierRow[]) ?? []);
         setLogements(
           ((logementsData as Array<{ id?: string; nom?: string; adresse?: string }> | null) ?? []).map((row) => ({
             id: String(row.id ?? ""),
+            nom: String(row.nom ?? "").trim(),
+            adresse: String(row.adresse ?? "").trim(),
             label: String(row.nom ?? "").trim() || String(row.adresse ?? "").trim() || "Logement sans nom",
           })),
         );
@@ -66,11 +73,20 @@ export default function DossiersPage() {
   }, []);
 
   const filteredRows = useMemo(
-    () =>
-      selectedLogementFilter
-        ? rows.filter((row) => row.logement_concerne === selectedLogementFilter)
-        : rows,
-    [rows, selectedLogementFilter],
+    () => {
+      if (!selectedLogementFilter) return rows;
+      const selected = logements.find((item) => item.id === selectedLogementFilter);
+      if (!selected) return rows;
+      return rows.filter((row) => {
+        const logementConcerne = String(row.logement_concerne ?? "").trim().toLowerCase();
+        return (
+          logementConcerne === selected.label.toLowerCase() ||
+          (selected.nom && logementConcerne === selected.nom.toLowerCase()) ||
+          (selected.adresse && logementConcerne === selected.adresse.toLowerCase())
+        );
+      });
+    },
+    [rows, selectedLogementFilter, logements],
   );
 
   async function handleDelete() {
@@ -111,7 +127,7 @@ export default function DossiersPage() {
           >
             <option value="">Tous les logements</option>
             {logements.map((logement) => (
-              <option key={logement.id} value={logement.label}>
+              <option key={logement.id} value={logement.id}>
                 {logement.label}
               </option>
             ))}
