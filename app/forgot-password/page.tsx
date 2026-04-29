@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2" style={{ backgroundColor: "#0a0a0f", color: PC.text }}>
       <aside className="relative hidden lg:flex lg:flex-col lg:justify-between lg:p-12" style={LEFT_BG}>
         <div className="flex items-center">
-          <LogoFull className="h-8 w-auto" />
+          <LogoFull className="h-9 w-auto" />
         </div>
         <div className="mx-auto max-w-md text-center">
           <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em]">Gérez vos locations.</p>

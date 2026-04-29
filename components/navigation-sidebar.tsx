@@ -466,7 +466,7 @@ export function NavigationSidebar() {
       <aside className="hidden flex-col md:flex" style={asideStyle}>
         <div className="flex h-full min-h-0 flex-col p-5">
           <Link href="/" className="mb-6 flex shrink-0 items-center gap-2.5">
-            <LogoFull className="h-7 w-auto" />
+            <LogoFull className="h-9 w-auto" />
           </Link>
 
           <div className="flex min-h-0 flex-1 flex-col">
@@ -569,7 +569,7 @@ export function NavigationSidebar() {
                   className="flex min-w-0 items-center gap-2.5"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <LogoFull className="h-7 w-auto" />
+                  <LogoFull className="h-9 w-auto" />
                 </Link>
                 <button
                   type="button"

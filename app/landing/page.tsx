@@ -9,6 +9,7 @@ import {
   IconDocument,
   IconFolder,
   LogoFull,
+  LogoMark,
   IconTrendingUp,
 } from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
@@ -239,7 +240,7 @@ export default function LandingPage() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/landing" className="flex items-center gap-2.5 font-bold tracking-tight" style={{ color: PC.text }}>
-            <LogoFull className="h-7 w-auto" />
+            <LogoFull className="h-9 w-auto" />
           </Link>
           <Link
             href="/qui-sommes-nous"
@@ -272,12 +273,7 @@ export default function LandingPage() {
         {/* HERO */}
         <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
-            <p
-              className="locavio-badge-new inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
-              style={{ color: PC.secondary, border: `1px solid ${PC.border}` }}
-            >
-              Nouveau : États des lieux IA
-            </p>
+            <LogoMark className="mx-auto h-16 w-16" />
             <h1
               className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
               style={{ color: PC.text }}
@@ -736,7 +732,7 @@ export default function LandingPage() {
       <footer id="footer" className="border-t px-4 py-12 sm:px-6" style={{ borderColor: PC.border, background: `linear-gradient(to top, ${PC.card}, transparent 70%)` }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-2">
-            <LogoFull className="h-8 w-auto" />
+            <LogoFull className="h-9 w-auto" />
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
             <Link href="#tarifs" className="transition hover:text-white" style={{ transition: ease }}>
