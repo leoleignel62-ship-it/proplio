@@ -65,6 +65,10 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  console.log("WELCOME DEBUG - user:", user?.id, user?.email);
+  console.log("WELCOME DEBUG - welcome_email_sent:", user?.user_metadata?.welcome_email_sent);
+  console.log("WELCOME DEBUG - resend instance:", !!resend);
+  console.log("WELCOME DEBUG - RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY);
 
   const welcomeEmailSent = Boolean(user?.user_metadata?.welcome_email_sent);
 
@@ -99,12 +103,14 @@ export async function GET(request: NextRequest) {
     `;
 
     try {
+      console.log("WELCOME DEBUG - sending email to:", user.email);
       const emailResult = await resend.emails.send({
         from: "Locavio <noreply@locavio.fr>",
         to: [user.email],
         subject: "Bienvenue sur Locavio 🎉",
         html: emailHtml,
       });
+      console.log("WELCOME DEBUG - email result:", JSON.stringify(emailResult));
       if (emailResult.error) {
         console.error("Welcome email failed:", emailResult.error.message);
       } else {
@@ -114,6 +120,7 @@ export async function GET(request: NextRequest) {
             welcome_email_sent: true,
           },
         });
+        console.log("WELCOME DEBUG - metadata updated, error:", updateUserError);
         if (updateUserError) {
           console.error("Welcome email metadata update failed:", updateUserError.message);
         }
