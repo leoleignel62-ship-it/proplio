@@ -21,6 +21,7 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
         "🔍 États des lieux illimités (photos + PDF)",
         "📈 Révision annuelle des loyers (IRL INSEE)",
         "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+        "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
         "🏠 Logements illimités",
         "👥 Locataires illimités",
       ],
@@ -35,6 +36,7 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
         "🔍 États des lieux illimités (photos + PDF)",
         "📈 Révision annuelle des loyers (IRL INSEE)",
         "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+        "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
         "🏠 Jusqu'à 5 logements simultanés",
       ],
     };
@@ -47,6 +49,7 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
       "🔍 États des lieux illimités (photos + PDF)",
       "📈 Révision annuelle des loyers (IRL INSEE)",
       "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
+      "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
     ],
   };
 }

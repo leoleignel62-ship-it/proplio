@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { IconFolder, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnPrimary, ConfirmModal } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { NOTE_COLORS } from "@/lib/candidature";
@@ -25,6 +27,7 @@ export default function DossiersPage() {
   const [logements, setLogements] = useState<LogementOption[]>([]);
   const [selectedLogementFilter, setSelectedLogementFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -36,8 +39,18 @@ export default function DossiersPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+      const plan = ownerId ? await getOwnerPlan(ownerId) : "free";
+      if (cancelled) return;
+      setCurrentPlan(plan);
+      if (plan === "free") {
+        setLoading(false);
+        return;
+      }
       const [{ data: dossiersData }, { data: logementsData }] = await Promise.all([
         supabase
           .from("candidature_dossiers")
@@ -109,6 +122,10 @@ export default function DossiersPage() {
     setIsDeleting(false);
   }
 
+  if (!loading && currentPlan === "free") {
+    return <PlanFreeModuleUpsell variant="dossiers" />;
+  }
+
   return (
     <section className="locavio-page-wrap space-y-6">
       <div className="flex items-center justify-between">
@@ -137,6 +154,42 @@ export default function DossiersPage() {
       {error ? (
         <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
           {error}
+        </div>
+      ) : null}
+      {!loading && rows.length === 0 ? (
+        <div
+          className="locavio-card rounded-2xl p-5"
+          style={{
+            border: `1px solid ${PC.primaryBorder40}`,
+            backgroundColor: PC.glassBg,
+            WebkitBackdropFilter: PC.glassBlur,
+            backdropFilter: PC.glassBlur,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="text-2xl" aria-hidden>
+              🗂️
+            </div>
+            <div className="flex-1 space-y-3">
+              <h2 className="text-lg font-semibold" style={{ color: PC.text }}>
+                Comment ça marche ?
+              </h2>
+              <div className="space-y-2 text-sm" style={{ color: PC.muted }}>
+                <p>① Créez un dossier — Renseignez le logement concerné et les coordonnées du candidat</p>
+                <p>
+                  ② Le candidat reçoit un lien — Il complète son dossier en ligne (situation pro, revenus, garant,
+                  documents)
+                </p>
+                <p>
+                  ③ Vous recevez le score — Locavio analyse le dossier et attribue une note de A (excellent) à E
+                  (insuffisant)
+                </p>
+              </div>
+              <Link href="/dossiers/nouveau" className="inline-flex">
+                <BtnPrimary>Créer mon premier dossier</BtnPrimary>
+              </Link>
+            </div>
+          </div>
         </div>
       ) : null}
       {loading ? <div className="locavio-card rounded-xl p-4">Chargement...</div> : null}

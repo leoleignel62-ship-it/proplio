@@ -286,7 +286,7 @@ export function NavigationSidebar() {
 
   function isSidebarStarterOnlyLocked(href: string): boolean {
     if (ownerPlan !== "free") return false;
-    if (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux") return true;
+    if (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux" || href === "/dossiers") return true;
     if (mode === "saisonnier" && href.startsWith("/saisonnier")) return true;
     return false;
   }
@@ -302,6 +302,7 @@ export function NavigationSidebar() {
       "/baux": "baux",
       "/etats-des-lieux": "etats-des-lieux",
       "/revisions-irl": "revisions-irl",
+      "/dossiers": "dossiers-candidature",
       "/saisonnier/reservations": "saisonnier-reservations",
       "/saisonnier/voyageurs": "saisonnier-voyageurs",
       "/saisonnier/contrats": "saisonnier-contrats",

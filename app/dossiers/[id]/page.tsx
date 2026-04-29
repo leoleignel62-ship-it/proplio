@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnSecondary } from "@/components/ui";
 import { formatBytes, NOTE_COLORS, TYPE_DOCUMENT_LABELS } from "@/lib/candidature";
 import { PC } from "@/lib/locavio-colors";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 
 type DossierData = {
@@ -42,10 +45,19 @@ export default function DossierDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [dossier, setDossier] = useState<DossierData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const { proprietaireId: ownerId } = await getCurrentProprietaireId();
+      const plan = ownerId ? await getOwnerPlan(ownerId) : "free";
+      if (cancelled) return;
+      setCurrentPlan(plan);
+      if (plan === "free") {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from("candidature_dossiers")
         .select(
@@ -86,6 +98,7 @@ export default function DossierDetailPage() {
     if (candidateUrl) await navigator.clipboard.writeText(candidateUrl);
   }
 
+  if (!loading && currentPlan === "free") return <PlanFreeModuleUpsell variant="dossiers" />;
   if (loading) return <section className="locavio-page-wrap">Chargement...</section>;
   if (!dossier) return <section className="locavio-page-wrap">Dossier introuvable.</section>;
 

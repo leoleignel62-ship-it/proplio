@@ -593,6 +593,7 @@ export default function LandingPage() {
 
           {[
             {
+              kind: "default" as const,
               icon: IconDocument,
               title: "Quittances en 1 clic, dès réception du loyer",
               body: "Générez et envoyez vos quittances en 1 clic dès réception du loyer. PDF conforme généré instantanément, envoyé par email à votre locataire en un seul clic.",
@@ -601,6 +602,7 @@ export default function LandingPage() {
               exampleType: "quittance" as const,
             },
             {
+              kind: "default" as const,
               icon: IconContract,
               title: "Baux légaux générés en quelques minutes",
               body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Locavio génère un bail complet et conforme, prêt à signer et envoyer par email.",
@@ -609,6 +611,7 @@ export default function LandingPage() {
               exampleType: "bail" as const,
             },
             {
+              kind: "default" as const,
               icon: IconDeviceCamera,
               title: "États des lieux complets, directement depuis votre smartphone",
               body: "Réalisez votre état des lieux sur place en prenant des photos pièce par pièce directement depuis l'application. Le rapport PDF complet est généré automatiquement et envoyé aux deux parties.",
@@ -617,6 +620,7 @@ export default function LandingPage() {
               exampleType: "etat-des-lieux" as const,
             },
             {
+              kind: "default" as const,
               icon: IconCalendar,
               title: "Contrats saisonniers prêts à envoyer en quelques minutes",
               body: "Préparez des contrats de séjour complets avec toutes les informations de réservation. Le document PDF est prêt à l'envoi immédiatement, sans ressaisie.",
@@ -625,6 +629,7 @@ export default function LandingPage() {
               exampleType: "contrat-sejour" as const,
             },
             {
+              kind: "default" as const,
               icon: IconTrendingUp,
               title: "Révision annuelle des loyers calculée automatiquement",
               body: "Locavio détecte automatiquement les baux éligibles à la révision annuelle et calcule le nouveau loyer selon l'Indice de Référence des Loyers (IRL) publié par l'INSEE. Validez en un clic et envoyez la lettre de révision officielle à votre locataire par email.",
@@ -632,6 +637,15 @@ export default function LandingPage() {
               badgeTone: "starter" as const,
             },
             {
+              kind: "dossiers" as const,
+              icon: IconFolder,
+              title: "Analysez la solvabilité de vos candidats",
+              body: "Envoyez un questionnaire personnalisé à chaque candidat locataire. Locavio analyse automatiquement le dossier et vous attribue une note de solvabilité claire — pour choisir le bon locataire en toute confiance.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+            },
+            {
+              kind: "default" as const,
               icon: IconFolder,
               title: "Données locatives centralisées",
               body: "Concentrez-vous sur la gestion des quittances, baux, états des lieux et suivi financier dans une interface claire et rapide.",
@@ -656,9 +670,47 @@ export default function LandingPage() {
                 className="flex flex-1 items-center justify-center rounded-2xl p-10"
                 style={{ ...solidCard, minHeight: 200 }}
               >
-                <div className="locavio-glow-card flex h-24 w-24 items-center justify-center rounded-2xl" style={{ color: PC.primaryLight }}>
-                  <f.icon className="h-12 w-12" aria-hidden />
-                </div>
+                {f.kind === "dossiers" ? (
+                  <div
+                    className="w-full max-w-sm rounded-2xl p-4"
+                    style={{
+                      backgroundColor: PC.glassBg,
+                      border: `1px solid ${PC.primaryBorder40}`,
+                      WebkitBackdropFilter: PC.glassBlur,
+                      backdropFilter: PC.glassBlur,
+                    }}
+                  >
+                    <p className="text-xs font-semibold" style={{ color: PC.success }}>
+                      Dossier recu ✅
+                    </p>
+                    <p className="mt-2 text-sm font-semibold" style={{ color: PC.text }}>
+                      Sophie Bernard
+                    </p>
+                    <p className="text-xs" style={{ color: PC.muted }}>
+                      Appartement — 75011 Paris
+                    </p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold"
+                        style={{ backgroundColor: PC.successBg10, color: PC.success }}
+                      >
+                        A
+                      </span>
+                      <span className="text-sm font-semibold" style={{ color: PC.text }}>
+                        87/100
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-1.5 text-xs" style={{ color: PC.success }}>
+                      <p>✅ Revenus : 3.2x le loyer</p>
+                      <p>✅ CDI — 3 ans d&apos;anciennete</p>
+                      <p>✅ Garant Visale</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="locavio-glow-card flex h-24 w-24 items-center justify-center rounded-2xl" style={{ color: PC.primaryLight }}>
+                    <f.icon className="h-12 w-12" aria-hidden />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <span

@@ -75,6 +75,14 @@ const FREE_TOUR_STEPS: TourStep[] = [
     lockedOnFree: true,
   },
   {
+    key: "dossiers-candidature",
+    targetId: "dossiers-candidature",
+    title: "🗂️ Dossiers de candidature",
+    description:
+      "Envoyez un questionnaire à vos candidats locataires et recevez une note de solvabilité automatique. Disponible à partir du plan Starter.",
+    lockedOnFree: true,
+  },
+  {
     key: "mode-saisonnier",
     targetId: "mode-saisonnier",
     title: "🌴 Mode saisonnier",
@@ -105,6 +113,13 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "📈 Révision des loyers — Débloqué ✅",
     description:
       "Ne ratez plus jamais une révision de loyer. L'indice IRL est récupéré automatiquement depuis l'INSEE.",
+  },
+  {
+    key: "dossiers-candidature",
+    targetId: "dossiers-candidature",
+    title: "🗂️ Dossiers de candidature",
+    description:
+      "Créez un dossier, envoyez le lien au candidat par email, et recevez automatiquement une note de solvabilité (A à E) basée sur ses revenus, son contrat de travail et la présence d'un garant.",
   },
   {
     key: "mode-saisonnier",

@@ -22,6 +22,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "États des lieux non inclus",
       "Mode saisonnier non inclus",
       "Révision IRL non incluse",
+      "Dossiers de candidature — Non inclus",
     ],
   },
   starter: {
@@ -33,6 +34,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "États des lieux illimités (photos + PDF + envoi email)",
       "Révision annuelle des loyers (IRL INSEE)",
       "Mode saisonnier inclus (réservations, contrats, calendrier iCal)",
+      "Dossiers de candidature — Illimité",
     ],
   },
   pro: {
@@ -44,6 +46,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "États des lieux illimités",
       "Révision annuelle des loyers (IRL INSEE)",
       "Mode saisonnier inclus",
+      "Dossiers de candidature — Illimité",
     ],
   },
   expert: {
@@ -55,6 +58,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "États des lieux illimités",
       "Révision annuelle des loyers (IRL INSEE)",
       "Mode saisonnier illimité",
+      "Dossiers de candidature — Illimité",
     ],
   },
 };

@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
+import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -29,6 +31,7 @@ export default function NouveauDossierPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLogements, setIsLoadingLogements] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [selectedLogement, setSelectedLogement] = useState("");
   const [logements, setLogements] = useState<LogementOption[]>([]);
   const [message, setMessage] = useState("");
@@ -58,7 +61,15 @@ export default function NouveauDossierPage() {
         return;
       }
       if (!ownerId) {
+        if (!cancelled) setCurrentPlan("free");
         if (!cancelled) setIsLoadingLogements(false);
+        return;
+      }
+      const plan = await getOwnerPlan(ownerId);
+      if (cancelled) return;
+      setCurrentPlan(plan);
+      if (plan === "free") {
+        setIsLoadingLogements(false);
         return;
       }
       const { data, error } = await supabase
@@ -127,6 +138,10 @@ export default function NouveauDossierPage() {
     }
     setMessage(`Email envoyé à ${values.email_candidat}`);
     router.push(`/dossiers/${payload.dossier_id}`);
+  }
+
+  if (!isLoadingLogements && currentPlan === "free") {
+    return <PlanFreeModuleUpsell variant="dossiers" />;
   }
 
   return (

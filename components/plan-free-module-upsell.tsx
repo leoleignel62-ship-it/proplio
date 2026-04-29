@@ -76,6 +76,11 @@ const copy = {
     benefits:
       "Gérez vos réservations courte durée, voyageurs, calendriers iCal (Airbnb / Booking), taxes de séjour, ménages entre séjours, contrats et reçus PDF — le tout aux côtés de votre activité classique.",
   },
+  dossiers: {
+    kicker: "Dossiers de candidature",
+    benefits:
+      "Les dossiers de candidature sont disponibles à partir du plan Starter. Analysez la solvabilité de vos candidats en quelques minutes.",
+  },
 } as const;
 
 export type PlanFreeModuleUpsellVariant = keyof typeof copy;
