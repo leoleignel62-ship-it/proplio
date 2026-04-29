@@ -149,6 +149,7 @@ async function drawTwoColBlock(
   const xTextR = xR + textInset;
   const colTextMaxW = colW - textInset - 4;
   let yTop = ctx.y;
+  const cardTopY = yTop;
   const cardH = 94;
 
   ctx.page.drawRectangle({
@@ -202,7 +203,8 @@ async function drawTwoColBlock(
 
   const yEndL = drawCol(xTextL, leftLines, colTextMaxW);
   const yEndR = drawCol(xTextR, rightLines, colTextMaxW);
-  ctx.y = Math.min(yEndL, yEndR) - 12;
+  const contentBottomY = Math.min(yEndL, yEndR, cardTopY - cardH);
+  ctx.y = contentBottomY - 16;
 }
 
 /** Ligne simple : label | valeur (2 colonnes) */
@@ -454,6 +456,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     `Caution : ${formatEuro(reservation.tarif_caution)} restituée sous 7 jours après départ sous réserve d'état des lieux.`,
   );
 
+  await startPage(ctx);
   await drawSectionTitle(ctx, "CONDITIONS GÉNÉRALES");
   await drawArticle(
     ctx,
