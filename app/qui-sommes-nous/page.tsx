@@ -26,43 +26,40 @@ export default function QuiSommesNousPage() {
         <p>Tout a commencé par une conversation.</p>
 
         <p>
-          On est Tony et Léo, deux passionnés de technologie et d&apos;entrepreneuriat. À la sortie de notre Master, on
-          avait une certitude : on voulait entreprendre. On passait nos journées à explorer des idées autour de
-          l&apos;intelligence artificielle, convaincus que notre premier projet viendrait de là.
+          Avec Tony, un ami de promo, je passais mes journées à explorer des idées autour de la tech et de
+          l&apos;entrepreneuriat. On voulait créer quelque chose, on cherchait le bon problème à résoudre.
         </p>
 
-        <p>Et puis Enzo est arrivé.</p>
+        <p>C&apos;est Enzo, le frère de Tony, qui m&apos;a mis sur la piste.</p>
 
         <p>
-          Le frère de Tony venait de réaliser son premier investissement immobilier. Il gérait ses logements, découvrait
-          les joies de la gestion locative... et ses galères. Il nous lance presque en passant :{" "}
+          Propriétaire de son premier bien immobilier, il gérait ses logements comme il pouvait - et il m&apos;a dit
+          presque en passant :{" "}
           <em>&quot;Ce serait vraiment trop bien d&apos;avoir un truc qui automatise tout ça.&quot;</em>
         </p>
 
-        <p>On s&apos;est regardés.</p>
+        <p>Cette phrase toute simple a tout changé.</p>
 
         <p>
-          Cette phrase toute simple a tout changé. On a commencé à creuser, à parler à d&apos;autres propriétaires, et on
-          a réalisé que c&apos;était partout pareil : des heures perdues chaque mois sur des quittances, des baux, des
-          relances — du temps précieux qui pourrait être investi ailleurs, à faire grandir leur patrimoine.
+          J&apos;ai commencé à creuser, à comprendre les vraies galères d&apos;un propriétaire bailleur. Des heures perdues
+          chaque mois sur des quittances à imprimer, des baux à rédiger depuis zéro, des états des lieux bâclés faute
+          d&apos;outil adapté. Du temps précieux qui aurait pu être investi ailleurs, à faire grandir son patrimoine.
         </p>
 
         <p>
-          On a décidé d&apos;y répondre sérieusement. Pas juste automatiser les quittances — construire la solution
-          complète que tout propriétaire aurait voulu avoir dès le premier jour.
+          J&apos;ai décidé d&apos;y répondre sérieusement. Fraîchement sorti des études, j&apos;ai lancé Locavio avec
+          une idée simple : construire la solution complète que tout propriétaire aurait voulu avoir dès le premier
+          jour.
         </p>
 
         <p>
-          C&apos;est comme ça que Locavio est né. D&apos;une phrase, d&apos;un problème réel, et de l&apos;envie de changer
-          les choses.
+          D&apos;une phrase entendue par hasard, d&apos;un problème bien réel, et de l&apos;envie sincère de changer les
+          choses.
         </p>
 
-        <p>
-          Notre ambition ? <strong style={{ color: "#7c3aed" }}>Devenir la référence de la gestion locative en France.</strong>{" "}
-          On n&apos;en est qu&apos;au début, et on est impatients de la suite.
-        </p>
+        <p>On n&apos;en est qu&apos;au début. Et j&apos;ai hâte de la suite.</p>
 
-        <p className="mt-10 text-center italic">— Tony &amp; Léo</p>
+        <p className="mt-10 text-center italic">— Léo</p>
 
         <div className="pt-6 text-center">
           <Link
