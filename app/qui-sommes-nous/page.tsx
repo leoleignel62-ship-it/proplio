@@ -6,11 +6,11 @@ import { getSiteUrl } from "@/lib/utils/site-url";
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Qui sommes-nous — Locavio",
+  title: "Qui sommes-nous ? — Locavio, logiciel de gestion locative",
   description:
     "Découvrez l'histoire de Locavio, créé par Tony et Léo pour simplifier la gestion locative des propriétaires français.",
   openGraph: {
-    title: "Qui sommes-nous — Locavio",
+    title: "Qui sommes-nous ? — Locavio, logiciel de gestion locative",
     description: "Découvrez l'histoire de Locavio.",
     url: `${siteUrl}/qui-sommes-nous`,
     siteName: "Locavio",

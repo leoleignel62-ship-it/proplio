@@ -2,7 +2,7 @@ import { LegalPageShell } from "@/components/legal-page-shell";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Conditions Générales d'Utilisation — Locavio",
+  title: "CGU — Locavio",
   description: "Conditions générales d'utilisation de Locavio.",
 };
 

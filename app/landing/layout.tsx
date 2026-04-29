@@ -4,12 +4,16 @@ import { getSiteUrl } from "@/lib/utils/site-url";
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Locavio — Gestion locative simplifiée",
+  title: "Locavio — Gérez vos locations sans perdre votre temps | Logiciel gratuit",
   description:
-    "Gérez vos locations sans perdre votre temps. Quittances, baux, états des lieux, révision des loyers — tout est centralisé et automatisé en quelques clics.",
+    "Locavio est le logiciel de gestion locative pour propriétaires bailleurs. Générez vos quittances en 1 clic, créez des baux conformes ALUR, réalisez vos états des lieux et automatisez la révision IRL. Gratuit pour commencer, sans carte bancaire.",
+  alternates: {
+    canonical: "https://locavio.fr/landing",
+  },
   openGraph: {
-    title: "Locavio — Gestion locative simplifiée",
-    description: "Gérez vos locations sans perdre votre temps.",
+    title: "Locavio — Gérez vos locations sans perdre votre temps | Logiciel gratuit",
+    description:
+      "Locavio est le logiciel de gestion locative pour propriétaires bailleurs. Quittances, baux, états des lieux et révision IRL en quelques clics.",
     url: `${siteUrl}/landing`,
     siteName: "Locavio",
     locale: "fr_FR",

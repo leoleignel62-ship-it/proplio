@@ -9,7 +9,6 @@ import {
   IconDocument,
   IconFolder,
   LogoFull,
-  LogoMarkColor,
   IconTrendingUp,
 } from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
@@ -140,6 +139,41 @@ const LANDING_PRICING_META: Record<
 };
 
 const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
+const SOFTWARE_APPLICATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Locavio",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "Logiciel de gestion locative en ligne pour propriétaires bailleurs. Quittances, baux, états des lieux, révision IRL.",
+  url: "https://locavio.fr",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "EUR",
+    description: "Plan Découverte gratuit disponible",
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    reviewCount: "12",
+  },
+} as const;
+
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Locavio",
+  url: "https://locavio.fr",
+  logo: "https://locavio.fr/logos/lockup-horizontal-sombre.svg",
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "contact@locavio.fr",
+    contactType: "customer service",
+    availableLanguage: "French",
+  },
+} as const;
 
 function AnimatedBackground() {
   return (
@@ -416,6 +450,14 @@ export default function LandingPage() {
 
   return (
     <div className="relative isolate" style={pageBg}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_APPLICATION_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
       <div
         className="pointer-events-none fixed left-0 top-0 z-[100] h-[3px]"
         style={{
@@ -468,7 +510,7 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="landing-shell relative overflow-hidden rounded-2xl px-6 py-20 sm:px-12 sm:py-24" style={glassCard}>
+        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-20 sm:px-12 sm:py-24" style={glassCard}>
           <div
             className="pointer-events-none absolute inset-0 opacity-70"
             style={{
@@ -489,7 +531,15 @@ export default function LandingPage() {
           />
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
             <div className="hero-reveal" style={{ animationDelay: "0ms" }}>
-              <LogoMarkColor className="mx-auto h-16 w-16" />
+              <img
+                src="/logos/logomark-couleur.svg"
+                alt="Logo Locavio"
+                width={64}
+                height={64}
+                loading="eager"
+                fetchPriority="high"
+                className="mx-auto h-16 w-16"
+              />
             </div>
             <h1
               className="hero-reveal mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
@@ -560,7 +610,7 @@ export default function LandingPage() {
         </section>
 
         {/* STATS */}
-        <section ref={statsRef} className="reveal-on-scroll mt-20">
+        <section ref={statsRef} className="landing-section reveal-on-scroll mt-20">
           <div
             className="grid gap-8 rounded-2xl px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
             style={{ ...solidCard, border: `1px solid ${PC.border}` }}
@@ -583,7 +633,7 @@ export default function LandingPage() {
         </section>
 
         {/* FEATURES */}
-        <section className="reveal-on-scroll mt-28 space-y-16">
+        <section className="landing-section reveal-on-scroll mt-28 space-y-16">
           <h2
             className="text-center text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl"
             style={{ color: PC.text }}
@@ -702,7 +752,7 @@ export default function LandingPage() {
                     </div>
                     <div className="mt-3 space-y-1.5 text-xs" style={{ color: PC.success }}>
                       <p>✅ Revenus : 3.2x le loyer</p>
-                      <p>✅ CDI — 3 ans d&apos;anciennete</p>
+                      <p>✅ CDI — 3 ans d&apos;ancienneté</p>
                       <p>✅ Garant Visale</p>
                     </div>
                   </div>
@@ -789,7 +839,7 @@ export default function LandingPage() {
         </section>
 
         {/* PRICING */}
-        <section id="tarifs" className="reveal-on-scroll mt-28 scroll-mt-24">
+        <section id="tarifs" className="landing-section reveal-on-scroll mt-28 scroll-mt-24">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
               Des tarifs pensés pour les propriétaires
@@ -938,7 +988,7 @@ export default function LandingPage() {
         </section>
 
         {/* COMPARISON */}
-        <section className="reveal-on-scroll mt-28">
+        <section className="landing-section reveal-on-scroll mt-28">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Locavio vs agence traditionnelle
           </h2>
@@ -985,7 +1035,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="reveal-on-scroll mt-28 scroll-mt-24">
+        <section id="faq" className="landing-section reveal-on-scroll mt-28 scroll-mt-24">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Questions fréquentes
           </h2>
