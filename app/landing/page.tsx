@@ -145,10 +145,10 @@ function AnimatedBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden" aria-hidden>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.08),transparent_55%)]" />
-      <div className="absolute left-[6%] top-[8%] h-[420px] w-[420px] rounded-full bg-[#7c3aed] opacity-[0.14] blur-[110px] animate-[locavio-orbit-1_18s_linear_infinite]" />
-      <div className="absolute right-[8%] top-[12%] h-[500px] w-[500px] rounded-full bg-[#4f46e5] opacity-[0.13] blur-[115px] animate-[locavio-orbit-2_24s_linear_infinite]" />
-      <div className="absolute left-[22%] bottom-[6%] h-[360px] w-[360px] rounded-full bg-[#a78bfa] opacity-[0.15] blur-[95px] animate-[locavio-orbit-3_20s_linear_infinite]" />
-      <div className="absolute right-[18%] bottom-[12%] h-[320px] w-[320px] rounded-full bg-[#6366f1] opacity-[0.12] blur-[90px] animate-[locavio-orbit-4_16s_linear_infinite]" />
+      <div className="absolute left-[6%] top-[8%] h-[640px] w-[640px] rounded-full bg-[#7c3aed] opacity-[0.25] blur-[120px] animate-[locavio-orbit-1_35s_linear_infinite]" />
+      <div className="absolute right-[6%] top-[10%] h-[800px] w-[800px] rounded-full bg-[#4f46e5] opacity-[0.25] blur-[130px] animate-[locavio-orbit-2_35s_linear_infinite]" />
+      <div className="absolute left-[18%] bottom-[4%] h-[560px] w-[560px] rounded-full bg-[#a78bfa] opacity-[0.25] blur-[110px] animate-[locavio-orbit-3_35s_linear_infinite]" />
+      <div className="absolute right-[14%] bottom-[8%] h-[500px] w-[500px] rounded-full bg-[#6366f1] opacity-[0.25] blur-[105px] animate-[locavio-orbit-4_35s_linear_infinite]" />
     </div>
   );
 }
@@ -180,12 +180,72 @@ export default function LandingPage() {
     "contrat-sejour": "",
   });
   const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [parallax, setParallax] = useState(0);
   const [featureVisible, setFeatureVisible] = useState<Record<number, boolean>>({});
+  const [pricingVisible, setPricingVisible] = useState<Record<number, boolean>>({});
+  const [statsAnimatedValues, setStatsAnimatedValues] = useState<number[]>([]);
   const featureRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const pricingRefs = useRef<Array<HTMLElement | null>>([]);
+  const statsRef = useRef<HTMLElement | null>(null);
+  const statsAnimatedOnceRef = useRef(false);
+  const reduceMotionRef = useRef(false);
+  const statsData = useMemo(
+    () => [
+      {
+        n: "2-3h",
+        d: "passées chaque année par logement à générer, imprimer et envoyer les quittances manuellement — pour chaque locataire",
+      },
+      {
+        n: "3 ans",
+        d: "durée moyenne entre deux locataires — bail + double état des lieux à refaire à chaque fois",
+      },
+      {
+        n: "2-4h",
+        d: "pour réaliser et rédiger un état des lieux d'entrée complet sans outil adapté",
+      },
+      {
+        n: "7-10%",
+        d: "de vos loyers annuels facturés par une agence traditionnelle, soit 1 mois de loyer perdu chaque année",
+      },
+    ],
+    [],
+  );
+  const pricingPlans = useMemo(
+    () =>
+      PLAN_ORDER.map((id) => {
+        const meta = LANDING_PRICING_META[id];
+        return {
+          id,
+          name: PLAN_DISPLAY_LABELS[id],
+          subtitle: meta.subtitle,
+          monthly: meta.monthly,
+          yearly: meta.yearly,
+          yearlySave: meta.yearlySave,
+          highlight: meta.highlight,
+          popular: meta.popular,
+          cta: meta.cta,
+          ctaHref: meta.ctaHref,
+          ctaVariant: meta.ctaVariant,
+          featureRows: planDisplayRows(id),
+        };
+      }),
+    [],
+  );
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 50);
+    if (typeof window === "undefined") return;
+    reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+      const scrollTop = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100)) : 0;
+      setScrollProgress(progress);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -205,20 +265,117 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    if (reduceMotionRef.current) {
+      setFeatureVisible(
+        Object.fromEntries(Array.from({ length: 6 }, (_, index) => [index, true])) as Record<number, boolean>,
+      );
+      return;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const index = Number((entry.target as HTMLElement).dataset.featureIndex ?? "-1");
           if (index >= 0 && entry.isIntersecting) {
-            setFeatureVisible((prev) => ({ ...prev, [index]: true }));
+            window.setTimeout(() => {
+              setFeatureVisible((prev) => ({ ...prev, [index]: true }));
+            }, index * 100);
+            observer.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.15 },
+      { threshold: 0.1 },
     );
     featureRefs.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (reduceMotionRef.current) {
+      setPricingVisible(
+        Object.fromEntries(Array.from({ length: pricingPlans.length }, (_, index) => [index, true])) as Record<
+          number,
+          boolean
+        >,
+      );
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const index = Number((entry.target as HTMLElement).dataset.pricingIndex ?? "-1");
+          if (index >= 0 && entry.isIntersecting) {
+            window.setTimeout(() => {
+              setPricingVisible((prev) => ({ ...prev, [index]: true }));
+            }, index * 80);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    pricingRefs.current.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, [pricingPlans.length]);
+
+  useEffect(() => {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>(".reveal-on-scroll"));
+    if (!elements.length) return;
+    if (reduceMotionRef.current) {
+      elements.forEach((el) => el.classList.add("is-visible"));
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const statsTargets = statsData.map((item) => Number((item.n.match(/^(\d+)/) ?? ["0", "0"])[1]));
+    const finalValues = [...statsTargets];
+    setStatsAnimatedValues(reduceMotionRef.current ? finalValues : statsTargets.map(() => 0));
+    if (!statsRef.current || reduceMotionRef.current) return;
+
+    const animateStats = () => {
+      if (statsAnimatedOnceRef.current) return;
+      statsAnimatedOnceRef.current = true;
+      const duration = 1500;
+      const start = performance.now();
+      const easeOut = (t: number) => 1 - (1 - t) * (1 - t) * (1 - t);
+      const tick = (now: number) => {
+        const elapsed = Math.min(1, (now - start) / duration);
+        const eased = easeOut(elapsed);
+        setStatsAnimatedValues(statsTargets.map((value) => Math.round(value * eased)));
+        if (elapsed < 1) {
+          requestAnimationFrame(tick);
+        }
+      };
+      requestAnimationFrame(tick);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            animateStats();
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(statsRef.current);
+    return () => observer.disconnect();
+  }, [statsData]);
 
   const handleExampleSubmit = async (type: LandingExempleType) => {
     const email = exampleEmails[type].trim().toLowerCase();
@@ -257,30 +414,16 @@ export default function LandingPage() {
     }
   };
 
-  const pricingPlans = useMemo(
-    () =>
-      PLAN_ORDER.map((id) => {
-        const meta = LANDING_PRICING_META[id];
-        return {
-          id,
-          name: PLAN_DISPLAY_LABELS[id],
-          subtitle: meta.subtitle,
-          monthly: meta.monthly,
-          yearly: meta.yearly,
-          yearlySave: meta.yearlySave,
-          highlight: meta.highlight,
-          popular: meta.popular,
-          cta: meta.cta,
-          ctaHref: meta.ctaHref,
-          ctaVariant: meta.ctaVariant,
-          featureRows: planDisplayRows(id),
-        };
-      }),
-    [],
-  );
-
   return (
     <div className="relative isolate" style={pageBg}>
+      <div
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-[3px]"
+        style={{
+          width: `${scrollProgress}%`,
+          background: "linear-gradient(90deg, #7c3aed 0%, #4f46e5 100%)",
+          transition: "width 120ms linear",
+        }}
+      />
       <AnimatedBackground />
       <header
         className="sticky top-0 z-[60] border-b"
@@ -345,21 +488,26 @@ export default function LandingPage() {
             }}
           />
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
-            <LogoMarkColor className="mx-auto h-16 w-16" />
+            <div className="hero-reveal" style={{ animationDelay: "0ms" }}>
+              <LogoMarkColor className="mx-auto h-16 w-16" />
+            </div>
             <h1
-              className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
-              style={{ color: PC.text }}
+              className="hero-reveal mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
+              style={{ color: PC.text, animationDelay: "150ms" }}
             >
               <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
               <br />
               Sans perdre votre temps.
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg" style={{ color: PC.muted }}>
+            <p
+              className="hero-reveal mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg"
+              style={{ color: PC.muted, animationDelay: "300ms" }}
+            >
               Quittances, baux, états des lieux, révision des loyers, gestion des documents — tout est centralisé et
               automatisé en quelques clics. Locavio vous libère des tâches administratives pour que vous vous concentriez
               sur l&apos;essentiel : investir.
             </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <div className="hero-reveal mt-10 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "450ms" }}>
               <Link
                 href="/register"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
@@ -386,8 +534,8 @@ export default function LandingPage() {
               </Link>
             </div>
             <ul
-              className="mx-auto mt-10 flex max-w-lg flex-col gap-2 text-left text-sm font-medium sm:mx-auto sm:max-w-md sm:text-center"
-              style={{ color: PC.muted }}
+              className="hero-reveal mx-auto mt-10 flex max-w-lg flex-col gap-2 text-left text-sm font-medium sm:mx-auto sm:max-w-md sm:text-center"
+              style={{ color: PC.muted, animationDelay: "600ms" }}
             >
               <li>✓ Gratuit pour commencer</li>
               <li>✓ Sans carte bancaire</li>
@@ -412,32 +560,16 @@ export default function LandingPage() {
         </section>
 
         {/* STATS */}
-        <section className="mt-20">
+        <section ref={statsRef} className="reveal-on-scroll mt-20">
           <div
             className="grid gap-8 rounded-2xl px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
             style={{ ...solidCard, border: `1px solid ${PC.border}` }}
           >
-            {[
-              {
-                n: "2-3h",
-                d: "passées chaque année par logement à générer, imprimer et envoyer les quittances manuellement — pour chaque locataire",
-              },
-              {
-                n: "3 ans",
-                d: "durée moyenne entre deux locataires — bail + double état des lieux à refaire à chaque fois",
-              },
-              {
-                n: "2-4h",
-                d: "pour réaliser et rédiger un état des lieux d'entrée complet sans outil adapté",
-              },
-              {
-                n: "7-10%",
-                d: "de vos loyers annuels facturés par une agence traditionnelle, soit 1 mois de loyer perdu chaque année",
-              },
-            ].map((s) => (
+            {statsData.map((s, i) => (
               <div key={s.n} className="px-4 text-center lg:px-8">
                 <p className="text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
-                  {s.n}
+                  {(statsAnimatedValues[i] ?? 0).toString()}
+                  {s.n.replace(/^\d+/, "")}
                 </p>
                 <p className="mt-3 text-sm font-normal leading-[1.7]" style={{ color: PC.muted }}>
                   {s.d}
@@ -451,7 +583,7 @@ export default function LandingPage() {
         </section>
 
         {/* FEATURES */}
-        <section className="mt-28 space-y-16">
+        <section className="reveal-on-scroll mt-28 space-y-16">
           <h2
             className="text-center text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl"
             style={{ color: PC.text }}
@@ -516,8 +648,8 @@ export default function LandingPage() {
               className={`flex flex-col gap-8 lg:flex-row lg:items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
               style={{
                 opacity: featureVisible[i] ? 1 : 0,
-                transform: featureVisible[i] ? "translateY(0)" : "translateY(16px)",
-                transition: "opacity 400ms ease-out, transform 400ms ease-out",
+                transform: featureVisible[i] ? "translateY(0)" : "translateY(30px)",
+                transition: "opacity 700ms ease-out, transform 700ms ease-out",
               }}
             >
               <div
@@ -605,7 +737,7 @@ export default function LandingPage() {
         </section>
 
         {/* PRICING */}
-        <section id="tarifs" className="mt-28 scroll-mt-24">
+        <section id="tarifs" className="reveal-on-scroll mt-28 scroll-mt-24">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
               Des tarifs pensés pour les propriétaires
@@ -656,13 +788,17 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {pricingPlans.map((plan) => {
+            {pricingPlans.map((plan, index) => {
               const isAnnual = billing === "annuel";
               const price = plan.id === "free" ? plan.monthly : isAnnual ? plan.yearly : plan.monthly;
               const showStrike = plan.id !== "free" && isAnnual;
               return (
                 <article
                   key={plan.id}
+                  ref={(el) => {
+                    pricingRefs.current[index] = el;
+                  }}
+                  data-pricing-index={index}
                   className="relative flex flex-col rounded-2xl p-6 transition"
                   style={{
                     ...solidCard,
@@ -671,7 +807,9 @@ export default function LandingPage() {
                         ? `1px solid rgba(124, 58, 237, 0.45)`
                         : `1px solid ${PC.border}`,
                     boxShadow: plan.highlight ? PC.cardShadowHover : "0 1px 3px rgba(0, 0, 0, 0.25)",
-                    transform: plan.highlight ? "scale(1.01)" : undefined,
+                    opacity: pricingVisible[index] ? 1 : 0,
+                    transform: `${plan.highlight ? "scale(1.01) " : ""}${pricingVisible[index] ? "translateY(0)" : "translateY(30px)"}`,
+                    transition: "opacity 700ms ease-out, transform 700ms ease-out",
                   }}
                 >
                   {plan.popular ? (
@@ -748,7 +886,7 @@ export default function LandingPage() {
         </section>
 
         {/* COMPARISON */}
-        <section className="mt-28">
+        <section className="reveal-on-scroll mt-28">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Locavio vs agence traditionnelle
           </h2>
@@ -795,7 +933,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="mt-28 scroll-mt-24">
+        <section id="faq" className="reveal-on-scroll mt-28 scroll-mt-24">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Questions fréquentes
           </h2>
