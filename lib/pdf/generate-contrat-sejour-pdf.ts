@@ -388,27 +388,8 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   };
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
 
-  /* Titre corps */
-  const titleMain = "CONTRAT DE LOCATION SAISONNIÈRE";
-  const twm = fontBold.widthOfTextAtSize(titleMain, 14);
-  ctx.page.drawText(titleMain, {
-    x: (PDF_PAGE_W - twm) / 2,
-    y: ctx.y,
-    size: 14,
-    font: fontBold,
-    color: PDF_TEXT_MAIN,
-  });
-  ctx.y -= 18;
-  const sub = "Articles L.324-1 et suivants du Code du tourisme";
-  const sw = font.widthOfTextAtSize(sub, 9);
-  ctx.page.drawText(sub, {
-    x: (PDF_PAGE_W - sw) / 2,
-    y: ctx.y,
-    size: 9,
-    font,
-    color: PDF_TEXT_SECONDARY,
-  });
-  ctx.y -= 22;
+  /* Même intitulé et référence légale que HEADER_RIGHT — ne pas redessiner sous le bandeau. */
+  ctx.y -= 18 + 22;
 
   await drawTwoColBlock(
     ctx,
