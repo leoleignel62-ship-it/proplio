@@ -144,6 +144,10 @@ async function drawTwoColBlock(
   const colW = (PDF_PAGE_W - 2 * PDF_MARGIN_X - gap) / 2;
   const xL = PDF_MARGIN_X;
   const xR = mid + gap / 2;
+  const textInset = 10;
+  const xTextL = xL + textInset;
+  const xTextR = xR + textInset;
+  const colTextMaxW = colW - textInset - 4;
   let yTop = ctx.y;
   const cardH = 94;
 
@@ -180,8 +184,8 @@ async function drawTwoColBlock(
     color: PDF_VIOLET,
   });
 
-  ctx.page.drawText(sanitizePdfText(leftTitle), { x: xL, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
-  ctx.page.drawText(sanitizePdfText(rightTitle), { x: xR, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
+  ctx.page.drawText(sanitizePdfText(leftTitle), { x: xTextL, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
+  ctx.page.drawText(sanitizePdfText(rightTitle), { x: xTextR, y: yTop, size: 9, font: ctx.fontBold, color: PDF_VIOLET });
   yTop -= 14;
 
   const drawCol = (x: number, lines: string[], maxWidth: number) => {
@@ -196,8 +200,8 @@ async function drawTwoColBlock(
     return yy;
   };
 
-  const yEndL = drawCol(xL, leftLines, colW - 4);
-  const yEndR = drawCol(xR, rightLines, colW - 4);
+  const yEndL = drawCol(xTextL, leftLines, colTextMaxW);
+  const yEndR = drawCol(xTextR, rightLines, colTextMaxW);
   ctx.y = Math.min(yEndL, yEndR) - 12;
 }
 
@@ -387,9 +391,6 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     logoImageBytes: logoBytes,
   };
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
-
-  /* Même intitulé et référence légale que HEADER_RIGHT — ne pas redessiner sous le bandeau. */
-  ctx.y -= 18 + 22;
 
   await drawTwoColBlock(
     ctx,
