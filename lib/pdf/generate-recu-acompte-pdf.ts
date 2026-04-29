@@ -9,6 +9,7 @@ import {
   drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import { drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 function sanitizePdfText(text: string): string {
@@ -47,7 +48,8 @@ export async function generateRecuAcomptePdfBuffer(input: RecuAcomptePdfInput): 
   const pageW = page.getWidth();
   const pageH = page.getHeight();
 
-  drawLocavioPdfHeader(page, font, fontBold, "REÇU D'ACOMPTE", pageH, pageW);
+  const logoBytes = getLocavioLockupPngBytes();
+  await drawLocavioPdfHeader(pdfDoc, page, font, fontBold, "REÇU D'ACOMPTE", pageH, pageW, logoBytes);
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   const lines = [

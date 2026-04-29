@@ -58,17 +58,22 @@ export function pdfContentTopAfterHeader(pageHeight = PDF_PAGE_H): number {
   return pageHeight - PDF_HEADER_H - PDF_MARGIN_Y;
 }
 
+const PDF_HEADER_LOGO_H = 28;
+const PDF_HEADER_LOGO_SEP_GAP = 12;
+
 /**
  * Bandeau Locavio : violet pleine largeur, marque à gauche, type de document à droite.
  * `documentTypeRight` peut contenir des retours à la ligne.
  */
-export function drawLocavioPdfHeader(
+export async function drawLocavioPdfHeader(
+  pdfDoc: PDFDocument,
   page: PDFPage,
   font: PDFFont,
   fontBold: PDFFont,
   documentTypeRight: string,
   pageHeight = PDF_PAGE_H,
   pageWidth = PDF_PAGE_W,
+  logoImageBytes: Uint8Array | null = null,
 ) {
   page.drawRectangle({
     x: 0,
@@ -77,24 +82,55 @@ export function drawLocavioPdfHeader(
     height: PDF_HEADER_H,
     color: PDF_VIOLET,
   });
-  page.drawText("Locavio", {
-    x: PDF_MARGIN_X,
-    y: pageHeight - 27,
-    size: 22,
-    font: fontBold,
-    color: PDF_WHITE,
-  });
-  page.drawText("Gestion locative", {
-    x: PDF_MARGIN_X,
-    y: pageHeight - 46,
-    size: 9,
-    font,
-    color: rgb(1, 1, 1),
-    opacity: 0.72,
-  });
+
+  let separatorX = PDF_MARGIN_X + 96;
+  let drewLogo = false;
+
+  if (logoImageBytes && logoImageBytes.length > 0) {
+    try {
+      const logo = await pdfDoc.embedPng(logoImageBytes);
+      const iw = logo.width;
+      const ih = logo.height;
+      if (iw > 0 && ih > 0) {
+        const drawH = PDF_HEADER_LOGO_H;
+        const drawW = (iw / ih) * drawH;
+        const centerY = pageHeight - PDF_HEADER_H / 2;
+        page.drawImage(logo, {
+          x: PDF_MARGIN_X,
+          y: centerY - drawH / 2,
+          width: drawW,
+          height: drawH,
+        });
+        separatorX = PDF_MARGIN_X + drawW + PDF_HEADER_LOGO_SEP_GAP;
+        drewLogo = true;
+      }
+    } catch {
+      drewLogo = false;
+    }
+  }
+
+  if (!drewLogo) {
+    page.drawText("Locavio", {
+      x: PDF_MARGIN_X,
+      y: pageHeight - 27,
+      size: 22,
+      font: fontBold,
+      color: PDF_WHITE,
+    });
+    page.drawText("Gestion locative", {
+      x: PDF_MARGIN_X,
+      y: pageHeight - 46,
+      size: 9,
+      font,
+      color: rgb(1, 1, 1),
+      opacity: 0.72,
+    });
+    separatorX = PDF_MARGIN_X + 96;
+  }
+
   page.drawLine({
-    start: { x: PDF_MARGIN_X + 96, y: pageHeight - PDF_HEADER_H + 12 },
-    end: { x: PDF_MARGIN_X + 96, y: pageHeight - 12 },
+    start: { x: separatorX, y: pageHeight - PDF_HEADER_H + 12 },
+    end: { x: separatorX, y: pageHeight - 12 },
     thickness: 0.6,
     color: PDF_WHITE,
     opacity: 0.45,

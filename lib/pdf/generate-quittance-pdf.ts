@@ -16,6 +16,7 @@ import {
   drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_BLOCK_HEIGHT,
@@ -84,7 +85,8 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   const right = pageWidth - PDF_MARGIN_X;
   const lineHeight = 18;
 
-  drawLocavioPdfHeader(page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth);
+  const logoBytes = getLocavioLockupPngBytes();
+  await drawLocavioPdfHeader(pdfDoc, page, font, fontBold, "QUITTANCE DE LOYER", pageHeight, pageWidth, logoBytes);
 
   let y = pdfContentTopAfterHeader(pageHeight);
 

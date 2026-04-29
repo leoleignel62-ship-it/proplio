@@ -35,6 +35,7 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_FOOTER_RESERVE,
@@ -188,8 +189,9 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     params.documentTitle ??
     ("ÉTAT DES LIEUX\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE"));
 
+  const logoBytes = getLocavioLockupPngBytes();
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawLocavioPdfHeader(page, font, fontBold, edlHeaderTitle);
+  await drawLocavioPdfHeader(doc, page, font, fontBold, edlHeaderTitle, PAGE_H, PAGE_W, logoBytes);
   let y = pdfContentTopAfterHeader();
   /** À partir des compteurs : réserver le bas de page pour les signatures (pas de page vide dédiée). */
   let reserveForSig = false;
@@ -199,9 +201,9 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
    */
   const SIG_BLOCK_PEAK_Y = pdfContentMinY() + PDF_SIGNATURE_FOOTER_RESERVE - 20;
 
-  const newPage = () => {
+  const newPage = async () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawLocavioPdfHeader(page, font, fontBold, edlHeaderTitle);
+    await drawLocavioPdfHeader(doc, page, font, fontBold, edlHeaderTitle, PAGE_H, PAGE_W, logoBytes);
     y = pdfContentTopAfterHeader();
   };
 
@@ -209,22 +211,22 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   y -= 6;
 
-  const line = (label: string, value: string) => {
+  const line = async (label: string, value: string) => {
     const t = `${label} : ${value}`;
     const gap = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 9 : 13;
     for (const ln of wrapLines(t, font, 10, PAGE_W - 2 * MARGIN)) {
-      if (y < contentBreakFloor()) newPage();
+      if (y < contentBreakFloor()) await newPage();
       page.drawText(ln, { x: MARGIN, y, size: 10, font, color: BODY });
       y -= gap;
     }
   };
 
-  line("Date", params.dateEtat || "—");
-  line("Type de logement", params.typeLogement === "meuble" ? "Meublé" : "Vide");
-  line("Bailleur", params.bailleurNom);
-  line("Preneur", params.preneurNom);
-  line("Adresse du logement", params.logementAdresse);
-  if (params.stayInfoLine) line("Séjour", params.stayInfoLine);
+  await line("Date", params.dateEtat || "—");
+  await line("Type de logement", params.typeLogement === "meuble" ? "Meublé" : "Vide");
+  await line("Bailleur", params.bailleurNom);
+  await line("Preneur", params.preneurNom);
+  await line("Adresse du logement", params.logementAdresse);
+  if (params.stayInfoLine) await line("Séjour", params.stayInfoLine);
   y -= 10;
 
   type StateCol =
@@ -244,14 +246,14 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   const badgeSize = 6;
   const nameLineH = 10;
 
-  const drawTwoColHeader = () => {
+  const drawTwoColHeader = async () => {
     const headerH = 16;
     while (true) {
       const rowBottom = y - headerH;
       const need =
         reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < pdfContentMinY() + 24;
       if (!need) break;
-      newPage();
+      await newPage();
     }
     const rowTop = y;
     const rowBottom = rowTop - headerH;
@@ -372,7 +374,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     }
   };
 
-  const drawTwoColPairRow = (
+  const drawTwoColPairRow = async (
     dataRowIdx: number,
     left: CellPayload | null,
     right: CellPayload | null,
@@ -382,7 +384,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
       const need =
         reserveForSig ? rowBottom <= SIG_BLOCK_PEAK_Y : rowBottom < pdfContentMinY() + 16;
       if (!need) break;
-      newPage();
+      await newPage();
     }
     const rowTop = y;
     const rowBottom = rowTop - ROW_FIX_H;
@@ -420,9 +422,9 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     y = rowBottom - 2;
   };
 
-  const drawRoom = (room: RoomEdl) => {
+  const drawRoom = async (room: RoomEdl) => {
     if (room.enabled === false) return;
-    if (y < pdfContentMinY() + 96) newPage();
+    if (y < pdfContentMinY() + 96) await newPage();
     page.drawRectangle({
       x: MARGIN,
       y: y - 22,
@@ -448,7 +450,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     });
     y -= 30;
 
-    drawTwoColHeader();
+    await drawTwoColHeader();
 
     const entries: CellPayload[] = [];
     for (const [key, el] of Object.entries(room.elements)) {
@@ -479,7 +481,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     for (let i = 0; i < entries.length; i += 2) {
       const left = entries[i] ?? null;
       const right = entries[i + 1] ?? null;
-      drawTwoColPairRow(Math.floor(i / 2), left, right);
+      await drawTwoColPairRow(Math.floor(i / 2), left, right);
     }
 
     y -= 6;
@@ -487,12 +489,12 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   for (const room of pieces.rooms) {
     if (room.id === "compteurs") continue;
-    drawRoom(room);
+    await drawRoom(room);
   }
 
   /* Compteurs */
   reserveForSig = true;
-  if (y < pdfContentMinY() + 72) newPage();
+  if (y < pdfContentMinY() + 72) await newPage();
   page.drawText("Compteurs & remises", {
     x: MARGIN,
     y,
@@ -503,7 +505,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   y -= 20;
 
   const c = pieces.compteurs;
-  drawTwoColHeader();
+  await drawTwoColHeader();
   const compteurDefs: { label: string; k: keyof PiecesEdlData["compteurs"] }[] = [
     { label: "Compteur électricité", k: "electricite" },
     { label: "Compteur eau froide", k: "eauFroide" },
@@ -524,19 +526,19 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     });
   }
   for (let i = 0; i < compteurEntries.length; i += 2) {
-    drawTwoColPairRow(Math.floor(i / 2), compteurEntries[i] ?? null, compteurEntries[i + 1] ?? null);
+    await drawTwoColPairRow(Math.floor(i / 2), compteurEntries[i] ?? null, compteurEntries[i + 1] ?? null);
   }
 
   y -= 8;
-  line("Clés remises", String(params.compteursExtra.clesRemises));
-  line("Badges / télécommandes", String(params.compteursExtra.badgesRemis));
+  await line("Clés remises", String(params.compteursExtra.clesRemises));
+  await line("Badges / télécommandes", String(params.compteursExtra.badgesRemis));
   if (params.compteursExtra.observationsGenerales.trim()) {
     y -= reserveForSig && y < SIG_BLOCK_PEAK_Y + 80 ? 3 : 6;
     page.drawText("Observations générales", { x: MARGIN, y, size: 10, font: fontBold, color: BODY });
     y -= reserveForSig && y < SIG_BLOCK_PEAK_Y + 80 ? 9 : 12;
     const obsStep = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 8 : 11;
     for (const ln of wrapLines(params.compteursExtra.observationsGenerales, font, 9, PAGE_W - 2 * MARGIN)) {
-      if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 50 : pdfContentMinY() + 12)) newPage();
+      if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 50 : pdfContentMinY() + 12)) await newPage();
       page.drawText(ln, { x: MARGIN, y, size: 9, font, color: MUTED });
       y -= obsStep;
     }
@@ -545,7 +547,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   /* Comparaison entrée / sortie */
   const entry = params.entryPiecesJson ? parsePieces(params.entryPiecesJson) : null;
   if (params.typeEtat === "sortie" && entry) {
-    newPage();
+    await newPage();
     page.drawText("Comparatif avec l'état d'entrée (éléments dégradés)", {
       x: MARGIN,
       y,
@@ -566,7 +568,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
         const txt = `${room.label} — ${label} : entrée ${formatEtatPdf(eEl.state)} → sortie ${formatEtatPdf(sEl.state)}`;
         const cmpStep = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 8 : 11;
         for (const ln of wrapLines(txt, font, 9, PAGE_W - 2 * MARGIN)) {
-          if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 45 : pdfContentMinY() + 8)) newPage();
+          if (y < (reserveForSig ? SIG_BLOCK_PEAK_Y + 45 : pdfContentMinY() + 8)) await newPage();
           page.drawText(ln, { x: MARGIN, y, size: 9, font, color: rgb(0.95, 0.35, 0.35) });
           y -= cmpStep;
         }
@@ -601,7 +603,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   }
 
   if (y < PDF_SIGNATURE_FOOTER_RESERVE + 24) {
-    newPage();
+    await newPage();
     page.drawText("Signatures", {
       x: MARGIN,
       y,

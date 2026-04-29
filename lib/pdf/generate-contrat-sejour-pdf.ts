@@ -17,6 +17,7 @@ import {
   drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxW: number): string[] {
@@ -57,24 +58,34 @@ type PdfCtx = {
   y: number;
   font: PDFFont;
   fontBold: PDFFont;
+  logoImageBytes: Uint8Array | null;
 };
 
 const HEADER_RIGHT =
   "CONTRAT DE LOCATION SAISONNIÈRE\nArticles L.324-1 et suivants\ndu Code du tourisme";
 
-function startPage(ctx: PdfCtx): void {
+async function startPage(ctx: PdfCtx): Promise<void> {
   ctx.page = ctx.doc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
-  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  await drawLocavioPdfHeader(
+    ctx.doc,
+    ctx.page,
+    ctx.font,
+    ctx.fontBold,
+    HEADER_RIGHT,
+    PDF_PAGE_H,
+    PDF_PAGE_W,
+    ctx.logoImageBytes,
+  );
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
 }
 
-function ensureSpace(ctx: PdfCtx, minYNeeded: number): void {
+async function ensureSpace(ctx: PdfCtx, minYNeeded: number): Promise<void> {
   if (ctx.y >= PDF_FOOTER_HEIGHT + minYNeeded) return;
-  startPage(ctx);
+  await startPage(ctx);
 }
 
-function drawSectionTitle(ctx: PdfCtx, title: string, size = 11): void {
-  ensureSpace(ctx, 36);
+async function drawSectionTitle(ctx: PdfCtx, title: string, size = 11): Promise<void> {
+  await ensureSpace(ctx, 36);
   const barH = 22;
   ctx.page.drawRectangle({
     x: PDF_MARGIN_X + 3,
@@ -102,12 +113,12 @@ function drawSectionTitle(ctx: PdfCtx, title: string, size = 11): void {
   ctx.y -= barH + 8;
 }
 
-function drawParagraph(ctx: PdfCtx, text: string, size = 9, bold = false): void {
+async function drawParagraph(ctx: PdfCtx, text: string, size = 9, bold = false): Promise<void> {
   const maxW = PDF_PAGE_W - 2 * PDF_MARGIN_X;
   const font = bold ? ctx.fontBold : ctx.font;
   const lines = wrapLines(text, font, size, maxW);
   for (const ln of lines) {
-    ensureSpace(ctx, 16);
+    await ensureSpace(ctx, 16);
     ctx.page.drawText(ln, {
       x: PDF_MARGIN_X,
       y: ctx.y,
@@ -120,14 +131,14 @@ function drawParagraph(ctx: PdfCtx, text: string, size = 9, bold = false): void 
   ctx.y -= 4;
 }
 
-function drawTwoColBlock(
+async function drawTwoColBlock(
   ctx: PdfCtx,
   leftTitle: string,
   leftLines: string[],
   rightTitle: string,
   rightLines: string[],
-): void {
-  ensureSpace(ctx, 120);
+): Promise<void> {
+  await ensureSpace(ctx, 120);
   const mid = PDF_PAGE_W / 2;
   const gap = 12;
   const colW = (PDF_PAGE_W - 2 * PDF_MARGIN_X - gap) / 2;
@@ -191,8 +202,8 @@ function drawTwoColBlock(
 }
 
 /** Ligne simple : label | valeur (2 colonnes) */
-function drawKeyValueRow(ctx: PdfCtx, label: string, value: string, rowH = 18): void {
-  ensureSpace(ctx, rowH + 4);
+async function drawKeyValueRow(ctx: PdfCtx, label: string, value: string, rowH = 18): Promise<void> {
+  await ensureSpace(ctx, rowH + 4);
   ctx.page.drawRectangle({
     x: PDF_MARGIN_X,
     y: ctx.y - rowH + 2,
@@ -222,15 +233,15 @@ function drawKeyValueRow(ctx: PdfCtx, label: string, value: string, rowH = 18): 
 }
 
 /** Tableau 3 colonnes : libellé | détail | montant */
-function drawTarifRow(
+async function drawTarifRow(
   ctx: PdfCtx,
   col1: string,
   col2: string,
   col3: string,
   opts?: { bold?: boolean; highlight?: boolean },
-): void {
+): Promise<void> {
   const rowH = 20;
-  ensureSpace(ctx, rowH + 4);
+  await ensureSpace(ctx, rowH + 4);
   const w = PDF_PAGE_W - 2 * PDF_MARGIN_X;
   const w1 = w * 0.34;
   const w2 = w * 0.38;
@@ -273,9 +284,9 @@ function drawTarifRow(
   ctx.y -= rowH + 2;
 }
 
-function drawArticle(ctx: PdfCtx, num: number, title: string, body: string): void {
-  drawSectionTitle(ctx, `Article ${num} - ${title}`, 10);
-  drawParagraph(ctx, body, 9);
+async function drawArticle(ctx: PdfCtx, num: number, title: string, body: string): Promise<void> {
+  await drawSectionTitle(ctx, `Article ${num} - ${title}`, 10);
+  await drawParagraph(ctx, body, 9);
 }
 
 export type ContratSejourPdfInput = {
@@ -364,8 +375,17 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   const villeBailleur = String(proprietaire.ville ?? "").trim() || String(proprietaire.adresse ?? "").split(",")[0]?.trim() || "—";
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
-  const ctx: PdfCtx = { doc: pdfDoc, page: pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]), y: 0, font, fontBold };
-  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W);
+  const logoBytes = getLocavioLockupPngBytes();
+  const firstPage = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
+  await drawLocavioPdfHeader(pdfDoc, firstPage, font, fontBold, HEADER_RIGHT, PDF_PAGE_H, PDF_PAGE_W, logoBytes);
+  const ctx: PdfCtx = {
+    doc: pdfDoc,
+    page: firstPage,
+    y: 0,
+    font,
+    fontBold,
+    logoImageBytes: logoBytes,
+  };
   ctx.y = pdfContentTopAfterHeader(PDF_PAGE_H) - 10;
 
   /* Titre corps */
@@ -390,7 +410,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   });
   ctx.y -= 22;
 
-  drawTwoColBlock(
+  await drawTwoColBlock(
     ctx,
     "LE BAILLEUR",
     [
@@ -408,85 +428,85 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     ].filter(Boolean),
   );
 
-  drawSectionTitle(ctx, "DÉSIGNATION DU BIEN");
-  drawParagraph(ctx, `Adresse : ${logAdresse || "—"}`);
-  drawParagraph(ctx, `Type et surface : ${typeSurface}`);
-  drawParagraph(ctx, `Capacité maximale : ${capMax} personne(s).`);
-  drawParagraph(ctx, `Équipements : ${equipementsStr}`);
+  await drawSectionTitle(ctx, "DÉSIGNATION DU BIEN");
+  await drawParagraph(ctx, `Adresse : ${logAdresse || "—"}`);
+  await drawParagraph(ctx, `Type et surface : ${typeSurface}`);
+  await drawParagraph(ctx, `Capacité maximale : ${capMax} personne(s).`);
+  await drawParagraph(ctx, `Équipements : ${equipementsStr}`);
 
-  drawSectionTitle(ctx, "CONDITIONS DE LOCATION");
-  drawKeyValueRow(ctx, "Arrivée", `${dArr} à ${hArr}`);
-  drawKeyValueRow(ctx, "Départ", `${dDep} à ${hDep}`);
-  drawKeyValueRow(ctx, "Durée", `${nn} nuit(s)`);
-  drawKeyValueRow(ctx, "Personnes", `${nv}`);
+  await drawSectionTitle(ctx, "CONDITIONS DE LOCATION");
+  await drawKeyValueRow(ctx, "Arrivée", `${dArr} à ${hArr}`);
+  await drawKeyValueRow(ctx, "Départ", `${dDep} à ${hDep}`);
+  await drawKeyValueRow(ctx, "Durée", `${nn} nuit(s)`);
+  await drawKeyValueRow(ctx, "Personnes", `${nv}`);
 
-  drawSectionTitle(ctx, "TARIFS");
-  drawTarifRow(ctx, "Libellé", "Détail", "Montant", { bold: true, highlight: true });
+  await drawSectionTitle(ctx, "TARIFS");
+  await drawTarifRow(ctx, "Libellé", "Détail", "Montant", { bold: true, highlight: true });
   const nuitsTarifStr = `${nn} nuit(s) × ${reservation.tarif_nuit.toFixed(2)} €`;
-  drawTarifRow(ctx, "Hébergement", nuitsTarifStr, formatEuro(reservation.tarif_total));
-  drawTarifRow(ctx, "Taxe de séjour", taxeDetailStr, formatEuro(taxe));
+  await drawTarifRow(ctx, "Hébergement", nuitsTarifStr, formatEuro(reservation.tarif_total));
+  await drawTarifRow(ctx, "Taxe de séjour", taxeDetailStr, formatEuro(taxe));
   if (menageInclus) {
-    drawTarifRow(ctx, "Frais de ménage", "", formatEuro(tarifMenagePourTotal));
+    await drawTarifRow(ctx, "Frais de ménage", "", formatEuro(tarifMenagePourTotal));
   } else {
-    drawTarifRow(ctx, "Ménage", "À la charge du preneur", "—");
+    await drawTarifRow(ctx, "Ménage", "À la charge du preneur", "—");
   }
-  drawTarifRow(ctx, "Caution", "(remboursable)", formatEuro(reservation.tarif_caution));
-  drawTarifRow(ctx, "TOTAL TTC", "", formatEuro(totalTtc), { bold: true, highlight: true });
+  await drawTarifRow(ctx, "Caution", "(remboursable)", formatEuro(reservation.tarif_caution));
+  await drawTarifRow(ctx, "TOTAL TTC", "", formatEuro(totalTtc), { bold: true, highlight: true });
 
   if (!menageInclus) {
-    drawParagraph(
+    await drawParagraph(
       ctx,
       "Le ménage est à la charge du preneur. Le logement devra être rendu propre et en ordre.",
       9,
     );
   }
 
-  drawSectionTitle(ctx, "MODALITÉS DE PAIEMENT");
-  drawParagraph(
+  await drawSectionTitle(ctx, "MODALITÉS DE PAIEMENT");
+  await drawParagraph(
     ctx,
     `Acompte : ${acomptePct}% soit ${formatEuro(acompte)} à la signature.`,
   );
-  drawParagraph(ctx, `Solde : ${formatEuro(soldeAvantArrivee)} dû avant l'arrivée.`);
-  drawParagraph(
+  await drawParagraph(ctx, `Solde : ${formatEuro(soldeAvantArrivee)} dû avant l'arrivée.`);
+  await drawParagraph(
     ctx,
     `Caution : ${formatEuro(reservation.tarif_caution)} restituée sous 7 jours après départ sous réserve d'état des lieux.`,
   );
 
-  drawSectionTitle(ctx, "CONDITIONS GÉNÉRALES");
-  drawArticle(
+  await drawSectionTitle(ctx, "CONDITIONS GÉNÉRALES");
+  await drawArticle(
     ctx,
     1,
     "OBJET ET DURÉE",
     "Le présent contrat a pour objet la location saisonnière du bien désigné ci-dessus, conformément aux articles L.324-1 et suivants du Code du tourisme. La durée de la location ne peut excéder 90 jours consécutifs.",
   );
-  drawArticle(
+  await drawArticle(
     ctx,
     2,
     "OCCUPATION",
     "Le bien est destiné exclusivement à un usage d'habitation temporaire. La sous-location est interdite. Le nombre d'occupants ne peut dépasser la capacité maximale indiquée.",
   );
-  drawArticle(
+  await drawArticle(
     ctx,
     3,
     "ÉTAT DES LIEUX",
     "Un état des lieux sera établi contradictoirement à l'entrée et à la sortie. Les dégradations constatées pourront être imputées sur la caution.",
   );
-  drawArticle(
+  await drawArticle(
     ctx,
     4,
     "ASSURANCE",
     "Le preneur est invité à vérifier que son assurance habitation couvre les risques locatifs pendant son séjour.",
   );
   if (reglement) {
-    drawArticle(ctx, 5, "RÈGLEMENT INTÉRIEUR", reglement);
-    drawArticle(
+    await drawArticle(ctx, 5, "RÈGLEMENT INTÉRIEUR", reglement);
+    await drawArticle(
       ctx,
       6,
       "RÉSILIATION",
       "En cas d'annulation par le preneur, l'acompte versé reste acquis au bailleur. En cas d'annulation par le bailleur, les sommes versées sont intégralement remboursées.",
     );
   } else {
-    drawArticle(
+    await drawArticle(
       ctx,
       5,
       "RÉSILIATION",
@@ -495,8 +515,8 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   }
 
   /* Signatures */
-  ensureSpace(ctx, 200);
-  drawSectionTitle(ctx, "SIGNATURES");
+  await ensureSpace(ctx, 200);
+  await drawSectionTitle(ctx, "SIGNATURES");
   ctx.y -= 6;
 
   let img: PDFImage | null = null;

@@ -28,6 +28,7 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import {
   PDF_FOOTER_HEIGHT,
   PDF_SIGNATURE_FOOTER_RESERVE,
@@ -159,30 +160,32 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   const headerTitle =
     "ÉTAT DES LIEUX - LOCATION SAISONNIÈRE\n" + (params.typeEtat === "entree" ? "ENTRÉE" : "SORTIE");
 
+  const logoBytes = getLocavioLockupPngBytes();
+  const headerTitleSafe = sanitizePdfText(headerTitle);
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawLocavioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
+  await drawLocavioPdfHeader(doc, page, font, fontBold, headerTitleSafe, PAGE_H, PAGE_W, logoBytes);
   let y = pdfContentTopAfterHeader();
   const reserveSig = { on: false };
   const sigFloor = () =>
     reserveSig.on ? pdfContentMinY() + PDF_SIGNATURE_FOOTER_RESERVE - 20 : pdfContentMinY() + 24;
 
-  const newPage = () => {
+  const newPage = async () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawLocavioPdfHeader(page, font, fontBold, sanitizePdfText(headerTitle));
+    await drawLocavioPdfHeader(doc, page, font, fontBold, headerTitleSafe, PAGE_H, PAGE_W, logoBytes);
     y = pdfContentTopAfterHeader();
   };
 
-  const drawParagraph = (text: string, size: number, color = BODY, bold = false) => {
+  const drawParagraph = async (text: string, size: number, color = BODY, bold = false) => {
     const f = bold ? fontBold : font;
     for (const ln of wrapLines(sanitizePdfText(text), f, size, USABLE_W)) {
-      if (y < sigFloor()) newPage();
+      if (y < sigFloor()) await newPage();
       page.drawText(sanitizePdfText(ln), { x: MARGIN, y, size, font: f, color });
       y -= size + 3;
     }
   };
 
   y -= 4;
-  drawParagraph(params.mentionLegale ?? MENTION_LEGALE_DEF, 8, MUTED, false);
+  await drawParagraph(params.mentionLegale ?? MENTION_LEGALE_DEF, 8, MUTED, false);
   y -= 8;
 
   const dateFr = (() => {
@@ -193,7 +196,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
   })();
 
-  drawParagraph(`Date de l'état des lieux : ${dateFr}`, 10, BODY, true);
+  await drawParagraph(`Date de l'état des lieux : ${dateFr}`, 10, BODY, true);
   y -= 4;
 
   /** Bloc deux colonnes bailleur / preneur */
@@ -201,7 +204,7 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   const colW2 = (USABLE_W - 12) / 2;
   const blockH = 78;
   const blockBottom = blockTop - blockH;
-  if (blockBottom < sigFloor()) newPage();
+  if (blockBottom < sigFloor()) await newPage();
   const y0 = y;
   page.drawRectangle({
     x: MARGIN + 3,
@@ -303,19 +306,20 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   });
 
   y = blockBottom - 16;
-  drawParagraph(`Logement : ${sanitizePdfText(params.logementAdresse)}`, 10);
-  drawParagraph(
+  await drawParagraph(`Logement : ${sanitizePdfText(params.logementAdresse)}`, 10);
+  await drawParagraph(
     `Séjour : du ${sanitizePdfText(params.sejourDebut)} au ${sanitizePdfText(params.sejourFin)}`,
     10,
   );
-  drawParagraph(`Type : ${params.typeEtat === "entree" ? "Entrée" : "Sortie"}`, 10);
-  drawParagraph(`Clés remises : ${params.clesRemises}`, 10);
-  if (params.compteurEau.trim()) drawParagraph(`Relevé compteur eau : ${params.compteurEau}`, 10);
-  if (params.compteurElec.trim()) drawParagraph(`Relevé compteur électricité : ${params.compteurElec}`, 10);
+  await drawParagraph(`Type : ${params.typeEtat === "entree" ? "Entrée" : "Sortie"}`, 10);
+  await drawParagraph(`Clés remises : ${params.clesRemises}`, 10);
+  if (params.compteurEau.trim()) await drawParagraph(`Relevé compteur eau : ${params.compteurEau}`, 10);
+  if (params.compteurElec.trim())
+    await drawParagraph(`Relevé compteur électricité : ${params.compteurElec}`, 10);
   y -= 10;
 
   /** Pièces */
-  drawParagraph("État des pièces", 12, PRIMARY, true);
+  await drawParagraph("État des pièces", 12, PRIMARY, true);
   y -= 4;
 
   const roomPhotoImages: PDFImage[][] = [];
@@ -336,11 +340,12 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     roomPhotoImages.push(rowImgs);
   }
 
-  params.rooms.forEach((room, idx) => {
+  for (let idx = 0; idx < params.rooms.length; idx++) {
+    const room = params.rooms[idx]!;
     const imgs = roomPhotoImages[idx] ?? [];
     const obsLines = wrapLines(sanitizePdfText(room.observations || "—"), font, 8, USABLE_W * 0.45);
     const rowH = Math.max(36, 14 + obsLines.length * 9 + 8, PHOTO_BOX + 8);
-    if (y - rowH < sigFloor()) newPage();
+    if (y - rowH < sigFloor()) await newPage();
 
     page.drawRectangle({
       x: MARGIN,
@@ -411,10 +416,10 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
       });
     }
     y -= rowH + 4;
-  });
+  }
 
   y -= 8;
-  drawParagraph("Inventaire (état rapide)", 12, PRIMARY, true);
+  await drawParagraph("Inventaire (état rapide)", 12, PRIMARY, true);
   y -= 4;
 
   const invHeaderH = 18;
@@ -424,8 +429,8 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
   const cw1 = USABLE_W * invCols[1];
   const cw2 = USABLE_W * invCols[2];
 
-  const drawInvHeader = () => {
-    if (y - invHeaderH < sigFloor()) newPage();
+  const drawInvHeader = async () => {
+    if (y - invHeaderH < sigFloor()) await newPage();
     page.drawRectangle({
       x: MARGIN,
       y: y - invHeaderH,
@@ -453,11 +458,12 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     y -= invHeaderH;
   };
 
-  drawInvHeader();
-  params.inventory.forEach((row, i) => {
+  await drawInvHeader();
+  for (let i = 0; i < params.inventory.length; i++) {
+    const row = params.inventory[i]!;
     if (y - invRowH < sigFloor()) {
-      newPage();
-      drawInvHeader();
+      await newPage();
+      await drawInvHeader();
     }
     const bot = y - invRowH;
     page.drawRectangle({
@@ -493,10 +499,10 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
       color: BODY,
     });
     y -= invRowH;
-  });
+  }
 
   reserveSig.on = true;
-  if (y < PDF_SIGNATURE_FOOTER_RESERVE + 40) newPage();
+  if (y < PDF_SIGNATURE_FOOTER_RESERVE + 40) await newPage();
 
   const villeSig =
     params.logementAdresse

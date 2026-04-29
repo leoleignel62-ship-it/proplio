@@ -12,6 +12,7 @@ import {
   drawLocavioPdfHeader,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import { sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 export type TaxeSejourRowPdf = {
@@ -40,7 +41,8 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
   const pageH = page.getHeight();
   const right = pageW - PDF_MARGIN_X;
 
-  drawLocavioPdfHeader(page, font, fontBold, "RÉCAPITULATIF TAXE DE SÉJOUR", pageH, pageW);
+  const logoBytes = getLocavioLockupPngBytes();
+  await drawLocavioPdfHeader(pdfDoc, page, font, fontBold, "RÉCAPITULATIF TAXE DE SÉJOUR", pageH, pageW, logoBytes);
   let y = pdfContentTopAfterHeader(pageH) - 8;
 
   page.drawText(sanitizePdfText(`Période : ${periodeLabel}`), {

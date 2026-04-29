@@ -22,6 +22,7 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import { PDF_FOOTER_HEIGHT, drawSignatureBlock } from "@/lib/pdf/pdf-utils";
 
 /** Marge réservée sous le corps du document */
@@ -213,28 +214,38 @@ type PdfCtx = {
   font: PDFFont;
   fontBold: PDFFont;
   fontOblique: PDFFont;
+  logoImageBytes: Uint8Array | null;
 };
 
-function newPage(ctx: PdfCtx) {
+async function newPage(ctx: PdfCtx) {
   ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
-  drawLocavioPdfHeader(ctx.page, ctx.font, ctx.fontBold, BAIL_HEADER_TITLE);
+  await drawLocavioPdfHeader(
+    ctx.doc,
+    ctx.page,
+    ctx.font,
+    ctx.fontBold,
+    BAIL_HEADER_TITLE,
+    PAGE_H,
+    PAGE_W,
+    ctx.logoImageBytes,
+  );
   ctx.y = pdfContentTopAfterHeader();
 }
 
 /** Évite de commencer un bloc avec moins de ~3 lignes utiles en bas de page */
-function ensureSpace(ctx: PdfCtx, needPt: number) {
+async function ensureSpace(ctx: PdfCtx, needPt: number) {
   if (ctx.y < CONTENT_BOTTOM + needPt) {
-    newPage(ctx);
+    await newPage(ctx);
   }
 }
 
 /** Hauteur minimale réservée en bas de page (3 lignes) */
-function ensureSpaceMinLines(ctx: PdfCtx, lines = 3) {
-  ensureSpace(ctx, lines * BODY_GAP + BODY_PT);
+async function ensureSpaceMinLines(ctx: PdfCtx, lines = 3) {
+  await ensureSpace(ctx, lines * BODY_GAP + BODY_PT);
 }
 
-function drawArticleTitle(ctx: PdfCtx, num: number, title: string) {
-  ensureSpaceMinLines(ctx, 4);
+async function drawArticleTitle(ctx: PdfCtx, num: number, title: string) {
+  await ensureSpaceMinLines(ctx, 4);
   const barH = 24;
   const titleText = `Article ${num} — ${title}`;
   ctx.page.drawRectangle({
@@ -274,20 +285,20 @@ function drawArticleSeparator(ctx: PdfCtx) {
   ctx.y -= 14;
 }
 
-function drawParagraph(ctx: PdfCtx, text: string, opts?: { oblique?: boolean; size?: number }) {
+async function drawParagraph(ctx: PdfCtx, text: string, opts?: { oblique?: boolean; size?: number }) {
   const size = opts?.size ?? BODY_PT;
   const gap = Math.round(size * 1.5);
   const font = opts?.oblique ? ctx.fontOblique : ctx.font;
   const color = opts?.oblique ? TEXT_MUTED : TEXT_BODY;
   const maxW = PAGE_W - MARGIN * 2;
   for (const line of wrapLines(text, font, size, maxW)) {
-    ensureSpace(ctx, gap + 2);
+    await ensureSpace(ctx, gap + 2);
     ctx.page.drawText(line, { x: MARGIN, y: ctx.y, size, font, color });
     ctx.y -= gap;
   }
 }
 
-function drawBulletList(ctx: PdfCtx, items: string[], legal = false) {
+async function drawBulletList(ctx: PdfCtx, items: string[], legal = false) {
   const size = legal ? LEGAL_PT : BODY_PT;
   const gap = legal ? LEGAL_GAP : BODY_GAP;
   const font = legal ? ctx.fontOblique : ctx.font;
@@ -296,7 +307,7 @@ function drawBulletList(ctx: PdfCtx, items: string[], legal = false) {
     const maxW = PAGE_W - MARGIN * 2 - 14;
     const lines = wrapLines(item, font, size, maxW);
     for (let i = 0; i < lines.length; i++) {
-      ensureSpace(ctx, gap + 2);
+      await ensureSpace(ctx, gap + 2);
       if (i === 0) {
         ctx.page.drawText("•", { x: MARGIN, y: ctx.y, size, font: ctx.fontBold, color: SECONDARY });
       }
@@ -307,12 +318,12 @@ function drawBulletList(ctx: PdfCtx, items: string[], legal = false) {
   }
 }
 
-function drawLabelValueBlock(
+async function drawLabelValueBlock(
   ctx: PdfCtx,
   rows: { label: string; value: string; valueBold?: boolean }[],
 ) {
   for (const row of rows) {
-    ensureSpace(ctx, 28);
+    await ensureSpace(ctx, 28);
     ctx.page.drawText(`${row.label} :`, {
       x: MARGIN,
       y: ctx.y,
@@ -324,7 +335,7 @@ function drawLabelValueBlock(
     const vFont = row.valueBold !== false ? ctx.fontBold : ctx.font;
     const maxW = PAGE_W - MARGIN * 2 - 8;
     for (const line of wrapLines(row.value, vFont, BODY_PT, maxW)) {
-      ensureSpace(ctx, BODY_GAP + 2);
+      await ensureSpace(ctx, BODY_GAP + 2);
       ctx.page.drawText(line, {
         x: MARGIN + 8,
         y: ctx.y,
@@ -339,7 +350,7 @@ function drawLabelValueBlock(
 }
 
 /** Tableau financier ou diagnostics : ne pas couper — tout sur une page */
-function drawSinglePageTable(
+async function drawSinglePageTable(
   ctx: PdfCtx,
   headerLabel: string,
   headerValue: string,
@@ -349,7 +360,7 @@ function drawSinglePageTable(
   const headerRowH = rowH;
   const totalH = headerRowH + bodyRows.length * rowH + 8;
   if (ctx.y < CONTENT_BOTTOM + totalH) {
-    newPage(ctx);
+    await newPage(ctx);
   }
 
   const tw = PAGE_W - MARGIN * 2;
@@ -498,8 +509,9 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   const bailRef = typeof bail.id === "string" && bail.id.length >= 8 ? bail.id.slice(0, 8).toUpperCase() : "—";
   const dateDocFr = formatDateFrLong(new Date());
 
+  const logoBytes = getLocavioLockupPngBytes();
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  drawLocavioPdfHeader(page, font, fontBold, BAIL_HEADER_TITLE);
+  await drawLocavioPdfHeader(doc, page, font, fontBold, BAIL_HEADER_TITLE, PAGE_H, PAGE_W, logoBytes);
   let y = pdfContentTopAfterHeader();
 
   const subLaw =
@@ -645,10 +657,10 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     });
   }
 
-  const ctx: PdfCtx = { doc, page, y, font, fontBold, fontOblique };
+  const ctx: PdfCtx = { doc, page, y, font, fontBold, fontOblique, logoImageBytes: logoBytes };
 
   for (const row of objetRows) {
-    ensureSpaceMinLines(ctx, 3);
+    await ensureSpaceMinLines(ctx, 3);
     ctx.page.drawText(`${row.label} :`, {
       x: MARGIN,
       y: ctx.y,
@@ -659,7 +671,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     ctx.y -= 11;
     const vFont = row.valueBold !== false ? ctx.fontBold : ctx.font;
     for (const line of wrapLines(row.value, vFont, BODY_PT, PAGE_W - MARGIN * 2 - 8)) {
-      ensureSpace(ctx, BODY_GAP + 2);
+      await ensureSpace(ctx, BODY_GAP + 2);
       ctx.page.drawText(line, {
         x: MARGIN + 8,
         y: ctx.y,
@@ -672,15 +684,15 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     ctx.y -= 6;
   }
 
-  drawArticleTitle(ctx, 1, "Désignation du logement");
-  drawParagraph(
+  await drawArticleTitle(ctx, 1, "Désignation du logement");
+  await drawParagraph(
     ctx,
     "Les parties reconnaissent que le logement objet du présent bail est désigné comme indiqué ci-dessus (adresse, désignation, surfaces et annexes). " +
       "Le locataire déclare avoir visité les lieux et les accepter dans l'état où ils se trouvent, sauf réserves contradictoires annexées à l'état des lieux d'entrée.",
   );
   const travaux = String(bail.travaux_realises ?? "").trim();
   if (travaux) {
-    ensureSpace(ctx, BODY_GAP * 2);
+    await ensureSpace(ctx, BODY_GAP * 2);
     ctx.page.drawText("Travaux réalisés depuis le dernier bail : ", {
       x: MARGIN,
       y: ctx.y,
@@ -689,12 +701,12 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       color: PRIMARY,
     });
     ctx.y -= BODY_GAP;
-    drawParagraph(ctx, travaux);
+    await drawParagraph(ctx, travaux);
   }
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 2, "Durée du bail");
-  ensureSpace(ctx, 40);
+  await drawArticleTitle(ctx, 2, "Durée du bail");
+  await ensureSpace(ctx, 40);
   ctx.page.drawText("Date de prise d'effet : ", {
     x: MARGIN,
     y: ctx.y,
@@ -719,7 +731,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   tx = MARGIN + ctx.font.widthOfTextAtSize("Durée : ", BODY_PT);
   ctx.page.drawText(`${dureeM} mois`, { x: tx, y: ctx.y, size: BODY_PT, font: ctx.fontBold, color: PRIMARY });
   ctx.y -= BODY_GAP;
-  drawParagraph(
+  await drawParagraph(
     ctx,
     typeMeuble
       ? "Bail meublé : durée d'un an, renouvelable tacitement par périodes d'un an (article 10 de la loi du 6 juillet 1989)."
@@ -728,14 +740,14 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 3, "Loyer et charges");
+  await drawArticleTitle(ctx, 3, "Loyer et charges");
   const loyerLabel = isColocIndividuel
     ? "Loyer mensuel hors charges (chambre)"
     : "Loyer mensuel hors charges";
   const chargesLabel = isColocIndividuel
     ? "Provision pour charges (chambre)"
     : "Provision pour charges";
-  drawSinglePageTable(
+  await drawSinglePageTable(
     ctx,
     "Libellé",
     "Montant",
@@ -753,7 +765,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     ],
     20,
   );
-  drawParagraph(
+  await drawParagraph(
     ctx,
     "Les charges locatives récupérables sont celles prévues par la loi du 6 juillet 1989 et le décret n° 87-712 du 26 août 1987. " +
       "Une régularisation annuelle sur justificatifs doit être communiquée au locataire.",
@@ -761,8 +773,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 4, "Dépôt de garantie");
-  ensureSpace(ctx, 36);
+  await drawArticleTitle(ctx, 4, "Dépôt de garantie");
+  await ensureSpace(ctx, 36);
   ctx.page.drawText("Montant du dépôt de garantie : ", {
     x: MARGIN,
     y: ctx.y,
@@ -773,7 +785,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   tx = MARGIN + ctx.font.widthOfTextAtSize("Montant du dépôt de garantie : ", BODY_PT);
   ctx.page.drawText(euroBold(depotN), { x: tx, y: ctx.y, size: BODY_PT, font: ctx.fontBold, color: PRIMARY });
   ctx.y -= BODY_GAP;
-  drawParagraph(
+  await drawParagraph(
     ctx,
     "Le dépôt de garantie ne peut excéder un mois du loyer hors charges (bail vide) ou deux mois (bail meublé), article 22 de la loi du 6 juillet 1989. " +
       "Il est restitué dans le délai d'un mois après la restitution des clés, déduction faite des sommes dues, sous réserve de justificatifs.",
@@ -781,15 +793,15 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 5, "Révision du loyer");
-  drawParagraph(
+  await drawArticleTitle(ctx, 5, "Révision du loyer");
+  await drawParagraph(
     ctx,
     String(
       bail.revision_loyer ||
         "Le loyer est révisable chaque année à la date anniversaire du bail selon l'indice de référence des loyers (IRL) publié par l'INSEE.",
     ),
   );
-  drawParagraph(
+  await drawParagraph(
     ctx,
     "Conformément aux articles 17-1 à 17-3 de la loi du 6 juillet 1989, la variation annuelle du loyer hors charges ne peut excéder la variation de l'IRL du trimestre de référence, sauf clause plus favorable au locataire. " +
       "Le bailleur informe le locataire au moins un mois avant la date de révision (LRAR ou remise en main propre contre récépissé).",
@@ -797,8 +809,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 6, "Obligations du bailleur");
-  drawBulletList(
+  await drawArticleTitle(ctx, 6, "Obligations du bailleur");
+  await drawBulletList(
     ctx,
     [
       "Délivrer un logement décent et conforme, et en assurer la jouissance paisible.",
@@ -810,8 +822,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 7, "Obligations du locataire");
-  drawBulletList(
+  await drawArticleTitle(ctx, 7, "Obligations du locataire");
+  await drawBulletList(
     ctx,
     [
       "Payer le loyer et les charges aux échéances ; user paisiblement des locaux selon leur destination.",
@@ -823,16 +835,16 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 8, "Assurance");
-  drawParagraph(
+  await drawArticleTitle(ctx, 8, "Assurance");
+  await drawParagraph(
     ctx,
     "Le locataire doit souscrire une assurance habitation couvrant les risques locatifs (incendie, dégâts des eaux, responsabilité civile) et en justifier chaque année à la demande du bailleur (article 7-1 de la loi du 6 juillet 1989). " +
       "À défaut de justification après mise en demeure, le bail peut être résilié selon les modalités légales.",
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 9, "Préavis");
-  drawParagraph(
+  await drawArticleTitle(ctx, 9, "Préavis");
+  await drawParagraph(
     ctx,
     typeMeuble
       ? "En location meublée, le préavis du locataire est d'un mois (article 15 de la loi du 6 juillet 1989), sous réserve des dispositions plus favorables applicables."
@@ -840,8 +852,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 10, "Clause résolutoire");
-  drawParagraph(
+  await drawArticleTitle(ctx, 10, "Clause résolutoire");
+  await drawParagraph(
     ctx,
     "En cas de défaut de paiement du loyer ou des charges à l'échéance, et huit jours après une mise en demeure restée infructueuse selon la loi, le bailleur peut demander la résiliation du bail et l'expulsion devant le juge. " +
       "Les modalités de procédure relèvent du Code de la procédure civile et du décret n° 2006-1687 du 22 décembre 2006.",
@@ -849,28 +861,28 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   );
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 11, "Diagnostics techniques");
+  await drawArticleTitle(ctx, 11, "Diagnostics techniques");
   const diagBody = DIAG_ROWS.map((row) => ({
     left: row.label,
     right: diagnostics[row.key] ? "Oui" : "Non",
     rightBold: true,
   }));
-  drawSinglePageTable(ctx, "Diagnostic / document", "Déclaré / remis", diagBody, 18);
+  await drawSinglePageTable(ctx, "Diagnostic / document", "Déclaré / remis", diagBody, 18);
 
   const dpeE = String(bail.dpe_classe_energie ?? "").trim();
   const dpeGes = String(bail.dpe_classe_ges ?? "").trim();
   const dpeKwh = Number(bail.dpe_valeur_kwh ?? 0);
-  drawLabelValueBlock(ctx, [
+  await drawLabelValueBlock(ctx, [
     { label: "Classe énergie (DPE)", value: dpeE || "—", valueBold: true },
     { label: "Valeur DPE (kWh/m²/an)", value: `${dpeKwh}`, valueBold: true },
     { label: "Classe GES", value: dpeGes || "—", valueBold: true },
   ]);
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 12, "Inventaire du mobilier");
+  await drawArticleTitle(ctx, 12, "Inventaire du mobilier");
   if (typeMeuble) {
     if (equipements.length === 0) {
-      drawParagraph(ctx, "Aucun équipement n'a été déclaré dans le formulaire. Les parties peuvent compléter par avenant ou annexe signée.");
+      await drawParagraph(ctx, "Aucun équipement n'a été déclaré dans le formulaire. Les parties peuvent compléter par avenant ou annexe signée.");
     } else {
       const invRowH = 20;
       const invHeaderH = invRowH;
@@ -884,7 +896,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       });
       const tableInvH = invHeaderH + rowHeights.reduce((a, b) => a + b, 0) + 8;
       if (ctx.y < CONTENT_BOTTOM + tableInvH) {
-        newPage(ctx);
+        await newPage(ctx);
       }
       const tw = PAGE_W - MARGIN * 2;
       const x0 = MARGIN;
@@ -936,7 +948,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       ctx.y = iy - 8;
     }
   } else {
-    drawParagraph(
+    await drawParagraph(
       ctx,
       "Le présent bail n'est pas un bail meublé au sens de la loi. Il n'y a pas d'inventaire mobilier obligatoire annexé aux présentes.",
       { oblique: true },
@@ -944,11 +956,11 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   }
   drawArticleSeparator(ctx);
 
-  drawArticleTitle(ctx, 13, "Clauses particulières");
+  await drawArticleTitle(ctx, 13, "Clauses particulières");
   if (clausesPart) {
-    drawParagraph(ctx, clausesPart);
+    await drawParagraph(ctx, clausesPart);
   } else {
-    drawParagraph(
+    await drawParagraph(
       ctx,
       "Les parties déclarent ne pas avoir prévu de clauses particulières autres que celles figurant aux présentes. Toute modification devra faire l'objet d'un avenant signé des deux parties.",
       { oblique: true },
@@ -965,7 +977,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   const sigIntroH = 88;
   const yBeforeSig = ctx.y;
   if (yBeforeSig < yMinAboveBand + sigIntroH) {
-    newPage(ctx);
+    await newPage(ctx);
   }
   ctx.page.drawText("SIGNATURES", {
     x: MARGIN,
@@ -975,7 +987,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     color: PRIMARY,
   });
   ctx.y -= 18;
-  drawParagraph(
+  await drawParagraph(
     ctx,
     "Les parties apposent leurs signatures ci-dessous pour valider l'ensemble des articles du présent contrat.",
     { size: 9 },

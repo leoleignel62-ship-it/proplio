@@ -16,6 +16,7 @@ import {
   pdfContentMinY,
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
+import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
 import { PDF_FOOTER_HEIGHT, drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 const CONTENT_BOTTOM = pdfContentMinY();
@@ -258,8 +259,10 @@ export async function generateRevisionIrlLetterPdfBuffer(
 
   const dateLine = `${input.villeSignature}, le ${input.dateLettre}`;
 
+  const logoBytes = getLocavioLockupPngBytes();
+
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+  await drawLocavioPdfHeader(doc, page, font, fontBold, REVISION_HEADER_TITLE, PAGE_H, PAGE_W, logoBytes);
 
   let y = pdfContentTopAfterHeader() - 8;
 
@@ -268,27 +271,30 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const SIG_AND_FOOTER_PTS = 150;
   const yMinAboveSignatureBand = PDF_MARGIN_Y + SIG_AND_FOOTER_PTS;
 
-  const ensureSpace = (needed: number) => {
+  const ensureSpace = async (needed: number) => {
     if (y < CONTENT_BOTTOM + needed) {
       page = doc.addPage([PAGE_W, PAGE_H]);
-      drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+      await drawLocavioPdfHeader(doc, page, font, fontBold, REVISION_HEADER_TITLE, PAGE_H, PAGE_W, logoBytes);
       y = pdfContentTopAfterHeader() - 12;
     }
   };
 
-  const drawParagraph = (text: string, opts?: { bold?: boolean; size?: number; color?: ReturnType<typeof rgb> }) => {
+  const drawParagraph = async (
+    text: string,
+    opts?: { bold?: boolean; size?: number; color?: ReturnType<typeof rgb> },
+  ) => {
     const sz = opts?.size ?? BODY_PT;
     const f = opts?.bold ? fontBold : font;
     const col = opts?.color ?? TEXT_MAIN;
     const cleaned = sanitizePdfText(text);
     for (const line of wrapToWidth(cleaned, f, sz, PAGE_W - 2 * MARGIN)) {
-      ensureSpace(BODY_LEAD + 4);
+      await ensureSpace(BODY_LEAD + 4);
       page.drawText(sanitizePdfText(line), { x: MARGIN, y, size: sz, font: f, color: col });
       y -= BODY_LEAD;
     }
   };
 
-  ensureSpace(48);
+  await ensureSpace(48);
   const objet = sanitizePdfText("Objet : Révision annuelle du loyer");
   page.drawText(sanitizePdfText(objet), {
     x: MARGIN,
@@ -305,27 +311,27 @@ export async function generateRevisionIrlLetterPdfBuffer(
     color: TEXT_MAIN,
   });
   y -= 20;
-  drawParagraph(`Bail du ${input.dateDebutBail}`, { size: SMALL_PT, color: TEXT_SEC });
+  await drawParagraph(`Bail du ${input.dateDebutBail}`, { size: SMALL_PT, color: TEXT_SEC });
   y -= 4;
 
-  drawParagraph(
+  await drawParagraph(
     "Madame, Monsieur,",
     { bold: false },
   );
   y -= 2;
 
-  drawParagraph(
+  await drawParagraph(
     "Conformément à l'article 17-1 de la loi n°89-462 du 6 juillet 1989 et à la clause de révision prévue au contrat de bail signé le " +
       `${input.dateDebutBail}, nous vous informons de la révision annuelle de votre loyer.`,
   );
   y -= 2;
 
-  drawParagraph(
+  await drawParagraph(
     "Cette révision est calculée sur la base de l'Indice de Référence des Loyers (IRL) publié par l'INSEE.",
   );
   y -= 8;
 
-  ensureSpace(155);
+  await ensureSpace(155);
   const tableRows = [
     {
       label: "IRL de référence",
@@ -345,15 +351,15 @@ export async function generateRevisionIrlLetterPdfBuffer(
   const closingBlockApprox = 120;
   if (y < yMinAboveSignatureBand + closingBlockApprox) {
     page = doc.addPage([PAGE_W, PAGE_H]);
-    drawLocavioPdfHeader(page, font, fontBold, REVISION_HEADER_TITLE);
+    await drawLocavioPdfHeader(doc, page, font, fontBold, REVISION_HEADER_TITLE, PAGE_H, PAGE_W, logoBytes);
     y = pdfContentTopAfterHeader() - 12;
   }
 
-  drawParagraph(`Cette révision prendra effet à compter du ${input.dateEffetRevision}.`);
+  await drawParagraph(`Cette révision prendra effet à compter du ${input.dateEffetRevision}.`);
   y -= 2;
-  drawParagraph("Nous restons à votre disposition pour tout renseignement complémentaire.");
+  await drawParagraph("Nous restons à votre disposition pour tout renseignement complémentaire.");
   y -= 2;
-  drawParagraph(
+  await drawParagraph(
     "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
   );
   y -= 14;
