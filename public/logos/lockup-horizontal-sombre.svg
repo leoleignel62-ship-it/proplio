@@ -1,0 +1,17 @@
+<svg width="840" height="240" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  
+  <defs>
+    <clipPath id="clip">
+      <polygon points="40,4 76,40 40,76 4,40"></polygon>
+    </clipPath>
+  </defs>
+  
+  <polygon points="40,4 4,40 40,76" fill="#1C1438" clip-path="url(#clip)"></polygon>
+  <polygon points="40,4 76,40 40,76" fill="#7C5CBF" clip-path="url(#clip)"></polygon>
+  <line x1="40" y1="4" x2="40" y2="76" stroke="#C4A0FF" stroke-width="1.3" clip-path="url(#clip)"></line>
+  <polygon points="40,4 76,40 40,76 4,40" stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round"></polygon>
+  <path d="M 27,26 H 34 Q 35,26 35,27 V 42 L 42,49 H 52 Q 53,49 53,50 V 55 Q 53,57 52,57 H 27 Q 26,57 26,56 V 27 Q 26,26 27,26 Z" fill="white"></path>
+  
+  <text x="96" y="50" class="wordmark" font-size="36" font-weight="400" letter-spacing="5" fill="white">Locavio</text>
+</svg>

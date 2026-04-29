@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Locavio — Gestion locative",
   description: "Locavio : plateforme premium de gestion locative pour propriétaires bailleurs.",
+  icons: {
+    icon: "/logos/favicon.svg",
+    shortcut: "/logos/favicon.svg",
+    apple: "/logos/favicon.svg",
+  },
 };
 
 /** Équivaut à <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /> */

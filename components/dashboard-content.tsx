@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { IconBuilding, IconContract, IconDocument, IconUsers } from "@/components/locavio-icons";
+import { IconContract, IconDocument, IconOffice, IconUsers } from "@/components/locavio-icons";
 import { isProprietaireOnboardingIncomplete } from "@/lib/proprietaire-profile";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
@@ -266,17 +266,14 @@ function StatCard({
   titre: string;
   valeur: number;
   description: string;
-  icon: typeof IconBuilding;
+  icon: typeof IconOffice;
   iconTint: string;
 }) {
   return (
     <article
-      className="relative overflow-hidden p-5 transition-shadow duration-200 ease-out"
+      className="locavio-glow-card relative overflow-hidden p-5 transition-shadow duration-200 ease-out"
       style={{
-        backgroundColor: PC.card,
-        border: `1px solid ${PC.border}`,
         borderRadius: 12,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
       }}
     >
       <div className="relative flex items-start justify-between gap-3">
@@ -299,7 +296,7 @@ function StatCard({
             borderRadius: 12,
             backgroundColor: `${iconTint}22`,
             color: iconTint,
-            border: `1px solid rgba(255,255,255,0.08)`,
+            border: `1px solid ${PC.borderStrong}`,
           }}
         >
           <Icon className="!h-5 !w-5 shrink-0" aria-hidden />
@@ -425,7 +422,10 @@ export function DashboardContent() {
 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="locavio-page-title">{`Bonjour${prenom ? ` ${prenom}` : ""}`}</h1>
+          <h1 className="locavio-page-title">
+            Bonjour{prenom ? ` ` : ""}
+            {prenom ? <span className="locavio-gradient-text">{prenom}</span> : null}
+          </h1>
           <p className="locavio-page-subtitle capitalize">{dateLong}</p>
         </div>
       </header>
@@ -435,7 +435,7 @@ export function DashboardContent() {
           titre="Logements actifs"
           valeur={stats.logements}
           description="Biens enregistrés sur Locavio."
-          icon={IconBuilding}
+          icon={IconOffice}
           iconTint={PC.primaryLight}
         />
         <StatCard

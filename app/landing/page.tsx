@@ -8,7 +8,7 @@ import {
   IconDeviceCamera,
   IconDocument,
   IconFolder,
-  IconHome,
+  LogoFull,
   IconTrendingUp,
 } from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
@@ -24,28 +24,24 @@ const ease = "200ms ease-out";
 
 const glassCard: CSSProperties = {
   background: PC.glassBg,
-  WebkitBackdropFilter: "blur(12px)",
-  backdropFilter: "blur(12px)",
-  border: `1px solid ${PC.border}`,
+  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "blur(20px)",
+  border: `1px solid ${PC.glassBorder}`,
   borderRadius: 16,
-  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.35)",
+  boxShadow: PC.cardShadow,
 };
 
 const solidCard: CSSProperties = {
+  background: PC.gradientCard,
   backgroundColor: PC.card,
-  border: `1px solid ${PC.border}`,
+  border: `1px solid ${PC.borderStrong}`,
   borderRadius: 12,
-  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
+  boxShadow: PC.cardShadow,
 };
 
 const pageBg: CSSProperties = {
   backgroundColor: PC.bg,
-  backgroundImage: `
-    radial-gradient(ellipse 80% 55% at 100% -10%, rgba(124, 58, 237, 0.14), transparent 55%),
-    radial-gradient(circle at 0% 100%, rgba(139, 92, 246, 0.06), transparent 45%),
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-  `,
+  backgroundImage: `${PC.gradientBg}, radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.08), transparent 45%)`,
   backgroundSize: "100% 100%, 100% 100%, 48px 48px, 48px 48px",
   color: PC.text,
   minHeight: "100vh",
@@ -236,20 +232,14 @@ export default function LandingPage() {
         className="sticky top-0 z-[60] border-b"
         style={{
           borderColor: PC.border,
-          backgroundColor: "rgba(10, 10, 15, 0.88)",
-          WebkitBackdropFilter: "blur(12px)",
-          backdropFilter: "blur(12px)",
+          backgroundColor: "rgba(6,6,15,0.8)",
+          WebkitBackdropFilter: "blur(20px)",
+          backdropFilter: "blur(20px)",
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/landing" className="flex items-center gap-2.5 font-bold tracking-tight" style={{ color: PC.text }}>
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
-            >
-              <IconHome className="h-5 w-5" aria-hidden />
-            </span>
-            Locavio
+            <LogoFull className="h-7 w-auto" />
           </Link>
           <Link
             href="/qui-sommes-nous"
@@ -270,6 +260,7 @@ export default function LandingPage() {
               border: `1px solid rgba(124, 58, 237, 0.45)`,
               color: PC.secondary,
               backgroundColor: "transparent",
+              boxShadow: "0 0 0 1px rgba(124,58,237,0.2)",
             }}
           >
             Se connecter
@@ -282,17 +273,16 @@ export default function LandingPage() {
         <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
             <p
-              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
-              style={{ backgroundColor: PC.primaryBg15, color: PC.secondary, border: `1px solid ${PC.border}` }}
+              className="locavio-badge-new inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
+              style={{ color: PC.secondary, border: `1px solid ${PC.border}` }}
             >
-              <IconHome className="h-4 w-4" style={{ color: PC.primaryLight }} aria-hidden />
-              Locavio
+              Nouveau : États des lieux IA
             </p>
             <h1
               className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
               style={{ color: PC.text }}
             >
-              Gérez vos locations.
+              <span className="locavio-gradient-text">Gérez vos locations.</span>
               <br />
               Sans perdre votre temps.
             </h1>
@@ -306,9 +296,9 @@ export default function LandingPage() {
                 href="/register"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
                 style={{
-                  backgroundColor: PC.primary,
+                  background: PC.gradientPrimary,
                   color: PC.white,
-                  boxShadow: PC.activeRing,
+                  boxShadow: `${PC.activeRing}, ${PC.glowShadow}`,
                   transitionDuration: "200ms",
                   transitionTimingFunction: "ease-out",
                 }}
@@ -321,7 +311,7 @@ export default function LandingPage() {
                 style={{
                   border: `1px solid ${PC.borderStrong}`,
                   color: PC.text,
-                  backgroundColor: "transparent",
+                  backgroundColor: PC.glassBg,
                 }}
               >
                 Voir les tarifs
@@ -442,14 +432,7 @@ export default function LandingPage() {
                 className="flex flex-1 items-center justify-center rounded-2xl p-10"
                 style={{ ...solidCard, minHeight: 200 }}
               >
-                <div
-                  className="flex h-24 w-24 items-center justify-center rounded-2xl"
-                  style={{
-                    background: `linear-gradient(145deg, ${PC.primaryBg20}, rgba(124,58,237,0.08))`,
-                    border: `1px solid ${PC.primaryBorder40}`,
-                    color: PC.primaryLight,
-                  }}
-                >
+                <div className="locavio-glow-card flex h-24 w-24 items-center justify-center rounded-2xl" style={{ color: PC.primaryLight }}>
                   <f.icon className="h-12 w-12" aria-hidden />
                 </div>
               </div>
@@ -750,18 +733,10 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer id="footer" className="border-t px-4 py-12 sm:px-6" style={{ borderColor: PC.border, backgroundColor: PC.bg }}>
+      <footer id="footer" className="border-t px-4 py-12 sm:px-6" style={{ borderColor: PC.border, background: `linear-gradient(to top, ${PC.card}, transparent 70%)` }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-2">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
-            >
-              <IconHome className="h-6 w-6" aria-hidden />
-            </span>
-            <span className="text-lg font-bold tracking-tight" style={{ color: PC.text }}>
-              Locavio
-            </span>
+            <LogoFull className="h-8 w-auto" />
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
             <Link href="#tarifs" className="transition hover:text-white" style={{ transition: ease }}>

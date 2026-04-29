@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconHome, IconPlus } from "@/components/locavio-icons";
+import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
@@ -1109,7 +1109,7 @@ export default function BauxPage() {
               <section key={logement.id} className="space-y-4">
                 <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
                   <div className="flex items-center gap-2">
-                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <IconBuilding className="h-4 w-4" style={{ color: PC.secondary }} />
                     <h2 className="text-lg font-semibold">{logement.label}</h2>
                     <span className="text-sm" style={{ color: PC.muted }}>
                       ({groupRows.length} baux)

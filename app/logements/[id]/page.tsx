@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { IconHome } from "@/components/locavio-icons";
+import { IconBuilding } from "@/components/locavio-icons";
 import { parseChambresDetails, totalLoyersChambres } from "@/lib/colocation";
 import { PC } from "@/lib/locavio-colors";
 import { panelCard } from "@/lib/locavio-field-styles";
@@ -206,7 +206,7 @@ export default function LogementDetailPage() {
           <BtnSecondary onClick={() => router.push("/logements")}>Modifier</BtnSecondary>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <InfoBadge icon={<IconHome className="h-4 w-4" />} iconColor={PC.secondary}>
+          <InfoBadge icon={<IconBuilding className="h-4 w-4" />} iconColor={PC.secondary}>
             {logement.type || "—"}
           </InfoBadge>
           <InfoBadge icon={<IconRuler className="h-4 w-4" />}>

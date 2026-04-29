@@ -5,16 +5,18 @@
 /* Source unique des couleurs Locavio (variables + composants) */
 :root {
   color-scheme: dark;
-  --locavio-bg: #0a0a0f;
-  --locavio-sidebar: #0d0d14;
-  --locavio-input: #0d0d14;
-  --locavio-card: #13131a;
-  --locavio-card-hover: #1c1c26;
-  --locavio-border: rgba(255, 255, 255, 0.08);
-  --locavio-border-strong: rgba(255, 255, 255, 0.12);
-  --locavio-text: #f8f8ff;
-  --locavio-muted: #94949f;
-  --locavio-tertiary: #5a5a6a;
+  --locavio-bg: #06060f;
+  --locavio-sidebar: #08080f;
+  --locavio-input: #0d0d1a;
+  --locavio-card: #0f0f1a;
+  --locavio-card-hover: #141422;
+  --locavio-border: rgba(139, 92, 246, 0.12);
+  --locavio-border-strong: rgba(139, 92, 246, 0.2);
+  --locavio-border-glow: rgba(139, 92, 246, 0.35);
+  --locavio-glass-border: rgba(139, 92, 246, 0.15);
+  --locavio-text: #f0f0ff;
+  --locavio-muted: #8888a0;
+  --locavio-tertiary: #55556a;
   --locavio-primary: #7c3aed;
   --locavio-primary-hover: #6d28d9;
   --locavio-primary-light: #8b5cf6;
@@ -25,7 +27,10 @@
   --locavio-accent-blue: #6366f1;
   --locavio-white: #ffffff;
   --radius-locavio-card: 12px;
-  --shadow-locavio-card: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-locavio-card: 0 0 0 1px rgba(139, 92, 246, 0.12), 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-locavio-card-hover: 0 0 0 1px rgba(139, 92, 246, 0.25), 0 8px 32px rgba(124, 58, 237, 0.15);
+  --locavio-gradient-primary: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  --locavio-gradient-card: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(79, 70, 229, 0.05) 100%);
   --locavio-ease: cubic-bezier(0.33, 1, 0.68, 1);
   --locavio-dur: 200ms;
 }
@@ -34,7 +39,7 @@
 @layer components {
   .locavio-input {
     border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--locavio-border);
     background-color: var(--locavio-input);
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
@@ -53,7 +58,7 @@
 
   .locavio-input:focus {
     border-color: var(--locavio-primary);
-    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 4px 20px rgba(124, 58, 237, 0.12);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.5), 0 0 28px rgba(124, 58, 237, 0.28);
   }
 
   .locavio-label {
@@ -92,21 +97,21 @@
 
   .locavio-btn-primary {
     border-radius: 0.75rem;
-    background-color: var(--locavio-primary);
+    background: var(--locavio-gradient-primary);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 600;
     color: var(--locavio-white);
-    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.25), 0 4px 24px rgba(124, 58, 237, 0.12);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 8px 24px rgba(79, 70, 229, 0.25);
     transition:
       background-color var(--locavio-dur) var(--locavio-ease),
       box-shadow var(--locavio-dur) var(--locavio-ease);
   }
 
   .locavio-btn-primary:hover:not(:disabled) {
-    background-color: var(--locavio-primary-light);
-    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 6px 28px rgba(124, 58, 237, 0.18);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.45), 0 0 32px rgba(124, 58, 237, 0.35);
+    transform: translateY(-1px);
   }
 
   .locavio-btn-primary:disabled {
@@ -136,8 +141,14 @@
   .locavio-card {
     border-radius: var(--radius-locavio-card);
     border: 1px solid var(--locavio-border);
-    background-color: var(--locavio-card);
+    background: var(--locavio-gradient-card), var(--locavio-card);
     box-shadow: var(--shadow-locavio-card);
+    transition: box-shadow var(--locavio-dur) var(--locavio-ease), border-color var(--locavio-dur) var(--locavio-ease);
+  }
+
+  .locavio-card:hover {
+    border-color: var(--locavio-border-glow);
+    box-shadow: var(--shadow-locavio-card-hover);
   }
 
   .locavio-stat-icon--violet {
@@ -212,10 +223,54 @@
   }
 
   .locavio-glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 15, 26, 0.7);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--locavio-glass-border);
+    box-shadow: var(--shadow-locavio-card);
+  }
+
+  .locavio-glow-card {
+    border-radius: var(--radius-locavio-card);
+    border: 1px solid var(--locavio-border);
+    background: var(--locavio-gradient-card), var(--locavio-card);
+    box-shadow: var(--shadow-locavio-card);
+    transition: box-shadow var(--locavio-dur) var(--locavio-ease), border-color var(--locavio-dur) var(--locavio-ease);
+  }
+
+  .locavio-glow-card:hover {
+    border-color: var(--locavio-border-glow);
+    box-shadow: var(--shadow-locavio-card-hover), 0 0 40px rgba(124, 58, 237, 0.2);
+  }
+
+  .locavio-gradient-text {
+    background: linear-gradient(135deg, #a78bfa 0%, #4f46e5 50%, #f0f0ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .locavio-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .locavio-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.16) 50%, transparent 100%);
+    animation: locavio-shimmer 1.8s infinite;
+  }
+
+  .locavio-badge-new {
+    border-radius: 9999px;
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    background: rgba(124, 58, 237, 0.15);
+    color: #c4b5fd;
+    animation: locavio-pulse 2.4s infinite;
   }
 }
 
@@ -227,6 +282,7 @@ html {
 }
 
 body {
+  position: relative;
   min-height: 100%;
   margin: 0;
   background-color: var(--locavio-bg);
@@ -237,6 +293,57 @@ body {
   font-weight: 400;
   line-height: 1.7;
 }
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.5);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes locavio-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes locavio-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes locavio-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes locavio-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
+}
+
+.locavio-animate-fade-in { animation: locavio-fade-in 0.35s ease-out both; }
+.locavio-animate-slide-up { animation: locavio-slide-up 0.35s ease-out both; }
 
 @layer utilities {
   .backdrop-blur-safari {

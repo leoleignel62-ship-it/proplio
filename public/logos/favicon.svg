@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  <defs>
+    <clipPath id="clip">
+      <polygon points="16,2 30,16 16,30 2,16"></polygon>
+    </clipPath>
+  </defs>
+  <polygon points="16,2 2,16 16,30" fill="#1C1438" clip-path="url(#clip)"></polygon>
+  <polygon points="16,2 30,16 16,30" fill="#7C5CBF" clip-path="url(#clip)"></polygon>
+  <line x1="16" y1="2" x2="16" y2="30" stroke="#C4A0FF" stroke-width="0.8" clip-path="url(#clip)"></line>
+  <polygon points="16,2 30,16 16,30 2,16" stroke="white" stroke-width="1" fill="none" stroke-linejoin="round"></polygon>
+  
+  <path d="M 10,10 H 14 Q 14.5,10 14.5,10.5 V 17 L 17,19.5 H 21.5 Q 22,19.5 22,20 V 22 Q 22,22.5 21.5,22.5 H 10 Q 9.5,22.5 9.5,22 V 10.5 Q 9.5,10 10,10 Z" fill="white"></path>
+</svg>

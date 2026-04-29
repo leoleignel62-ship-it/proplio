@@ -23,7 +23,7 @@ const publicPages = [
   "/qui-sommes-nous",
 ];
 
-const shellStyle = { backgroundColor: PC.bg, color: PC.text } as const;
+const shellStyle = { backgroundColor: PC.bg, backgroundImage: PC.gradientBg, color: PC.text } as const;
 const GUIDED_TOUR_FREE_DONE_KEY = "guided_tour_free_done";
 const GUIDED_TOUR_PAID_DONE_KEY = "guided_tour_paid_done";
 const START_GUIDED_TOUR_FREE_EVENT = "start:guided-tour-free";

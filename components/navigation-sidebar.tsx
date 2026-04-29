@@ -13,14 +13,14 @@ import {
 } from "react";
 import {
   IconBank,
-  IconBuilding,
+  IconOffice,
   IconCalendar,
   IconChart,
   IconClipboard,
   IconCog,
   IconContract,
   IconDocument,
-  IconHome,
+  LogoFull,
   IconTrendingUp,
   IconUsers,
 } from "@/components/locavio-icons";
@@ -52,7 +52,7 @@ const sectionLabelStyle: CSSProperties = {
   padding: "8px 16px",
 };
 
-const logementsNavItem = { href: "/logements", label: "Logements", icon: IconBuilding } as const;
+const logementsNavItem = { href: "/logements", label: "Logements", icon: IconOffice } as const;
 
 const navigationModeClassique = [
   { href: "/", label: "Dashboard", icon: IconChart },
@@ -168,14 +168,14 @@ function NavLink({
   const [hover, setHover] = useState(false);
 
   const activeStyle: CSSProperties = {
-    backgroundColor: PC.primaryBg15,
-    color: PC.text,
-    boxShadow: `inset 2px 0 0 0 ${PC.primary}`,
+    backgroundColor: "rgba(124, 58, 237, 0.12)",
+    color: PC.secondary,
+    boxShadow: `inset 2px 0 0 0 ${PC.primaryLight}`,
   };
 
   const idleStyle: CSSProperties = {
     color: hover ? PC.text : PC.muted,
-    backgroundColor: hover ? "rgba(255, 255, 255, 0.05)" : "transparent",
+    backgroundColor: hover ? "rgba(124, 58, 237, 0.05)" : "transparent",
   };
 
   return (
@@ -191,7 +191,7 @@ function NavLink({
     >
       <Icon
         className="h-5 w-5 shrink-0"
-        style={{ color: isActive ? PC.primaryLight : PC.secondary }}
+        style={{ color: isActive ? PC.primaryLight : hover ? PC.secondary : PC.muted }}
       />
       {starterOnlyLock ? (
         <span className="flex min-w-0 items-center gap-1.5">
@@ -361,7 +361,8 @@ export function NavigationSidebar() {
   }, [ownerName, email]);
 
   const asideStyle: CSSProperties = {
-    backgroundColor: PC.sidebar,
+    backgroundColor: "#08080f",
+    backgroundImage: "radial-gradient(circle at 15% 5%, rgba(124,58,237,0.18), transparent 38%)",
     borderRight: `1px solid ${PC.border}`,
     position: "fixed",
     top: 0,
@@ -378,19 +379,18 @@ export function NavigationSidebar() {
   };
 
   const profileCardStyle: CSSProperties = {
-    backgroundColor: PC.cardAlpha80,
-    border: `1px solid ${PC.border}`,
+    backgroundColor: PC.glassBg,
+    border: `1px solid ${PC.glassBorder}`,
+    WebkitBackdropFilter: PC.glassBlur,
+    backdropFilter: PC.glassBlur,
+    boxShadow: PC.cardShadow,
+    transition: "all 200ms ease-out",
   };
 
   const avatarRingStyle: CSSProperties = {
-    backgroundColor: PC.primary,
+    background: PC.gradientPrimary,
     color: PC.white,
     fontWeight: 700,
-  };
-
-  const logoBadgeStyle: CSSProperties = {
-    backgroundColor: PC.primaryBg20,
-    color: PC.primary,
   };
 
   function sidebarScrollableNav(closeMobile?: () => void) {
@@ -466,12 +466,7 @@ export function NavigationSidebar() {
       <aside className="hidden flex-col md:flex" style={asideStyle}>
         <div className="flex h-full min-h-0 flex-col p-5">
           <Link href="/" className="mb-6 flex shrink-0 items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={logoBadgeStyle}>
-              <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
-            </span>
-            <span className="text-lg font-semibold tracking-tight" style={{ color: PC.text }}>
-              Locavio
-            </span>
+            <LogoFull className="h-7 w-auto" />
           </Link>
 
           <div className="flex min-h-0 flex-1 flex-col">
@@ -574,12 +569,7 @@ export function NavigationSidebar() {
                   className="flex min-w-0 items-center gap-2.5"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={logoBadgeStyle}>
-                    <IconHome className="h-6 w-6" style={{ color: PC.primary }} />
-                  </span>
-                  <span className="truncate text-lg font-semibold tracking-tight" style={{ color: PC.text }}>
-                    Locavio
-                  </span>
+                  <LogoFull className="h-7 w-auto" />
                 </Link>
                 <button
                   type="button"
@@ -1069,9 +1059,9 @@ function LogoutRowMuted() {
       className="mt-3 flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium transition-colors duration-200 ease-out"
       style={{
         borderRadius: 10,
-        border: `1px solid ${h ? "rgba(239, 68, 68, 0.45)" : "rgba(239, 68, 68, 0.22)"}`,
+        border: `1px solid ${h ? "rgba(239, 68, 68, 0.4)" : PC.border}`,
         backgroundColor: h ? "rgba(239, 68, 68, 0.12)" : "transparent",
-        color: h ? "#fca5a5" : "rgba(248, 113, 113, 0.85)",
+        color: h ? "#fca5a5" : PC.muted,
       }}
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}

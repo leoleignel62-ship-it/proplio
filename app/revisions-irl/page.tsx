@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import Link from "next/link";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
-import { IconArrowPath, IconHome } from "@/components/locavio-icons";
+import { IconArrowPath, IconBuilding } from "@/components/locavio-icons";
 import {
   calculerNouveauLoyer,
   detecterBauxEligibles,
@@ -336,7 +336,7 @@ export default function RevisionsIrlPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <nav className="text-sm" style={{ color: PC.muted }}>
         <Link href="/" className="inline-flex items-center gap-1.5 transition hover:underline" style={{ color: PC.muted }}>
-          <IconHome className="h-4 w-4" />
+          <IconBuilding className="h-4 w-4" />
           Accueil
         </Link>
         <span className="px-1">/</span>

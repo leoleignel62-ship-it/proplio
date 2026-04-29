@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconHome } from "@/components/locavio-icons";
+import { LogoFull } from "@/components/locavio-icons";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
 import { fieldInputStyle } from "@/lib/locavio-field-styles";
 
 const LEFT_BG: CSSProperties = {
-  backgroundColor: "#1a0a2e",
-  backgroundImage:
-    "radial-gradient(circle at 20% 20%, rgba(124,58,237,0.35), transparent 45%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.18), transparent 40%)",
+  backgroundColor: "#0a0020",
+  backgroundImage: "linear-gradient(135deg, #0a0020 0%, #1a0a3a 55%, #0d0520 100%)",
 };
 
 function translateSupabaseError(message: string): string {
@@ -68,11 +67,8 @@ function LoginForm() {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2" style={{ backgroundColor: "#0a0a0f", color: PC.text }}>
       <aside className="relative hidden lg:flex lg:flex-col lg:justify-between lg:p-12" style={LEFT_BG}>
-        <div className="flex items-center justify-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: "rgba(124,58,237,0.2)", color: "#c4b5fd" }}>
-            <IconHome className="h-7 w-7" />
-          </span>
-          <span className="text-2xl font-bold tracking-tight">Locavio</span>
+        <div className="flex items-center">
+          <LogoFull className="h-8 w-auto" />
         </div>
         <div className="mx-auto max-w-md text-center">
           <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em]">Gérez vos locations.</p>
@@ -85,8 +81,8 @@ function LoginForm() {
         </ul>
       </aside>
 
-      <section className="flex items-center justify-center px-4 py-10 sm:px-8" style={{ backgroundColor: "#0a0a0f" }}>
-        <div className="w-full max-w-md rounded-2xl p-8" style={{ backgroundColor: "#11111a", border: `1px solid ${PC.border}` }}>
+      <section className="flex items-center justify-center px-4 py-10 sm:px-8" style={{ backgroundColor: "#0f0f1a" }}>
+        <div className="w-full max-w-md rounded-2xl p-8 locavio-glass-card" style={{ border: `1px solid ${PC.glassBorder}` }}>
           <h1 className="text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Bon retour 👋
           </h1>

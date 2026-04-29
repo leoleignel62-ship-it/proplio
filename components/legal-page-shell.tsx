@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { IconHome } from "@/components/locavio-icons";
+import { LogoFull } from "@/components/locavio-icons";
 import { PC } from "@/lib/locavio-colors";
 
 export function LegalPageShell({
@@ -25,13 +25,7 @@ export function LegalPageShell({
       >
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/landing" className="flex items-center gap-2.5 font-bold tracking-tight" style={{ color: PC.text }}>
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
-            >
-              <IconHome className="h-5 w-5" aria-hidden />
-            </span>
-            Locavio
+            <LogoFull className="h-7 w-auto" />
           </Link>
           <Link href="/landing" className="text-sm font-medium underline" style={{ color: PC.muted }}>
             Retour vers l&apos;accueil
@@ -51,15 +45,7 @@ export function LegalPageShell({
       <footer className="border-t px-4 py-12 sm:px-6" style={{ borderColor: PC.border, backgroundColor: PC.bg }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-2">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
-            >
-              <IconHome className="h-6 w-6" aria-hidden />
-            </span>
-            <span className="text-lg font-bold tracking-tight" style={{ color: PC.text }}>
-              Locavio
-            </span>
+            <LogoFull className="h-7 w-auto" />
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
             <Link href="/landing#tarifs" className="transition hover:text-white">

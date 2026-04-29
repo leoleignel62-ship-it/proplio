@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
-import { IconHome, IconPlus } from "@/components/locavio-icons";
+import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -774,7 +774,7 @@ export default function QuittancesPage() {
               <section key={logement.id} className="space-y-4">
                 <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
                   <div className="flex items-center gap-2">
-                    <IconHome className="h-4 w-4" style={{ color: PC.secondary }} />
+                    <IconBuilding className="h-4 w-4" style={{ color: PC.secondary }} />
                     <h2 className="text-lg font-semibold">{logement.label}</h2>
                     <span className="text-sm" style={{ color: PC.muted }}>
                       ({sent}/{groupRows.length} envoyées)
