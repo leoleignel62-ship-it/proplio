@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseAuthOptions } from "@/lib/supabase/auth-options";
 import { getSupabaseSsrCookieOptions } from "@/lib/supabase/cookie-options";
 import { getSupabasePublicConfig } from "@/lib/supabase/env-public";
@@ -65,14 +66,9 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const createdAt = user?.created_at ? Date.parse(user.created_at) : NaN;
-  const lastSignInAt = user?.last_sign_in_at ? Date.parse(user.last_sign_in_at) : NaN;
-  const isFirstConnection =
-    Number.isFinite(createdAt) &&
-    Number.isFinite(lastSignInAt) &&
-    Math.abs(createdAt - lastSignInAt) < 10_000;
+  const welcomeEmailSent = Boolean(user?.user_metadata?.welcome_email_sent);
 
-  if (resend && user?.email && isFirstConnection) {
+  if (resend && user?.email && user?.id && !welcomeEmailSent) {
     const prenom = String(user.user_metadata?.prenom ?? "").trim() || "cher propriétaire";
     const emailHtml = `
       <div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
@@ -111,6 +107,16 @@ export async function GET(request: NextRequest) {
       });
       if (emailResult.error) {
         console.error("Welcome email failed:", emailResult.error.message);
+      } else {
+        const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...(user.user_metadata ?? {}),
+            welcome_email_sent: true,
+          },
+        });
+        if (updateUserError) {
+          console.error("Welcome email metadata update failed:", updateUserError.message);
+        }
       }
     } catch (sendError) {
       console.error("Welcome email exception:", sendError);
