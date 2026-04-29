@@ -157,17 +157,35 @@ export default function DossiersPage() {
           return (
             <div key={row.id} className="locavio-card rounded-xl p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <Link href={`/dossiers/${row.id}`} className="min-w-0 flex-1">
-                  <p className="font-semibold">{token?.prenom_candidat} {token?.nom_candidat}</p>
-                  <p className="text-sm" style={{ color: PC.muted }}>{row.logement_concerne}</p>
-                  <p className="mt-2 text-xs" style={{ color: PC.tertiary }}>
-                    Créé le {new Date(row.created_at).toLocaleDateString("fr-FR")}
-                  </p>
-                </Link>
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
+                    style={{
+                      backgroundColor: noteColor.bg,
+                      color: noteColor.color,
+                      minWidth: 48,
+                    }}
+                    aria-label={`Note ${note || "N/A"}`}
+                    title={`Note ${note || "N/A"}`}
+                  >
+                    {note || "-"}
+                  </div>
+                  <Link href={`/dossiers/${row.id}`} className="min-w-0 flex-1">
+                    <p className="font-semibold">{token?.prenom_candidat} {token?.nom_candidat}</p>
+                    <p className="text-sm" style={{ color: PC.muted }}>{row.logement_concerne}</p>
+                    <p className="mt-2 text-xs" style={{ color: PC.tertiary }}>
+                      Créé le {new Date(row.created_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </Link>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full px-2 py-1" style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}>{labelStatut}</span>
-                    {form ? <span className="rounded-full px-2 py-1" style={{ backgroundColor: noteColor.bg, color: noteColor.color }}>{form.score}/100 · {note}</span> : null}
+                    {form ? (
+                      <span className="rounded-full px-2 py-1" style={{ backgroundColor: PC.cardHover, color: PC.text }}>
+                        {form.score}/100
+                      </span>
+                    ) : null}
                     <span className="rounded-full px-2 py-1" style={{ backgroundColor: expired ? PC.dangerBg10 : PC.successBg10, color: expired ? PC.danger : PC.success }}>
                       {expired ? "Lien expiré" : "Lien valide"}
                     </span>
