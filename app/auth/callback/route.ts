@@ -22,6 +22,7 @@ function getAppBaseUrl(request: NextRequest): string {
 }
 
 export async function GET(request: NextRequest) {
+  console.log("AUTH CALLBACK TRIGGERED - url:", request.url);
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const nextPath = requestUrl.searchParams.get("next") ?? "/";
