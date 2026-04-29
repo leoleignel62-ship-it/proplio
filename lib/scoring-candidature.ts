@@ -25,7 +25,7 @@ export type CandidatureScoreResult = {
 
 function getRatioPoints(ratio: number): number {
   if (ratio >= 3) return 40;
-  if (ratio >= 2.5) return 30;
+  if (ratio >= 2.5) return 32;
   if (ratio >= 2) return 20;
   if (ratio >= 1.5) return 10;
   return 0;

@@ -20,6 +20,7 @@ const MANUAL_LOGEMENT_VALUE = "__manual__";
 
 export default function NouveauDossierPage() {
   const [values, setValues] = useState({
+    logement_id: "",
     logement_concerne: "",
     loyer_reference: "",
     prenom_candidat: "",
@@ -91,17 +92,22 @@ export default function NouveauDossierPage() {
   function onChangeLogement(nextValue: string) {
     setSelectedLogement(nextValue);
     if (nextValue === MANUAL_LOGEMENT_VALUE) {
-      setValues((v) => ({ ...v, logement_concerne: "", loyer_reference: "" }));
+      setValues((v) => ({ ...v, logement_id: "", logement_concerne: "", loyer_reference: "" }));
       return;
     }
     const selected = logements.find((logement) => logement.id === nextValue);
     if (!selected) {
-      setValues((v) => ({ ...v, logement_concerne: "", loyer_reference: "" }));
+      setValues((v) => ({ ...v, logement_id: "", logement_concerne: "", loyer_reference: "" }));
       return;
     }
     const label = selected.nom.trim() || selected.adresse.trim() || "Logement sans nom";
     const loyerCc = selected.loyer + selected.charges;
-    setValues((v) => ({ ...v, logement_concerne: label, loyer_reference: String(loyerCc) }));
+    setValues((v) => ({
+      ...v,
+      logement_id: selected.id,
+      logement_concerne: label,
+      loyer_reference: String(loyerCc),
+    }));
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {

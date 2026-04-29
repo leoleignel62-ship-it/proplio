@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type CreateDossierBody = {
+  logement_id?: string;
   logement_concerne?: string;
   loyer_reference?: number;
   email_candidat?: string;
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Utilisateur non authentifié." }, { status: 401 });
 
     const body = (await request.json().catch(() => null)) as CreateDossierBody | null;
+    const logementId = String(body?.logement_id ?? "").trim();
     const logementConcerne = String(body?.logement_concerne ?? "").trim();
     const loyerReference = Number(body?.loyer_reference ?? 0);
     const emailCandidat = String(body?.email_candidat ?? "").trim().toLowerCase();
@@ -68,6 +70,25 @@ export async function POST(request: Request) {
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
     const candidateUrl = `${baseUrl.replace(/\/+$/, "")}/candidature/${tokenRow.token}`;
+    let logementAdresseEmail = logementConcerne;
+    if (logementId) {
+      const { data: owner } = await supabaseAdmin
+        .from("proprietaires")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const ownerId = String(owner?.id ?? "");
+      if (ownerId) {
+        const { data: logement } = await supabaseAdmin
+          .from("logements")
+          .select("adresse")
+          .eq("id", logementId)
+          .eq("proprietaire_id", ownerId)
+          .maybeSingle();
+        const adresse = String(logement?.adresse ?? "").trim();
+        if (adresse) logementAdresseEmail = adresse;
+      }
+    }
 
     const emailHtml = `
       <div style="font-family:Arial,sans-serif;color:#e9e9ff;background:#0b0b14;padding:24px;">
@@ -75,7 +96,7 @@ export async function POST(request: Request) {
           <h1 style="margin:0 0 16px 0;color:#7c3aed;font-size:22px;">Locavio</h1>
           <p style="margin:0 0 12px 0;color:#f0f0ff;">Bonjour ${prenomCandidat},</p>
           <p style="margin:0 0 18px 0;color:#b7b7cf;line-height:1.6;">
-            Le propriétaire vous invite à compléter votre dossier de candidature pour le logement : <strong style="color:#f0f0ff;">${logementConcerne}</strong>.
+            Le propriétaire vous invite à compléter votre dossier de candidature pour le logement : <strong style="color:#f0f0ff;">${logementAdresseEmail}</strong>.
           </p>
           <a href="${candidateUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;">
             Compléter mon dossier

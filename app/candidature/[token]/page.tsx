@@ -37,7 +37,7 @@ const initialForm: FormState = {
   type_garant: "",
   revenus_garant: "",
   situation: "seul",
-  nb_personnes_foyer: "1",
+  nb_personnes_foyer: "",
 };
 
 const uploadSections: Array<{ key: string; label: string; typeDocument: string; multiple?: boolean }> = [
@@ -109,7 +109,7 @@ export default function CandidatureTokenPage() {
         anciennete_mois: Number(form.anciennete_mois || 0),
         revenus_nets_mensuels: Number(form.revenus_nets_mensuels || 0),
         revenus_garant: form.revenus_garant ? Number(form.revenus_garant) : null,
-        nb_personnes_foyer: Number(form.nb_personnes_foyer || 1),
+        nb_personnes_foyer: Number(form.nb_personnes_foyer || 0),
       },
     };
     const res = await fetch("/api/candidature/soumettre", {
@@ -210,7 +210,14 @@ export default function CandidatureTokenPage() {
             <select className="locavio-select w-full" value={form.situation} onChange={(e) => setForm((v) => ({ ...v, situation: e.target.value }))}>
               <option value="seul">Seul(e)</option><option value="couple">En couple</option><option value="colocation">Colocation</option><option value="famille">Avec famille</option>
             </select>
-            <input className="locavio-input w-full" placeholder="Nombre de personnes dans le foyer" value={form.nb_personnes_foyer} onChange={(e) => setForm((v) => ({ ...v, nb_personnes_foyer: e.target.value }))} />
+            <input
+              className="locavio-input w-full"
+              type="number"
+              min={1}
+              placeholder="Nombre de personnes qui occuperont le logement"
+              value={form.nb_personnes_foyer}
+              onChange={(e) => setForm((v) => ({ ...v, nb_personnes_foyer: e.target.value }))}
+            />
             <div className="flex gap-2"><BtnNeutral onClick={() => setStep(3)}>Retour</BtnNeutral><BtnPrimary onClick={() => setStep(5)}>Suivant</BtnPrimary></div>
           </section>
         ) : null}
