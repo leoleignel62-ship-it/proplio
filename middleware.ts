@@ -13,13 +13,18 @@ const PUBLIC_PATHS = [
   "/cgu",
   "/politique-de-confidentialite",
   "/qui-sommes-nous",
+  "/candidature",
 ] as const;
 const PUBLIC_API_PATHS = ["/api/stripe/webhook", "/api/irl", "/api/landing/send-exemple"] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
 const AUTH_PAGES = ["/login", "/register"] as const;
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((path) => pathname === path) || pathname.startsWith(AUTH_PUBLIC_PREFIX);
+  return (
+    PUBLIC_PATHS.some((path) => pathname === path) ||
+    pathname.startsWith("/candidature/") ||
+    pathname.startsWith(AUTH_PUBLIC_PREFIX)
+  );
 }
 
 function isAuthPage(pathname: string): boolean {

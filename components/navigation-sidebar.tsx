@@ -20,6 +20,7 @@ import {
   IconCog,
   IconContract,
   IconDocument,
+  IconFolder,
   LogoFull,
   IconTrendingUp,
   IconUsers,
@@ -57,6 +58,7 @@ const logementsNavItem = { href: "/logements", label: "Logements", icon: IconOff
 const navigationModeClassique = [
   { href: "/", label: "Dashboard", icon: IconChart },
   { href: "/locataires", label: "Locataires", icon: IconUsers },
+  { href: "/dossiers", label: "Dossiers", icon: IconFolder },
   { href: "/quittances", label: "Quittances", icon: IconDocument },
   { href: "/baux", label: "Baux", icon: IconContract },
   { href: "/revisions-irl", label: "Révision IRL", icon: IconTrendingUp },
@@ -66,6 +68,7 @@ const navigationModeClassique = [
 const navigationModeSaisonnier = [
   { href: "/saisonnier/dashboard", label: "Dashboard", icon: IconChart },
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
+  { href: "/dossiers", label: "Dossiers", icon: IconFolder },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
   { href: "/saisonnier/etats-des-lieux", label: "États des lieux", icon: IconClipboard },

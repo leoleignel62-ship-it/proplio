@@ -21,6 +21,7 @@ const publicPages = [
   "/cgu",
   "/politique-de-confidentialite",
   "/qui-sommes-nous",
+  "/candidature",
 ];
 
 const shellStyle = { backgroundColor: PC.bg, backgroundImage: PC.gradientBg, color: PC.text } as const;
@@ -37,7 +38,7 @@ const PLAN_LEVEL: Record<LocavioPlan, number> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublicPage = publicPages.includes(pathname);
+  const isPublicPage = publicPages.includes(pathname) || pathname.startsWith("/candidature/");
   const [plan, setPlan] = useState<LocavioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
