@@ -76,31 +76,28 @@ export async function GET(request: NextRequest) {
   if (resend && user?.email && user?.id && !welcomeEmailSent) {
     const prenom = String(user.user_metadata?.prenom ?? "").trim() || "cher propriétaire";
     const emailHtml = `
-      <div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
-        <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
-          <div style="text-align:center;margin-bottom:18px;">
-            <img src="https://locavio.fr/logos/logomark-couleur.svg" alt="Locavio" height="40" style="height:40px;width:auto;display:inline-block;" />
-          </div>
-          <p style="margin:0 0 14px 0;font-size:16px;color:#f5f3ff;">Bonjour ${prenom},</p>
-          <p style="margin:0 0 18px 0;color:#c4b5fd;line-height:1.6;">
-            Bienvenue sur Locavio. Votre compte est confirme et votre espace est pret pour gerer vos locations avec serenite.
-            En quelques minutes, vous pouvez deja mettre en place vos premiers automatismes.
-          </p>
-          <div style="margin:0 0 20px 0;padding:14px 16px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;color:#ddd6fe;line-height:1.7;">
-            <div>1️⃣ Ajouter votre premier logement</div>
-            <div>2️⃣ Inviter votre premier locataire</div>
-            <div>3️⃣ Generer votre premiere quittance</div>
-          </div>
-          <div style="text-align:center;margin:20px 0 18px 0;">
-            <a href="https://locavio.fr/dashboard" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 24px;font-weight:600;">
-              Acceder a mon espace
-            </a>
-          </div>
-          <p style="margin:0;text-align:center;color:rgba(245,243,255,0.55);font-size:12px;">
-            © 2026 Locavio · Axio Tech
-          </p>
-        </div>
-      </div>
+<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
+  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
+    </div>
+    <p style="margin:0 0 14px 0;font-size:16px;color:#f5f3ff;">Bonjour ${prenom},</p>
+    <p style="margin:0 0 18px 0;color:#c4b5fd;line-height:1.6;">
+      Bienvenue sur Locavio. Votre compte est confirmé et votre espace est prêt pour gérer vos locations avec sérénité.
+      En quelques minutes, vous pouvez déjà mettre en place vos premiers automatismes.
+    </p>
+    <div style="margin:0 0 20px 0;padding:14px 16px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;color:#c4b5fd;line-height:1.7;">
+      <div>1️⃣ Ajouter votre premier logement</div>
+      <div>2️⃣ Inviter votre premier locataire</div>
+      <div>3️⃣ Générer votre première quittance</div>
+    </div>
+    <div style="text-align:center;margin:20px 0 0 0;">
+      <a href="https://locavio.fr/dashboard" style="background:#7c3aed;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 24px;font-weight:600;display:inline-block;">Accéder à mon espace</a>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
+    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
+  </div>
+</div>
     `;
 
     try {

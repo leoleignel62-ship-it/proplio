@@ -77,16 +77,44 @@ export async function executeRappelAcompte(
 
   const subject = `Rappel - Acompte pour votre séjour à ${logementNom}`;
   const html = `
-<p>Bonjour ${escapeHtml(prenomV)},</p>
-<p>Votre réservation à ${escapeHtml(logementNom)} approche !</p>
-<p>Nous vous rappelons qu'un acompte de ${escapeHtml(euro(montantAcompte))}€ est attendu pour confirmer votre séjour.</p>
-<p>Séjour : du ${escapeHtml(dateCourtFr(r.date_arrivee))} à ${escapeHtml(heureLabel(r.heure_arrivee))} au ${escapeHtml(dateCourtFr(r.date_depart))} à ${escapeHtml(heureLabel(r.heure_depart))}<br/>
-Nombre de personnes : ${escapeHtml(String(r.nb_voyageurs ?? 1))}<br/>
-Montant total : ${escapeHtml(euro(totalFacture))}€<br/>
-Acompte à régler : ${escapeHtml(euro(montantAcompte))}€<br/>
-Solde restant : ${escapeHtml(euro(soldeRestant))}€</p>
-<p>Pour tout renseignement, contactez-nous : ${escapeHtml(emailProp)}</p>
-<p>Cordialement,<br/>${escapeHtml(nomProp)}</p>
+<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
+  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
+    </div>
+    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour ${escapeHtml(prenomV)},</p>
+    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Votre réservation à <strong style="color:#f5f3ff;">${escapeHtml(logementNom)}</strong> approche !</p>
+    <p style="margin:0 0 16px 0;color:#c4b5fd;line-height:1.6;">Nous vous rappelons qu'un acompte de <strong style="color:#7c3aed;">${escapeHtml(euro(montantAcompte))}€</strong> est attendu pour confirmer votre séjour.</p>
+    <div style="margin:0 0 16px 0;padding:14px 16px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;">
+      <table style="width:100%;border-collapse:collapse;color:#c4b5fd;font-size:14px;">
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);vertical-align:top;">Séjour</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">du ${escapeHtml(dateCourtFr(r.date_arrivee))} à ${escapeHtml(heureLabel(r.heure_arrivee))}<br/>au ${escapeHtml(dateCourtFr(r.date_depart))} à ${escapeHtml(heureLabel(r.heure_depart))}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);">Nombre de personnes</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">${escapeHtml(String(r.nb_voyageurs ?? 1))}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);">Montant total</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">${escapeHtml(euro(totalFacture))}€</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);">Acompte à régler</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">${escapeHtml(euro(montantAcompte))}€</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 0 0;">Solde restant</td>
+          <td style="padding:8px 0 0 0;text-align:right;color:#f5f3ff;">${escapeHtml(euro(soldeRestant))}€</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Pour tout renseignement, contactez-nous : ${escapeHtml(emailProp)}</p>
+    <p style="margin:0;color:#f5f3ff;">Cordialement,<br/><span style="color:#c4b5fd;">${escapeHtml(nomProp)}</span></p>
+    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
+    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
+  </div>
+</div>
 `.trim();
 
   const { error: sendErr } = await resend.emails.send({
@@ -166,15 +194,40 @@ export async function executeRappelSolde(
 
   const subject = `Rappel - Solde pour votre séjour à ${logementNom}`;
   const html = `
-<p>Bonjour ${escapeHtml(prenomV)},</p>
-<p>Votre séjour à ${escapeHtml(logementNom)} approche !</p>
-<p>Le solde de ${escapeHtml(euro(montantSolde))}€ est à régler ${escapeHtml(soldePhrase)}.</p>
-<p>Séjour : du ${escapeHtml(dateCourtFr(r.date_arrivee))} à ${escapeHtml(heureLabel(r.heure_arrivee))} au ${escapeHtml(dateCourtFr(r.date_depart))} à ${escapeHtml(heureLabel(r.heure_depart))}<br/>
-Montant total : ${escapeHtml(euro(totalFacture))}€<br/>
-Acompte réglé : ${escapeHtml(euro(montantAcompte))}€<br/>
-Solde à régler : ${escapeHtml(euro(montantSolde))}€</p>
-<p>Pour tout renseignement : ${escapeHtml(emailProp)}</p>
-<p>Cordialement,<br/>${escapeHtml(nomProp)}</p>
+<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
+  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
+    </div>
+    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour ${escapeHtml(prenomV)},</p>
+    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Votre séjour à <strong style="color:#f5f3ff;">${escapeHtml(logementNom)}</strong> approche !</p>
+    <p style="margin:0 0 16px 0;color:#c4b5fd;line-height:1.6;">Le solde de <strong style="color:#7c3aed;">${escapeHtml(euro(montantSolde))}€</strong> est à régler ${escapeHtml(soldePhrase)}.</p>
+    <div style="margin:0 0 16px 0;padding:14px 16px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;">
+      <table style="width:100%;border-collapse:collapse;color:#c4b5fd;font-size:14px;">
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);vertical-align:top;">Séjour</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">du ${escapeHtml(dateCourtFr(r.date_arrivee))} à ${escapeHtml(heureLabel(r.heure_arrivee))}<br/>au ${escapeHtml(dateCourtFr(r.date_depart))} à ${escapeHtml(heureLabel(r.heure_depart))}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);">Montant total</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">${escapeHtml(euro(totalFacture))}€</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 8px 0;border-bottom:1px solid rgba(124,58,237,0.2);">Acompte réglé</td>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(124,58,237,0.2);text-align:right;color:#f5f3ff;">${escapeHtml(euro(montantAcompte))}€</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 8px 0 0;">Solde à régler</td>
+          <td style="padding:8px 0 0 0;text-align:right;color:#f5f3ff;">${escapeHtml(euro(montantSolde))}€</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Pour tout renseignement : ${escapeHtml(emailProp)}</p>
+    <p style="margin:0;color:#f5f3ff;">Cordialement,<br/><span style="color:#c4b5fd;">${escapeHtml(nomProp)}</span></p>
+    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
+    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
+  </div>
+</div>
 `.trim();
 
   const { error: sendErr } = await resend.emails.send({

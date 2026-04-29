@@ -91,21 +91,23 @@ export async function POST(request: Request) {
     }
 
     const emailHtml = `
-      <div style="font-family:Arial,sans-serif;color:#e9e9ff;background:#0b0b14;padding:24px;">
-        <div style="max-width:620px;margin:0 auto;background:#111122;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:24px;">
-          <h1 style="margin:0 0 16px 0;color:#7c3aed;font-size:22px;">Locavio</h1>
-          <p style="margin:0 0 12px 0;color:#f0f0ff;">Bonjour ${prenomCandidat},</p>
-          <p style="margin:0 0 18px 0;color:#b7b7cf;line-height:1.6;">
-            Le propriétaire vous invite à compléter votre dossier de candidature pour le logement : <strong style="color:#f0f0ff;">${logementAdresseEmail}</strong>.
-          </p>
-          <a href="${candidateUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;">
-            Compléter mon dossier
-          </a>
-          <p style="margin:18px 0 0 0;color:#9a9ab2;font-size:13px;">Ce lien est valable 14 jours.</p>
-          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.12);margin:22px 0;" />
-          <p style="margin:0;color:#727291;font-size:12px;">Locavio • Gestion locative simplifiée</p>
-        </div>
-      </div>
+<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
+  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
+    </div>
+    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour ${prenomCandidat},</p>
+    <p style="margin:0 0 18px 0;color:#c4b5fd;line-height:1.6;">
+      Le propriétaire vous invite à compléter votre dossier de candidature pour le logement : <strong style="color:#f5f3ff;">${logementAdresseEmail}</strong>.
+    </p>
+    <div style="text-align:center;margin:20px 0 0 0;">
+      <a href="${candidateUrl}" style="background:#7c3aed;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 24px;font-weight:600;display:inline-block;">Compléter mon dossier</a>
+    </div>
+    <p style="margin:18px 0 0 0;color:#c4b5fd;font-size:13px;">Ce lien est valable 14 jours.</p>
+    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
+    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
+  </div>
+</div>
     `;
 
     const emailResult = await resend.emails.send({
