@@ -1,5 +1,4 @@
 import type { SVGProps } from "react";
-import Image from "next/image";
 
 type IconProps = SVGProps<SVGSVGElement> & { className?: string };
 
@@ -9,27 +8,13 @@ function iconClass(className?: string) {
 
 export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <Image
-      src="/logos/logomark-fond-sombre.svg"
-      alt="Locavio"
-      width={32}
-      height={32}
-      className={className}
-      priority
-    />
+    <img src="/logos/logomark-fond-sombre.svg" alt="Locavio" width={32} height={32} className={className} />
   );
 }
 
 export function LogoFull({ className = "h-7 w-auto" }: { className?: string }) {
   return (
-    <Image
-      src="/logos/lockup-horizontal-sombre.svg"
-      alt="Locavio"
-      width={140}
-      height={28}
-      className={className}
-      priority
-    />
+    <img src="/logos/lockup-horizontal-sombre.svg" alt="Locavio" width={140} height={28} className={className} />
   );
 }
 
