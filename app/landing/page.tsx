@@ -9,7 +9,7 @@ import {
   IconDocument,
   IconFolder,
   LogoFull,
-  LogoMark,
+  LogoMarkColor,
   IconTrendingUp,
 } from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
@@ -273,7 +273,7 @@ export default function LandingPage() {
         {/* HERO */}
         <section className="relative overflow-hidden rounded-2xl px-6 py-16 sm:px-12 sm:py-20" style={glassCard}>
           <div className="relative z-[1] mx-auto max-w-3xl text-center">
-            <LogoMark className="mx-auto h-16 w-16" />
+            <LogoMarkColor className="mx-auto h-16 w-16" />
             <h1
               className="mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
               style={{ color: PC.text }}
