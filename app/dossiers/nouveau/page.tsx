@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
 import { supabase } from "@/lib/supabase";
+import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import { formatSubmitError } from "@/lib/supabase-submit-error";
 
 type LogementOption = {
   id: string;
@@ -45,20 +47,27 @@ export default function NouveauDossierPage() {
     let cancelled = false;
     void (async () => {
       setIsLoadingLogements(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
+      const { proprietaireId: ownerId, error: ownerError } = await getCurrentProprietaireId();
+      if (ownerError) {
+        console.error("Erreur récupération propriétaire (nouveau dossier):", ownerError);
+        if (!cancelled) {
+          setMessage(`Impossible de charger vos logements : ${formatSubmitError(ownerError)}`);
+          setIsLoadingLogements(false);
+        }
+        return;
+      }
+      if (!ownerId) {
         if (!cancelled) setIsLoadingLogements(false);
         return;
       }
       const { data, error } = await supabase
         .from("logements")
         .select("id, nom, adresse, loyer, charges")
-        .eq("proprietaire_id", user.id)
+        .eq("proprietaire_id", ownerId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
       if (error) {
+        console.error("Erreur requête logements (nouveau dossier):", error);
         setMessage("Impossible de charger vos logements.");
         setIsLoadingLogements(false);
         return;
