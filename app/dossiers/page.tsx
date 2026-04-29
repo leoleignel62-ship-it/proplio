@@ -205,6 +205,7 @@ export default function DossiersPage() {
           const form = row.candidature_formulaires?.[0];
           const expired = token?.expire_at ? new Date(token.expire_at).getTime() < Date.now() : false;
           const note = form?.note ?? "";
+          const scoreValue = Number(form?.score ?? 0);
           const noteColor = NOTE_COLORS[note] ?? { bg: PC.cardHover, color: PC.text };
           const labelStatut = row.statut === "en_attente" ? "En attente" : row.statut === "recu" ? "Reçu" : "Analysé";
           return (
@@ -235,9 +236,17 @@ export default function DossiersPage() {
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full px-2 py-1" style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}>{labelStatut}</span>
                     {form ? (
-                      <span className="rounded-full px-2 py-1" style={{ backgroundColor: PC.cardHover, color: PC.text }}>
-                        {form.score}/100
-                      </span>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className={`text-2xl font-bold ${
+                          scoreValue >= 85 ? "text-emerald-400" :
+                          scoreValue >= 70 ? "text-green-400" :
+                          scoreValue >= 41 ? "text-orange-400" :
+                          "text-red-400"
+                        }`}>
+                          {scoreValue}
+                        </span>
+                        <span className="text-sm opacity-60 text-white">/100</span>
+                      </div>
                     ) : null}
                     <span className="rounded-full px-2 py-1" style={{ backgroundColor: expired ? PC.dangerBg10 : PC.successBg10, color: expired ? PC.danger : PC.success }}>
                       {expired ? "Lien expiré" : "Lien valide"}
