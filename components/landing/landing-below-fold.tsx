@@ -375,6 +375,52 @@ export default function LandingBelowFold() {
         </p>
       </section>
 
+      <section className="landing-section reveal-on-scroll mt-28 will-change-transform">
+        <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
+          Locavio vs agence traditionnelle
+        </h2>
+        <div className="mt-10 overflow-x-auto rounded-2xl" style={solidCard}>
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${PC.borderRow}`, backgroundColor: PC.sidebar }}>
+                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.tertiary }}>
+                  Critère
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.muted }}>
+                  Agence trad.
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.primaryLight }}>
+                  Locavio Pro
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Coût annuel", "~1 mois loyer", "99€/an"],
+                ["Quittances", "Inclus", "✓ PDF + envoi en 1 clic"],
+                ["Baux", "~150-200€", "✓ Inclus"],
+                ["États des lieux", "~150-300€", "✓ Inclus + photos"],
+                ["Révision IRL", "Manuel", "✓ Automatique"],
+                ["Disponibilité", "Horaires agence", "✓ 24h/24"],
+                ["Contrôle total", "✗", "✓ Vous décidez"],
+              ].map(([a, b, c]) => (
+                <tr key={String(a)} style={{ borderBottom: `1px solid ${PC.borderRow}` }}>
+                  <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
+                    {a}
+                  </td>
+                  <td className="px-4 py-3.5" style={{ color: PC.muted }}>
+                    {b}
+                  </td>
+                  <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
+                    {c}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="landing-section reveal-on-scroll mt-28 space-y-16 will-change-transform">
         <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
           Une suite complète pour les bailleurs
@@ -770,52 +816,6 @@ export default function LandingBelowFold() {
           <li>✓ Paiement sécurisé par Stripe</li>
           <li>✓ Données hébergées en Europe</li>
         </ul>
-      </section>
-
-      <section className="landing-section reveal-on-scroll mt-28 will-change-transform">
-        <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
-          Locavio vs agence traditionnelle
-        </h2>
-        <div className="mt-10 overflow-x-auto rounded-2xl" style={solidCard}>
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${PC.borderRow}`, backgroundColor: PC.sidebar }}>
-                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.tertiary }}>
-                  Critère
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.muted }}>
-                  Agence trad.
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.primaryLight }}>
-                  Locavio Pro
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["Coût annuel", "~1 mois loyer", "99€/an"],
-                ["Quittances", "Inclus", "✓ PDF + envoi en 1 clic"],
-                ["Baux", "~150-200€", "✓ Inclus"],
-                ["États des lieux", "~150-300€", "✓ Inclus + photos"],
-                ["Révision IRL", "Manuel", "✓ Automatique"],
-                ["Disponibilité", "Horaires agence", "✓ 24h/24"],
-                ["Contrôle total", "✗", "✓ Vous décidez"],
-              ].map(([a, b, c]) => (
-                <tr key={String(a)} style={{ borderBottom: `1px solid ${PC.borderRow}` }}>
-                  <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
-                    {a}
-                  </td>
-                  <td className="px-4 py-3.5" style={{ color: PC.muted }}>
-                    {b}
-                  </td>
-                  <td className="px-4 py-3.5 font-medium" style={{ color: PC.text }}>
-                    {c}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </section>
 
       <section id="faq" className="landing-section reveal-on-scroll mt-28 scroll-mt-24 will-change-transform">
