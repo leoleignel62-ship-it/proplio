@@ -574,6 +574,59 @@ export default function LandingBelowFold() {
         ))}
       </section>
 
+      <section className="landing-section reveal-on-scroll mt-28 will-change-transform">
+        <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-10">
+          <h2 className="text-center text-3xl font-bold text-white">Vos données sont entre de bonnes mains</h2>
+          <p className="mb-12 mt-4 text-center text-base text-white/60">
+            Locavio repose sur des infrastructures certifiées utilisées par des millions d&apos;entreprises dans le monde.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {[
+              {
+                icon: "🔒",
+                title: "SOC 2 Type II",
+                text: "Supabase, Vercel et Resend sont certifiés SOC 2 Type II — le standard de sécurité cloud le plus exigeant.",
+              },
+              {
+                icon: "💳",
+                title: "PCI-DSS Level 1",
+                text: "Les paiements sont gérés par Stripe, certifié PCI-DSS Level 1 — la certification maximale pour les données bancaires.",
+              },
+              {
+                icon: "🇪🇺",
+                title: "RGPD & Données en Europe",
+                text: "Vos données sont hébergées en Europe et traitées conformément au Règlement Général sur la Protection des Données.",
+              },
+              {
+                icon: "🔐",
+                title: "Chiffrement TLS/HTTPS",
+                text: "Toutes les communications sont chiffrées en TLS. Aucune donnée ne transite en clair sur le réseau.",
+              },
+            ].map((item) => (
+              <article key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+                <p className="text-2xl text-violet-400" aria-hidden>
+                  {item.icon}
+                </p>
+                <h3 className="mt-4 text-lg font-semibold text-white">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/60">{item.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <ul className="mt-8 flex flex-col items-start gap-2 text-white/70 sm:items-center">
+            <li>
+              <span className="mr-2 text-violet-400">✓</span>
+              Sauvegardes automatiques quotidiennes
+            </li>
+            <li>
+              <span className="mr-2 text-violet-400">✓</span>
+              Accès aux données strictement limité par rôle
+            </li>
+          </ul>
+        </div>
+      </section>
+
       <section id="tarifs" className="landing-section reveal-on-scroll mt-28 scroll-mt-24 will-change-transform">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
