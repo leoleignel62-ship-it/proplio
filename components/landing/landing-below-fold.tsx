@@ -3,21 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
+  IconChart,
   IconCalendar,
+  IconClipboard,
   IconContract,
-  IconDeviceCamera,
   IconDocument,
-  IconFolder,
   IconTrendingUp,
+  IconUsers,
 } from "@/components/locavio-icons";
 import { PLAN_DISPLAY_LABELS, type PlanDisplayId, planDisplayRows } from "@/lib/plan-display-copy";
 import { PC } from "@/lib/locavio-colors";
 
 type BillingMode = "mensuel" | "annuel";
-type LandingExempleType = "quittance" | "bail" | "etat-des-lieux" | "contrat-sejour";
-type ExempleRequestState = "idle" | "success" | "error";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ease = "200ms ease-out";
 
 const solidCard: CSSProperties = {
@@ -123,34 +120,8 @@ const PLAN_ORDER: PlanDisplayId[] = ["free", "starter", "pro", "expert"];
 
 export default function LandingBelowFold() {
   const [billing, setBilling] = useState<BillingMode>("annuel");
-  const [exampleEmails, setExampleEmails] = useState<Record<LandingExempleType, string>>({
-    quittance: "",
-    bail: "",
-    "etat-des-lieux": "",
-    "contrat-sejour": "",
-  });
-  const [exampleLoading, setExampleLoading] = useState<Record<LandingExempleType, boolean>>({
-    quittance: false,
-    bail: false,
-    "etat-des-lieux": false,
-    "contrat-sejour": false,
-  });
-  const [exampleState, setExampleState] = useState<Record<LandingExempleType, ExempleRequestState>>({
-    quittance: "idle",
-    bail: "idle",
-    "etat-des-lieux": "idle",
-    "contrat-sejour": "idle",
-  });
-  const [exampleErrors, setExampleErrors] = useState<Record<LandingExempleType, string>>({
-    quittance: "",
-    bail: "",
-    "etat-des-lieux": "",
-    "contrat-sejour": "",
-  });
-  const [featureVisible, setFeatureVisible] = useState<Record<number, boolean>>({});
   const [pricingVisible, setPricingVisible] = useState<Record<number, boolean>>({});
   const [statsAnimatedValues, setStatsAnimatedValues] = useState<number[]>([]);
-  const featureRefs = useRef<Array<HTMLDivElement | null>>([]);
   const pricingRefs = useRef<Array<HTMLElement | null>>([]);
   const statsRef = useRef<HTMLElement | null>(null);
   const statsAnimatedOnceRef = useRef(false);
@@ -203,31 +174,6 @@ export default function LandingBelowFold() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }, []);
-
-  useEffect(() => {
-    if (reduceMotionRef.current) {
-      setFeatureVisible(
-        Object.fromEntries(Array.from({ length: 7 }, (_, index) => [index, true])) as Record<number, boolean>,
-      );
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const index = Number((entry.target as HTMLElement).dataset.featureIndex ?? "-1");
-          if (index >= 0 && entry.isIntersecting) {
-            window.setTimeout(() => {
-              setFeatureVisible((prev) => ({ ...prev, [index]: true }));
-            }, index * 100);
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 },
-    );
-    featureRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -316,41 +262,6 @@ export default function LandingBelowFold() {
     return () => observer.disconnect();
   }, [statsData]);
 
-  async function handleExampleSubmit(type: LandingExempleType) {
-    const email = exampleEmails[type].trim().toLowerCase();
-    if (!EMAIL_REGEX.test(email)) {
-      setExampleState((prev) => ({ ...prev, [type]: "error" }));
-      setExampleErrors((prev) => ({ ...prev, [type]: "Merci de renseigner un email valide." }));
-      return;
-    }
-
-    setExampleLoading((prev) => ({ ...prev, [type]: true }));
-    setExampleState((prev) => ({ ...prev, [type]: "idle" }));
-    setExampleErrors((prev) => ({ ...prev, [type]: "" }));
-
-    try {
-      const response = await fetch("/api/landing/send-exemple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type }),
-      });
-
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) throw new Error(data?.error || "Impossible d'envoyer l'exemple pour le moment.");
-
-      setExampleState((prev) => ({ ...prev, [type]: "success" }));
-      setExampleErrors((prev) => ({ ...prev, [type]: "" }));
-    } catch (error) {
-      setExampleState((prev) => ({ ...prev, [type]: "error" }));
-      setExampleErrors((prev) => ({
-        ...prev,
-        [type]: error instanceof Error ? error.message : "Une erreur est survenue.",
-      }));
-    } finally {
-      setExampleLoading((prev) => ({ ...prev, [type]: false }));
-    }
-  }
-
   return (
     <>
       <section ref={statsRef} className="landing-section reveal-on-scroll mt-20 will-change-transform">
@@ -426,85 +337,94 @@ export default function LandingBelowFold() {
           Une suite complète pour les bailleurs
         </h2>
 
-        {[
-          {
-            kind: "default" as const,
-            icon: IconDocument,
-            title: "Quittances en 1 clic, dès réception du loyer",
-            body: "Générez et envoyez vos quittances en 1 clic dès réception du loyer. PDF conforme généré instantanément, envoyé par email à votre locataire en un seul clic.",
-            badge: "Disponible sur tous les plans",
-            badgeTone: "all" as const,
-            exampleType: "quittance" as const,
-          },
-          {
-            kind: "default" as const,
-            icon: IconContract,
-            title: "Baux légaux générés en quelques minutes",
-            body: "Fini les 2-3 heures à rédiger un bail depuis zéro. Renseignez les informations de votre logement et locataire, Locavio génère un bail complet et conforme, prêt à signer et envoyer par email.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-            exampleType: "bail" as const,
-          },
-          {
-            kind: "default" as const,
-            icon: IconDeviceCamera,
-            title: "États des lieux complets, directement depuis votre smartphone",
-            body: "Réalisez votre état des lieux sur place en prenant des photos pièce par pièce directement depuis l'application. Le rapport PDF complet est généré automatiquement et envoyé aux deux parties.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-            exampleType: "etat-des-lieux" as const,
-          },
-          {
-            kind: "default" as const,
-            icon: IconCalendar,
-            title: "Contrats saisonniers prêts à envoyer en quelques minutes",
-            body: "Préparez des contrats de séjour complets avec toutes les informations de réservation. Le document PDF est prêt à l'envoi immédiatement, sans ressaisie.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-            exampleType: "contrat-sejour" as const,
-          },
-          {
-            kind: "default" as const,
-            icon: IconTrendingUp,
-            title: "Révision annuelle des loyers calculée automatiquement",
-            body: "Locavio détecte automatiquement les baux éligibles à la révision annuelle et calcule le nouveau loyer selon l'Indice de Référence des Loyers (IRL) publié par l'INSEE. Validez en un clic et envoyez la lettre de révision officielle à votre locataire par email.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-          },
-          {
-            kind: "dossiers" as const,
-            icon: IconFolder,
-            title: "Analysez la solvabilité de vos candidats",
-            body: "Envoyez un questionnaire personnalisé à chaque candidat locataire. Locavio analyse automatiquement le dossier et vous attribue une note de solvabilité claire — pour choisir le bon locataire en toute confiance.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-          },
-          {
-            kind: "default" as const,
-            icon: IconFolder,
-            title: "Données locatives centralisées",
-            body: "Concentrez-vous sur la gestion des quittances, baux, états des lieux et suivi financier dans une interface claire et rapide.",
-            badge: "Plan Starter et plus",
-            badgeTone: "starter" as const,
-          },
-        ].map((f, i) => (
-          <div
-            key={f.title}
-            ref={(el) => {
-              featureRefs.current[i] = el;
-            }}
-            data-feature-index={i}
-            className={`will-change-transform flex flex-col gap-8 lg:flex-row lg:items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
-            style={{
-              opacity: featureVisible[i] ? 1 : 0,
-              transform: featureVisible[i] ? "translate3d(0, 0, 0)" : "translate3d(0, 30px, 0)",
-              transition: "opacity 700ms ease-out, transform 700ms ease-out",
-            }}
-          >
-            <div className="flex flex-1 items-center justify-center rounded-2xl p-10" style={{ ...solidCard, minHeight: 200 }}>
-              {f.kind === "dossiers" ? (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              icon: IconDocument,
+              title: "Quittances en 1 clic",
+              body: "Générez et envoyez les quittances au bon format dès réception du loyer, sans manipulation manuelle.",
+              badge: "Disponible sur tous les plans",
+              badgeTone: "all" as const,
+              visual: (
+                <div className="mt-4 rounded-lg bg-white/5 p-3">
+                  <div className="flex items-center justify-between text-xs text-white/70">
+                    <span>Avril 2026</span>
+                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-emerald-300">Envoyée ✓</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-white">Quittance loyer</p>
+                  <p className="text-sm text-white/80">850 €</p>
+                </div>
+              ),
+            },
+            {
+              icon: IconContract,
+              title: "Baux légaux",
+              body: "Créez un bail complet et conforme en quelques minutes, prêt à signer et à envoyer.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
+                <div className="mt-4 rounded-lg bg-white/5 p-3">
+                  <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-xs text-violet-300">PDF généré ✓</span>
+                  <p className="mt-2 text-sm text-white/80">Bail 3 ans — 75011 Paris</p>
+                </div>
+              ),
+            },
+            {
+              icon: IconClipboard,
+              title: "États des lieux",
+              body: "Suivez chaque pièce simplement et générez un rapport propre avec photos intégrées.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
+                <div className="mt-4 space-y-1 rounded-lg bg-white/5 p-3 text-sm text-emerald-300">
+                  <p>Salon ✓</p>
+                  <p>Cuisine ✓</p>
+                  <p>Chambre ✓</p>
+                </div>
+              ),
+            },
+            {
+              icon: IconCalendar,
+              title: "Contrats saisonniers",
+              body: "Préparez rapidement des contrats de séjour avec dates, montants et informations clés.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
+                <div className="mt-4 rounded-lg bg-white/5 p-3 text-sm text-white/80">
+                  <p>12 juil → 19 juil</p>
+                  <p className="mt-1 font-semibold text-white">1 604 €</p>
+                  <span className="mt-2 inline-block rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
+                    Contrat prêt ✓
+                  </span>
+                </div>
+              ),
+            },
+            {
+              icon: IconTrendingUp,
+              title: "Révision IRL",
+              body: "Identifiez les baux éligibles et appliquez la révision annuelle en un clic.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
+                <div className="mt-4 rounded-lg bg-white/5 p-3 text-sm">
+                  <p className="text-white/70">Loyer actuel 850 €</p>
+                  <p className="my-1 text-violet-300">→</p>
+                  <p className="font-semibold text-white">Nouveau loyer 867 €</p>
+                  <span className="mt-2 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-xs text-violet-300">
+                    +2.0% IRL
+                  </span>
+                </div>
+              ),
+            },
+            {
+              icon: IconUsers,
+              title: "Solvabilité candidats",
+              body: "Analysez chaque dossier locataire avec un scoring clair pour décider plus vite.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
                 <div
-                  className="w-full max-w-sm rounded-2xl p-4"
+                  className="mt-4 w-full rounded-2xl p-4"
                   style={{
                     backgroundColor: PC.glassBg,
                     border: `1px solid ${PC.primaryBorder40}`,
@@ -538,15 +458,30 @@ export default function LandingBelowFold() {
                     <p>✅ Garant Visale</p>
                   </div>
                 </div>
-              ) : (
-                <div className="locavio-glow-card flex h-24 w-24 items-center justify-center rounded-2xl" style={{ color: PC.primaryLight }}>
-                  <f.icon className="h-12 w-12" aria-hidden />
+              ),
+            },
+            {
+              icon: IconChart,
+              title: "Données centralisées",
+              body: "Pilotez logements, locataires et revenus depuis une vue unique et lisible.",
+              badge: "Plan Starter et plus",
+              badgeTone: "starter" as const,
+              visual: (
+                <div className="mt-4 flex flex-wrap gap-2 rounded-lg bg-white/5 p-3 text-xs">
+                  <span className="rounded-full bg-violet-500/20 px-2 py-1 text-violet-300">3 logements</span>
+                  <span className="rounded-full bg-violet-500/20 px-2 py-1 text-violet-300">12 locataires</span>
+                  <span className="rounded-full bg-violet-500/20 px-2 py-1 text-violet-300">8 450 €/mois</span>
                 </div>
-              )}
-            </div>
-            <div className="flex-1">
+              ),
+            },
+          ].map((f) => (
+            <article
+              key={f.title}
+              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-white/[0.08]"
+            >
+              <f.icon className="h-8 w-8 text-violet-400" aria-hidden />
               <span
-                className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                className="mt-4 inline-block rounded-full px-3 py-1 text-xs font-semibold"
                 style={{
                   backgroundColor: f.badgeTone === "all" ? PC.successBg10 : PC.primaryBg10,
                   color: f.badgeTone === "all" ? PC.success : PC.secondary,
@@ -555,69 +490,17 @@ export default function LandingBelowFold() {
               >
                 {f.badge}
               </span>
-              <h3 className="mt-4 text-2xl font-bold tracking-[-0.03em]" style={{ color: PC.text }}>
-                {f.title}
-              </h3>
-              <p className="mt-4 text-base font-normal leading-[1.7]" style={{ color: PC.muted }}>
+              <h3 className="mt-4 text-xl font-bold tracking-[-0.02em] text-white">{f.title}</h3>
+              <p
+                className="mt-2 text-sm leading-relaxed text-white/60"
+                style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+              >
                 {f.body}
               </p>
-              {f.exampleType ? (
-                <div className="mt-5">
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      type="email"
-                      value={exampleEmails[f.exampleType]}
-                      onChange={(event) => {
-                        const nextEmail = event.target.value;
-                        setExampleEmails((prev) => ({ ...prev, [f.exampleType]: nextEmail }));
-                        if (exampleState[f.exampleType] !== "idle") {
-                          setExampleState((prev) => ({ ...prev, [f.exampleType]: "idle" }));
-                        }
-                        if (exampleErrors[f.exampleType]) {
-                          setExampleErrors((prev) => ({ ...prev, [f.exampleType]: "" }));
-                        }
-                      }}
-                      placeholder="Votre email"
-                      className="min-h-[42px] flex-1 rounded-xl px-3 text-sm outline-none"
-                      style={{
-                        backgroundColor: PC.inputBg,
-                        border: `1px solid ${PC.border}`,
-                        color: PC.text,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleExampleSubmit(f.exampleType)}
-                      disabled={exampleLoading[f.exampleType]}
-                      className="inline-flex min-h-[42px] will-change-transform items-center justify-center rounded-xl px-4 text-sm font-semibold"
-                      style={{
-                        backgroundColor: "#7c3aed",
-                        color: PC.white,
-                        opacity: exampleLoading[f.exampleType] ? 0.75 : 1,
-                        cursor: exampleLoading[f.exampleType] ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {exampleLoading[f.exampleType] ? "Envoi..." : "Recevoir un exemple →"}
-                    </button>
-                  </div>
-                  <p className="mt-3 text-sm" style={{ color: PC.muted }}>
-                    Vous voyez ? Sur Locavio, c&apos;est aussi simple, rapide et fonctionnel que ça.
-                  </p>
-                  {exampleState[f.exampleType] === "success" ? (
-                    <p className="mt-2 text-sm font-semibold" style={{ color: PC.success }}>
-                      C&apos;est parti ! Vérifiez votre boîte mail 📬
-                    </p>
-                  ) : null}
-                  {exampleState[f.exampleType] === "error" && exampleErrors[f.exampleType] ? (
-                    <p className="mt-2 text-sm font-medium" style={{ color: "#fca5a5" }}>
-                      {exampleErrors[f.exampleType]}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ))}
+              {f.visual}
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="landing-section reveal-on-scroll mt-28 will-change-transform">
