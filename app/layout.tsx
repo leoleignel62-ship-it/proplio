@@ -53,12 +53,9 @@ export const metadata: Metadata = {
     images: ["https://locavio.fr/og-image.png"],
   },
   icons: {
-    icon: [
-      { url: "/logos/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/logos/favicon-192x192.png", sizes: "192x192", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-    apple: "/logos/favicon-192x192.png",
+    icon: "/logos/favicon.svg",
+    shortcut: "/logos/favicon.svg",
+    apple: "/logos/favicon.svg",
   },
 };
 
