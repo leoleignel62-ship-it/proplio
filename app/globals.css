@@ -395,6 +395,47 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+@keyframes landing-interactive-demo-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-interactive-demo-enter {
+  animation: landing-interactive-demo-fade-in 0.55s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-interactive-demo-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.interactive-demo-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(91 33 182) transparent;
+}
+
+.interactive-demo-main-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.interactive-demo-main-scroll::-webkit-scrollbar-thumb {
+  background: rgb(91 33 182);
+  border-radius: 999px;
+}
+
+.interactive-demo-main-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .landing-section {
   contain: layout style;
 }

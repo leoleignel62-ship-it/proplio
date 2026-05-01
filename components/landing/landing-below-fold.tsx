@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { DashboardMockupSection } from "@/components/landing/dashboard-mockup-section";
+import { InteractiveDemo } from "@/components/landing/interactive-demo";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
 import { PC } from "@/lib/locavio-colors";
@@ -164,7 +164,20 @@ export default function LandingBelowFold() {
 
   return (
     <>
-      <DashboardMockupSection />
+      <section
+        className="landing-section landing-mockup-reveal mx-auto mt-12 max-w-[1000px] px-0 py-8 will-change-transform"
+        style={{ color: PC.text }}
+      >
+        <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
+          Votre tableau de bord, pensé pour aller vite
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-base font-medium leading-[1.7]" style={{ color: PC.muted }}>
+          Suivez vos loyers, gérez vos documents et pilotez votre patrimoine depuis une interface claire et intuitive.
+        </p>
+        <div className="landing-mockup-reveal mt-10">
+          <InteractiveDemo />
+        </div>
+      </section>
 
       <section ref={statsRef} className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <div
