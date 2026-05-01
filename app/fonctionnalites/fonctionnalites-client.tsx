@@ -28,8 +28,8 @@ export function FonctionnalitesClient() {
 
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl space-y-16 px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 text-center">
+      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+        <header className="marketing-fade-section space-y-6 pb-16 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Tout ce dont vous avez besoin</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/60">
             Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
@@ -69,7 +69,7 @@ export function FonctionnalitesClient() {
         </header>
 
         {mode === "classique" ? (
-          <div className="space-y-24">
+          <div className="my-24 space-y-24">
             {[
               {
                 badge: "Disponible sur tous les plans" as const,
@@ -190,7 +190,7 @@ export function FonctionnalitesClient() {
             ))}
           </div>
         ) : (
-          <div className="space-y-24">
+          <div className="my-24 space-y-24">
             {[
               {
                 badge: "Plan Starter et plus",
@@ -278,7 +278,7 @@ export function FonctionnalitesClient() {
           </div>
         )}
 
-        <section className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-sm">
+        <section className="marketing-fade-section my-24 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
           <h2 className="text-2xl font-bold text-white">Prêt à simplifier votre gestion locative ?</h2>
           <Link
             href="/register"

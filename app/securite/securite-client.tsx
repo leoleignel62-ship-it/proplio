@@ -59,19 +59,19 @@ const faqSecurity = [
 export function SecuriteClient() {
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl space-y-20 px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-4 text-center">
+      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+        <header className="marketing-fade-section space-y-4 pb-16 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">La sécurité de vos données, notre priorité</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/60">
             Vos données locatives sont confidentielles. Locavio repose sur des infrastructures certifiées aux standards les plus exigeants.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="my-24 grid grid-cols-1 gap-6 md:grid-cols-2">
           {certifications.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+              className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 px-6 py-16 backdrop-blur-sm sm:px-8"
             >
               <p className="text-2xl" aria-hidden>
                 {c.icon}
@@ -83,7 +83,7 @@ export function SecuriteClient() {
           ))}
         </div>
 
-        <section className="marketing-fade-section">
+        <section className="marketing-fade-section my-24 py-16">
           <h2 className="text-center text-2xl font-bold text-white">Ce que nous nous engageons à faire</h2>
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {engagements.map((line) => (
@@ -95,7 +95,7 @@ export function SecuriteClient() {
           </div>
         </section>
 
-        <section className="marketing-fade-section space-y-4">
+        <section className="marketing-fade-section my-24 space-y-4 py-16">
           <h2 className="text-center text-2xl font-bold text-white">Questions fréquentes</h2>
           <div className="mx-auto max-w-3xl space-y-3">
             {faqSecurity.map((item) => (
@@ -115,7 +115,7 @@ export function SecuriteClient() {
           </div>
         </section>
 
-        <section className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-sm">
+        <section className="marketing-fade-section my-24 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white">Vous avez d&apos;autres questions sur la sécurité ?</h2>
           <a href="mailto:contact@locavio.fr" className="mt-4 inline-block text-violet-300 hover:text-white">
             contact@locavio.fr

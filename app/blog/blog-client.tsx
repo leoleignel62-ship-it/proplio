@@ -12,8 +12,8 @@ export function BlogClient() {
 
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 text-center">
+      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+        <header className="marketing-fade-section space-y-6 pb-16 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Ressources pour les propriétaires</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/60">
             Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
@@ -40,7 +40,7 @@ export function BlogClient() {
           </div>
         </header>
 
-        <div className="marketing-fade-section mt-16">
+        <div className="marketing-fade-section my-24 mb-0">
           <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
             <p className="text-lg text-white/60">
               📝 Les premiers articles arrivent bientôt. Revenez nous voir prochainement !

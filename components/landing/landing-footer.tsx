@@ -8,12 +8,11 @@ export function LandingFooter() {
   return (
     <footer
       id="footer"
-      className="border-t px-4 py-12 sm:px-6"
+      className="border-t border-white/10 px-4 py-12 sm:px-6"
       style={{
         background: "rgba(124, 58, 237, 0.08)",
         WebkitBackdropFilter: "blur(12px)",
         backdropFilter: "blur(12px)",
-        borderTop: "1px solid rgba(124, 58, 237, 0.25)",
       }}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
