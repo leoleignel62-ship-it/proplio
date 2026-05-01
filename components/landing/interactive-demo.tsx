@@ -29,7 +29,14 @@ type ClassiqueSection =
   | "baux"
   | "edl"
   | "irl";
-type SaisonnierSection = "dashboard" | "reservations" | "voyageurs" | "contrats" | "edl" | "taxe";
+type SaisonnierSection =
+  | "dashboard"
+  | "saisonnier-logements"
+  | "reservations"
+  | "voyageurs"
+  | "contrats"
+  | "edl"
+  | "taxe";
 
 const BAR_ENCAIS_PCT = [72, 80, 65, 88, 92, 78, 85, 90, 76, 82, 94, 84];
 
@@ -510,6 +517,32 @@ export function InteractiveDemo() {
             </CardShell>
           </div>
         );
+      case "saisonnier-logements":
+        return (
+          <div className="space-y-3">
+            <SectionActionHeader title="Mes logements saisonniers" actionLabel="+ Ajouter un logement" onAction={openSignup} />
+            <CardShell>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-white">Appartement — 12 rue des Lilas, 75011 Paris</p>
+                  <p className="mt-1 text-xs text-white/55">3 pièces | 58m² | Tarif : 145€/nuit</p>
+                  <p className="mt-2 text-[11px] text-white/45">Sources : Airbnb · Direct</p>
+                </div>
+                <Badge tone="violet">Saisonnier</Badge>
+              </div>
+            </CardShell>
+            <CardShell>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-white">Villa — 24 chemin des Oliviers, 06000 Nice</p>
+                  <p className="mt-1 text-xs text-white/55">5 pièces | 120m² | Tarif : 280€/nuit</p>
+                  <p className="mt-2 text-[11px] text-white/45">Sources : Airbnb · Booking</p>
+                </div>
+                <Badge tone="violet">Saisonnier</Badge>
+              </div>
+            </CardShell>
+          </div>
+        );
       case "reservations":
         return (
           <div className="space-y-3">
@@ -707,6 +740,12 @@ export function InteractiveDemo() {
               ) : (
                 <>
                   <DemoNavLink active={saisonnierSection === "dashboard"} onClick={() => setSaisonnierSection("dashboard")} Icon={LayoutDashboard} label="Dashboard" />
+                  <DemoNavLink
+                    active={saisonnierSection === "saisonnier-logements"}
+                    onClick={() => setSaisonnierSection("saisonnier-logements")}
+                    Icon={Building2}
+                    label="Logements"
+                  />
                   <DemoNavLink active={saisonnierSection === "reservations"} onClick={() => setSaisonnierSection("reservations")} Icon={Calendar} label="Réservations" />
                   <DemoNavLink active={saisonnierSection === "voyageurs"} onClick={() => setSaisonnierSection("voyageurs")} Icon={Users} label="Voyageurs" />
                   <DemoNavLink active={saisonnierSection === "contrats"} onClick={() => setSaisonnierSection("contrats")} Icon={ScrollText} label="Contrats" />
