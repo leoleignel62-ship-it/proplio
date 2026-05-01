@@ -37,7 +37,10 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
           <LogoFull className="h-9 w-auto" />
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Navigation principale">
+        <nav
+          className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-4 md:flex"
+          aria-label="Navigation principale"
+        >
           {centerLinks.map((item) => {
             const active = pathname === item.href;
             const inactiveStyle: CSSProperties = {
@@ -45,21 +48,21 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
               textDecoration: "none",
               letterSpacing: "0.02em",
               fontWeight: 500,
-              fontSize: "0.875rem",
+              fontSize: "0.8rem",
             };
             const activeStyle: CSSProperties = {
               color: "#ffffff",
               textDecoration: "none",
               letterSpacing: "0.02em",
               fontWeight: 600,
-              fontSize: "0.875rem",
+              fontSize: "0.8rem",
               borderBottom: "2px solid #7c3aed",
             };
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative rounded-lg px-3 py-1.5 text-sm transition duration-200 ease-out ${
+                className={`relative whitespace-nowrap rounded-lg px-2 py-1.5 transition duration-200 ease-out lg:px-2.5 ${
                   active ? "" : "group hover:bg-white/5 hover:text-white"
                 }`}
                 style={active ? activeStyle : inactiveStyle}

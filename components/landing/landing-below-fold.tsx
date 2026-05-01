@@ -303,7 +303,7 @@ export default function LandingBelowFold() {
         </div>
       </section>
 
-      <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-24 max-w-4xl px-0 will-change-transform">
+      <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-32 max-w-4xl px-0 pb-24 will-change-transform">
         <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
           <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Prêt à reprendre le contrôle de vos locations ?
