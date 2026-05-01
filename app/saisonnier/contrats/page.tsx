@@ -14,10 +14,17 @@ import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-fiel
 
 type ContratStatut = "Généré" | "Envoyé" | "Signé";
 
+function extractVoyageurFromNotes(notes: string | null | undefined): string | null {
+  if (!notes) return null;
+  const match = notes.match(/Voyageur:\s*(.+)/i);
+  return match?.[1]?.trim() ?? null;
+}
+
 type Row = {
   id: string;
   logement_id: string | null;
   voyageur_id: string | null;
+  notes: string | null;
   date_arrivee: string;
   date_depart: string;
   contrat_envoye: boolean | null;
@@ -83,7 +90,7 @@ export default function ContratsSejourPage() {
       supabase
         .from("reservations")
         .select(
-          "id, logement_id, voyageur_id, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
+          "id, logement_id, voyageur_id, notes, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
         )
         .eq("proprietaire_id", proprietaireId)
         .in("source", ["direct", "autre", "airbnb", "booking"])
@@ -108,6 +115,7 @@ export default function ContratsSejourPage() {
           id: String(r.id),
           logement_id: r.logement_id != null ? String(r.logement_id) : null,
           voyageur_id: r.voyageur_id != null ? String(r.voyageur_id) : null,
+          notes: (r.notes as string | null) ?? null,
           date_arrivee: String(r.date_arrivee),
           date_depart: String(r.date_depart),
           contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
@@ -149,7 +157,9 @@ export default function ContratsSejourPage() {
       if (!q) return true;
       const logNom = (row.logements?.nom ?? "").toLowerCase();
       const v = row.voyageurs;
-      const voyStr = v ? `${v.prenom} ${v.nom} ${v.email ?? ""}`.toLowerCase() : "";
+      const voyStr = v
+        ? `${v.prenom} ${v.nom} ${v.email ?? ""}`.toLowerCase()
+        : (extractVoyageurFromNotes(row.notes) ?? "").toLowerCase();
       return logNom.includes(q) || voyStr.includes(q);
     });
   }, [rows, search, statutFiltre, logementFiltre]);
@@ -354,13 +364,17 @@ export default function ContratsSejourPage() {
           filteredRows.map((row) => {
             const statut = rowContratStatut(row);
             const datesAffichees = `${formatDateFR(row.date_arrivee)} → ${formatDateFR(row.date_depart)}`;
+            const hasNomFromNotes = !!extractVoyageurFromNotes(row.notes);
             return (
               <article key={row.id} className="rounded-xl p-4" style={{ ...panelCard, border: `1px solid ${PC.border}` }}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">{row.logements?.nom ?? "Logement"}</p>
                     <p className="text-sm" style={{ color: PC.muted }}>
-                      {row.voyageurs ? `${row.voyageurs.prenom} ${row.voyageurs.nom}` : "Sans voyageur"} · {datesAffichees}
+                      {row.voyageurs
+                        ? `${row.voyageurs.prenom} ${row.voyageurs.nom}`
+                        : extractVoyageurFromNotes(row.notes) ?? "Sans voyageur"}{" "}
+                      · {datesAffichees}
                     </p>
                     <p className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: PC.secondary }}>
                       <span>Statut :</span>
@@ -369,7 +383,7 @@ export default function ContratsSejourPage() {
                         label={statut}
                       />
                     </p>
-                    {!row.voyageurs ? (
+                    {!row.voyageurs && !hasNomFromNotes ? (
                       <p
                         className="mt-2 rounded-lg px-3 py-2 text-xs"
                         style={{
