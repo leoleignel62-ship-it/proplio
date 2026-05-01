@@ -96,7 +96,7 @@ export function LandingPricingSection({
   return (
     <section
       id={sectionId}
-      className={`landing-section reveal-on-scroll mt-28 scroll-mt-24 will-change-transform ${className}`.trim()}
+      className={`landing-section mt-28 scroll-mt-24 will-change-transform ${className}`.trim()}
     >
       {showIntro ? (
         <div className="text-center">
