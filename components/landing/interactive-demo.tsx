@@ -620,8 +620,8 @@ export function InteractiveDemo() {
           }}
         >
           <aside
-            className="flex w-[220px] shrink-0 flex-col border-r py-0"
-            style={{ backgroundColor: "#08080f", borderColor: "rgba(255,255,255,0.06)" }}
+            className="flex w-[220px] shrink-0 flex-col py-0"
+            style={{ backgroundColor: "#08080f", borderRight: "1px solid rgba(255,255,255,0.06)" }}
           >
             <div className="px-4 pt-4">
               <LogoFull className="h-8 w-auto text-white" />
