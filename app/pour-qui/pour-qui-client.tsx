@@ -54,18 +54,18 @@ export function PourQuiClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 pb-16 text-center">
+        <header className="marketing-fade-section space-y-6 pb-8 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Locavio est fait pour vous</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/60">
             Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
           </p>
         </header>
 
-        <div className="my-24 grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="my-12 grid grid-cols-1 gap-8 md:grid-cols-3">
           {cards.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section flex flex-col rounded-2xl border border-white/10 bg-white/5 px-6 py-16 backdrop-blur-sm"
+              className="marketing-fade-section flex flex-col rounded-2xl border border-white/10 bg-white/5 px-6 py-8 backdrop-blur-sm"
             >
               <p className="text-3xl" aria-hidden>
                 {c.emoji}
@@ -91,7 +91,7 @@ export function PourQuiClient() {
           ))}
         </div>
 
-        <section className="marketing-fade-section my-24 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
+        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-8 text-center backdrop-blur-sm">
           <h2 className="text-2xl font-bold text-white">Pas sûr de quel profil vous correspond ?</h2>
           <p className="mx-auto mt-4 max-w-xl text-white/60">
             Commencez gratuitement et explorez Locavio à votre rythme. Aucune carte bancaire requise.

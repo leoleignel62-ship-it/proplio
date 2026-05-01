@@ -8,7 +8,7 @@ export function LandingFooter() {
   return (
     <footer
       id="footer"
-      className="border-t border-white/10 px-4 py-12 sm:px-6"
+      className="mt-12 border-t border-white/10 px-4 pt-12 pb-8 sm:px-6"
       style={{
         background: "rgba(124, 58, 237, 0.08)",
         WebkitBackdropFilter: "blur(12px)",
