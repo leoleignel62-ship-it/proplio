@@ -166,7 +166,7 @@ export default function LandingBelowFold() {
     <>
       <DashboardMockupSection />
 
-      <section ref={statsRef} className="landing-section reveal-on-scroll mt-24 py-16 will-change-transform">
+      <section ref={statsRef} className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <div
           className="grid gap-8 rounded-2xl px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
           style={{ ...solidCard, border: `1px solid ${PC.border}` }}
@@ -188,7 +188,7 @@ export default function LandingBelowFold() {
         </p>
       </section>
 
-      <section className="landing-section reveal-on-scroll mt-24 py-16 will-change-transform">
+      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
           Locavio vs agence traditionnelle
         </h2>
@@ -234,7 +234,7 @@ export default function LandingBelowFold() {
         </div>
       </section>
 
-      <section className="landing-section reveal-on-scroll mt-24 py-16 will-change-transform">
+      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-white/5 px-6 py-16 backdrop-blur-sm sm:px-10">
           <h2 className="text-center text-2xl font-bold text-white sm:text-3xl">Vos données sont entre de bonnes mains</h2>
 
@@ -280,7 +280,7 @@ export default function LandingBelowFold() {
 
       <LandingPricingSection sectionId="tarifs" />
 
-      <section id="faq" className="landing-section reveal-on-scroll mt-24 scroll-mt-24 py-16 will-change-transform">
+      <section id="faq" className="landing-section reveal-on-scroll mt-12 scroll-mt-24 py-8 will-change-transform">
         <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
           Questions fréquentes
         </h2>
@@ -303,7 +303,7 @@ export default function LandingBelowFold() {
         </div>
       </section>
 
-      <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-24 max-w-4xl px-0 py-16 will-change-transform">
+      <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-12 max-w-4xl px-0 py-8 will-change-transform">
         <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
           <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Prêt à reprendre le contrôle de vos locations ?

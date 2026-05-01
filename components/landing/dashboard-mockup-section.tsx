@@ -16,7 +16,7 @@ const barHeights = [40, 72, 55, 88, 48, 95, 62, 78, 52, 84, 68, 58];
 export function DashboardMockupSection() {
   return (
     <section
-      className="landing-section landing-mockup-reveal mx-auto mt-24 max-w-[900px] px-0 py-16 will-change-transform"
+      className="landing-section landing-mockup-reveal mx-auto mt-12 max-w-[900px] px-0 py-8 will-change-transform"
       style={{ color: PC.text }}
     >
       <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
