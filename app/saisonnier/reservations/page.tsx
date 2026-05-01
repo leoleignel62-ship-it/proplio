@@ -1243,7 +1243,9 @@ export default function ReservationsSaisonnierPage() {
                         <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
                           Détail
                         </BtnSecondary>
-                        {isOta && (!row.voyageurs || !String(row.voyageurs.email ?? "").trim()) ? (
+                        {isOta &&
+                        row.voyageur_id == null &&
+                        !extractVoyageurFromNotes(row.notes)?.trim() ? (
                           <ResaActionPill variant="violetOutline" onClick={() => openLinkVoyageurModal(row.id)}>
                             👤 Lier un voyageur
                           </ResaActionPill>
