@@ -17,6 +17,7 @@ type ContratStatut = "Généré" | "Envoyé" | "Signé";
 type Row = {
   id: string;
   logement_id: string | null;
+  voyageur_id: string | null;
   date_arrivee: string;
   date_depart: string;
   contrat_envoye: boolean | null;
@@ -55,6 +56,15 @@ export default function ContratsSejourPage() {
   const [search, setSearch] = useState("");
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>("tous");
   const [logementFiltre, setLogementFiltre] = useState("");
+  const [allVoyageurs, setAllVoyageurs] = useState<Array<{ id: string; prenom: string; nom: string; email: string | null }>>([]);
+  const [lierModalId, setLierModalId] = useState<string | null>(null);
+  const [lierTab, setLierTab] = useState<"existant" | "nouveau">("existant");
+  const [lierVoyageurId, setLierVoyageurId] = useState("");
+  const [lierPrenom, setLierPrenom] = useState("");
+  const [lierNom, setLierNom] = useState("");
+  const [lierEmail, setLierEmail] = useState("");
+  const [lierTel, setLierTel] = useState("");
+  const [lierLoading, setLierLoading] = useState(false);
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -68,15 +78,25 @@ export default function ContratsSejourPage() {
       setLoading(false);
       return;
     }
-    const { data, error: qErr } = await supabase
-      .from("reservations")
-      .select(
-        "id, logement_id, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
-      )
-      .eq("proprietaire_id", proprietaireId)
-      .in("source", ["direct", "autre", "airbnb", "booking"])
-      .order("date_arrivee", { ascending: false });
-    if (qErr) setError(formatSubmitError(qErr));
+    setError("");
+    const [resaRes, voyRes] = await Promise.all([
+      supabase
+        .from("reservations")
+        .select(
+          "id, logement_id, voyageur_id, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
+        )
+        .eq("proprietaire_id", proprietaireId)
+        .in("source", ["direct", "autre", "airbnb", "booking"])
+        .order("date_arrivee", { ascending: false }),
+      supabase.from("voyageurs").select("id, prenom, nom, email").eq("proprietaire_id", proprietaireId).order("nom"),
+    ]);
+    const { data, error: qErr } = resaRes;
+    const { data: vData, error: vErr } = voyRes;
+    const errParts: string[] = [];
+    if (qErr) errParts.push(formatSubmitError(qErr));
+    if (vErr) errParts.push(formatSubmitError(vErr));
+    if (errParts.length) setError(errParts.join(" — "));
+    setAllVoyageurs((vData as Array<{ id: string; prenom: string; nom: string; email: string | null }>) ?? []);
     const raw = (data ?? []) as Record<string, unknown>[];
     setRows(
       raw.map((r) => {
@@ -87,6 +107,7 @@ export default function ContratsSejourPage() {
         return {
           id: String(r.id),
           logement_id: r.logement_id != null ? String(r.logement_id) : null,
+          voyageur_id: r.voyageur_id != null ? String(r.voyageur_id) : null,
           date_arrivee: String(r.date_arrivee),
           date_depart: String(r.date_depart),
           contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
@@ -171,6 +192,89 @@ export default function ContratsSejourPage() {
     await supabase.from("reservations").update({ contrat_signe: next }).eq("id", id).eq("proprietaire_id", proprietaireId);
     void load();
     toast.success(next ? "Contrat marqué comme signé." : "Marquage signé retiré.");
+  }
+
+  function openLierVoyageurModal(reservationId: string) {
+    setError("");
+    setLierModalId(reservationId);
+    setLierTab("existant");
+    setLierVoyageurId("");
+    setLierPrenom("");
+    setLierNom("");
+    setLierEmail("");
+    setLierTel("");
+  }
+
+  async function lierVoyageurExistant() {
+    if (!lierModalId || !lierVoyageurId) return;
+    setLierLoading(true);
+    setError("");
+    const { proprietaireId, error: pe } = await getCurrentProprietaireId();
+    if (pe || !proprietaireId) {
+      setLierLoading(false);
+      return;
+    }
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ voyageur_id: lierVoyageurId })
+      .eq("id", lierModalId)
+      .eq("proprietaire_id", proprietaireId);
+    setLierLoading(false);
+    if (uErr) {
+      setError(formatSubmitError(uErr));
+      return;
+    }
+    toast.success("Voyageur lié avec succès.");
+    setLierModalId(null);
+    void load();
+  }
+
+  async function creerEtLierVoyageur() {
+    if (!lierModalId) return;
+    const prenom = lierPrenom.trim();
+    const nom = lierNom.trim();
+    if (!prenom || !nom) return;
+    setLierLoading(true);
+    setError("");
+    const { proprietaireId, error: pe } = await getCurrentProprietaireId();
+    if (pe || !proprietaireId) {
+      setLierLoading(false);
+      return;
+    }
+    const { data: newV, error: iErr } = await supabase
+      .from("voyageurs")
+      .insert({
+        prenom,
+        nom,
+        email: lierEmail.trim() || null,
+        telephone: lierTel.trim() || null,
+        proprietaire_id: proprietaireId,
+      })
+      .select("id")
+      .single();
+    if (iErr || !newV) {
+      setLierLoading(false);
+      setError(formatSubmitError(iErr));
+      return;
+    }
+    const newId = String((newV as { id: string }).id);
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ voyageur_id: newId })
+      .eq("id", lierModalId)
+      .eq("proprietaire_id", proprietaireId);
+    setLierLoading(false);
+    if (uErr) {
+      setError(formatSubmitError(uErr));
+      return;
+    }
+    toast.success("Voyageur créé et lié avec succès.");
+    setLierModalId(null);
+    setLierPrenom("");
+    setLierNom("");
+    setLierEmail("");
+    setLierTel("");
+    void load();
   }
 
   if (loading) {
@@ -274,7 +378,16 @@ export default function ContratsSejourPage() {
                           border: "1px solid rgba(234,88,12,0.3)",
                         }}
                       >
-                        ⚠ Aucun voyageur lié à cette réservation. Liez un voyageur depuis la page Réservations pour pouvoir envoyer le contrat.
+                        ⚠ Aucun voyageur lié à cette réservation.{" "}
+                        <button
+                          type="button"
+                          onClick={() => openLierVoyageurModal(row.id)}
+                          className="font-medium underline"
+                          style={{ color: "#fb923c" }}
+                        >
+                          Lier un voyageur
+                        </button>{" "}
+                        pour pouvoir envoyer le contrat.
                       </p>
                     ) : null}
                     {row.voyageurs && !row.voyageurs.email ? (
@@ -287,7 +400,15 @@ export default function ContratsSejourPage() {
                         }}
                       >
                         ⚠ {row.voyageurs.prenom} {row.voyageurs.nom} n&apos;a pas d&apos;email renseigné. Ajoutez son email depuis la page
-                        Voyageurs pour pouvoir envoyer le contrat.
+                        Voyageurs pour pouvoir envoyer le contrat.{" "}
+                        <button
+                          type="button"
+                          onClick={() => openLierVoyageurModal(row.id)}
+                          className="font-medium underline"
+                          style={{ color: "#fb923c" }}
+                        >
+                          Changer de voyageur
+                        </button>
                       </p>
                     ) : null}
                   </div>
@@ -327,6 +448,168 @@ export default function ContratsSejourPage() {
           })
         )}
       </div>
+
+      {lierModalId ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+          onClick={() => setLierModalId(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-6"
+            style={{ ...panelCard, border: "1px solid rgba(124,58,237,0.3)", backgroundColor: PC.card }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-4 text-lg font-bold" style={{ color: PC.text }}>
+              Lier un voyageur
+            </h2>
+
+            <div
+              className="mb-4 flex rounded-full p-1"
+              style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+            >
+              <button
+                type="button"
+                onClick={() => setLierTab("existant")}
+                className="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition"
+                style={{
+                  backgroundColor: lierTab === "existant" ? PC.primary : "transparent",
+                  color: lierTab === "existant" ? PC.white : PC.muted,
+                }}
+              >
+                Voyageur existant
+              </button>
+              <button
+                type="button"
+                onClick={() => setLierTab("nouveau")}
+                className="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition"
+                style={{
+                  backgroundColor: lierTab === "nouveau" ? PC.primary : "transparent",
+                  color: lierTab === "nouveau" ? PC.white : PC.muted,
+                }}
+              >
+                Nouveau voyageur
+              </button>
+            </div>
+
+            {lierTab === "existant" ? (
+              <div className="space-y-4">
+                <select
+                  value={lierVoyageurId}
+                  onChange={(e) => setLierVoyageurId(e.target.value)}
+                  style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+                  className="w-full"
+                >
+                  <option value="">Sélectionner un voyageur…</option>
+                  {allVoyageurs.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.prenom} {v.nom}
+                      {v.email ? ` — ${v.email}` : " (sans email)"}
+                    </option>
+                  ))}
+                </select>
+                {!lierVoyageurId ? (
+                  <p className="text-xs" style={{ color: PC.muted }}>
+                    Sélectionnez un voyageur avec un email pour pouvoir envoyer le contrat.
+                  </p>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLierModalId(null)}
+                    className="flex-1 rounded-xl px-4 py-2 text-sm transition hover:bg-white/5"
+                    style={{ color: PC.muted, border: `1px solid ${PC.border}` }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void lierVoyageurExistant()}
+                    disabled={!lierVoyageurId || lierLoading}
+                    className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+                    style={{ backgroundColor: PC.primary }}
+                  >
+                    {lierLoading ? "Liaison…" : "Lier ce voyageur"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs" style={{ color: PC.muted }}>
+                      Prénom *
+                    </label>
+                    <input
+                      value={lierPrenom}
+                      onChange={(e) => setLierPrenom(e.target.value)}
+                      placeholder="Prénom"
+                      style={fieldInputStyle}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs" style={{ color: PC.muted }}>
+                      Nom *
+                    </label>
+                    <input
+                      value={lierNom}
+                      onChange={(e) => setLierNom(e.target.value)}
+                      placeholder="Nom"
+                      style={fieldInputStyle}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs" style={{ color: PC.muted }}>
+                    Email (requis pour envoyer le contrat)
+                  </label>
+                  <input
+                    type="email"
+                    value={lierEmail}
+                    onChange={(e) => setLierEmail(e.target.value)}
+                    placeholder="email@exemple.fr"
+                    style={fieldInputStyle}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs" style={{ color: PC.muted }}>
+                    Téléphone
+                  </label>
+                  <input
+                    value={lierTel}
+                    onChange={(e) => setLierTel(e.target.value)}
+                    placeholder="06 00 00 00 00"
+                    style={fieldInputStyle}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLierModalId(null)}
+                    className="flex-1 rounded-xl px-4 py-2 text-sm transition hover:bg-white/5"
+                    style={{ color: PC.muted, border: `1px solid ${PC.border}` }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void creerEtLierVoyageur()}
+                    disabled={!lierPrenom.trim() || !lierNom.trim() || lierLoading}
+                    className="flex-1 rounded-xl px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+                    style={{ backgroundColor: PC.primary }}
+                  >
+                    {lierLoading ? "Création…" : "Créer et lier"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
