@@ -27,6 +27,7 @@ const AUTH_PAGES = ["/login", "/register"] as const;
 function isPublicPath(pathname: string): boolean {
   return (
     PUBLIC_PATHS.some((path) => pathname === path) ||
+    pathname.startsWith("/blog/") ||
     pathname.startsWith("/candidature/") ||
     pathname.startsWith(AUTH_PUBLIC_PREFIX)
   );
