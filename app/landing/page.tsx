@@ -151,7 +151,7 @@ export default function LandingPage() {
               />
             </div>
             <h1
-              className="hero-reveal mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08]"
+              className="hero-reveal mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
               style={{ color: PC.text, animationDelay: "150ms" }}
             >
               <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
@@ -166,7 +166,10 @@ export default function LandingPage() {
               automatisé en quelques clics. Locavio vous libère des tâches administratives pour que vous vous concentriez
               sur l&apos;essentiel : investir.
             </p>
-            <div className="hero-reveal mt-10 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "450ms" }}>
+            <div
+              className="hero-reveal mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+              style={{ animationDelay: "450ms" }}
+            >
               <Link
                 href="/register"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"

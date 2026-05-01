@@ -671,7 +671,17 @@ export function InteractiveDemo() {
 
   return (
     <>
-      <div className="landing-interactive-demo-enter mx-auto w-full max-w-[1000px]">
+      <div className="md:hidden rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
+        <p className="mb-4 text-sm text-white/60">La démo interactive est disponible sur ordinateur.</p>
+        <Link
+          href="/register"
+          className="inline-flex rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500"
+        >
+          Essayer gratuitement →
+        </Link>
+      </div>
+
+      <div className="landing-interactive-demo-enter mx-auto hidden w-full max-w-[1000px] md:block">
         <div className="mb-4 flex justify-center px-1">
           <div
             className="w-full max-w-sm rounded-full p-1"

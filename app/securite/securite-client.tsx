@@ -71,7 +71,7 @@ export function SecuriteClient() {
           {certifications.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 px-6 py-8 backdrop-blur-sm sm:px-8"
+              className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 px-5 py-6 backdrop-blur-sm sm:px-8 sm:py-8"
             >
               <p className="text-2xl" aria-hidden>
                 {c.icon}

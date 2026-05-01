@@ -8,7 +8,7 @@ export function QuiSommesNousClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <article className="marketing-fade-section my-12 mb-0 mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 px-8 py-8 backdrop-blur-sm sm:px-10">
+        <article className="marketing-fade-section my-12 mb-0 mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-10">
           <h1 className="mb-8 text-4xl font-bold text-white">Qui sommes-nous ?</h1>
 
           <div className="space-y-6 text-lg leading-relaxed text-white/70">

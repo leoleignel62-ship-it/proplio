@@ -74,7 +74,7 @@ export function BlogClient() {
           </div>
         </header>
 
-        <div className="marketing-fade-section my-12 mb-0 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="marketing-fade-section my-12 mb-0 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           {filtered.map((article: Article) => (
             <Link
               key={article.slug}

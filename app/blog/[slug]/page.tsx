@@ -76,7 +76,7 @@ export default async function BlogArticlePage({ params }: Props) {
             >
               {article.category}
             </span>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl">{article.title}</h1>
+            <h1 className="mt-6 text-3xl font-bold tracking-tight text-white sm:text-4xl">{article.title}</h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-white/60">{article.description}</p>
             <p className="mt-4 text-sm text-white/40">
               {article.readTime} min de lecture · Publié le {dateLabel}
@@ -84,7 +84,7 @@ export default async function BlogArticlePage({ params }: Props) {
           </header>
 
           <div
-            className="blog-content mx-auto mt-12 max-w-3xl"
+            className="blog-content mx-auto mt-12 max-w-3xl px-4 sm:px-0"
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 

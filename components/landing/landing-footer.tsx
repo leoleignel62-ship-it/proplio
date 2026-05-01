@@ -17,7 +17,7 @@ export function LandingFooter() {
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
         <div className="text-sm font-semibold text-white">Locavio</div>
-        <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-white/60">
+        <nav className="flex min-w-0 flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-white/60">
           <Link href="/tarifs" className="transition text-white/60 hover:text-white" style={{ transition: ease }}>
             Tarifs
           </Link>

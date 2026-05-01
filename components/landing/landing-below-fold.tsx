@@ -181,7 +181,7 @@ export default function LandingBelowFold() {
 
       <section ref={statsRef} className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <div
-          className="grid gap-8 rounded-2xl px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
+          className="grid grid-cols-1 gap-8 rounded-2xl px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
           style={{ ...solidCard, border: `1px solid ${PC.border}` }}
         >
           {statsData.map((s, i) => (
@@ -251,11 +251,11 @@ export default function LandingBelowFold() {
         <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-white/5 px-6 py-16 backdrop-blur-sm sm:px-10">
           <h2 className="text-center text-2xl font-bold text-white sm:text-3xl">Vos données sont entre de bonnes mains</h2>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4">
+          <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 lg:gap-4">
             {securityBadges.map((item) => (
               <div
                 key={item.name}
-                className="flex min-w-0 flex-1 items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm sm:min-w-[200px] sm:flex-1 sm:max-w-[calc(50%-0.5rem)] lg:max-w-[calc(25%-0.75rem)]"
+                className="flex min-w-0 items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
               >
                 <span className="text-xl shrink-0" aria-hidden>
                   {item.icon}

@@ -65,7 +65,7 @@ export function PourQuiClient() {
           {cards.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section flex flex-col rounded-2xl border border-white/10 bg-white/5 px-6 py-8 backdrop-blur-sm"
+              className="marketing-fade-section flex flex-col rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm sm:p-8"
             >
               <p className="text-3xl" aria-hidden>
                 {c.emoji}

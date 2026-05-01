@@ -1,8 +1,10 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { LogoFull } from "@/components/locavio-icons";
 import { PC } from "@/lib/locavio-colors";
 
@@ -12,6 +14,7 @@ type LandingNavbarProps = {
 
 export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
   const centerLinks: { href: string; label: string }[] = [
     { href: "/fonctionnalites", label: "Fonctionnalités" },
     { href: "/pour-qui", label: "Pour qui" },
@@ -83,6 +86,15 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
         <span className="mx-2 hidden h-5 w-px shrink-0 bg-white/20 md:block" aria-hidden />
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
           <Link
             href="/login"
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-[#c4b5fd] transition-all duration-200 hover:border-white/40 hover:bg-white/5 hover:text-white"
@@ -91,7 +103,7 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
           </Link>
           <Link
             href="/register"
-            className="hidden min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out sm:inline-flex"
+            className="hidden min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out md:inline-flex"
             style={{
               background: PC.gradientPrimary,
               color: PC.white,
@@ -102,6 +114,43 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
           </Link>
         </div>
       </div>
+
+      {menuOpen ? (
+        <div className="md:hidden border-t border-white/10 bg-[rgba(6,6,15,0.97)] backdrop-blur-xl">
+          <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4" aria-label="Navigation mobile">
+            {centerLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className={`rounded-xl px-4 py-3 text-sm font-medium transition ${
+                  pathname === item.href
+                    ? "border-l-2 border-violet-500 bg-violet-600/20 text-white"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3">
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-xl border border-white/20 px-4 py-3 text-center text-sm font-semibold text-white/80 transition hover:bg-white/5"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-xl bg-violet-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-violet-500"
+              >
+                Commencer gratuitement →
+              </Link>
+            </div>
+          </nav>
+        </div>
+      ) : null}
     </header>
   );
 }

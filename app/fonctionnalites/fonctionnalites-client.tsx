@@ -49,7 +49,7 @@ function ExempleEmailForm({ type }: { type: ExempleEmailFormType }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 flex flex-wrap gap-2">
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-2 sm:flex-row">
       <input
         type="email"
         required
@@ -342,14 +342,14 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <section key={block.title} className="marketing-fade-section grid gap-10 md:grid-cols-2 md:items-center">
-                <div className={i % 2 === 1 ? "md:order-2" : undefined}>
+              <section key={block.title} className="marketing-fade-section grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
+                <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone={block.badgeTone}>{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">{block.title}</h2>
                   <p className="mt-4 leading-relaxed text-white/60">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
-                <div className={i % 2 === 1 ? "md:order-1" : undefined}>{block.visual}</div>
+                <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
               </section>
             ))}
           </div>
@@ -507,14 +507,14 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <section key={block.title} className="marketing-fade-section grid gap-10 md:grid-cols-2 md:items-center">
-                <div className={i % 2 === 1 ? "md:order-2" : undefined}>
+              <section key={block.title} className="marketing-fade-section grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
+                <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone="starter">{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">{block.title}</h2>
                   <p className="mt-4 leading-relaxed text-white/60">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
-                <div className={i % 2 === 1 ? "md:order-1" : undefined}>{block.visual}</div>
+                <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
               </section>
             ))}
           </div>

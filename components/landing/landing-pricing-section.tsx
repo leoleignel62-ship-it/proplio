@@ -146,7 +146,7 @@ export function LandingPricingSection({
         ) : null}
       </div>
 
-      <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {pricingPlans.map((plan, index) => {
           const isAnnual = billing === "annuel";
           const price = plan.id === "free" ? plan.monthly : isAnnual ? plan.yearly : plan.monthly;
