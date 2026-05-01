@@ -7,14 +7,14 @@ const certifications = [
   {
     icon: "🔒",
     title: "SOC 2 Type II",
-    text: "Supabase, Vercel et Resend sont certifiés SOC 2 Type II — le standard de sécurité cloud le plus exigeant.",
+    text: "Nos infrastructures sont certifiées SOC 2 Type II — le standard de sécurité cloud le plus exigeant.",
     explain:
       "Cette certification garantit que les systèmes qui stockent vos données respectent des contrôles stricts de sécurité, disponibilité et confidentialité, audités par des tiers indépendants.",
   },
   {
     icon: "💳",
     title: "PCI-DSS Level 1",
-    text: "Les paiements sont gérés par Stripe, certifié PCI-DSS Level 1 — la certification maximale pour les données bancaires.",
+    text: "Les paiements sont traités via une infrastructure certifiée PCI-DSS Level 1 — la certification maximale pour les données bancaires.",
     explain:
       "Le niveau le plus élevé de conformité pour le traitement des données de paiement. Vos informations bancaires ne transitent jamais par nos serveurs.",
   },
