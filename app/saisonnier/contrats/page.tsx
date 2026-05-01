@@ -21,6 +21,7 @@ type Row = {
   date_depart: string;
   contrat_envoye: boolean | null;
   contrat_signe: boolean | null;
+  source: string | null;
   logements: { nom: string } | null;
   voyageurs: { prenom: string; nom: string; email: string | null } | null;
 };
@@ -70,10 +71,10 @@ export default function ContratsSejourPage() {
     const { data, error: qErr } = await supabase
       .from("reservations")
       .select(
-        "id, logement_id, date_arrivee, date_depart, contrat_envoye, contrat_signe, logements(nom), voyageurs(prenom, nom, email)",
+        "id, logement_id, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
       )
       .eq("proprietaire_id", proprietaireId)
-      .in("source", ["direct", "autre"])
+      .in("source", ["direct", "autre", "airbnb", "booking"])
       .order("date_arrivee", { ascending: false });
     if (qErr) setError(formatSubmitError(qErr));
     const raw = (data ?? []) as Record<string, unknown>[];
@@ -90,6 +91,7 @@ export default function ContratsSejourPage() {
           date_depart: String(r.date_depart),
           contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
           contrat_signe: (r.contrat_signe as boolean | null) ?? null,
+          source: r.source != null ? String(r.source) : null,
           logements: logements ? { nom: String(logements.nom ?? "") } : null,
           voyageurs: voyageurs
             ? { prenom: String(voyageurs.prenom ?? ""), nom: String(voyageurs.nom ?? ""), email: (voyageurs.email as string | null) ?? null }
@@ -187,8 +189,8 @@ export default function ContratsSejourPage() {
       <div>
         <h1 className="locavio-page-title">Contrats de séjour</h1>
         <p className="locavio-page-subtitle">
-          Réservations directes ou autres sources uniquement (pas Airbnb / Booking : contrats gérés par les plateformes). PDF Locavio et suivi
-          d&apos;envoi.
+          Gérez et envoyez vos contrats de séjour pour toutes vos réservations. Le contrat Locavio est obligatoire même pour les réservations Airbnb
+          et Booking.
         </p>
       </div>
 
@@ -238,7 +240,7 @@ export default function ContratsSejourPage() {
       <div className="space-y-3">
         {rows.length === 0 ? (
           <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
-            Aucune réservation directe ou « autre » source.
+            Aucune réservation à afficher.
           </div>
         ) : filteredRows.length === 0 ? (
           <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
@@ -263,13 +265,38 @@ export default function ContratsSejourPage() {
                         label={statut}
                       />
                     </p>
+                    {!row.voyageurs ? (
+                      <p
+                        className="mt-2 rounded-lg px-3 py-2 text-xs"
+                        style={{
+                          backgroundColor: "rgba(234,88,12,0.1)",
+                          color: "#fb923c",
+                          border: "1px solid rgba(234,88,12,0.3)",
+                        }}
+                      >
+                        ⚠ Aucun voyageur lié à cette réservation. Liez un voyageur depuis la page Réservations pour pouvoir envoyer le contrat.
+                      </p>
+                    ) : null}
+                    {row.voyageurs && !row.voyageurs.email ? (
+                      <p
+                        className="mt-2 rounded-lg px-3 py-2 text-xs"
+                        style={{
+                          backgroundColor: "rgba(234,88,12,0.1)",
+                          color: "#fb923c",
+                          border: "1px solid rgba(234,88,12,0.3)",
+                        }}
+                      >
+                        ⚠ {row.voyageurs.prenom} {row.voyageurs.nom} n&apos;a pas d&apos;email renseigné. Ajoutez son email depuis la page
+                        Voyageurs pour pouvoir envoyer le contrat.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="flex gap-2">
                       <BtnEmail
                         size="small"
                         className="!flex-1 justify-center"
-                        disabled={!row.voyageurs?.email}
+                        disabled={!String(row.voyageurs?.email ?? "").trim()}
                         onClick={() => void sendContrat(row.id)}
                       >
                         Envoyer
