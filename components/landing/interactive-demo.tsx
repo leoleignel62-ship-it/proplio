@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
+  Building2,
   Calendar,
   ClipboardList,
   FileText,
@@ -19,7 +20,15 @@ import { PC } from "@/lib/locavio-colors";
 
 type DemoMode = "classique" | "saisonnier";
 
-type ClassiqueSection = "dashboard" | "locataires" | "dossiers" | "quittances" | "baux" | "edl" | "irl";
+type ClassiqueSection =
+  | "dashboard"
+  | "logements"
+  | "locataires"
+  | "dossiers"
+  | "quittances"
+  | "baux"
+  | "edl"
+  | "irl";
 type SaisonnierSection = "dashboard" | "reservations" | "voyageurs" | "contrats" | "edl" | "taxe";
 
 const BAR_ENCAIS_PCT = [72, 80, 65, 88, 92, 78, 85, 90, 76, 82, 94, 84];
@@ -115,6 +124,28 @@ function CardShell({ children, className }: { children: ReactNode; className?: s
   return <div className={cn("rounded-xl border border-white/[0.08] bg-white/[0.05] p-4", className)}>{children}</div>;
 }
 
+const demoActionBtnClass =
+  "rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-violet-500";
+
+function SectionActionHeader({
+  title,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="text-lg font-bold text-white">{title}</h3>
+      <button type="button" className={demoActionBtnClass} onClick={onAction}>
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
 export function InteractiveDemo() {
   const [mode, setMode] = useState<DemoMode>("classique");
   const [classiqueSection, setClassiqueSection] = useState<ClassiqueSection>("dashboard");
@@ -144,7 +175,7 @@ export function InteractiveDemo() {
         return (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-bold text-white">Bonjour Léo 👋</h3>
+              <h3 className="text-lg font-bold text-white">Bonjour Sophie 👋</h3>
               <p className="text-xs capitalize text-white/45">{dateLong}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -234,10 +265,49 @@ export function InteractiveDemo() {
             </CardShell>
           </div>
         );
+      case "logements":
+        return (
+          <div className="space-y-3">
+            <SectionActionHeader title="Mes logements" actionLabel="+ Ajouter un logement" onAction={openSignup} />
+            {[
+              {
+                type: "Appartement",
+                addr: "12 rue des Lilas, 75011 Paris",
+                details: "3 pièces | 58m² | Loyer : 850€/mois",
+                tenant: "Sophie Martin",
+              },
+              {
+                type: "Studio",
+                addr: "8 place Bellecour, 69001 Lyon",
+                details: "1 pièce | 28m² | Loyer : 620€/mois",
+                tenant: "Thomas Dubois",
+              },
+              {
+                type: "Appartement",
+                addr: "5 cours de l'Intendance, 33000 Bordeaux",
+                details: "2 pièces | 45m² | Loyer : 780€/mois",
+                tenant: "Marie Chen",
+              },
+            ].map((log) => (
+              <CardShell key={log.addr}>
+                <p className="font-semibold text-white">
+                  {log.type} — {log.addr}
+                </p>
+                <p className="mt-1 text-xs text-white/55">{log.details}</p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-white/65">
+                    Locataire : <span className="text-white/90">{log.tenant}</span>
+                  </p>
+                  <Badge tone="green">Loué</Badge>
+                </div>
+              </CardShell>
+            ))}
+          </div>
+        );
       case "locataires":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Locataires</h3>
+            <SectionActionHeader title="Locataires" actionLabel="+ Nouveau locataire" onAction={openSignup} />
             {[
               { name: "Sophie Martin", place: "Appt 75011 Paris", rent: "850€/mois", badge: "Actif" as const, t: "green" as const },
               { name: "Thomas Dubois", place: "Studio 69001 Lyon", rent: "620€/mois", badge: "Actif", t: "green" as const },
@@ -260,7 +330,7 @@ export function InteractiveDemo() {
       case "dossiers":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Dossiers de candidature</h3>
+            <SectionActionHeader title="Dossiers de candidature" actionLabel="+ Nouveau dossier" onAction={openSignup} />
             {[
               { name: "Antoine Moreau", place: "Appt 75011", score: "87/100", qual: "Excellent", qt: "green" as const, stat: "Reçu", st: "green" as const },
               { name: "Julie Lambert", place: "Studio Lyon", score: "72/100", qual: "Bon", qt: "orange" as const, stat: "En cours", st: "blue" as const },
@@ -288,11 +358,7 @@ export function InteractiveDemo() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-bold text-white">Quittances de loyer</h3>
-              <button
-                type="button"
-                className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-violet-500"
-                onClick={openSignup}
-              >
+              <button type="button" className={demoActionBtnClass} onClick={openSignup}>
                 + Nouvelle quittance
               </button>
             </div>
@@ -319,7 +385,7 @@ export function InteractiveDemo() {
       case "baux":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Baux de location</h3>
+            <SectionActionHeader title="Baux de location" actionLabel="+ Nouveau bail" onAction={openSignup} />
             {[
               { who: "Sophie Martin", place: "Appt 75011 Paris", dur: "3 ans", start: "01/09/2023", rent: "850€" },
               { who: "Thomas Dubois", place: "Studio Lyon", dur: "1 an", start: "15/03/2024", rent: "620€" },
@@ -342,7 +408,7 @@ export function InteractiveDemo() {
       case "edl":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">États des lieux</h3>
+            <SectionActionHeader title="États des lieux" actionLabel="+ Nouvel état des lieux" onAction={openSignup} />
             <CardShell>
               <p className="font-semibold text-white">EDL Entrée — Sophie Martin — 01/09/2023</p>
               <p className="mt-1 text-xs text-white/50">Appt 75011 Paris</p>
@@ -362,7 +428,7 @@ export function InteractiveDemo() {
       case "irl":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Révision des loyers IRL</h3>
+            <SectionActionHeader title="Révision des loyers IRL" actionLabel="+ Nouvelle révision" onAction={openSignup} />
             <CardShell>
               <p className="font-semibold text-white">Sophie Martin</p>
               <p className="mt-1 text-sm text-white/65">
@@ -447,7 +513,7 @@ export function InteractiveDemo() {
       case "reservations":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Réservations</h3>
+            <SectionActionHeader title="Réservations" actionLabel="+ Nouvelle réservation" onAction={openSignup} />
             {[
               { who: "Thomas Martin", dates: "12-19 juil 2026", n: "7 nuits", price: "1 604€", src: "Airbnb", tone: "blue" as const, lab: "À venir" },
               { who: "Emma Rousseau", dates: "01-08 août 2026", n: "7 nuits", price: "1 715€", src: "Direct", tone: "blue" as const, lab: "À venir" },
@@ -472,7 +538,7 @@ export function InteractiveDemo() {
       case "voyageurs":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Voyageurs</h3>
+            <SectionActionHeader title="Voyageurs" actionLabel="+ Nouveau voyageur" onAction={openSignup} />
             {[
               { name: "Thomas Martin", email: "thomas.m@email.com", trips: "2 séjours" },
               { name: "Emma Rousseau", email: "emma.r@email.com", trips: "1 séjour" },
@@ -523,7 +589,7 @@ export function InteractiveDemo() {
       case "edl":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">États des lieux</h3>
+            <SectionActionHeader title="États des lieux" actionLabel="+ Nouvel état des lieux" onAction={openSignup} />
             <CardShell>
               <p className="font-semibold text-white">Entrée — Thomas Martin — 12/07/2026</p>
               <div className="mt-2">
@@ -630,6 +696,7 @@ export function InteractiveDemo() {
               {mode === "classique" ? (
                 <>
                   <DemoNavLink active={classiqueSection === "dashboard"} onClick={() => setClassiqueSection("dashboard")} Icon={LayoutDashboard} label="Dashboard" />
+                  <DemoNavLink active={classiqueSection === "logements"} onClick={() => setClassiqueSection("logements")} Icon={Building2} label="Logements" />
                   <DemoNavLink active={classiqueSection === "locataires"} onClick={() => setClassiqueSection("locataires")} Icon={Users} label="Locataires" />
                   <DemoNavLink active={classiqueSection === "dossiers"} onClick={() => setClassiqueSection("dossiers")} Icon={FolderOpen} label="Dossiers" />
                   <DemoNavLink active={classiqueSection === "quittances"} onClick={() => setClassiqueSection("quittances")} Icon={FileText} label="Quittances" />
@@ -654,11 +721,11 @@ export function InteractiveDemo() {
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                   style={{ background: PC.gradientPrimary }}
                 >
-                  LL
+                  SP
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-white">Léo Leignel</p>
-                  <p className="truncate text-[10px] text-white/50">gestionlocative@…</p>
+                  <p className="truncate text-xs font-medium text-white">Sophie Proprietaire</p>
+                  <p className="truncate text-[10px] text-white/50">sophie.p@exemple.fr</p>
                 </div>
               </div>
             </div>
