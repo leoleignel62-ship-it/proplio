@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
-import { LogoFull } from "@/components/locavio-icons";
+import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
+import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { PC } from "@/lib/locavio-colors";
 
 const LandingBelowFold = dynamic(() => import("@/components/landing/landing-below-fold"), {
@@ -64,18 +65,6 @@ const ORGANIZATION_JSON_LD = {
   },
 } as const;
 
-function AnimatedBackground() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.08),transparent_55%)]" />
-      <div className="absolute left-[6%] top-[8%] h-[640px] w-[640px] rounded-full bg-[#7c3aed] opacity-[0.25] blur-[120px] animate-[locavio-orbit-1_35s_linear_infinite]" />
-      <div className="absolute right-[6%] top-[10%] h-[800px] w-[800px] rounded-full bg-[#4f46e5] opacity-[0.25] blur-[130px] animate-[locavio-orbit-2_35s_linear_infinite]" />
-      <div className="absolute left-[18%] bottom-[4%] h-[560px] w-[560px] rounded-full bg-[#a78bfa] opacity-[0.25] blur-[110px] animate-[locavio-orbit-3_35s_linear_infinite]" />
-      <div className="absolute right-[14%] bottom-[8%] h-[500px] w-[500px] rounded-full bg-[#6366f1] opacity-[0.25] blur-[105px] animate-[locavio-orbit-4_35s_linear_infinite]" />
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -125,47 +114,8 @@ export default function LandingPage() {
           transition: "width 120ms linear",
         }}
       />
-      <AnimatedBackground />
-      <header
-        className="sticky top-0 z-[60] border-b"
-        style={{
-          borderColor: PC.border,
-          backgroundColor: isScrolled ? "rgba(6,6,15,0.92)" : "rgba(6,6,15,0.8)",
-          WebkitBackdropFilter: "blur(20px)",
-          backdropFilter: "blur(20px)",
-          transition: "background-color 200ms ease-out",
-        }}
-      >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/landing" className="flex items-center gap-2.5 font-bold tracking-tight" style={{ color: PC.text }}>
-            <LogoFull className="h-9 w-auto" />
-          </Link>
-          <Link
-            href="/qui-sommes-nous"
-            className="group relative text-sm font-medium transition duration-200 ease-out hover:text-white"
-            style={{ color: "#c4b5fd", textDecoration: "none", letterSpacing: "0.02em", fontWeight: 500 }}
-          >
-            Qui sommes-nous ?
-            <span
-              aria-hidden
-              className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 transition-transform duration-200 ease-out group-hover:scale-x-100"
-              style={{ backgroundColor: "#c4b5fd" }}
-            />
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out"
-            style={{
-              border: `1px solid rgba(124, 58, 237, 0.45)`,
-              color: PC.secondary,
-              backgroundColor: "transparent",
-              boxShadow: "0 0 0 1px rgba(124,58,237,0.2)",
-            }}
-          >
-            Se connecter
-          </Link>
-        </div>
-      </header>
+      <LandingAnimatedBackground />
+      <LandingNavbar isScrolled={isScrolled} />
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
@@ -231,7 +181,7 @@ export default function LandingPage() {
                 Commencer gratuitement
               </Link>
               <Link
-                href="#tarifs"
+                href="/tarifs"
                 className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
                 style={{
                   border: `1px solid ${PC.borderStrong}`,

@@ -22,6 +22,11 @@ const publicPages = [
   "/politique-de-confidentialite",
   "/qui-sommes-nous",
   "/candidature",
+  "/fonctionnalites",
+  "/pour-qui",
+  "/tarifs",
+  "/securite",
+  "/blog",
 ];
 
 const shellStyle = { backgroundColor: PC.bg, backgroundImage: PC.gradientBg, color: PC.text } as const;

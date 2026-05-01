@@ -14,6 +14,11 @@ const PUBLIC_PATHS = [
   "/politique-de-confidentialite",
   "/qui-sommes-nous",
   "/candidature",
+  "/fonctionnalites",
+  "/pour-qui",
+  "/tarifs",
+  "/securite",
+  "/blog",
 ] as const;
 const PUBLIC_API_PATHS = ["/api/stripe/webhook", "/api/irl", "/api/landing/send-exemple"] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
