@@ -209,6 +209,11 @@ export default function ReservationsSaisonnierPage() {
     email: string;
   } | null>(null);
   const [sendSubmitting, setSendSubmitting] = useState(false);
+  const [linkVoyageurReservationId, setLinkVoyageurReservationId] = useState<string | null>(null);
+  const [linkVoyageurTab, setLinkVoyageurTab] = useState<"existant" | "nouveau">("existant");
+  const [linkVoyageurPickId, setLinkVoyageurPickId] = useState("");
+  const [linkVoyageurNew, setLinkVoyageurNew] = useState({ prenom: "", nom: "", email: "", telephone: "" });
+  const [linkVoyageurSaving, setLinkVoyageurSaving] = useState(false);
 
   const [form, setForm] = useState({
     logement_id: "",
@@ -773,6 +778,91 @@ export default function ReservationsSaisonnierPage() {
     }
   }
 
+  function openLinkVoyageurModal(reservationId: string) {
+    setError("");
+    setLinkVoyageurReservationId(reservationId);
+    setLinkVoyageurTab("existant");
+    setLinkVoyageurPickId(voyageurs[0]?.id ?? "");
+    setLinkVoyageurNew({ prenom: "", nom: "", email: "", telephone: "" });
+  }
+
+  function closeLinkVoyageurModal() {
+    setLinkVoyageurReservationId(null);
+    setLinkVoyageurSaving(false);
+  }
+
+  async function submitLinkVoyageurExisting() {
+    if (!linkVoyageurReservationId || !linkVoyageurPickId.trim()) {
+      setError("Sélectionnez un voyageur.");
+      return;
+    }
+    setLinkVoyageurSaving(true);
+    setError("");
+    const { proprietaireId, error: e } = await getCurrentProprietaireId();
+    if (e || !proprietaireId) {
+      setLinkVoyageurSaving(false);
+      return;
+    }
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ voyageur_id: linkVoyageurPickId.trim() })
+      .eq("id", linkVoyageurReservationId)
+      .eq("proprietaire_id", proprietaireId);
+    setLinkVoyageurSaving(false);
+    if (uErr) {
+      setError(formatSubmitError(uErr));
+      return;
+    }
+    closeLinkVoyageurModal();
+    void load();
+    uxToast.success("Voyageur lié à la réservation.");
+  }
+
+  async function onSubmitLinkVoyageurNew(e: FormEvent) {
+    e.preventDefault();
+    if (!linkVoyageurReservationId) return;
+    const prenom = linkVoyageurNew.prenom.trim();
+    const nom = linkVoyageurNew.nom.trim();
+    if (!prenom || !nom) {
+      setError("Prénom et nom obligatoires.");
+      return;
+    }
+    setLinkVoyageurSaving(true);
+    setError("");
+    const { proprietaireId, error: ownerErr } = await getCurrentProprietaireId();
+    if (ownerErr || !proprietaireId) {
+      setLinkVoyageurSaving(false);
+      return;
+    }
+    const payload = {
+      proprietaire_id: proprietaireId,
+      prenom,
+      nom,
+      email: linkVoyageurNew.email.trim() || null,
+      telephone: linkVoyageurNew.telephone.trim() || null,
+    };
+    const { data: ins, error: iErr } = await supabase.from("voyageurs").insert(payload).select("id").single();
+    if (iErr || !ins) {
+      setLinkVoyageurSaving(false);
+      setError(formatSubmitError(iErr));
+      return;
+    }
+    const newId = String((ins as { id: string }).id);
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ voyageur_id: newId })
+      .eq("id", linkVoyageurReservationId)
+      .eq("proprietaire_id", proprietaireId);
+    setLinkVoyageurSaving(false);
+    if (uErr) {
+      setError(formatSubmitError(uErr));
+      return;
+    }
+    closeLinkVoyageurModal();
+    void load();
+    uxToast.success("Voyageur créé et lié à la réservation.");
+  }
+
   async function markMenageDone(reservationId: string, logementId: string) {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
     if (e || !proprietaireId) return;
@@ -968,13 +1058,14 @@ export default function ReservationsSaisonnierPage() {
               <th className="px-3 py-2">Montant</th>
               <th className="px-3 py-2">Statut</th>
               <th className="px-3 py-2">Source</th>
+              <th className="px-3 py-2 text-left">Contrat</th>
               <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-10 text-center text-sm" style={{ color: PC.muted }}>
+                <td colSpan={10} className="px-3 py-10 text-center text-sm" style={{ color: PC.muted }}>
                   {rows.length === 0
                     ? "Aucune réservation."
                     : "Aucune réservation ne correspond à vos filtres."}
@@ -1111,6 +1202,33 @@ export default function ReservationsSaisonnierPage() {
                     row.source
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  {row.source === "blocage" ? (
+                    <span style={{ color: PC.muted }}>—</span>
+                  ) : row.contrat_envoye ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: PC.successBg10,
+                        color: PC.success,
+                        border: `1px solid ${PC.borderSuccess40}`,
+                      }}
+                    >
+                      ✓ Envoyé
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: "rgba(234,88,12,0.1)",
+                        color: "#fb923c",
+                        border: "1px solid rgba(234,88,12,0.3)",
+                      }}
+                    >
+                      Non envoyé
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 align-top">
                   {(() => {
                     const isOta = row.source === "airbnb" || row.source === "booking";
@@ -1122,6 +1240,11 @@ export default function ReservationsSaisonnierPage() {
                         <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
                           Détail
                         </BtnSecondary>
+                        {isOta && (!row.voyageurs || !String(row.voyageurs.email ?? "").trim()) ? (
+                          <ResaActionPill variant="violetOutline" onClick={() => openLinkVoyageurModal(row.id)}>
+                            👤 Lier un voyageur
+                          </ResaActionPill>
+                        ) : null}
                         <div className="flex flex-col gap-1">
                           {canDirectActions && row.statut === "en_attente" ? (
                             <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
@@ -1523,6 +1646,141 @@ export default function ReservationsSaisonnierPage() {
                 </>
               );
             })()}
+          </div>
+        </div>
+      ) : null}
+
+      {linkVoyageurReservationId ? (
+        <div
+          className="fixed inset-0 z-[55] flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4"
+          onClick={() => closeLinkVoyageurModal()}
+        >
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="link-voyageur-title"
+            className="m-auto flex h-full max-h-[100dvh] w-full max-w-lg flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:rounded-2xl"
+            style={{ ...panelCard, backgroundColor: PC.card }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 sm:px-6"
+              style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))" }}
+            >
+              <h2 id="link-voyageur-title" className="text-lg font-semibold" style={{ color: PC.text }}>
+                Lier un voyageur à cette réservation
+              </h2>
+              <div
+                className="mt-4 inline-flex rounded-lg p-0.5"
+                style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+              >
+                <button
+                  type="button"
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold transition"
+                  style={{
+                    backgroundColor: linkVoyageurTab === "existant" ? PC.primary : "transparent",
+                    color: linkVoyageurTab === "existant" ? "#fff" : PC.muted,
+                  }}
+                  onClick={() => {
+                    setLinkVoyageurTab("existant");
+                    setLinkVoyageurPickId((id) => id || voyageurs[0]?.id || "");
+                  }}
+                >
+                  Voyageur existant
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold transition"
+                  style={{
+                    backgroundColor: linkVoyageurTab === "nouveau" ? PC.primary : "transparent",
+                    color: linkVoyageurTab === "nouveau" ? "#fff" : PC.muted,
+                  }}
+                  onClick={() => setLinkVoyageurTab("nouveau")}
+                >
+                  Nouveau voyageur
+                </button>
+              </div>
+
+              {linkVoyageurTab === "existant" ? (
+                <div className="mt-4 space-y-3">
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Voyageur
+                    <select
+                      style={{ ...fieldSelectStyle, colorScheme: "dark" }}
+                      className="w-full"
+                      value={linkVoyageurPickId}
+                      onChange={(e) => setLinkVoyageurPickId(e.target.value)}
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {voyageurs.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.prenom} {v.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <BtnPrimary
+                    type="button"
+                    className="w-full"
+                    loading={linkVoyageurSaving}
+                    onClick={() => void submitLinkVoyageurExisting()}
+                  >
+                    Lier ce voyageur
+                  </BtnPrimary>
+                </div>
+              ) : (
+                <form onSubmit={onSubmitLinkVoyageurNew} className="mt-4 space-y-3">
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Prénom
+                    <input
+                      required
+                      style={fieldInputStyle}
+                      className="w-full"
+                      value={linkVoyageurNew.prenom}
+                      onChange={(e) => setLinkVoyageurNew((f) => ({ ...f, prenom: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Nom
+                    <input
+                      required
+                      style={fieldInputStyle}
+                      className="w-full"
+                      value={linkVoyageurNew.nom}
+                      onChange={(e) => setLinkVoyageurNew((f) => ({ ...f, nom: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Email (pour envoi contrat)
+                    <input
+                      type="email"
+                      style={fieldInputStyle}
+                      className="w-full"
+                      value={linkVoyageurNew.email}
+                      onChange={(e) => setLinkVoyageurNew((f) => ({ ...f, email: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Téléphone
+                    <input
+                      style={fieldInputStyle}
+                      className="w-full"
+                      value={linkVoyageurNew.telephone}
+                      onChange={(e) => setLinkVoyageurNew((f) => ({ ...f, telephone: e.target.value }))}
+                    />
+                  </label>
+                  <BtnPrimary type="submit" className="w-full" loading={linkVoyageurSaving}>
+                    Enregistrer et lier
+                  </BtnPrimary>
+                </form>
+              )}
+
+              <div className="mt-4 flex justify-end pt-4" style={{ borderTop: `1px solid ${PC.border}` }}>
+                <BtnSecondary type="button" onClick={() => closeLinkVoyageurModal()}>
+                  Annuler
+                </BtnSecondary>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

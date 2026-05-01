@@ -68,7 +68,6 @@ const navigationModeClassique = [
 const navigationModeSaisonnier = [
   { href: "/saisonnier/dashboard", label: "Dashboard", icon: IconChart },
   { href: "/saisonnier/voyageurs", label: "Voyageurs", icon: IconUsers },
-  { href: "/dossiers", label: "Dossiers", icon: IconFolder },
   { href: "/saisonnier/reservations", label: "Réservations", icon: IconCalendar },
   { href: "/saisonnier/contrats", label: "Contrats de séjour", icon: IconContract },
   { href: "/saisonnier/etats-des-lieux", label: "États des lieux", icon: IconClipboard },
