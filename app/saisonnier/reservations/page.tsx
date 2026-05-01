@@ -1235,6 +1235,9 @@ export default function ReservationsSaisonnierPage() {
                     const isBlocage = row.source === "blocage";
                     const canDirectActions = !isOta && !isBlocage;
                     const canDeletePermanently = row.source === "direct" || row.source === "autre";
+                    const canSendContrat =
+                      (row.source === "direct" || row.source === "autre") ||
+                      ((row.source === "airbnb" || row.source === "booking") && !!row.voyageurs?.email);
                     return (
                       <div className="flex max-w-[220px] flex-col gap-1.5">
                         <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
@@ -1277,7 +1280,7 @@ export default function ReservationsSaisonnierPage() {
                               Supprimer
                             </BtnDanger>
                           ) : null}
-                          {canDirectActions && row.voyageurs ? (
+                          {canSendContrat && !!String(row.voyageurs?.email ?? "").trim() ? (
                             <div className="flex gap-1">
                               <BtnPdf size="small" className="!flex-1 justify-center" onClick={() => requestSendConfirm("contrat", row)}>
                                 Envoyer contrat
