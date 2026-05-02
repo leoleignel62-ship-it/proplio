@@ -166,10 +166,13 @@ export default function LandingBelowFold() {
   }, [statsData]);
 
   const loyerTotal = logements.reduce((sum, l) => sum + l.loyer, 0);
-  const coutAgence = loyerTotal * 12 * 0.08;
+  const coutAgenceMin = loyerTotal * 12 * 0.06;
+  const coutAgenceMax = loyerTotal * 12 * 0.1;
   const coutLocavio = 99;
-  const economie = coutAgence - coutLocavio;
-  const xFois = Math.round(coutAgence / coutLocavio);
+  const economieMin = coutAgenceMin - coutLocavio;
+  const economieMax = coutAgenceMax - coutLocavio;
+  const xFoisMin = Math.round(coutAgenceMin / coutLocavio);
+  const xFoisMax = Math.round(coutAgenceMax / coutLocavio);
 
   return (
     <>
@@ -329,13 +332,17 @@ export default function LandingBelowFold() {
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div
-              className="rounded-xl border px-5 py-6"
+              className="rounded-xl border px-5 py-6 text-center"
               style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }}
             >
               <p className="text-sm font-medium text-red-400">Agence traditionnelle</p>
-              <p className="text-xs text-red-400/60">8% de vos loyers/an</p>
-              <p className="text-3xl font-bold text-red-400">{coutAgence.toLocaleString("fr-FR")} €</p>
-              <p className="text-sm text-white/40">par an</p>
+              <p className="text-xs text-red-400/60">entre 6% et 10% de vos loyers/an</p>
+              <div className="mt-2 flex items-baseline justify-center gap-1">
+                <span className="text-2xl font-bold text-red-400">{coutAgenceMin.toLocaleString("fr-FR")}</span>
+                <span className="text-sm text-red-400/60">à</span>
+                <span className="text-3xl font-bold text-red-400">{coutAgenceMax.toLocaleString("fr-FR")} €</span>
+              </div>
+              <p className="mt-1 text-sm text-white/40">par an</p>
             </div>
             <div
               className="rounded-xl border px-5 py-6"
@@ -347,15 +354,19 @@ export default function LandingBelowFold() {
               <p className="text-sm text-white/40">par an</p>
             </div>
             <div
-              className="rounded-xl border px-5 py-6"
+              className="rounded-xl border px-5 py-6 text-center"
               style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}
             >
               <p className="text-sm font-medium text-emerald-400">Votre économie</p>
               <p className="text-xs font-medium text-emerald-400/60">
-                soit {xFois}x moins cher que l&apos;agence
+                {xFoisMin}x à {xFoisMax}x moins cher que l&apos;agence
               </p>
-              <p className="text-4xl font-bold text-emerald-400">{economie.toLocaleString("fr-FR")} €</p>
-              <p className="text-sm text-white/40">par an</p>
+              <div className="mt-2 flex items-baseline justify-center gap-1">
+                <span className="text-2xl font-bold text-emerald-400">{economieMin.toLocaleString("fr-FR")}</span>
+                <span className="text-sm text-emerald-400/60">à</span>
+                <span className="text-4xl font-bold text-emerald-400">{economieMax.toLocaleString("fr-FR")} €</span>
+              </div>
+              <p className="mt-1 text-sm text-white/40">par an</p>
               <span className="mt-1 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-400">
                 ✓ Garanti
               </span>
@@ -363,11 +374,9 @@ export default function LandingBelowFold() {
           </div>
 
           <p className="mt-6 text-center text-sm text-white/70">
-            Avec un loyer moyen de{" "}
-            <span className="font-semibold text-white">{loyerTotal.toLocaleString("fr-FR")} €/mois</span>, une agence vous
-            coûte <span className="font-semibold text-red-400">{coutAgence.toLocaleString("fr-FR")} €</span> par an. Locavio
-            vous revient à <span className="font-semibold text-violet-400">99 €</span> — soit{" "}
-            <span className="font-bold text-emerald-400">{xFois}x moins cher</span>.
+            Avec un loyer total de {loyerTotal.toLocaleString("fr-FR")} €/mois, une agence vous coûte entre{" "}
+            {coutAgenceMin.toLocaleString("fr-FR")} € et {coutAgenceMax.toLocaleString("fr-FR")} € par an (6 à 10% de vos
+            loyers). Locavio vous revient à 99 € — soit jusqu&apos;à {xFoisMax}x moins cher.
           </p>
 
           <div className="mt-8 text-center">
@@ -375,7 +384,7 @@ export default function LandingBelowFold() {
               href="/register"
               className="inline-flex rounded-xl bg-violet-600 px-8 py-3.5 text-lg font-semibold text-white transition hover:bg-violet-500"
             >
-              Commencer gratuitement et économiser {economie.toLocaleString("fr-FR")} € →
+              Commencer gratuitement et économiser jusqu&apos;à {economieMax.toLocaleString("fr-FR")} € →
             </Link>
             <p className="mt-3 text-center text-sm text-white/40">Gratuit pour commencer · Sans carte bancaire</p>
           </div>
