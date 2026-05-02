@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LANDING_PRICING_META, PLAN_ORDER } from "@/lib/landing-pricing-meta";
 import { PLAN_DISPLAY_LABELS, planDisplayRows } from "@/lib/plan-display-copy";
 import { PC } from "@/lib/locavio-colors";
@@ -18,12 +18,24 @@ const solidCard: CSSProperties = {
   boxShadow: PC.cardShadow,
 };
 
+export function PricingLaunchBanner() {
+  return (
+    <div className="mx-auto mb-8 max-w-xl rounded-xl border border-violet-500/30 bg-violet-500/8 px-5 py-3.5 text-center backdrop-blur-sm">
+      <p className="text-sm font-medium text-violet-300">
+        🎉 Tarifs de lancement — Prix garantis à vie pour les premiers inscrits
+      </p>
+    </div>
+  );
+}
+
 export type LandingPricingSectionProps = {
   sectionId?: string;
   showIntro?: boolean;
   title?: string;
   subtitle?: string;
   className?: string;
+  /** Bandeau affiché après le toggle mensuel/annuel ; par défaut {@link PricingLaunchBanner}. */
+  launchBanner?: ReactNode;
 };
 
 export function LandingPricingSection({
@@ -32,6 +44,7 @@ export function LandingPricingSection({
   title = "Des tarifs pensés pour les propriétaires",
   subtitle = "Commencez gratuitement, évoluez selon vos besoins.",
   className = "",
+  launchBanner,
 }: LandingPricingSectionProps) {
   const [billing, setBilling] = useState<BillingMode>("annuel");
   const [pricingVisible, setPricingVisible] = useState<Record<number, boolean>>({});
@@ -145,6 +158,8 @@ export function LandingPricingSection({
           </>
         ) : null}
       </div>
+
+      {launchBanner ?? <PricingLaunchBanner />}
 
       <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {pricingPlans.map((plan, index) => {

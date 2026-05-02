@@ -2,7 +2,7 @@
 
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
-import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
+import { LandingPricingSection, PricingLaunchBanner } from "@/components/landing/landing-pricing-section";
 
 export function TarifsClient() {
   return (
@@ -14,7 +14,12 @@ export function TarifsClient() {
         </header>
 
         <div className="my-12 mb-0">
-          <LandingPricingSection sectionId="tarifs" showIntro={false} className="!mt-0" />
+          <LandingPricingSection
+            sectionId="tarifs"
+            showIntro={false}
+            className="!mt-0"
+            launchBanner={<PricingLaunchBanner />}
+          />
         </div>
 
         <LandingFooter />

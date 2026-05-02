@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { InteractiveDemo } from "@/components/landing/interactive-demo";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
+import { fieldInputStyle } from "@/lib/locavio-field-styles";
 import { PC } from "@/lib/locavio-colors";
 
 const ease = "200ms ease-out";
@@ -72,6 +73,8 @@ const securityBadges = [
 ];
 
 export default function LandingBelowFold() {
+  const [loyer, setLoyer] = useState(850);
+  const [nbLogements, setNbLogements] = useState(1);
   const [statsAnimatedValues, setStatsAnimatedValues] = useState<number[]>([]);
   const statsRef = useRef<HTMLElement | null>(null);
   const statsAnimatedOnceRef = useRef(false);
@@ -162,6 +165,11 @@ export default function LandingBelowFold() {
     return () => observer.disconnect();
   }, [statsData]);
 
+  const tauxAgence = 0.08;
+  const coutAgence = loyer * 12 * nbLogements * tauxAgence;
+  const coutLocavio = 99;
+  const economie = coutAgence - coutLocavio;
+
   return (
     <>
       <section
@@ -244,6 +252,110 @@ export default function LandingBelowFold() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-white/5 px-8 py-10 backdrop-blur-sm">
+          <h2 className="text-center text-3xl font-bold text-white">Combien allez-vous économiser ?</h2>
+          <p className="mt-3 mb-10 text-center text-white/60">
+            Entrez le loyer de votre logement et découvrez votre économie annuelle réelle.
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-white/80" htmlFor="landing-calc-loyer">
+                Loyer mensuel (€)
+              </label>
+              <input
+                id="landing-calc-loyer"
+                type="number"
+                min={300}
+                max={5000}
+                step={50}
+                value={loyer}
+                onChange={(e) => setLoyer(Number(e.target.value))}
+                className="w-full"
+                style={fieldInputStyle}
+              />
+              <input
+                type="range"
+                min={300}
+                max={5000}
+                step={50}
+                value={loyer}
+                onChange={(e) => setLoyer(Number(e.target.value))}
+                className="accent-violet-600 mt-2 w-full"
+                aria-label="Loyer mensuel"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-white/80" htmlFor="landing-calc-nb">
+                Nombre de logements
+              </label>
+              <input
+                id="landing-calc-nb"
+                type="number"
+                min={1}
+                max={20}
+                step={1}
+                value={nbLogements}
+                onChange={(e) => setNbLogements(Number(e.target.value))}
+                className="w-full"
+                style={fieldInputStyle}
+              />
+              <input
+                type="range"
+                min={1}
+                max={20}
+                step={1}
+                value={nbLogements}
+                onChange={(e) => setNbLogements(Number(e.target.value))}
+                className="accent-violet-600 mt-2 w-full"
+                aria-label="Nombre de logements"
+              />
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div
+              className="rounded-xl border px-5 py-6"
+              style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }}
+            >
+              <p className="text-sm font-medium text-red-400">Agence traditionnelle (8%/an)</p>
+              <p className="text-3xl font-bold text-red-400">{coutAgence.toLocaleString("fr-FR")} €</p>
+              <p className="text-sm text-white/40">par an</p>
+            </div>
+            <div
+              className="rounded-xl border px-5 py-6"
+              style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(124,58,237,0.2)" }}
+            >
+              <p className="text-sm font-medium text-violet-400">Locavio Pro</p>
+              <p className="text-3xl font-bold text-violet-400">{coutLocavio} €</p>
+              <p className="text-sm text-white/40">par an</p>
+            </div>
+            <div
+              className="rounded-xl border px-5 py-6"
+              style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}
+            >
+              <p className="text-sm font-medium text-emerald-400">Votre économie</p>
+              <p className="text-4xl font-bold text-emerald-400">{economie.toLocaleString("fr-FR")} €</p>
+              <p className="text-sm text-white/40">par an</p>
+              <span className="mt-1 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-400">
+                ✓ Garanti
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/register"
+              className="inline-flex rounded-xl bg-violet-600 px-8 py-3.5 text-lg font-semibold text-white transition hover:bg-violet-500"
+            >
+              Commencer gratuitement et économiser {economie.toLocaleString("fr-FR")} € →
+            </Link>
+            <p className="mt-3 text-center text-sm text-white/40">Gratuit pour commencer · Sans carte bancaire</p>
+          </div>
         </div>
       </section>
 
