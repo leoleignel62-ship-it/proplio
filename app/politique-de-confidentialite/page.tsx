@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 export default function PolitiqueConfidentialitePage() {
   return (
     <LegalPageShell title="Politique de confidentialité">
-      <p className="text-sm" style={{ color: "#a1a1aa" }}>
-        Dernière mise à jour : avril 2026.
+      <p className="text-sm" style={{ color: "#9ca3af" }}>
+        Dernière mise à jour : mai 2026.
       </p>
 
       <section className="space-y-3">
@@ -18,9 +18,13 @@ export default function PolitiqueConfidentialitePage() {
           1. Responsable du traitement
         </h2>
         <p>
-          [NOM SOCIÉTÉ] — [ADRESSE SIÈGE]
+          Axio Tech — Micro-entreprise
           <br />
-          Email : contact@[DOMAINE].fr.
+          Siège : France
+          <br />
+          SIRET : 92027696100025
+          <br />
+          Email : contact@locavio.fr
         </p>
       </section>
 
@@ -28,12 +32,12 @@ export default function PolitiqueConfidentialitePage() {
         <h2 className="text-xl font-bold" style={{ color: "#7c3aed" }}>
           2. Données collectées
         </h2>
-        <p>Dans le cadre de l&apos;utilisation de [NOM APPLICATION], nous collectons les données suivantes :</p>
+        <p>Dans le cadre de l&apos;utilisation de Locavio, nous collectons les données suivantes :</p>
         <ul className="list-disc space-y-1 pl-6">
           <li>Données de compte : email, nom, prénom, téléphone.</li>
           <li>Données de gestion locative : informations sur vos logements, locataires, baux, quittances.</li>
           <li>
-            Données de paiement : traitées directement par Stripe, [NOM SOCIÉTÉ] ne stocke aucune donnée bancaire.
+            Données de paiement : traitées directement par Stripe, Axio Tech ne stocke aucune donnée bancaire.
           </li>
           <li>Données de connexion : logs d&apos;accès, adresse IP.</li>
         </ul>
@@ -45,7 +49,7 @@ export default function PolitiqueConfidentialitePage() {
         </h2>
         <p>Vos données sont utilisées pour :</p>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Fournir et améliorer le service [NOM APPLICATION].</li>
+          <li>Fournir et améliorer le service Locavio.</li>
           <li>Gérer votre abonnement et la facturation.</li>
           <li>Vous envoyer les communications liées au service (quittances, baux, notifications).</li>
           <li>Assurer la sécurité de la plateforme.</li>
@@ -102,7 +106,7 @@ export default function PolitiqueConfidentialitePage() {
           <li>Droit d&apos;opposition au traitement.</li>
         </ul>
         <p>
-          Pour exercer ces droits : contact@[DOMAINE].fr.
+          Pour exercer ces droits : contact@locavio.fr.
           <br />
           Vous pouvez également introduire une réclamation auprès de la CNIL (www.cnil.fr).
         </p>
@@ -113,7 +117,7 @@ export default function PolitiqueConfidentialitePage() {
           8. Cookies
         </h2>
         <p>
-          [NOM APPLICATION] utilise uniquement des cookies techniques nécessaires au fonctionnement du service (session,
+          Locavio utilise uniquement des cookies techniques nécessaires au fonctionnement du service (session,
           authentification). Aucun cookie publicitaire ou de tracking tiers n&apos;est utilisé.
         </p>
       </section>

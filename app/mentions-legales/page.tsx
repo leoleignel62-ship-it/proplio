@@ -14,17 +14,22 @@ export default function MentionsLegalesPage() {
           Éditeur du site
         </h2>
         <p>
-          <strong>Raison sociale :</strong> [NOM SOCIÉTÉ]
+          <strong>Raison sociale :</strong> Axio Tech
           <br />
-          <strong>Forme juridique :</strong> [FORME JURIDIQUE]
+          <strong>Forme juridique :</strong> Micro-entreprise
           <br />
-          <strong>SIRET :</strong> [SIRET]
+          <strong>SIREN :</strong> 920276961
           <br />
-          <strong>Adresse :</strong> [ADRESSE SIÈGE]
+          <strong>SIRET :</strong> 92027696100025
           <br />
-          <strong>Email :</strong> contact@[DOMAINE].fr
+          <strong>Directeur de la publication :</strong> Léo Leignel
           <br />
-          <strong>Directeur de la publication :</strong> [NOM RESPONSABLE]
+          <strong>Email :</strong> contact@locavio.fr
+          <br />
+          <strong>Site web :</strong>{" "}
+          <a href="https://locavio.fr" target="_blank" rel="noreferrer" className="underline">
+            https://locavio.fr
+          </a>
         </p>
       </section>
 
@@ -50,9 +55,9 @@ export default function MentionsLegalesPage() {
           Propriété intellectuelle
         </h2>
         <p>
-          L&apos;ensemble du contenu de ce site (textes, images, logos, icônes) est la propriété exclusive de [NOM
-          SOCIÉTÉ] et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle.
-          Toute reproduction, même partielle, est strictement interdite sans autorisation préalable.
+          L&apos;ensemble du contenu de ce site (textes, images, logos, icônes) est la propriété exclusive de Axio Tech
+          et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle. Toute
+          reproduction, même partielle, est strictement interdite sans autorisation préalable.
         </p>
       </section>
 
@@ -61,10 +66,10 @@ export default function MentionsLegalesPage() {
           Limitation de responsabilité
         </h2>
         <p>
-          [NOM SOCIÉTÉ] s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des informations diffusées sur
-          ce site. Cependant, [NOM SOCIÉTÉ] ne peut garantir l&apos;exactitude, la précision ou l&apos;exhaustivité des
-          informations mises à disposition. [NOM SOCIÉTÉ] décline toute responsabilité pour toute imprécision,
-          inexactitude ou omission portant sur des informations disponibles sur ce site.
+          Axio Tech s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des informations diffusées sur ce
+          site. Cependant, Axio Tech ne peut garantir l&apos;exactitude, la précision ou l&apos;exhaustivité des
+          informations mises à disposition. Axio Tech décline toute responsabilité pour toute imprécision, inexactitude
+          ou omission portant sur des informations disponibles sur ce site.
         </p>
       </section>
     </LegalPageShell>
