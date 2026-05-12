@@ -281,7 +281,7 @@ export default function CandidatureTokenPage() {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="text-center" style={{ color: PC.muted }}>
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-violet-500" />
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-violet-500" />
           <p className="text-sm">Chargement...</p>
         </div>
       </div>
@@ -546,7 +546,7 @@ export default function CandidatureTokenPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Documents justificatifs</h2>
             <div
-              className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm"
+              className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm"
               style={{ color: PC.muted }}
             >
               <p className="mb-2 font-medium" style={{ color: PC.text }}>

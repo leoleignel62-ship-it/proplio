@@ -17,11 +17,11 @@ function formatPublished(iso: string): string {
 
 function categoryBadgeClass(cat: ArticleCategory): string {
   const map: Record<ArticleCategory, string> = {
-    "Documents & modèles": "border-violet-500/40 bg-violet-500/15 text-violet-300",
-    "Calculs & chiffres": "border-emerald-500/40 bg-emerald-500/15 text-emerald-400",
-    Saisonnier: "border-sky-500/40 bg-sky-500/15 text-sky-300",
-    "Guide pratique": "border-amber-500/40 bg-amber-500/15 text-amber-300",
-    Comparatifs: "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-300",
+    "Documents & modèles": "border-violet-500/40 bg-violet-500/15 text-violet-700",
+    "Calculs & chiffres": "border-emerald-500/40 bg-emerald-500/15 text-emerald-600",
+    Saisonnier: "border-sky-500/40 bg-sky-500/15 text-sky-700",
+    "Guide pratique": "border-amber-500/40 bg-amber-500/15 text-amber-700",
+    Comparatifs: "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-700",
   };
   return map[cat];
 }
@@ -76,9 +76,9 @@ export default async function BlogArticlePage({ params }: Props) {
             >
               {article.category}
             </span>
-            <h1 className="mt-6 text-3xl font-bold tracking-tight text-white sm:text-4xl">{article.title}</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-white/60">{article.description}</p>
-            <p className="mt-4 text-sm text-white/40">
+            <h1 className="mt-6 text-3xl font-bold tracking-tight text-[#1a0533] sm:text-4xl">{article.title}</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-[#6b7280]">{article.description}</p>
+            <p className="mt-4 text-sm text-[#9ca3af]">
               {article.readTime} min de lecture · Publié le {dateLabel}
             </p>
           </header>
@@ -88,15 +88,15 @@ export default async function BlogArticlePage({ params }: Props) {
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-white/10 bg-white/5 px-8 py-8 text-center backdrop-blur-sm">
-            <h2 className="text-xl font-bold text-white">Prêt à simplifier votre gestion locative ?</h2>
+          <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-gray-200 bg-white px-8 py-8 text-center">
+            <h2 className="text-xl font-bold text-[#1a0533]">Prêt à simplifier votre gestion locative ?</h2>
             <Link
               href="/register"
               className="mt-6 inline-flex rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
             >
               Commencer gratuitement →
             </Link>
-            <p className="mt-4 text-sm text-white/55">Gratuit · Sans carte bancaire</p>
+            <p className="mt-4 text-sm text-[#6b7280]">Gratuit · Sans carte bancaire</p>
           </div>
         </article>
 

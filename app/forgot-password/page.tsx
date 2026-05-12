@@ -47,24 +47,27 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2" style={{ backgroundColor: "#0a0a0f", color: PC.text }}>
-      <aside className="relative hidden lg:flex lg:flex-col lg:justify-between lg:p-12" style={LEFT_BG}>
+    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2" style={{ backgroundColor: "#ffffff", color: PC.text }}>
+      <aside
+        className="relative hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12"
+        style={LEFT_BG}
+      >
         <div className="flex items-center">
           <LogoFull className="h-9 w-auto" />
         </div>
-        <div className="mx-auto max-w-md text-center">
-          <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em]">Gérez vos locations.</p>
-          <p className="mt-2 text-4xl font-extrabold leading-tight tracking-[-0.03em]">Sans perdre votre temps.</p>
+        <div className="mx-auto max-w-md text-center text-white">
+          <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em] text-white">Gérez vos locations.</p>
+          <p className="mt-2 text-4xl font-extrabold leading-tight tracking-[-0.03em] text-white">Sans perdre votre temps.</p>
         </div>
-        <ul className="space-y-2 text-sm" style={{ color: "#e9d5ff" }}>
+        <ul className="space-y-2 text-sm text-white/90">
           <li>✓ Gratuit pour commencer</li>
           <li>✓ Sans carte bancaire</li>
           <li>✓ Données sécurisées</li>
         </ul>
       </aside>
 
-      <section className="flex items-center justify-center px-4 py-10 sm:px-8" style={{ backgroundColor: "#0f0f1a" }}>
-        <div className="w-full max-w-md rounded-2xl p-8 locavio-glass-card" style={{ border: `1px solid ${PC.glassBorder}` }}>
+      <section className="flex items-center justify-center px-4 py-10 sm:px-8" style={{ backgroundColor: "#f9f8ff" }}>
+        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
             Mot de passe oublié
           </h1>
@@ -78,7 +81,8 @@ export default function ForgotPasswordPage() {
               <input
                 type="email"
                 required
-                style={fieldInputStyle}
+                className="placeholder:text-gray-400"
+                style={{ ...fieldInputStyle, backgroundColor: "#ffffff", border: "1px solid #e5e7eb", color: "#1a0533" }}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />

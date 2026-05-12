@@ -55,8 +55,8 @@ export function PourQuiClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <header className="marketing-fade-section space-y-6 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Locavio est fait pour vous</h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/60">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Locavio est fait pour vous</h1>
+          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
             Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
           </p>
         </header>
@@ -65,18 +65,18 @@ export function PourQuiClient() {
           {cards.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section flex flex-col rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm sm:p-8"
+              className="marketing-fade-section flex flex-col rounded-2xl border border-gray-200 bg-white p-5 sm:p-8"
             >
               <p className="text-3xl" aria-hidden>
                 {c.emoji}
               </p>
-              <h2 className="mt-4 text-xl font-bold text-white">{c.title}</h2>
-              <p className="mt-1 text-sm font-medium text-violet-300">{c.subtitle}</p>
-              <p className="mt-4 flex-1 text-sm leading-relaxed text-white/60">{c.description}</p>
-              <ul className="mt-6 space-y-2 text-sm text-white/80">
+              <h2 className="mt-4 text-xl font-bold text-[#1a0533]">{c.title}</h2>
+              <p className="mt-1 text-sm font-medium text-violet-700">{c.subtitle}</p>
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-[#6b7280]">{c.description}</p>
+              <ul className="mt-6 space-y-2 text-sm text-[#6b7280]">
                 {c.features.map((f) => (
                   <li key={f}>
-                    <span className="mr-2 text-violet-400">✓</span>
+                    <span className="mr-2 text-violet-600">✓</span>
                     {f}
                   </li>
                 ))}
@@ -91,9 +91,9 @@ export function PourQuiClient() {
           ))}
         </div>
 
-        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-8 text-center backdrop-blur-sm">
-          <h2 className="text-2xl font-bold text-white">Pas sûr de quel profil vous correspond ?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
+        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-gray-200 bg-white px-8 py-8 text-center">
+          <h2 className="text-2xl font-bold text-[#1a0533]">Pas sûr de quel profil vous correspond ?</h2>
+          <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
             Commencez gratuitement et explorez Locavio à votre rythme. Aucune carte bancaire requise.
           </p>
           <Link

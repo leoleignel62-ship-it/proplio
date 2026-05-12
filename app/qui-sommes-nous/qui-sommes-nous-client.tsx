@@ -8,10 +8,10 @@ export function QuiSommesNousClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <article className="marketing-fade-section my-12 mb-0 mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-10">
-          <h1 className="mb-8 text-4xl font-bold text-white">Qui sommes-nous ?</h1>
+        <article className="marketing-fade-section my-12 mb-0 mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 sm:p-10">
+          <h1 className="mb-8 text-4xl font-bold text-[#1a0533]">Qui sommes-nous ?</h1>
 
-          <div className="space-y-6 text-lg leading-relaxed text-white/70">
+          <div className="space-y-6 text-lg leading-relaxed text-[#6b7280]">
             <p>Tout a commencé par une conversation.</p>
 
             <p>
@@ -26,7 +26,7 @@ export function QuiSommesNousClient() {
               presque en passant :
             </p>
 
-            <blockquote className="border-l-4 border-violet-500 pl-4 text-violet-300 italic">
+            <blockquote className="border-l-4 border-violet-500 pl-4 text-violet-700 italic">
               &quot;Ce serait vraiment trop bien d&apos;avoir un truc qui automatise tout ça.&quot;
             </blockquote>
 
@@ -53,7 +53,7 @@ export function QuiSommesNousClient() {
             <p>On n&apos;en est qu&apos;au début. Et j&apos;ai hâte de la suite.</p>
           </div>
 
-          <p className="mt-8 text-right text-base font-semibold text-white">— Léo</p>
+          <p className="mt-8 text-right text-base font-semibold text-[#1a0533]">— Léo</p>
 
           <div className="mt-10 text-center">
             <Link

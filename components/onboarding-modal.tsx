@@ -84,8 +84,8 @@ export function OnboardingModal({
       <div
         className="relative w-full max-w-[560px] overflow-hidden rounded-2xl p-6 shadow-2xl sm:p-7"
         style={{
-          backgroundColor: "#0a0a0f",
-          border: "1px solid rgba(124,58,237,0.3)",
+          backgroundColor: "#ffffff",
+          border: "1px solid rgba(124,58,237,0.2)",
         }}
       >
         <header>
@@ -97,7 +97,7 @@ export function OnboardingModal({
           </p>
         </header>
 
-        <ul className="mt-5 space-y-2.5 text-sm" style={{ color: "#d8d8e2" }}>
+        <ul className="mt-5 space-y-2.5 text-sm text-[#6b7280]">
           {paidWelcome.bullets.map((line) => (
             <li key={line}>{line}</li>
           ))}

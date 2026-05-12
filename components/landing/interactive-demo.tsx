@@ -15,8 +15,9 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { LogoFull } from "@/components/locavio-icons";
 import { PC } from "@/lib/locavio-colors";
+
+const DEMO_LOGO_SRC = "/logos/lockup-horizontal-clair.svg";
 
 type DemoMode = "classique" | "saisonnier";
 
@@ -50,19 +51,19 @@ function SignupModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" role="dialog" aria-modal aria-labelledby="interactive-demo-signup-title">
       <button type="button" className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" aria-label="Fermer" onClick={onClose} />
       <div
-        className="relative z-10 w-full max-w-sm rounded-2xl border border-violet-500/30 p-8 shadow-2xl"
-        style={{ backgroundColor: "#141428" }}
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-violet-200 p-8 shadow-2xl"
+        style={{ backgroundColor: "#ffffff" }}
       >
-        <h2 id="interactive-demo-signup-title" className="text-lg font-semibold text-white">
+        <h2 id="interactive-demo-signup-title" className="text-lg font-semibold text-[#1a0533]">
           Créez votre compte gratuitement
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-white/65">
+        <p className="mt-3 text-sm leading-relaxed text-[#6b7280]">
           Pour accéder à toutes les fonctionnalités, inscrivez-vous en 30 secondes.
         </p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
-            className="order-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/5 sm:order-1"
+            className="order-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-[#6b7280] transition hover:bg-gray-50 sm:order-1"
             onClick={onClose}
           >
             Fermer
@@ -97,18 +98,18 @@ function DemoNavLink({
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-3 rounded-lg py-2.5 pl-3 pr-2 text-left text-sm font-medium transition-colors",
-        active ? "text-[#a78bfa]" : "text-white/50 hover:bg-white/[0.04]",
+        active ? "text-[#7c3aed]" : "text-[#9ca3af] hover:bg-gray-100",
       )}
       style={
         active
           ? {
-              backgroundColor: "rgba(124,58,237,0.15)",
+              backgroundColor: "rgba(124,58,237,0.08)",
               boxShadow: "inset 2px 0 0 0 #7c3aed",
             }
           : undefined
       }
     >
-      <Icon className="h-4 w-4 shrink-0 opacity-90" />
+      <Icon className={`h-4 w-4 shrink-0 ${active ? "text-[#7c3aed]" : "text-[#9ca3af]"}`} />
       <span className="truncate">{label}</span>
     </button>
   );
@@ -121,14 +122,14 @@ function Badge({ children, tone }: { children: ReactNode; tone: "green" | "yello
     orange: "bg-orange-500/15 text-orange-300 border-orange-500/25",
     red: "bg-red-500/15 text-red-300 border-red-500/25",
     blue: "bg-sky-500/15 text-sky-300 border-sky-500/25",
-    gray: "bg-white/10 text-white/55 border-white/10",
-    violet: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+    gray: "bg-gray-100 text-[#6b7280] border-gray-200",
+    violet: "bg-violet-100 text-violet-700 border-violet-200",
   } as const;
   return <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", map[tone])}>{children}</span>;
 }
 
 function CardShell({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-xl border border-white/[0.08] bg-white/[0.05] p-4", className)}>{children}</div>;
+  return <div className={cn("rounded-xl border border-gray-200 bg-white p-4", className)}>{children}</div>;
 }
 
 const demoActionBtnClass =
@@ -145,7 +146,7 @@ function SectionActionHeader({
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-lg font-bold text-white">{title}</h3>
+      <h3 className="text-lg font-bold text-[#1a0533]">{title}</h3>
       <button type="button" className={demoActionBtnClass} onClick={onAction}>
         {actionLabel}
       </button>
@@ -173,7 +174,7 @@ export function InteractiveDemo() {
 
   const openSignup = () => setSignupOpen(true);
 
-  const pillInactive = PC.cardHover;
+  const pillInactive = "#f3f4f6";
   const pillActive = "#7c3aed";
 
   const renderClassique = () => {
@@ -182,15 +183,15 @@ export function InteractiveDemo() {
         return (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-bold text-white">Bonjour Sophie 👋</h3>
-              <p className="text-xs capitalize text-white/45">{dateLong}</p>
+              <h3 className="text-lg font-bold text-[#1a0533]">Bonjour Sophie 👋</h3>
+              <p className="text-xs capitalize text-[#9ca3af]">{dateLong}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <CardShell>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[11px] font-medium text-white/50">Logements actifs</p>
-                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">3</p>
+                    <p className="text-[11px] font-medium text-[#9ca3af]">Logements actifs</p>
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-[#1a0533]">3</p>
                   </div>
                   <Home className="h-5 w-5 text-violet-400" />
                 </div>
@@ -198,8 +199,8 @@ export function InteractiveDemo() {
               <CardShell>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[11px] font-medium text-white/50">Locataires actifs</p>
-                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">5</p>
+                    <p className="text-[11px] font-medium text-[#9ca3af]">Locataires actifs</p>
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-[#1a0533]">5</p>
                   </div>
                   <Users className="h-5 w-5 text-violet-400" />
                 </div>
@@ -207,8 +208,8 @@ export function InteractiveDemo() {
               <CardShell>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[11px] font-medium text-white/50">Quittances ce mois</p>
-                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">5</p>
+                    <p className="text-[11px] font-medium text-[#9ca3af]">Quittances ce mois</p>
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-[#1a0533]">5</p>
                   </div>
                   <FileText className="h-5 w-5 text-emerald-400" />
                 </div>
@@ -216,18 +217,18 @@ export function InteractiveDemo() {
               <CardShell>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[11px] font-medium text-white/50">Baux actifs</p>
-                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">3</p>
+                    <p className="text-[11px] font-medium text-[#9ca3af]">Baux actifs</p>
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-[#1a0533]">3</p>
                   </div>
                   <ScrollText className="h-5 w-5 text-violet-400" />
                 </div>
               </CardShell>
             </div>
             <CardShell className="mt-4 space-y-3">
-              <p className="text-sm font-semibold text-white">Suivi financier — mai 2026</p>
+              <p className="text-sm font-semibold text-[#1a0533]">Suivi financier — mai 2026</p>
               <div className="grid gap-2 text-sm">
-                <p className="text-white/80">
-                  Potentiel total : <span className="font-semibold text-white">3 760 €</span>
+                <p className="text-[#6b7280]">
+                  Potentiel total : <span className="font-semibold text-[#1a0533]">3 760 €</span>
                 </p>
                 <p className="text-emerald-400">
                   Encaissé : <span className="font-semibold">3 170 €</span>
@@ -237,19 +238,19 @@ export function InteractiveDemo() {
                 </p>
               </div>
               <div className="pt-1">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                   <div className="h-full rounded-full bg-violet-600" style={{ width: "84%" }} />
                 </div>
-                <p className="mt-1 text-[11px] text-white/45">Progression : 84 %</p>
+                <p className="mt-1 text-[11px] text-[#9ca3af]">Progression : 84 %</p>
               </div>
             </CardShell>
             <CardShell className="space-y-3">
-              <p className="text-sm font-semibold text-white">Revenus 2026</p>
+              <p className="text-sm font-semibold text-[#1a0533]">Revenus 2026</p>
               <div className="flex h-28 items-end gap-1 px-0.5">
                 {BAR_ENCAIS_PCT.map((pct, i) => (
                   <div key={i} className="relative flex h-full min-w-0 flex-1 items-end justify-center">
                     <div
-                      className="absolute bottom-0 left-1/2 w-[85%] -translate-x-1/2 rounded-t bg-white/15"
+                      className="absolute bottom-0 left-1/2 w-[85%] -translate-x-1/2 rounded-t bg-gray-200"
                       style={{ height: "100%" }}
                       title="Potentiel"
                     />
@@ -261,12 +262,12 @@ export function InteractiveDemo() {
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-4 text-[11px] text-white/50">
+              <div className="flex flex-wrap gap-4 text-[11px] text-[#9ca3af]">
                 <span>
                   <span className="font-bold text-violet-400">■</span> Encaissés
                 </span>
                 <span>
-                  <span className="font-bold text-white/35">■</span> Potentiel
+                  <span className="font-bold text-[#9ca3af]">■</span> Potentiel
                 </span>
               </div>
             </CardShell>
@@ -297,13 +298,13 @@ export function InteractiveDemo() {
               },
             ].map((log) => (
               <CardShell key={log.addr}>
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-[#1a0533]">
                   {log.type} — {log.addr}
                 </p>
-                <p className="mt-1 text-xs text-white/55">{log.details}</p>
+                <p className="mt-1 text-xs text-[#6b7280]">{log.details}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-white/65">
-                    Locataire : <span className="text-white/90">{log.tenant}</span>
+                  <p className="text-xs text-[#6b7280]">
+                    Locataire : <span className="text-[#1a0533]">{log.tenant}</span>
                   </p>
                   <Badge tone="green">Loué</Badge>
                 </div>
@@ -324,8 +325,8 @@ export function InteractiveDemo() {
             ].map((row) => (
               <CardShell key={row.name} className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-white">{row.name}</p>
-                  <p className="text-xs text-white/50">
+                  <p className="font-semibold text-[#1a0533]">{row.name}</p>
+                  <p className="text-xs text-[#9ca3af]">
                     {row.place} · {row.rent}
                   </p>
                 </div>
@@ -346,8 +347,8 @@ export function InteractiveDemo() {
               <CardShell key={d.name}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-white">{d.name}</p>
-                    <p className="text-xs text-white/50">
+                    <p className="font-semibold text-[#1a0533]">{d.name}</p>
+                    <p className="text-xs text-[#9ca3af]">
                       {d.place} · Score {d.score}
                     </p>
                   </div>
@@ -364,7 +365,7 @@ export function InteractiveDemo() {
         return (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-lg font-bold text-white">Quittances de loyer</h3>
+              <h3 className="text-lg font-bold text-[#1a0533]">Quittances de loyer</h3>
               <button type="button" className={demoActionBtnClass} onClick={openSignup}>
                 + Nouvelle quittance
               </button>
@@ -379,10 +380,10 @@ export function InteractiveDemo() {
             ].map((q, i) => (
               <CardShell key={`${q.m}-${q.who}-${i}`} className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-[#6b7280]">
                     {q.m} — {q.who}
                   </p>
-                  <p className="text-xs text-white/45">{q.amt}</p>
+                  <p className="text-xs text-[#9ca3af]">{q.amt}</p>
                 </div>
                 <Badge tone={q.tone}>{q.lab}</Badge>
               </CardShell>
@@ -399,10 +400,10 @@ export function InteractiveDemo() {
               { who: "Marie Chen", place: "Appt Bordeaux", dur: "3 ans", start: "01/01/2024", rent: "780€" },
             ].map((b) => (
               <CardShell key={b.who}>
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-[#1a0533]">
                   Bail — {b.who} — {b.place}
                 </p>
-                <p className="mt-1 text-xs text-white/55">
+                <p className="mt-1 text-xs text-[#6b7280]">
                   {b.dur} | Début : {b.start} | Loyer : {b.rent}
                 </p>
                 <div className="mt-2">
@@ -417,15 +418,15 @@ export function InteractiveDemo() {
           <div className="space-y-3">
             <SectionActionHeader title="États des lieux" actionLabel="+ Nouvel état des lieux" onAction={openSignup} />
             <CardShell>
-              <p className="font-semibold text-white">EDL Entrée — Sophie Martin — 01/09/2023</p>
-              <p className="mt-1 text-xs text-white/50">Appt 75011 Paris</p>
+              <p className="font-semibold text-[#1a0533]">EDL Entrée — Sophie Martin — 01/09/2023</p>
+              <p className="mt-1 text-xs text-[#9ca3af]">Appt 75011 Paris</p>
               <div className="mt-2">
                 <Badge tone="green">Complété</Badge>
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">EDL Sortie — Thomas Dubois — 14/03/2024</p>
-              <p className="mt-1 text-xs text-white/50">Studio Lyon</p>
+              <p className="font-semibold text-[#1a0533]">EDL Sortie — Thomas Dubois — 14/03/2024</p>
+              <p className="mt-1 text-xs text-[#9ca3af]">Studio Lyon</p>
               <div className="mt-2">
                 <Badge tone="gray">En cours</Badge>
               </div>
@@ -437,8 +438,8 @@ export function InteractiveDemo() {
           <div className="space-y-3">
             <SectionActionHeader title="Révision des loyers IRL" actionLabel="+ Nouvelle révision" onAction={openSignup} />
             <CardShell>
-              <p className="font-semibold text-white">Sophie Martin</p>
-              <p className="mt-1 text-sm text-white/65">
+              <p className="font-semibold text-[#1a0533]">Sophie Martin</p>
+              <p className="mt-1 text-sm text-[#6b7280]">
                 Loyer actuel : 850€ → Nouveau loyer : 867€ <span className="text-violet-300">(+2.0 % IRL Q1 2026)</span>
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -453,8 +454,8 @@ export function InteractiveDemo() {
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">Marie Chen</p>
-              <p className="mt-1 text-sm text-white/65">
+              <p className="font-semibold text-[#1a0533]">Marie Chen</p>
+              <p className="mt-1 text-sm text-[#6b7280]">
                 Loyer actuel : 780€ → Nouveau loyer : 796€ <span className="text-violet-300">(+2.0 % IRL Q1 2026)</span>
               </p>
               <div className="mt-2">
@@ -474,46 +475,46 @@ export function InteractiveDemo() {
         return (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-lg font-bold text-white">Dashboard Saisonnier</h3>
-              <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70">2026</span>
+              <h3 className="text-lg font-bold text-[#1a0533]">Dashboard Saisonnier</h3>
+              <span className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-[#6b7280]">2026</span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <CardShell>
-                <p className="text-xs text-white/50">Revenus encaissés</p>
+                <p className="text-xs text-[#9ca3af]">Revenus encaissés</p>
                 <p className="mt-1 text-xl font-bold text-emerald-400">4 200 €</p>
                 <p className="mt-1 text-[11px] text-emerald-400/90">+12 % vs 2025</p>
               </CardShell>
               <CardShell>
-                <p className="text-xs text-white/50">Revenus à venir</p>
+                <p className="text-xs text-[#9ca3af]">Revenus à venir</p>
                 <p className="mt-1 text-xl font-bold text-violet-300">1 850 €</p>
               </CardShell>
               <CardShell>
-                <p className="text-xs text-white/50">Total annuel</p>
-                <p className="mt-1 text-xl font-bold text-white">6 050 €</p>
+                <p className="text-xs text-[#9ca3af]">Total annuel</p>
+                <p className="mt-1 text-xl font-bold text-[#1a0533]">6 050 €</p>
               </CardShell>
             </div>
             <div className="flex flex-wrap gap-2 text-[11px]">
-              <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/80">Total: 8</span>
+              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[#6b7280]">Total: 8</span>
               <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-400">Terminées: 5</span>
               <span className="rounded-full bg-sky-500/20 px-2.5 py-1 text-sky-300">En cours: 1</span>
               <span className="rounded-full bg-violet-500/20 px-2.5 py-1 text-violet-300">À venir: 2</span>
               <span className="rounded-full bg-red-500/20 px-2.5 py-1 text-red-300">Annulées: 0</span>
             </div>
             <CardShell>
-              <p className="text-sm font-semibold text-white">Taux d&apos;occupation</p>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+              <p className="text-sm font-semibold text-[#1a0533]">Taux d&apos;occupation</p>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
                 <div className="h-full rounded-full bg-violet-600" style={{ width: "68%" }} />
               </div>
-              <p className="mt-2 text-xs text-white/55">68 % — 124 nuits occupées / 182 disponibles</p>
+              <p className="mt-2 text-xs text-[#6b7280]">68 % — 124 nuits occupées / 182 disponibles</p>
             </CardShell>
             <CardShell>
-              <p className="text-sm font-semibold text-white">Répartition sources</p>
+              <p className="text-sm font-semibold text-[#1a0533]">Répartition sources</p>
               <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full">
                 <div className="h-full bg-[#ff5a5f]" style={{ width: "60%" }} />
                 <div className="h-full bg-violet-600" style={{ width: "25%" }} />
                 <div className="h-full bg-[#003580]" style={{ width: "15%" }} />
               </div>
-              <p className="mt-2 text-[11px] text-white/55">Airbnb 60 % · Direct 25 % · Booking 15 %</p>
+              <p className="mt-2 text-[11px] text-[#6b7280]">Airbnb 60 % · Direct 25 % · Booking 15 %</p>
             </CardShell>
           </div>
         );
@@ -524,9 +525,9 @@ export function InteractiveDemo() {
             <CardShell>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-white">Appartement — 12 rue des Lilas, 75011 Paris</p>
-                  <p className="mt-1 text-xs text-white/55">3 pièces | 58m² | Tarif : 145€/nuit</p>
-                  <p className="mt-2 text-[11px] text-white/45">Sources : Airbnb · Direct</p>
+                  <p className="font-semibold text-[#1a0533]">Appartement — 12 rue des Lilas, 75011 Paris</p>
+                  <p className="mt-1 text-xs text-[#6b7280]">3 pièces | 58m² | Tarif : 145€/nuit</p>
+                  <p className="mt-2 text-[11px] text-[#9ca3af]">Sources : Airbnb · Direct</p>
                 </div>
                 <Badge tone="violet">Saisonnier</Badge>
               </div>
@@ -534,9 +535,9 @@ export function InteractiveDemo() {
             <CardShell>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-white">Villa — 24 chemin des Oliviers, 06000 Nice</p>
-                  <p className="mt-1 text-xs text-white/55">5 pièces | 120m² | Tarif : 280€/nuit</p>
-                  <p className="mt-2 text-[11px] text-white/45">Sources : Airbnb · Booking</p>
+                  <p className="font-semibold text-[#1a0533]">Villa — 24 chemin des Oliviers, 06000 Nice</p>
+                  <p className="mt-1 text-xs text-[#6b7280]">5 pièces | 120m² | Tarif : 280€/nuit</p>
+                  <p className="mt-2 text-[11px] text-[#9ca3af]">Sources : Airbnb · Booking</p>
                 </div>
                 <Badge tone="violet">Saisonnier</Badge>
               </div>
@@ -556,11 +557,11 @@ export function InteractiveDemo() {
               <CardShell key={r.who + r.dates}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-white">{r.who}</p>
-                    <p className="text-xs text-white/50">
+                    <p className="font-semibold text-[#1a0533]">{r.who}</p>
+                    <p className="text-xs text-[#9ca3af]">
                       {r.dates} · {r.n} · {r.price}
                     </p>
-                    <p className="mt-1 text-[11px] text-white/45">Source: {r.src}</p>
+                    <p className="mt-1 text-[11px] text-[#9ca3af]">Source: {r.src}</p>
                   </div>
                   <Badge tone={r.tone}>{r.lab}</Badge>
                 </div>
@@ -579,9 +580,9 @@ export function InteractiveDemo() {
               { name: "Isabelle Moreau", email: "i.moreau@email.com", trips: "1 séjour" },
             ].map((v) => (
               <CardShell key={v.email}>
-                <p className="font-semibold text-white">{v.name}</p>
+                <p className="font-semibold text-[#1a0533]">{v.name}</p>
                 <p className="text-xs text-violet-300/90">{v.email}</p>
-                <p className="mt-1 text-xs text-white/45">{v.trips}</p>
+                <p className="mt-1 text-xs text-[#9ca3af]">{v.trips}</p>
               </CardShell>
             ))}
           </div>
@@ -589,16 +590,16 @@ export function InteractiveDemo() {
       case "contrats":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Contrats de séjour</h3>
+            <h3 className="text-lg font-bold text-[#1a0533]">Contrats de séjour</h3>
             <CardShell>
-              <p className="font-semibold text-white">Thomas Martin · 12-19 juil 2026 · 1 604€</p>
+              <p className="font-semibold text-[#1a0533]">Thomas Martin · 12-19 juil 2026 · 1 604€</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge tone="green">Envoyé</Badge>
-                <span className="text-xs text-white/45">PDF ✓</span>
+                <span className="text-xs text-[#9ca3af]">PDF ✓</span>
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">Emma Rousseau · 01-08 août 2026 · 1 715€</p>
+              <p className="font-semibold text-[#1a0533]">Emma Rousseau · 01-08 août 2026 · 1 715€</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge tone="orange">À envoyer</Badge>
                 <button
@@ -611,10 +612,10 @@ export function InteractiveDemo() {
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">Jean-Pierre Blanc · 15-22 juin 2026 · 1 450€</p>
+              <p className="font-semibold text-[#1a0533]">Jean-Pierre Blanc · 15-22 juin 2026 · 1 450€</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge tone="green">Envoyé</Badge>
-                <span className="text-xs text-white/45">PDF ✓</span>
+                <span className="text-xs text-[#9ca3af]">PDF ✓</span>
               </div>
             </CardShell>
           </div>
@@ -624,19 +625,19 @@ export function InteractiveDemo() {
           <div className="space-y-3">
             <SectionActionHeader title="États des lieux" actionLabel="+ Nouvel état des lieux" onAction={openSignup} />
             <CardShell>
-              <p className="font-semibold text-white">Entrée — Thomas Martin — 12/07/2026</p>
+              <p className="font-semibold text-[#1a0533]">Entrée — Thomas Martin — 12/07/2026</p>
               <div className="mt-2">
                 <Badge tone="blue">Planifié</Badge>
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">Sortie — Jean-Pierre Blanc — 22/06/2026</p>
+              <p className="font-semibold text-[#1a0533]">Sortie — Jean-Pierre Blanc — 22/06/2026</p>
               <div className="mt-2">
                 <Badge tone="green">Complété</Badge>
               </div>
             </CardShell>
             <CardShell>
-              <p className="font-semibold text-white">Entrée — Emma Rousseau — 01/08/2026</p>
+              <p className="font-semibold text-[#1a0533]">Entrée — Emma Rousseau — 01/08/2026</p>
               <div className="mt-2">
                 <Badge tone="blue">Planifié</Badge>
               </div>
@@ -646,11 +647,11 @@ export function InteractiveDemo() {
       case "taxe":
         return (
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white">Taxe de séjour</h3>
+            <h3 className="text-lg font-bold text-[#1a0533]">Taxe de séjour</h3>
             <CardShell className="space-y-2">
-              <p className="text-sm text-white/80">T2 2026 — 3 réservations</p>
-              <p className="text-sm text-white/65">Total voyageurs : 6 pers. × nuits × 1,75€</p>
-              <p className="text-lg font-semibold text-white">Total à déclarer : 73,50€</p>
+              <p className="text-sm text-[#6b7280]">T2 2026 — 3 réservations</p>
+              <p className="text-sm text-[#6b7280]">Total voyageurs : 6 pers. × nuits × 1,75€</p>
+              <p className="text-lg font-semibold text-[#1a0533]">Total à déclarer : 73,50€</p>
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <Badge tone="orange">À déclarer</Badge>
                 <button
@@ -671,8 +672,8 @@ export function InteractiveDemo() {
 
   return (
     <>
-      <div className="md:hidden rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
-        <p className="mb-4 text-sm text-white/60">La démo interactive est disponible sur ordinateur.</p>
+      <div className="md:hidden rounded-2xl border border-gray-200 bg-white p-8 text-center backdrop-blur-sm">
+        <p className="mb-4 text-sm text-[#6b7280]">La démo interactive est disponible sur ordinateur.</p>
         <Link
           href="/register"
           className="inline-flex rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500"
@@ -725,15 +726,15 @@ export function InteractiveDemo() {
             border: "1px solid rgba(124,58,237,0.3)",
             borderRadius: 16,
             boxShadow: "0 0 60px rgba(124,58,237,0.15)",
-            backgroundColor: "#0d0d1a",
+            backgroundColor: "#f8f7ff",
           }}
         >
           <aside
             className="flex w-[220px] shrink-0 flex-col py-0"
-            style={{ backgroundColor: "#08080f", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ backgroundColor: "#ffffff", borderRight: "1px solid rgba(124,58,237,0.1)" }}
           >
             <div className="px-4 pt-4">
-              <LogoFull className="h-8 w-auto text-white" />
+              <img src={DEMO_LOGO_SRC} alt="Locavio" width={140} height={28} className="h-8 w-auto" />
             </div>
             <nav className="mt-4 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
               {mode === "classique" ? (
@@ -764,7 +765,7 @@ export function InteractiveDemo() {
                 </>
               )}
             </nav>
-            <div className="mt-auto border-t border-white/[0.06] px-3 py-3">
+            <div className="mt-auto border-t border-gray-200 px-3 py-3">
               <div className="flex items-center gap-2">
                 <div
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
@@ -773,8 +774,8 @@ export function InteractiveDemo() {
                   SP
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-white">Sophie Proprietaire</p>
-                  <p className="truncate text-[10px] text-white/50">sophie.p@exemple.fr</p>
+                  <p className="truncate text-xs font-medium text-[#1a0533]">Sophie Proprietaire</p>
+                  <p className="truncate text-[10px] text-[#9ca3af]">sophie.p@exemple.fr</p>
                 </div>
               </div>
             </div>

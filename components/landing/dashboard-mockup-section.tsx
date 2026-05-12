@@ -29,27 +29,25 @@ export function DashboardMockupSection() {
       <div
         className="landing-mockup-reveal mt-10 overflow-hidden rounded-2xl"
         style={{
-          border: "1px solid rgba(124, 58, 237, 0.45)",
+          border: "1px solid rgba(124, 58, 237, 0.2)",
           borderRadius: 16,
-          background: "rgba(15, 15, 26, 0.85)",
-          WebkitBackdropFilter: "blur(20px)",
-          backdropFilter: "blur(20px)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(124,58,237,0.15)",
+          background: "rgba(255, 255, 255, 0.95)",
+          boxShadow: "0 4px 24px rgba(124, 58, 237, 0.1), 0 0 0 1px rgba(124, 58, 237, 0.08)",
         }}
       >
         <div className="flex min-h-[280px] flex-col sm:min-h-[320px] sm:flex-row">
           <aside
-            className="flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b p-3 sm:w-[200px] sm:flex-col sm:border-b-0 sm:border-r sm:border-white/10"
-            style={{ backgroundColor: "#08080f" }}
+            className="flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b border-gray-200 p-3 sm:w-[200px] sm:flex-col sm:border-b-0 sm:border-r sm:border-gray-200"
+            style={{ backgroundColor: "#ffffff" }}
           >
             {sidebarItems.map((item) => (
               <div
                 key={item.label}
                 className="whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium sm:text-[13px]"
                 style={{
-                  backgroundColor: item.active ? "rgba(124, 58, 237, 0.25)" : "transparent",
-                  color: item.active ? PC.text : PC.muted,
-                  border: item.active ? `1px solid ${PC.primaryBorder40}` : "1px solid transparent",
+                  backgroundColor: item.active ? "rgba(124, 58, 237, 0.08)" : "transparent",
+                  color: item.active ? "#7c3aed" : PC.muted,
+                  border: item.active ? `1px solid rgba(124, 58, 237, 0.2)` : "1px solid transparent",
                 }}
               >
                 {item.label}
@@ -57,7 +55,7 @@ export function DashboardMockupSection() {
             ))}
           </aside>
 
-          <div className="min-w-0 flex-1 space-y-4 p-4 sm:p-6" style={{ backgroundColor: "rgba(6,6,15,0.5)" }}>
+          <div className="min-w-0 flex-1 space-y-4 bg-[#f8f7ff] p-4 sm:p-6">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
                 { k: "3 logements", s: "Biens actifs" },
@@ -65,11 +63,8 @@ export function DashboardMockupSection() {
                 { k: "Quittances ce mois : 5", s: "Envoyées" },
                 { k: "Baux actifs : 3", s: "Contrats signés" },
               ].map((c) => (
-                <div
-                  key={c.k}
-                  className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm"
-                >
-                  <p className="text-lg font-bold tabular-nums leading-tight sm:text-xl" style={{ color: PC.text }}>
+                <div key={c.k} className="rounded-xl border border-gray-200 bg-white p-3">
+                  <p className="text-lg font-bold tabular-nums leading-tight text-[#1a0533] sm:text-xl">
                     {c.k}
                   </p>
                   <p className="mt-1 text-[11px] sm:text-xs" style={{ color: PC.muted }}>
@@ -79,10 +74,8 @@ export function DashboardMockupSection() {
               ))}
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <p className="text-sm font-semibold" style={{ color: PC.text }}>
-                Revenus 2026
-              </p>
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-sm font-semibold text-[#1a0533]">Revenus 2026</p>
               <div className="mt-4 flex h-24 items-end justify-between gap-1 px-1 sm:h-28">
                 {barHeights.map((h, i) => (
                   <div
@@ -98,7 +91,7 @@ export function DashboardMockupSection() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wider" style={{ color: PC.muted }}>
                 Suivi financier
               </p>

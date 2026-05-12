@@ -27,11 +27,11 @@ function formatPublished(iso: string): string {
 
 function categoryBadgeClass(cat: ArticleCategory): string {
   const map: Record<ArticleCategory, string> = {
-    "Documents & modèles": "border-violet-500/40 bg-violet-500/15 text-violet-300",
-    "Calculs & chiffres": "border-emerald-500/40 bg-emerald-500/15 text-emerald-400",
-    Saisonnier: "border-sky-500/40 bg-sky-500/15 text-sky-300",
-    "Guide pratique": "border-amber-500/40 bg-amber-500/15 text-amber-300",
-    Comparatifs: "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-300",
+    "Documents & modèles": "border-violet-500/40 bg-violet-500/15 text-violet-700",
+    "Calculs & chiffres": "border-emerald-500/40 bg-emerald-500/15 text-emerald-600",
+    Saisonnier: "border-sky-500/40 bg-sky-500/15 text-sky-700",
+    "Guide pratique": "border-amber-500/40 bg-amber-500/15 text-amber-700",
+    Comparatifs: "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-700",
   };
   return map[cat];
 }
@@ -48,8 +48,8 @@ export function BlogClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <header className="marketing-fade-section space-y-6 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Ressources pour les propriétaires</h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/60">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
+          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
             Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
           </p>
 
@@ -64,7 +64,7 @@ export function BlogClient() {
                   className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                     isOn
                       ? "border-violet-500 bg-violet-600 text-white"
-                      : "border-white/10 bg-white/5 text-white/70 backdrop-blur-sm hover:bg-white/10"
+                      : "border-gray-200 bg-white text-[#6b7280] hover:bg-gray-50"
                   }`}
                 >
                   {cat}
@@ -79,16 +79,16 @@ export function BlogClient() {
             <Link
               key={article.slug}
               href={`/blog/${article.slug}`}
-              className="group cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition hover:border-violet-500/30 hover:bg-white/[0.08]"
+              className="group cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 transition hover:border-violet-300 hover:bg-gray-50"
             >
               <span
                 className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${categoryBadgeClass(article.category)}`}
               >
                 {article.category}
               </span>
-              <h2 className="mt-3 text-lg font-bold text-white group-hover:text-violet-200">{article.title}</h2>
-              <p className="mt-2 line-clamp-2 text-sm text-white/60">{article.description}</p>
-              <p className="mt-4 text-xs text-white/40">
+              <h2 className="mt-3 text-lg font-bold text-[#1a0533] group-hover:text-violet-700">{article.title}</h2>
+              <p className="mt-2 line-clamp-2 text-sm text-[#6b7280]">{article.description}</p>
+              <p className="mt-4 text-xs text-[#9ca3af]">
                 {article.readTime} min · {formatPublished(article.publishedAt)}
               </p>
             </Link>

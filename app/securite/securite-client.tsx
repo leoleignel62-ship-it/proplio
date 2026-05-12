@@ -61,8 +61,8 @@ export function SecuriteClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <header className="marketing-fade-section space-y-4 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">La sécurité de vos données, notre priorité</h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/60">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">La sécurité de vos données, notre priorité</h1>
+          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
             Vos données locatives sont confidentielles. Locavio repose sur des infrastructures certifiées aux standards les plus exigeants.
           </p>
         </header>
@@ -71,24 +71,24 @@ export function SecuriteClient() {
           {certifications.map((c) => (
             <article
               key={c.title}
-              className="marketing-fade-section rounded-2xl border border-white/10 bg-white/5 px-5 py-6 backdrop-blur-sm sm:px-8 sm:py-8"
+              className="marketing-fade-section rounded-2xl border border-gray-200 bg-white px-5 py-6 sm:px-8 sm:py-8"
             >
               <p className="text-2xl" aria-hidden>
                 {c.icon}
               </p>
-              <h2 className="mt-3 text-lg font-semibold text-white">{c.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-white/60">{c.text}</p>
-              <p className="mt-4 text-sm leading-relaxed text-white/50">{c.explain}</p>
+              <h2 className="mt-3 text-lg font-semibold text-[#1a0533]">{c.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#6b7280]">{c.text}</p>
+              <p className="mt-4 text-sm leading-relaxed text-[#9ca3af]">{c.explain}</p>
             </article>
           ))}
         </div>
 
         <section className="marketing-fade-section my-12 py-8">
-          <h2 className="text-center text-2xl font-bold text-white">Ce que nous nous engageons à faire</h2>
+          <h2 className="text-center text-2xl font-bold text-[#1a0533]">Ce que nous nous engageons à faire</h2>
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {engagements.map((line) => (
-              <div key={line} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white/80 backdrop-blur-sm">
-                <span className="mr-2 text-violet-400">✓</span>
+              <div key={line} className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-[#6b7280]">
+                <span className="mr-2 text-violet-600">✓</span>
                 {line}
               </div>
             ))}
@@ -96,28 +96,25 @@ export function SecuriteClient() {
         </section>
 
         <section className="marketing-fade-section my-12 space-y-4 py-8">
-          <h2 className="text-center text-2xl font-bold text-white">Questions fréquentes</h2>
+          <h2 className="text-center text-2xl font-bold text-[#1a0533]">Questions fréquentes</h2>
           <div className="mx-auto max-w-3xl space-y-3">
             {faqSecurity.map((item) => (
-              <details
-                key={item.q}
-                className="group rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm"
-              >
-                <summary className="cursor-pointer list-none font-semibold text-white [&::-webkit-details-marker]:hidden">
+              <details key={item.q} className="group rounded-xl border border-gray-200 bg-white px-5 py-4">
+                <summary className="cursor-pointer list-none font-semibold text-[#1a0533] [&::-webkit-details-marker]:hidden">
                   <span className="flex items-center justify-between gap-3">
                     {item.q}
-                    <span className="text-lg text-violet-300 transition group-open:rotate-45">+</span>
+                    <span className="text-lg text-violet-600 transition group-open:rotate-45">+</span>
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-white/60">{item.a}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#6b7280]">{item.a}</p>
               </details>
             ))}
           </div>
         </section>
 
-        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-white/10 bg-white/5 px-8 py-8 text-center backdrop-blur-sm">
-          <h2 className="text-xl font-bold text-white">Vous avez d&apos;autres questions sur la sécurité ?</h2>
-          <a href="mailto:contact@locavio.fr" className="mt-4 inline-block text-violet-300 hover:text-white">
+        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-gray-200 bg-white px-8 py-8 text-center">
+          <h2 className="text-xl font-bold text-[#1a0533]">Vous avez d&apos;autres questions sur la sécurité ?</h2>
+          <a href="mailto:contact@locavio.fr" className="mt-4 inline-block text-violet-600 hover:text-[#1a0533]">
             contact@locavio.fr
           </a>
         </section>

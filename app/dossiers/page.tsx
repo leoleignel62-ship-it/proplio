@@ -245,7 +245,7 @@ export default function DossiersPage() {
                         }`}>
                           {scoreValue}
                         </span>
-                        <span className="text-sm opacity-60 text-white">/100</span>
+                        <span className="text-sm opacity-60 text-[#9ca3af]">/100</span>
                       </div>
                     ) : null}
                     <span className="rounded-full px-2 py-1" style={{ backgroundColor: expired ? PC.dangerBg10 : PC.successBg10, color: expired ? PC.danger : PC.success }}>

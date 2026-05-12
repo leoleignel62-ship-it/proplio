@@ -13,14 +13,12 @@ export function LegalPageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#0a0a0f", color: PC.text }}>
+    <div className="min-h-screen" style={{ backgroundColor: "#f8f7ff", color: PC.text }}>
       <header
         className="border-b"
         style={{
           borderColor: PC.border,
-          backgroundColor: "rgba(10, 10, 15, 0.88)",
-          WebkitBackdropFilter: "blur(12px)",
-          backdropFilter: "blur(12px)",
+          backgroundColor: "rgba(255, 255, 255, 0.92)",
         }}
       >
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
@@ -48,25 +46,25 @@ export function LegalPageShell({
             <LogoFull className="h-9 w-auto" />
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium" style={{ color: PC.muted }}>
-            <Link href="/landing#tarifs" className="transition hover:text-white">
+            <Link href="/landing#tarifs" className="transition hover:text-[#7c3aed]">
               Tarifs
             </Link>
-            <Link href="/login" className="transition hover:text-white">
+            <Link href="/login" className="transition hover:text-[#7c3aed]">
               Connexion
             </Link>
-            <Link href="/register" className="transition hover:text-white">
+            <Link href="/register" className="transition hover:text-[#7c3aed]">
               Créer un compte
             </Link>
-            <Link href="/mentions-legales" className="transition hover:text-white">
+            <Link href="/mentions-legales" className="transition hover:text-[#7c3aed]">
               Mentions légales
             </Link>
-            <Link href="/cgu" className="transition hover:text-white">
+            <Link href="/cgu" className="transition hover:text-[#7c3aed]">
               CGU
             </Link>
-            <Link href="/politique-de-confidentialite" className="transition hover:text-white">
+            <Link href="/politique-de-confidentialite" className="transition hover:text-[#7c3aed]">
               Politique de confidentialité
             </Link>
-            <Link href="/qui-sommes-nous" className="transition hover:text-white">
+            <Link href="/qui-sommes-nous" className="transition hover:text-[#7c3aed]">
               Qui sommes-nous
             </Link>
           </nav>

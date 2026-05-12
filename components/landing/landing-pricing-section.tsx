@@ -20,8 +20,8 @@ const solidCard: CSSProperties = {
 
 export function PricingLaunchBanner() {
   return (
-    <div className="mx-auto mb-8 max-w-xl rounded-xl border border-violet-500/30 bg-violet-500/8 px-5 py-3.5 text-center backdrop-blur-sm">
-      <p className="text-sm font-medium text-violet-300">
+    <div className="mx-auto mb-8 max-w-xl rounded-xl border border-violet-200 bg-violet-50 px-5 py-3.5 text-center">
+      <p className="text-sm font-medium text-violet-700">
         🎉 Tarifs de lancement — Prix garantis à vie pour les premiers inscrits
       </p>
     </div>
@@ -180,7 +180,7 @@ export function LandingPricingSection({
                   plan.popular || plan.highlight
                     ? `1px solid rgba(124, 58, 237, 0.45)`
                     : `1px solid ${PC.border}`,
-                boxShadow: plan.highlight ? PC.cardShadowHover : "0 1px 3px rgba(0, 0, 0, 0.25)",
+                boxShadow: plan.highlight ? PC.cardShadowHover : PC.cardShadow,
                 opacity: pricingVisible[index] ? 1 : 0,
                 transform: `${plan.highlight ? "scale(1.01) " : ""}${pricingVisible[index] ? "translate3d(0, 0, 0)" : "translate3d(0, 30px, 0)"}`,
                 transition: "opacity 700ms ease-out, transform 700ms ease-out",

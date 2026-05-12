@@ -281,7 +281,7 @@ export function SaisonnierReservationsPlanningCalendar({
         <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start sm:gap-3">
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-zinc-200 transition duration-150 hover:bg-white/[0.08] hover:text-white active:scale-[0.97]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-zinc-600 transition duration-150 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.97]"
             style={{ border: `1px solid ${COL_BORDER}` }}
             onClick={() => goMonth(-1)}
             aria-label="Mois précédent"
@@ -293,7 +293,7 @@ export function SaisonnierReservationsPlanningCalendar({
           </h2>
           <button
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-zinc-200 transition duration-150 hover:bg-white/[0.08] hover:text-white active:scale-[0.97]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-zinc-600 transition duration-150 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.97]"
             style={{ border: `1px solid ${COL_BORDER}` }}
             onClick={() => goMonth(1)}
             aria-label="Mois suivant"
@@ -448,7 +448,7 @@ export function SaisonnierReservationsPlanningCalendar({
                       <button
                         key={`${lg.id}-${h.iso}`}
                         type="button"
-                        className="border-r transition-colors duration-150 hover:bg-white/[0.04]"
+                        className="border-r transition-colors duration-150 hover:bg-gray-50"
                         style={{
                           gridColumn: i + 1,
                           gridRow: 1,

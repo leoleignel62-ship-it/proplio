@@ -13,10 +13,8 @@ const LandingBelowFold = dynamic(() => import("@/components/landing/landing-belo
 });
 
 const glassCard: CSSProperties = {
-  background: PC.glassBg,
-  WebkitBackdropFilter: "blur(20px)",
-  backdropFilter: "blur(20px)",
-  border: `1px solid ${PC.glassBorder}`,
+  background: "#ffffff",
+  border: "1px solid #e5e7eb",
   borderRadius: 16,
   boxShadow: PC.cardShadow,
 };
