@@ -201,6 +201,11 @@ export default function CandidatureTokenPage() {
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!token || token.trim().length < 10) {
+      return;
+    }
+
     void (async () => {
       setLoadingToken(true);
       const res = await fetch(`/api/candidature/get-token?token=${encodeURIComponent(token)}`);
@@ -213,6 +218,7 @@ export default function CandidatureTokenPage() {
       }
       setLoadingToken(false);
     })();
+
     return () => {
       cancelled = true;
     };
@@ -270,15 +276,34 @@ export default function CandidatureTokenPage() {
     setIsSubmitting(false);
   }
 
-  if (loadingToken) {
-    return <main className="mx-auto max-w-[640px] p-6">Chargement...</main>;
+  const tokenPending = !token || token.trim().length < 10;
+  if (loadingToken || tokenPending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="text-center" style={{ color: PC.muted }}>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-violet-500" />
+          <p className="text-sm">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenInfo?.expire) {
+    return (
+      <ErrorBox
+        title="Lien expiré"
+        message="Ce lien de candidature a expiré. Contactez le propriétaire pour obtenir un nouveau lien."
+      />
+    );
   }
 
   if (!tokenInfo?.valide) {
-    return <ErrorBox title="Lien invalide" message="Ce lien de candidature est invalide." />;
-  }
-  if (tokenInfo.expire) {
-    return <ErrorBox title="Ce lien a expiré" message="Demandez un nouveau lien au propriétaire." />;
+    return (
+      <ErrorBox
+        title="Lien invalide"
+        message="Ce lien de candidature est invalide ou n'existe pas."
+      />
+    );
   }
   if (tokenInfo.soumis || submitSuccess) {
     return (
