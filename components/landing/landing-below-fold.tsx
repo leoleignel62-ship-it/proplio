@@ -193,8 +193,8 @@ export default function LandingBelowFold() {
 
       <section ref={statsRef} className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
         <div
-          className="grid grid-cols-1 gap-8 rounded-2xl px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.08]"
-          style={{ ...solidCard, border: `1px solid ${PC.border}` }}
+          className="grid grid-cols-1 gap-8 rounded-2xl border border-gray-100 bg-white px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-gray-100"
+          style={{ boxShadow: PC.cardShadow }}
         >
           {statsData.map((s, i) => (
             <div key={s.n} className="px-4 text-center lg:px-8">
@@ -220,7 +220,7 @@ export default function LandingBelowFold() {
         <div className="mt-10 overflow-x-auto rounded-2xl" style={solidCard}>
           <table className="min-w-full border-collapse text-sm">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${PC.borderRow}`, backgroundColor: PC.sidebar }}>
+              <tr style={{ borderBottom: `1px solid ${PC.borderRow}`, backgroundColor: "#f9fafb" }}>
                 <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: PC.tertiary }}>
                   Critère
                 </th>
@@ -260,16 +260,16 @@ export default function LandingBelowFold() {
       </section>
 
       <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
-        <div className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-white/5 px-8 py-10 backdrop-blur-sm">
-          <h2 className="text-center text-3xl font-bold text-white">Combien allez-vous économiser ?</h2>
-          <p className="mt-3 text-center text-white/60">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-gray-100 bg-white px-8 py-10">
+          <h2 className="text-center text-3xl font-bold text-[#1a0533]">Combien allez-vous économiser ?</h2>
+          <p className="mt-3 text-center text-[#6b7280]">
             Renseignez le loyer de chacun de vos logements et découvrez ce que vous coûte vraiment une agence.
           </p>
 
           <div className="mt-10 space-y-5">
             {logements.map((l, index) => (
               <div key={l.id}>
-                <p className="text-sm text-white/60">Logement {index + 1}</p>
+                <p className="text-sm text-[#6b7280]">Logement {index + 1}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <input
                     type="number"
@@ -302,7 +302,7 @@ export default function LandingBelowFold() {
                     <button
                       type="button"
                       onClick={() => setLogements(logements.filter((row) => row.id !== l.id))}
-                      className="shrink-0 text-sm text-white/30 transition hover:text-red-400"
+                      className="shrink-0 text-sm text-[#9ca3af] transition hover:text-red-500"
                       aria-label={`Supprimer le logement ${index + 1}`}
                     >
                       <X className="size-4" strokeWidth={2} />
@@ -317,16 +317,16 @@ export default function LandingBelowFold() {
             <button
               type="button"
               onClick={() => setLogements([...logements, { id: Date.now(), loyer: 700 }])}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-violet-500/30 px-4 py-2 text-sm text-violet-400 transition hover:bg-violet-500/10"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-violet-200 px-4 py-2 text-sm text-[#7c3aed] transition hover:bg-violet-50"
             >
               <Plus className="size-4 shrink-0" strokeWidth={2} />
               Ajouter un logement
             </button>
           ) : null}
 
-          <hr className="my-6 border-white/10" />
+          <hr className="my-6 border-gray-200" />
 
-          <p className="text-center text-sm text-white/50">
+          <p className="text-center text-sm text-[#9ca3af]">
             Loyer total mensuel : {loyerTotal.toLocaleString("fr-FR")} €
           </p>
 
@@ -335,45 +335,45 @@ export default function LandingBelowFold() {
               className="rounded-xl border px-5 py-6 text-center"
               style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }}
             >
-              <p className="text-sm font-medium text-red-400">Agence traditionnelle</p>
-              <p className="text-xs text-red-400/60">entre 6% et 10% de vos loyers/an</p>
+              <p className="text-sm font-medium text-red-600">Agence traditionnelle</p>
+              <p className="text-xs text-red-600/70">entre 6% et 10% de vos loyers/an</p>
               <div className="mt-2 flex items-baseline justify-center gap-1">
-                <span className="text-2xl font-bold text-red-400">{coutAgenceMin.toLocaleString("fr-FR")}</span>
-                <span className="text-sm text-red-400/60">à</span>
-                <span className="text-3xl font-bold text-red-400">{coutAgenceMax.toLocaleString("fr-FR")} €</span>
+                <span className="text-2xl font-bold text-red-600">{coutAgenceMin.toLocaleString("fr-FR")}</span>
+                <span className="text-sm text-red-600/70">à</span>
+                <span className="text-3xl font-bold text-red-600">{coutAgenceMax.toLocaleString("fr-FR")} €</span>
               </div>
-              <p className="mt-1 text-sm text-white/40">par an</p>
+              <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
             </div>
             <div
               className="rounded-xl border px-5 py-6"
               style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(124,58,237,0.2)" }}
             >
-              <p className="text-sm font-medium text-violet-400">Locavio Pro</p>
-              <p className="text-xs text-violet-400/60">Tout inclus, illimité</p>
-              <p className="text-3xl font-bold text-violet-400">99 €</p>
-              <p className="text-sm text-white/40">par an</p>
+              <p className="text-sm font-medium text-[#7c3aed]">Locavio Pro</p>
+              <p className="text-xs text-[#7c3aed]/70">Tout inclus, illimité</p>
+              <p className="text-3xl font-bold text-[#7c3aed]">99 €</p>
+              <p className="text-sm text-[#9ca3af]">par an</p>
             </div>
             <div
               className="rounded-xl border px-5 py-6 text-center"
               style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}
             >
-              <p className="text-sm font-medium text-emerald-400">Votre économie</p>
-              <p className="text-xs font-medium text-emerald-400/60">
+              <p className="text-sm font-medium text-emerald-600">Votre économie</p>
+              <p className="text-xs font-medium text-emerald-600/80">
                 {xFoisMin}x à {xFoisMax}x moins cher que l&apos;agence
               </p>
               <div className="mt-2 flex items-baseline justify-center gap-1">
-                <span className="text-2xl font-bold text-emerald-400">{economieMin.toLocaleString("fr-FR")}</span>
-                <span className="text-sm text-emerald-400/60">à</span>
-                <span className="text-4xl font-bold text-emerald-400">{economieMax.toLocaleString("fr-FR")} €</span>
+                <span className="text-2xl font-bold text-emerald-600">{economieMin.toLocaleString("fr-FR")}</span>
+                <span className="text-sm text-emerald-600/70">à</span>
+                <span className="text-4xl font-bold text-emerald-600">{economieMax.toLocaleString("fr-FR")} €</span>
               </div>
-              <p className="mt-1 text-sm text-white/40">par an</p>
-              <span className="mt-1 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-400">
+              <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
+              <span className="mt-1 inline-block rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs text-emerald-700">
                 ✓ Garanti
               </span>
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-white/70">
+          <p className="mt-6 text-center text-sm text-[#6b7280]">
             Avec un loyer total de {loyerTotal.toLocaleString("fr-FR")} €/mois, une agence vous coûte entre{" "}
             {coutAgenceMin.toLocaleString("fr-FR")} € et {coutAgenceMax.toLocaleString("fr-FR")} € par an (6 à 10% de vos
             loyers). Locavio vous revient à 99 € — soit jusqu&apos;à {xFoisMax}x moins cher.
@@ -386,39 +386,39 @@ export default function LandingBelowFold() {
             >
               Commencer gratuitement et économiser jusqu&apos;à {economieMax.toLocaleString("fr-FR")} € →
             </Link>
-            <p className="mt-3 text-center text-sm text-white/40">Gratuit pour commencer · Sans carte bancaire</p>
+            <p className="mt-3 text-center text-sm text-[#9ca3af]">Gratuit pour commencer · Sans carte bancaire</p>
           </div>
         </div>
       </section>
 
       <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
-        <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-white/5 px-6 py-16 backdrop-blur-sm sm:px-10">
-          <h2 className="text-center text-2xl font-bold text-white sm:text-3xl">Vos données sont entre de bonnes mains</h2>
+        <div className="mx-auto max-w-5xl rounded-2xl border border-gray-100 bg-white px-6 py-16 sm:px-10">
+          <h2 className="text-center text-2xl font-bold text-[#1a0533] sm:text-3xl">Vos données sont entre de bonnes mains</h2>
 
           <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 lg:gap-4">
             {securityBadges.map((item) => (
               <div
                 key={item.name}
-                className="flex min-w-0 items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
+                className="flex min-w-0 items-start gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3"
               >
                 <span className="text-xl shrink-0" aria-hidden>
                   {item.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{item.name}</p>
-                  <p className="mt-0.5 text-xs leading-snug text-white/60">{item.text}</p>
+                  <p className="text-sm font-semibold text-[#1a0533]">{item.name}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-[#6b7280]">{item.text}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <ul className="mt-8 flex flex-col items-start gap-2 text-white/70 sm:items-center">
+          <ul className="mt-8 flex flex-col items-start gap-2 text-[#6b7280] sm:items-center">
             <li>
-              <span className="mr-2 text-violet-400">✓</span>
+              <span className="mr-2 text-[#7c3aed]">✓</span>
               Sauvegardes automatiques quotidiennes
             </li>
             <li>
-              <span className="mr-2 text-violet-400">✓</span>
+              <span className="mr-2 text-[#7c3aed]">✓</span>
               Accès aux données strictement limité par rôle
             </li>
           </ul>
@@ -426,7 +426,7 @@ export default function LandingBelowFold() {
           <p className="mt-6 text-center">
             <Link
               href="/securite"
-              className="inline-flex text-sm font-semibold text-violet-300 transition hover:text-white"
+              className="inline-flex text-sm font-semibold text-[#7c3aed] transition hover:text-[#5b21b6]"
               style={{ transition: ease }}
             >
               En savoir plus sur notre sécurité →
@@ -461,20 +461,26 @@ export default function LandingBelowFold() {
       </section>
 
       <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-12 max-w-4xl px-0 py-8 will-change-transform">
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
+        <div
+          className="rounded-2xl border border-white/10 px-8 py-16 text-center"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+            boxShadow: "0 4px 24px rgba(124, 58, 237, 0.25)",
+          }}
+        >
           <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
             Prêt à reprendre le contrôle de vos locations ?
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base text-white/70">
+          <p className="mx-auto mt-4 max-w-lg text-base text-white/90">
             Rejoignez les propriétaires qui gagnent du temps chaque mois.
           </p>
           <Link
             href="/register"
-            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-violet-500"
+            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-semibold text-[#7c3aed] shadow-lg transition hover:bg-gray-50"
           >
             Commencer gratuitement →
           </Link>
-          <p className="mt-4 text-sm text-white/55">Gratuit pour commencer · Sans carte bancaire</p>
+          <p className="mt-4 text-sm text-white/80">Gratuit pour commencer · Sans carte bancaire</p>
         </div>
       </section>
 

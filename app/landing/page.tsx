@@ -22,8 +22,8 @@ const glassCard: CSSProperties = {
 };
 
 const pageBg: CSSProperties = {
-  backgroundColor: PC.bg,
-  backgroundImage: `${PC.gradientBg}, radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.08), transparent 45%)`,
+  backgroundColor: "#f8f7ff",
+  backgroundImage: `${PC.gradientBg}, radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.04), transparent 45%)`,
   backgroundSize: "100% 100%, 100% 100%, 48px 48px, 48px 48px",
   color: PC.text,
   minHeight: "100vh",
@@ -124,7 +124,7 @@ export default function LandingPage() {
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px)",
+                "linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)",
               backgroundSize: "48px 48px",
               transform: `translateY(${parallax}px)`,
               animation: "locavio-grid-drift 20s linear infinite",
@@ -133,7 +133,7 @@ export default function LandingPage() {
           <div
             className="pointer-events-none absolute left-1/2 top-[34%] h-44 w-96 -translate-x-1/2 rounded-full will-change-transform"
             style={{
-              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.28) 0%, rgba(124,58,237,0) 70%)",
+              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.14) 0%, rgba(124,58,237,0) 70%)",
               filter: "blur(60px)",
               animation: "locavio-pulse 3s ease infinite",
             }}
@@ -185,19 +185,14 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/tarifs"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
-                style={{
-                  border: `1px solid ${PC.borderStrong}`,
-                  color: PC.text,
-                  backgroundColor: PC.glassBg,
-                }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
               >
                 Voir les tarifs
               </Link>
             </div>
             <ul
               className="hero-reveal mx-auto mt-10 flex max-w-lg flex-col gap-2 text-left text-sm font-medium sm:mx-auto sm:max-w-md sm:text-center"
-              style={{ color: PC.muted, animationDelay: "600ms" }}
+              style={{ color: PC.tertiary, animationDelay: "600ms" }}
             >
               <li>✓ Gratuit pour commencer</li>
               <li>✓ Sans carte bancaire</li>

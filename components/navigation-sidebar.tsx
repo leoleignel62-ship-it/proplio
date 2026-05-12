@@ -21,10 +21,12 @@ import {
   IconContract,
   IconDocument,
   IconFolder,
-  LogoFull,
   IconTrendingUp,
   IconUsers,
 } from "@/components/locavio-icons";
+
+/** Lockup horizontal pour fond clair (sidebar blanche). */
+const SIDEBAR_LOGO_SRC = "/logos/lockup-horizontal-clair.svg";
 import { detecterBauxEligibles } from "@/lib/irl-revision";
 import { useModeLocation, type ModeLocation } from "@/lib/mode-location";
 import {
@@ -41,11 +43,11 @@ import { supabase } from "@/lib/supabase";
 
 const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
 
-/** Ligne de séparation sidebar (#ffffff08). */
-const SIDEBAR_SEP_COLOR = "#ffffff08";
+/** Ligne de séparation sidebar (léger trait sur fond clair). */
+const SIDEBAR_SEP_COLOR = "rgba(0, 0, 0, 0.06)";
 
 const sectionLabelStyle: CSSProperties = {
-  color: "#5a5a6a",
+  color: "#9ca3af",
   fontSize: "10px",
   fontWeight: 500,
   textTransform: "uppercase",
@@ -108,7 +110,7 @@ function ModeLocationPill({
   onSelectSaisonnier: () => void;
   className?: string;
 }) {
-  const pillInactive = PC.cardHover;
+  const pillInactive = "#f3f4f6";
   const pillActive = "#7c3aed";
   return (
     <div
@@ -124,7 +126,7 @@ function ModeLocationPill({
           className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
             backgroundColor: mode === "classique" ? pillActive : pillInactive,
-            color: mode === "classique" ? PC.white : PC.muted,
+            color: mode === "classique" ? PC.white : "#6b7280",
             boxShadow: mode === "classique" ? PC.activeRing : "none",
           }}
           onClick={onSelectClassique}
@@ -137,7 +139,7 @@ function ModeLocationPill({
           className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
             backgroundColor: mode === "saisonnier" ? pillActive : pillInactive,
-            color: mode === "saisonnier" ? PC.white : PC.muted,
+            color: mode === "saisonnier" ? PC.white : "#6b7280",
             boxShadow: mode === "saisonnier" ? PC.activeRing : "none",
           }}
           onClick={onSelectSaisonnier}
@@ -170,13 +172,13 @@ function NavLink({
   const [hover, setHover] = useState(false);
 
   const activeStyle: CSSProperties = {
-    backgroundColor: "rgba(124, 58, 237, 0.12)",
-    color: PC.secondary,
-    boxShadow: `inset 2px 0 0 0 ${PC.primaryLight}`,
+    backgroundColor: "rgba(124, 58, 237, 0.08)",
+    color: PC.primary,
+    boxShadow: `inset 2px 0 0 0 ${PC.primary}`,
   };
 
   const idleStyle: CSSProperties = {
-    color: hover ? PC.text : PC.muted,
+    color: hover ? PC.text : PC.tertiary,
     backgroundColor: hover ? "rgba(124, 58, 237, 0.05)" : "transparent",
   };
 
@@ -193,7 +195,7 @@ function NavLink({
     >
       <Icon
         className="h-5 w-5 shrink-0"
-        style={{ color: isActive ? PC.primaryLight : hover ? PC.secondary : PC.muted }}
+        style={{ color: isActive ? PC.primary : hover ? PC.primary : PC.tertiary }}
       />
       {starterOnlyLock ? (
         <span className="flex min-w-0 items-center gap-1.5">
@@ -364,8 +366,8 @@ export function NavigationSidebar() {
   }, [ownerName, email]);
 
   const asideStyle: CSSProperties = {
-    backgroundColor: "#08080f",
-    backgroundImage: "radial-gradient(circle at 15% 5%, rgba(124,58,237,0.18), transparent 38%)",
+    backgroundColor: "#ffffff",
+    backgroundImage: "radial-gradient(circle at 15% 5%, rgba(124,58,237,0.09), transparent 38%)",
     borderRight: `1px solid ${PC.border}`,
     position: "fixed",
     top: 0,
@@ -382,10 +384,8 @@ export function NavigationSidebar() {
   };
 
   const profileCardStyle: CSSProperties = {
-    backgroundColor: PC.glassBg,
-    border: `1px solid ${PC.glassBorder}`,
-    WebkitBackdropFilter: PC.glassBlur,
-    backdropFilter: PC.glassBlur,
+    backgroundColor: PC.card,
+    border: `1px solid ${PC.border}`,
     boxShadow: PC.cardShadow,
     transition: "all 200ms ease-out",
   };
@@ -452,7 +452,7 @@ export function NavigationSidebar() {
                 </p>
               ) : null}
               {email ? (
-                <p className="truncate text-xs" style={{ color: PC.muted }}>
+                <p className="truncate text-xs" style={{ color: PC.tertiary }}>
                   {email}
                 </p>
               ) : null}
@@ -469,7 +469,7 @@ export function NavigationSidebar() {
       <aside className="hidden flex-col md:flex" style={asideStyle}>
         <div className="flex h-full min-h-0 flex-col p-5">
           <Link href="/" className="mb-6 flex shrink-0 items-center gap-2.5">
-            <LogoFull className="h-9 w-auto" />
+            <img src={SIDEBAR_LOGO_SRC} alt="Locavio" width={140} height={28} className="h-9 w-auto" />
           </Link>
 
           <div className="flex min-h-0 flex-1 flex-col">
@@ -562,7 +562,7 @@ export function NavigationSidebar() {
             style={{
               backgroundColor: PC.sidebar,
               borderRight: `1px solid ${PC.border}`,
-              boxShadow: "8px 0 32px rgba(0, 0, 0, 0.45)",
+              boxShadow: "8px 0 24px rgba(0, 0, 0, 0.08)",
             }}
           >
             <div className="flex h-full min-h-0 flex-col p-5">
@@ -572,7 +572,7 @@ export function NavigationSidebar() {
                   className="flex min-w-0 items-center gap-2.5"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <LogoFull className="h-9 w-auto" />
+                  <img src={SIDEBAR_LOGO_SRC} alt="Locavio" width={140} height={28} className="h-9 w-auto" />
                 </Link>
                 <button
                   type="button"
@@ -907,13 +907,13 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative flex h-10 w-10 items-center justify-center rounded-lg transition"
-        style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}
+        style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}`, color: PC.text }}
         aria-label="Notifications"
         aria-expanded={open}
       >
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden focusable="false">
           <path
-            fill="#FFFFFF"
+            fill="currentColor"
             d="M12 3a6 6 0 0 0-6 6v3.382l-.894 1.789A1 1 0 0 0 6 16h12a1 1 0 0 0 .894-1.447L18 12.382V9a6 6 0 0 0-6-6Zm0 18a3 3 0 0 0 2.816-2H9.184A3 3 0 0 0 12 21Z"
           />
         </svg>
