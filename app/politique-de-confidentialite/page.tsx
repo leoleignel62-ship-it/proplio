@@ -85,8 +85,13 @@ export default function PolitiqueConfidentialitePage() {
         </h2>
         <p>Vos données peuvent être partagées avec :</p>
         <ul className="list-disc space-y-1 pl-6">
-          <li>Supabase (hébergement base de données) — Union Européenne.</li>
-          <li>Vercel (hébergement application) — États-Unis, couvert par les clauses contractuelles types.</li>
+          <li>
+            Supabase (hébergement base de données) — Serveurs Union Européenne (Irlande).
+          </li>
+          <li>
+            Vercel (hébergement application) — Société américaine, serveurs en Europe (Francfort, Allemagne), couvert
+            par les clauses contractuelles types UE.
+          </li>
           <li>Stripe (paiement) — États-Unis, couvert par les clauses contractuelles types.</li>
           <li>Resend (envoi d&apos;emails) — États-Unis, couvert par les clauses contractuelles types.</li>
         </ul>

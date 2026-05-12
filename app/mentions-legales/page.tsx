@@ -44,6 +44,10 @@ export default function MentionsLegalesPage() {
           <br />
           Covina, CA 91723, États-Unis
           <br />
+          Serveurs utilisés : Europe (Francfort, Allemagne)
+          <br />
+          Les données des utilisateurs sont traitées sur des serveurs situés en Union Européenne.
+          <br />
           <a href="https://vercel.com" target="_blank" rel="noreferrer" className="underline">
             https://vercel.com
           </a>
