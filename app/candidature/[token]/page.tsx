@@ -202,14 +202,19 @@ export default function CandidatureTokenPage() {
   useEffect(() => {
     let cancelled = false;
 
+    console.log("DEBUG token:", token, "length:", token?.length);
+
     if (!token || token.trim().length < 10) {
       return;
     }
 
     void (async () => {
       setLoadingToken(true);
+      console.log("DEBUG fetching:", `/api/candidature/get-token?token=${token}`);
       const res = await fetch(`/api/candidature/get-token?token=${encodeURIComponent(token)}`);
       const payload = (await res.json().catch(() => null)) as TokenInfo | { error?: string } | null;
+      console.log("DEBUG res.status:", res.status, "res.ok:", res.ok);
+      console.log("DEBUG payload:", JSON.stringify(payload));
       if (cancelled) return;
       if (!res.ok && res.status !== 410) {
         setTokenInfo({ valide: false, expire: false, soumis: false, prenom_candidat: "", nom_candidat: "" });
