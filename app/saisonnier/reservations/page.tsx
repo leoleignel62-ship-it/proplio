@@ -34,7 +34,7 @@ const SaisonnierReservationsPlanningCalendar = dynamic(
     loading: () => (
       <div
         className="rounded-xl p-6 text-sm"
-        style={{ backgroundColor: "#0d0d14", border: "1px solid #ffffff08", color: "#a1a1aa" }}
+        style={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb", color: "#6b7280" }}
       >
         Chargement du calendrier…
       </div>

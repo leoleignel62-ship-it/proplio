@@ -66,7 +66,7 @@ type Logement = {
   ical_booking_url?: string | null;
 };
 
-const EXPLOITATION_CARD_BG = "#13131a";
+const EXPLOITATION_CARD_BG = "#ffffff";
 const FREE_LOGEMENT_MODIF_LIMIT_MESSAGE =
   "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
 const FREE_LOGEMENT_DELETE_LIMIT_MESSAGE =
@@ -988,7 +988,7 @@ export default function LogementsPage() {
                   ...panelCard,
                   opacity: isLocked ? 0.75 : 1,
                   cursor: isLocked ? "default" : "pointer",
-                  borderColor: isHovered ? "#ffffff15" : undefined,
+                  borderColor: isHovered ? "rgba(124, 58, 237, 0.25)" : undefined,
                   boxShadow: isHovered ? "0 10px 40px -12px rgba(124, 58, 237, 0.22)" : panelCard.boxShadow,
                 }}
                 onMouseEnter={() => setHoveredLogementId(row.id)}
@@ -1200,7 +1200,7 @@ export default function LogementsPage() {
                             <span
                               aria-hidden
                               className="pointer-events-none absolute inset-0 rounded-[10px]"
-                              style={{ backgroundColor: "rgba(10, 10, 14, 0.55)" }}
+                              style={{ backgroundColor: "rgba(0, 0, 0, 0.35)" }}
                             />
                             <span
                               aria-hidden

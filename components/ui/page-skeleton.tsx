@@ -8,7 +8,7 @@ export function PageSkeleton() {
         <div className="h-8 w-56 max-w-full rounded-lg" style={{ backgroundColor: PC.card }} />
         <div
           className="h-4 w-72 max-w-full rounded-lg"
-          style={{ backgroundColor: "rgba(26, 26, 36, 0.7)" }}
+          style={{ backgroundColor: "rgba(124, 58, 237, 0.08)" }}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -47,8 +47,8 @@ function tabButtonLabel(tab: TabId): string {
 }
 
 const HEADER_CARD = {
-  backgroundColor: "#13131a",
-  border: "1px solid #ffffff08",
+  backgroundColor: "#ffffff",
+  border: "1px solid #e5e7eb",
   borderRadius: 12,
 } as const;
 
@@ -91,7 +91,7 @@ function InfoBadge({
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ backgroundColor: "rgba(255,255,255,0.06)", color: PC.text, border: "1px solid #ffffff08" }}
+      style={{ backgroundColor: "rgba(124, 58, 237, 0.08)", color: PC.text, border: "1px solid #e5e7eb" }}
     >
       <span style={{ color: iconColor }}>{icon}</span>
       {children}
@@ -227,7 +227,7 @@ export default function LogementDetailPage() {
         <p className="mt-3 text-xs leading-relaxed" style={{ color: PC.tertiary }}>
           {logement.adresse}, {logement.code_postal} {logement.ville}
         </p>
-        <div className="my-5 h-px w-full" style={{ backgroundColor: "#ffffff08" }} aria-hidden />
+        <div className="my-5 h-px w-full" style={{ backgroundColor: "#f3f4f6" }} aria-hidden />
         <div className="flex flex-wrap items-center gap-4">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
@@ -261,7 +261,7 @@ export default function LogementDetailPage() {
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-1 border-b pb-px" style={{ borderColor: "#ffffff08" }}>
+      <div className="flex flex-wrap gap-1 border-b pb-px" style={{ borderColor: "#e5e7eb" }}>
         {tabs.map((tab) => {
           const active = activeTab === tab;
           return (
@@ -273,14 +273,14 @@ export default function LogementDetailPage() {
                 active
                   ? {
                       backgroundColor: TAB_ACTIVE_BG,
-                      color: PC.white,
+                      color: PC.secondary,
                       borderBottom: "2px solid #7c3aed",
                       marginBottom: "-1px",
                     }
                   : { color: PC.muted, backgroundColor: "transparent", borderBottom: "2px solid transparent" }
               }
               onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.backgroundColor = "#ffffff05";
+                if (!active) e.currentTarget.style.backgroundColor = "rgba(124, 58, 237, 0.06)";
               }}
               onMouseLeave={(e) => {
                 if (!active) e.currentTarget.style.backgroundColor = "transparent";

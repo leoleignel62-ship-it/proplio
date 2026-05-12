@@ -60,7 +60,7 @@ function StatCard({
             borderRadius: 12,
             backgroundColor: `${iconTint}22`,
             color: iconTint,
-            border: `1px solid rgba(255,255,255,0.08)`,
+            border: "1px solid rgba(124, 58, 237, 0.15)",
           }}
         >
           <Icon className="!h-5 !w-5 shrink-0" aria-hidden />

@@ -154,11 +154,11 @@ export function BtnNeutral({ children, icon, loading, size = "default", spinnerT
       style={{
         backgroundColor: "transparent",
         color: PC.muted,
-        border: "1px solid rgba(255,255,255,0.2)",
+        border: "1px solid #e5e7eb",
         ...style,
       }}
       onMouseEnter={(e) => {
-        if (!rest.disabled && !loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(255,255,255,0.06)";
+        if (!rest.disabled && !loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(0,0,0,0.04)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";

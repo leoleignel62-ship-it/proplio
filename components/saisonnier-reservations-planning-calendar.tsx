@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 
-const BG = "#0d0d14";
-const BORDER_OUTER = "#ffffff08";
-const COL_BORDER = "#ffffff04";
+const BG = "#f8f7ff";
+const BORDER_OUTER = "#e5e7eb";
+const COL_BORDER = "#f3f4f6";
 const COL_MIN = 40;
-const LEFT_COL_BG = "#13131a";
-const LEFT_COL_BORDER = "#ffffff10";
+const LEFT_COL_BG = "#ffffff";
+const LEFT_COL_BORDER = "#e5e7eb";
 
 function sourceGradient(source: string): string {
   switch (source) {
@@ -272,7 +272,7 @@ export function SaisonnierReservationsPlanningCalendar({
   return (
     <div
       className="overflow-hidden rounded-xl text-sm"
-      style={{ backgroundColor: BG, border: `1px solid ${BORDER_OUTER}`, color: "#e4e4e7" }}
+      style={{ backgroundColor: BG, border: `1px solid ${BORDER_OUTER}`, color: "#1a0533" }}
     >
       <div
         className="flex flex-col gap-4 border-b px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4"
@@ -288,7 +288,7 @@ export function SaisonnierReservationsPlanningCalendar({
           >
             <IconChevronLeft />
           </button>
-          <h2 className="min-w-[10rem] text-center text-base font-semibold tracking-tight text-white sm:min-w-[12rem] sm:text-lg">
+          <h2 className="min-w-[10rem] text-center text-base font-semibold tracking-tight text-[#1a0533] sm:min-w-[12rem] sm:text-lg">
             {monthYearTitle}
           </h2>
           <button
@@ -314,7 +314,7 @@ export function SaisonnierReservationsPlanningCalendar({
         </div>
 
         <div className="relative w-full sm:w-auto sm:min-w-[240px]">
-          <span className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-zinc-500" aria-hidden>
+          <span className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-[#6b7280]" aria-hidden>
             <IconFilter className="block" />
           </span>
           <label className="sr-only" htmlFor="planning-filter-logement">
@@ -324,11 +324,11 @@ export function SaisonnierReservationsPlanningCalendar({
             id="planning-filter-logement"
             className="w-full appearance-none rounded-xl py-3 pl-11 pr-10 text-sm font-medium outline-none transition duration-150 focus:ring-2 focus:ring-violet-500/40"
             style={{
-              backgroundColor: "#0f0f16",
+              backgroundColor: "#f8f7ff",
               border: `1px solid ${LEFT_COL_BORDER}`,
-              color: "#fafafa",
-              colorScheme: "dark",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+              color: "#1a0533",
+              colorScheme: "light",
+              boxShadow: "inset 0 1px 0 rgba(124, 58, 237, 0.04)",
             }}
             value={filterLogementId}
             onChange={(e) => setFilterLogementId(e.target.value)}
@@ -340,7 +340,7 @@ export function SaisonnierReservationsPlanningCalendar({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500" aria-hidden>
+          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6b7280]" aria-hidden>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -354,7 +354,7 @@ export function SaisonnierReservationsPlanningCalendar({
         </p>
       ) : null}
       {loading ? (
-        <p className="px-4 py-8 text-center text-xs text-zinc-500">Chargement du planning…</p>
+        <p className="px-4 py-8 text-center text-xs text-[#6b7280]">Chargement du planning…</p>
       ) : (
         <div
           className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]"
@@ -366,7 +366,7 @@ export function SaisonnierReservationsPlanningCalendar({
               style={{ backgroundColor: LEFT_COL_BG, borderColor: LEFT_COL_BORDER }}
             >
               <div
-                className="flex items-end border-b px-3 pb-2.5 pt-3 text-[11px] font-medium uppercase tracking-wide text-zinc-500"
+                className="flex items-end border-b px-3 pb-2.5 pt-3 text-[11px] font-medium uppercase tracking-wide text-[#6b7280]"
                 style={{ borderColor: COL_BORDER, minHeight: 64 }}
               >
                 Logement
@@ -380,13 +380,13 @@ export function SaisonnierReservationsPlanningCalendar({
                     style={{
                       borderColor: COL_BORDER,
                       minHeight: 56,
-                      backgroundColor: rowIdx % 2 === 1 ? "rgba(255,255,255,0.02)" : "transparent",
+                      backgroundColor: rowIdx % 2 === 1 ? "rgba(124, 58, 237, 0.02)" : "transparent",
                     }}
                   >
-                    <span className="line-clamp-2 text-[13px] font-bold leading-snug text-white">{lg.nom}</span>
+                    <span className="line-clamp-2 text-[13px] font-bold leading-snug text-[#1a0533]">{lg.nom}</span>
                     <span
-                      className="w-fit rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-300"
-                      style={{ backgroundColor: "rgba(124, 58, 237, 0.2)", color: "#c4b5fd" }}
+                      className="w-fit rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[#7c3aed]"
+                      style={{ backgroundColor: "rgba(124, 58, 237, 0.12)" }}
                     >
                       {count} réservation{count === 1 ? "" : "s"} ce mois
                     </span>
@@ -409,7 +409,7 @@ export function SaisonnierReservationsPlanningCalendar({
                     className="flex flex-col items-center justify-end gap-0.5 border-r px-0.5 pb-2 pt-2 text-center"
                     style={{ borderColor: COL_BORDER }}
                   >
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-[#6b7280]">
                       {h.weekdayShort}
                     </span>
                     {h.isToday ? (
@@ -424,7 +424,7 @@ export function SaisonnierReservationsPlanningCalendar({
                         {h.dayNum}
                       </span>
                     ) : (
-                      <span className="pb-0.5 text-[15px] font-semibold tabular-nums text-zinc-100">{h.dayNum}</span>
+                      <span className="pb-0.5 text-[15px] font-semibold tabular-nums text-[#4b5563]">{h.dayNum}</span>
                     )}
                   </div>
                 ))}
@@ -432,7 +432,7 @@ export function SaisonnierReservationsPlanningCalendar({
 
               {logementsRows.map((lg, rowIdx) => {
                 const forLogement = rows.filter((r) => r.logement_id === lg.id);
-                const rowBg = rowIdx % 2 === 1 ? "rgba(255,255,255,0.02)" : "transparent";
+                const rowBg = rowIdx % 2 === 1 ? "rgba(124, 58, 237, 0.02)" : "transparent";
                 return (
                   <div
                     key={lg.id}

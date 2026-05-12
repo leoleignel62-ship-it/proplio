@@ -35,7 +35,7 @@ type EntityFormModalProps = {
 
 const CARD: CSSProperties = {
   backgroundColor: PC.card,
-  border: `1px solid rgba(255, 255, 255, 0.1)`,
+  border: "1px solid #e5e7eb",
   borderRadius: 12,
   boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 58, 237, 0.08)",
   padding: 24,

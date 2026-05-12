@@ -34,7 +34,7 @@ type LogementTaxGroup = {
   idsReversee: string[];
 };
 
-const CARD_BG = "#13131a";
+const CARD_BG = "#ffffff";
 const BORDER_VIOLET = "rgba(124, 58, 237, 0.65)";
 const BORDER_GREEN = "rgba(22, 163, 74, 0.65)";
 const GREEN_TEXT = "#22c55e";
@@ -364,8 +364,8 @@ export default function TaxesSejourPage() {
                         border: `1px solid ${BORDER_GREEN}`,
                       }
                     : {
-                        backgroundColor: "rgba(124, 58, 237, 0.15)",
-                        color: "#c4b5fd",
+                        backgroundColor: "rgba(124, 58, 237, 0.12)",
+                        color: PC.secondary,
                         border: `1px solid ${BORDER_VIOLET}`,
                       }
                 }

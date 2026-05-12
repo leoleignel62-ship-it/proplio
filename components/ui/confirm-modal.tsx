@@ -38,8 +38,8 @@ export function ConfirmModal({
       <div
         className="w-full max-w-md rounded-xl p-6 shadow-2xl"
         style={{
-          backgroundColor: "#13131a",
-          border: "1px solid rgba(255,255,255,0.1)",
+          backgroundColor: "#ffffff",
+          border: "1px solid #e5e7eb",
           borderRadius: 12,
         }}
       >
