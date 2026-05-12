@@ -9,6 +9,7 @@ export const CANDIDATURE_ALLOWED_MIME_TYPES = [
 
 export type CandidatureTypeContrat =
   | "CDI"
+  | "CDD"
   | "CDD_long"
   | "CDD_court"
   | "independant"
@@ -19,10 +20,12 @@ export type CandidatureTypeContrat =
   | "sans_emploi";
 
 export type CandidatureTypeGarant =
+  | "physique"
+  | "moral"
+  | "visale"
   | "personnel_solvable"
   | "personnel_moins_solvable"
-  | "bancaire"
-  | "visale";
+  | "bancaire";
 
 export type CandidatureSituation = "seul" | "couple" | "colocation" | "famille";
 
@@ -53,6 +56,12 @@ export const TYPE_DOCUMENT_LABELS: Record<string, string> = {
   piece_identite: "Pièce d'identité",
   justificatif_domicile: "Justificatif de domicile",
   document_garant: "Document garant",
+  garant_identite: "Pièce d'identité du garant",
+  garant_domicile: "Justificatif de domicile du garant",
+  garant_bulletins: "Bulletins de salaire du garant",
+  garant_impot: "Avis d'imposition du garant",
+  garant_docs_moral: "Documents personne morale garante",
+  garant_visale: "Visale",
   autre: "Autre",
 };
 

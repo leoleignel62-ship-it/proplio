@@ -33,7 +33,7 @@ function getRatioPoints(ratio: number): number {
 
 function getContratPoints(typeContrat: CandidatureTypeContrat): number {
   if (typeContrat === "CDI" || typeContrat === "retraite" || typeContrat === "fonctionnaire") return 25;
-  if (typeContrat === "CDD_long") return 18;
+  if (typeContrat === "CDD" || typeContrat === "CDD_long") return 18;
   if (typeContrat === "independant") return 15;
   if (typeContrat === "interimaire") return 10;
   if (typeContrat === "etudiant") return 8;
@@ -50,8 +50,8 @@ function getAnciennetePoints(ancienneteMois: number): number {
 
 function getGarantPoints(hasGarant: boolean, typeGarant?: CandidatureTypeGarant | null): number {
   if (!hasGarant || !typeGarant) return 0;
-  if (typeGarant === "bancaire" || typeGarant === "visale") return 15;
-  if (typeGarant === "personnel_solvable") return 12;
+  if (typeGarant === "bancaire" || typeGarant === "visale" || typeGarant === "moral") return 15;
+  if (typeGarant === "physique" || typeGarant === "personnel_solvable") return 12;
   if (typeGarant === "personnel_moins_solvable") return 6;
   return 0;
 }

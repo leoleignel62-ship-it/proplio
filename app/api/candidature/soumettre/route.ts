@@ -59,10 +59,16 @@ export async function POST(request: Request) {
       anciennete_mois: formulaire.anciennete_mois ?? null,
       revenus_nets_mensuels: formulaire.revenus_nets_mensuels ?? null,
       a_garant: Boolean(formulaire.a_garant),
-      type_garant: formulaire.type_garant ?? null,
-      revenus_garant: formulaire.revenus_garant ?? null,
+      type_garant: formulaire.a_garant && formulaire.type_garant ? formulaire.type_garant : null,
+      revenus_garant:
+        formulaire.a_garant && formulaire.type_garant === "physique" ? (formulaire.revenus_garant ?? null) : null,
       situation: formulaire.situation ?? null,
       nb_personnes_foyer: formulaire.nb_personnes_foyer ?? null,
+      nom_prenom_garant:
+        formulaire.a_garant && formulaire.type_garant === "physique" ? (formulaire.nom_prenom_garant || null) : null,
+      employeur_garant: formulaire.a_garant ? (formulaire.employeur_garant || null) : null,
+      type_contrat_garant:
+        formulaire.a_garant && formulaire.type_garant === "physique" ? (formulaire.type_contrat_garant || null) : null,
       score,
       note,
       details_score: details,
