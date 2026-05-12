@@ -20,7 +20,14 @@ const PUBLIC_PATHS = [
   "/securite",
   "/blog",
 ] as const;
-const PUBLIC_API_PATHS = ["/api/stripe/webhook", "/api/irl", "/api/landing/send-exemple"] as const;
+const PUBLIC_API_PATHS = [
+  "/api/stripe/webhook",
+  "/api/irl",
+  "/api/landing/send-exemple",
+  "/api/candidature/get-token",
+  "/api/candidature/upload-document",
+  "/api/candidature/soumettre",
+] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
 const AUTH_PAGES = ["/login", "/register"] as const;
 
