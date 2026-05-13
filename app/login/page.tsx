@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { LogoFull } from "@/components/locavio-icons";
+import { LogoFullDark } from "@/components/locavio-icons";
 import { ensureProprietaireRow } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
@@ -71,7 +71,7 @@ function LoginForm() {
         style={LEFT_BG}
       >
         <div className="flex items-center">
-          <LogoFull className="h-9 w-auto" />
+          <LogoFullDark className="h-9 w-auto" />
         </div>
         <div className="mx-auto max-w-md text-center text-white">
           <p className="text-4xl font-extrabold leading-tight tracking-[-0.03em] text-white">Gérez vos locations.</p>
