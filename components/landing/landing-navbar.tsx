@@ -42,7 +42,7 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
         </Link>
 
         <nav
-          className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-4 md:flex"
+          className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-4 lg:flex"
           aria-label="Navigation principale"
         >
           {centerLinks.map((item) => {
@@ -84,13 +84,13 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
           })}
         </nav>
 
-        <span className="mx-2 hidden h-5 w-px shrink-0 bg-gray-200 md:block" aria-hidden />
+        <span className="mx-2 hidden h-5 w-px shrink-0 bg-gray-200 lg:block" aria-hidden />
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+            className="lg:hidden rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
             aria-label="Menu"
             aria-expanded={menuOpen}
           >
@@ -104,7 +104,7 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
           </Link>
           <Link
             href="/register"
-            className="hidden min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out md:inline-flex"
+            className="hidden min-h-[40px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition duration-200 ease-out lg:inline-flex"
             style={{
               background: PC.gradientPrimary,
               color: PC.white,
@@ -117,7 +117,7 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
       </div>
 
       {menuOpen ? (
-        <div className="md:hidden border-t border-gray-100 bg-white backdrop-blur-xl">
+        <div className="lg:hidden border-t border-gray-100 bg-white backdrop-blur-xl">
           <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4" aria-label="Navigation mobile">
             {centerLinks.map((item) => (
               <Link

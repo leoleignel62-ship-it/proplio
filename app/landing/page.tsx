@@ -117,7 +117,7 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-20 sm:px-12 sm:py-24" style={glassCard}>
+        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-10 sm:px-12 sm:py-14 lg:py-16" style={glassCard}>
           <div
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
@@ -149,7 +149,7 @@ export default function LandingPage() {
               />
             </div>
             <h1
-              className="hero-reveal mt-8 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
+              className="hero-reveal mt-4 mb-4 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
               style={{ color: PC.text, animationDelay: "150ms" }}
             >
               <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
@@ -165,7 +165,7 @@ export default function LandingPage() {
               sur l&apos;essentiel : investir.
             </p>
             <div
-              className="hero-reveal mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+              className="hero-reveal mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center"
               style={{ animationDelay: "450ms" }}
             >
               <Link
