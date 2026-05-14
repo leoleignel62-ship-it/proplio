@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Check } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
@@ -118,7 +119,7 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-12 sm:px-12 sm:py-14 lg:py-16" style={glassCard}>
+        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-8 sm:px-12 sm:py-8 lg:py-10" style={glassCard}>
           <div
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
@@ -137,7 +138,14 @@ export default function LandingPage() {
               animation: "locavio-pulse 3s ease infinite",
             }}
           />
-          <div className="relative z-[1] flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center">
+          <div className="relative z-[1] flex min-h-0 flex-col items-center justify-center text-center">
+            <Image
+              src="/logos/logomark-couleur.svg"
+              alt="Locavio"
+              width={56}
+              height={56}
+              className="mb-6 mx-auto"
+            />
             <h1
               className="text-5xl font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-6xl lg:leading-[1.08]"
               style={{ color: "#1a0533" }}
