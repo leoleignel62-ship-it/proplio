@@ -189,19 +189,17 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="flex min-h-0 w-full justify-center lg:justify-end">
-              <div className="relative w-full max-w-[1000px]">
-                <div className="absolute inset-0 bg-[#7c3aed] opacity-[0.08] blur-3xl rounded-full scale-110" />
-                <div className="relative rounded-xl overflow-hidden shadow-2xl border border-gray-100 transform rotate-1 scale-95 landing-hero-demo-animate">
-                  <Image
-                    src="/images/dashboard-preview.png"
-                    alt="Dashboard Locavio"
-                    width={1200}
-                    height={800}
-                    className="w-full h-auto"
-                    priority
-                  />
-                </div>
+            <div className="relative w-full min-w-0">
+              <div className="absolute inset-0 scale-110 rounded-full bg-[#7c3aed] opacity-[0.08] blur-3xl" />
+              <div className="landing-hero-demo-animate relative overflow-hidden rounded-xl border border-gray-100 shadow-2xl">
+                <Image
+                  src="/images/dashboard-preview.png"
+                  alt="Dashboard Locavio"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto rounded-xl"
+                  priority
+                />
               </div>
             </div>
           </div>
