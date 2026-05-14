@@ -224,7 +224,7 @@ export default function LandingBelowFold() {
               aria-hidden
             />
             <Image
-              src="/dashboard-preview.png"
+              src="/images/dashboard-preview.png"
               alt="Aperçu du tableau de bord Locavio"
               width={1200}
               height={720}
