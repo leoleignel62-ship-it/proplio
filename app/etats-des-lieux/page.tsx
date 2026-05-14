@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
@@ -489,7 +490,10 @@ export default function EtatsDesLieuxPage() {
       {isPlanLimitReached ? (
         <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
           <div className="flex items-center justify-between gap-3">
-            <p>⚠️ {planLimitMessage}</p>
+            <p className="flex min-w-0 items-start gap-2">
+              <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
+              <span>{planLimitMessage}</span>
+            </p>
             <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
               Voir les plans
             </a>

@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  AlertTriangle,
+  Clock,
+  CreditCard,
+  FileText,
+  Landmark,
+  Lock,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -165,7 +174,7 @@ function NavLink({
   Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   isActive: boolean;
   onNavigate?: () => void;
-  /** Plan Free : lien cliquable vers la page upsell, avec 🔒 + tooltip. */
+  /** Plan Free : lien cliquable vers la page upsell, avec icône cadenas + tooltip. */
   starterOnlyLock?: boolean;
   tourId?: string;
 }) {
@@ -200,7 +209,7 @@ function NavLink({
       {starterOnlyLock ? (
         <span className="flex min-w-0 items-center gap-1.5">
           <span>{label}</span>
-          <span aria-hidden>🔒</span>
+          <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
         </span>
       ) : (
         label
@@ -944,19 +953,19 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
               <>
                 {alerts.quittancesNonEnvoyeesMois > 0 ? (
                   <Link href="/quittances" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <span>⚠</span>
+                    <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                     <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
                   </Link>
                 ) : null}
                 {alerts.bauxUrgents.map((bail) => (
                   <Link key={bail.id} href="/baux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }} onClick={() => setOpen(false)}>
-                    <span>⏱</span>
+                    <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                     <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
                   </Link>
                 ))}
                 {alerts.edlManquants.map((item) => (
                   <Link key={item.bailId} href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <span>📝</span>
+                    <FileText size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                     <span>État des lieux d&apos;entrée manquant pour {item.logementNom}</span>
                   </Link>
                 ))}
@@ -968,7 +977,7 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
                     onClick={() => setOpen(false)}
                   >
-                    <span>📈</span>
+                    <TrendingUp size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                     <span>Révision de loyer disponible pour {item.logementNom}</span>
                   </Link>
                 ))}
@@ -979,7 +988,7 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
                   >
                     <div className="flex items-start gap-2">
-                      <span>💰</span>
+                      <Landmark size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                       <span>
                         Acompte attendu de{" "}
                         {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
@@ -1015,7 +1024,7 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
                   >
                     <div className="flex items-start gap-2">
-                      <span>💳</span>
+                      <CreditCard size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
                       <span>
                         Solde attendu de{" "}
                         {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}

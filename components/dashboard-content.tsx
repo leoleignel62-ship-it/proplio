@@ -1,5 +1,6 @@
 "use client";
 
+import { User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -411,8 +412,9 @@ export function DashboardContent() {
             boxShadow: PC.cardShadow,
           }}
         >
-          <p className="text-sm leading-relaxed" style={{ color: PC.text }}>
-            👤 Complétez votre profil propriétaire pour que vos quittances et baux soient générés correctement.
+          <p className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: PC.text }}>
+            <User size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+            <span>Complétez votre profil propriétaire pour que vos quittances et baux soient générés correctement.</span>
           </p>
           <BtnPrimary className="shrink-0" onClick={() => router.push("/parametres")}>
             Compléter mon profil

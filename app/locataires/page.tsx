@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { AlertTriangle, Lock } from "lucide-react";
 import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -23,6 +24,13 @@ const LOCA_MODAL_CARD: CSSProperties = {
   padding: 24,
   boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
 };
+
+const DROIT_A_L_ERREUR_MODAL_TITLE = (
+  <span className="flex items-center gap-2">
+    <AlertTriangle size={16} strokeWidth={1.75} className="shrink-0 text-amber-500" aria-hidden />
+    Droit à l&apos;erreur — Plan Découverte
+  </span>
+);
 const GROUP_TITLE_STYLE: CSSProperties = { color: PC.text, fontWeight: 600, letterSpacing: "-0.01em" };
 const CARD_STYLE: CSSProperties = { ...panelCard, padding: 16 };
 const FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE =
@@ -645,7 +653,10 @@ export default function LocatairesPage() {
       {isPlanLimitReached ? (
         <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
           <div className="flex items-center justify-between gap-3">
-            <p>⚠️ {planLimitMessage}</p>
+            <p className="flex min-w-0 items-start gap-2">
+              <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
+              <span>{planLimitMessage}</span>
+            </p>
             <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
               Voir les plans
             </a>
@@ -709,10 +720,11 @@ export default function LocatairesPage() {
                             </span>
                             {isLocked ? (
                               <span
-                                className="ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                                 style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}
                               >
-                                🔒 Verrouillé - Plan insuffisant
+                                <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
+                                Verrouillé - Plan insuffisant
                               </span>
                             ) : null}
                           </div>
@@ -912,7 +924,7 @@ export default function LocatairesPage() {
 
       <ConfirmModal
         open={freeEditConfirmRow != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description="Vous bénéficiez d'une modification gratuite sur ce locataire. Après cela, toute modification nécessitera le plan Starter."
         confirmLabel="Continuer"
         cancelLabel="Annuler"
@@ -928,7 +940,7 @@ export default function LocatairesPage() {
 
       <ConfirmModal
         open={freeDeleteConfirmTarget != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description="Vous bénéficiez d'une suppression gratuite sur ce locataire. Après cela, toute suppression nécessitera le plan Starter."
         confirmLabel="Confirmer la suppression"
         cancelLabel="Annuler"

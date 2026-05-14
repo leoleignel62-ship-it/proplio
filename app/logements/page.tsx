@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
+import { AlertTriangle, Building2, Lock, Palmtree, RefreshCw } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -67,6 +69,12 @@ type Logement = {
 };
 
 const EXPLOITATION_CARD_BG = "#ffffff";
+const DROIT_A_L_ERREUR_MODAL_TITLE = (
+  <span className="flex items-center gap-2">
+    <AlertTriangle size={16} strokeWidth={1.75} className="shrink-0 text-amber-500" aria-hidden />
+    Droit à l&apos;erreur — Plan Découverte
+  </span>
+);
 const FREE_LOGEMENT_MODIF_LIMIT_MESSAGE =
   "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
 const FREE_LOGEMENT_DELETE_LIMIT_MESSAGE =
@@ -940,7 +948,10 @@ export default function LogementsPage() {
       {isPlanLimitReached ? (
         <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
           <div className="flex items-center justify-between gap-3">
-            <p>⚠️ {planLimitMessage}</p>
+            <p className="flex min-w-0 items-start gap-2">
+              <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
+              <span>{planLimitMessage}</span>
+            </p>
             <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
               Voir les plans
             </a>
@@ -1018,8 +1029,9 @@ export default function LogementsPage() {
                       {status.label}
                     </span>
                     {isLocked ? (
-                      <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
-                        🔒 Verrouillé - Plan insuffisant
+                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
+                        <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
+                        Verrouillé - Plan insuffisant
                       </span>
                     ) : null}
                   </div>
@@ -1155,24 +1167,25 @@ export default function LogementsPage() {
                     [
                       {
                         id: "classique" as const,
-                        icon: "🏠",
+                        Icon: Building2,
                         title: "Location classique",
                         desc: "Bail annuel, quittances mensuelles",
                       },
                       {
                         id: "saisonnier" as const,
-                        icon: "🌴",
+                        Icon: Palmtree,
                         title: "Location saisonnière",
                         desc: "Nuitées, réservations courte durée",
                       },
                       {
                         id: "les_deux" as const,
-                        icon: "🔄",
+                        Icon: RefreshCw,
                         title: "Les deux",
                         desc: "Exploitation mixte selon les périodes",
                       },
-                    ] as const
+                    ] as { id: TypeLocation; Icon: LucideIcon; title: string; desc: string }[]
                   ).map((opt) => {
+                    const OptIcon = opt.Icon;
                     const active = typeLocation === opt.id;
                     const isFreeLockedExploitationOption =
                       currentPlan === "free" && (opt.id === "saisonnier" || opt.id === "les_deux");
@@ -1204,15 +1217,15 @@ export default function LogementsPage() {
                             />
                             <span
                               aria-hidden
-                              className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-xs"
+                              className="absolute right-2 top-2 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs"
                               style={{ backgroundColor: "rgba(0,0,0,0.45)", color: PC.warning }}
                             >
-                              🔒
+                              <Lock size={16} strokeWidth={1.75} className="text-[#9ca3af]" aria-hidden />
                             </span>
                           </>
                         ) : null}
-                        <span className="text-xl" aria-hidden>
-                          {opt.icon}
+                        <span className="text-xl leading-none text-[#1a0533]" aria-hidden>
+                          <OptIcon size={20} strokeWidth={1.75} />
                         </span>
                         <span className="text-sm font-semibold" style={{ color: PC.text }}>
                           {opt.title}
@@ -1748,7 +1761,7 @@ export default function LogementsPage() {
 
       <ConfirmModal
         open={freeEditConfirmRow != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description={
           "Vous bénéficiez d'une modification gratuite sur ce logement. Après cela, toute modification nécessitera le plan Starter.\n\nVoulez-vous utiliser votre modification ?"
         }
@@ -1766,7 +1779,7 @@ export default function LogementsPage() {
 
       <ConfirmModal
         open={freeDeleteConfirmId != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description={
           "Vous bénéficiez d'une suppression gratuite sur ce logement. Après cela, toute suppression nécessitera le plan Starter.\n\nVoulez-vous utiliser votre suppression ?"
         }

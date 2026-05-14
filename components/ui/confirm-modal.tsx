@@ -1,11 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { PC } from "@/lib/locavio-colors";
 import { BtnDanger, BtnNeutral, BtnPrimary } from "@/components/ui/locavio-ui";
 
 export type ConfirmModalProps = {
   open: boolean;
-  title: string;
+  title: ReactNode;
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;

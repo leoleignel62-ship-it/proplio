@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
 import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
@@ -97,6 +98,13 @@ const FREE_QUITTANCE_MODIF_LIMIT_MESSAGE =
   "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
 const FREE_QUITTANCE_DELETE_LIMIT_MESSAGE =
   "Vous avez atteint la limite de suppression du plan Découverte. Passez au plan Starter pour des suppressions illimitées.";
+
+const DROIT_A_L_ERREUR_MODAL_TITLE = (
+  <span className="flex items-center gap-2">
+    <AlertTriangle size={16} strokeWidth={1.75} className="shrink-0 text-amber-500" aria-hidden />
+    Droit à l&apos;erreur — Plan Découverte
+  </span>
+);
 
 export default function QuittancesPage() {
   const toast = useToast();
@@ -752,7 +760,10 @@ export default function QuittancesPage() {
       {isPlanLimitReached ? (
         <div className="mb-4 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.warningBg15, color: PC.warning, border: `1px solid ${PC.border}` }}>
           <div className="flex items-center justify-between gap-3">
-            <p>⚠️ {planLimitMessage}</p>
+            <p className="flex min-w-0 items-start gap-2">
+              <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
+              <span>{planLimitMessage}</span>
+            </p>
             <a href={PLAN_UPGRADE_PATH} className="rounded-md px-3 py-1 text-xs font-medium" style={{ backgroundColor: PC.primary, color: PC.white }}>
               Voir les plans
             </a>
@@ -860,7 +871,7 @@ export default function QuittancesPage() {
 
       <ConfirmModal
         open={freeEditConfirmRow != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description="Vous bénéficiez d'une modification gratuite sur cette quittance. Après cela, toute modification nécessitera le plan Starter."
         confirmLabel="Continuer"
         cancelLabel="Annuler"
@@ -876,7 +887,7 @@ export default function QuittancesPage() {
 
       <ConfirmModal
         open={freeDeleteConfirmId != null}
-        title="⚠️ Droit à l'erreur — Plan Découverte"
+        title={DROIT_A_L_ERREUR_MODAL_TITLE}
         description="Vous bénéficiez d'une suppression gratuite sur cette quittance. Après cela, toute suppression nécessitera le plan Starter."
         confirmLabel="Confirmer la suppression"
         cancelLabel="Annuler"

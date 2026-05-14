@@ -18,6 +18,7 @@ import { ETAT_LABELS, formatEtatLabel, normalizeEtatNiveau } from "@/lib/etat-de
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { compareRoomElements } from "@/lib/etat-des-lieux/compare";
 import { compressImage } from "@/lib/compress-image";
+import { Camera, Image as ImageIcon } from "lucide-react";
 import type { PiecesEdlData, ElementEdl } from "@/lib/etat-des-lieux/types";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -94,10 +95,24 @@ function CompteurPhotoInputs({
       <input ref={importInputRef} type="file" accept="image/*" className="hidden" onChange={onChange} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <MutedActionBtn disabled={uploading} onClick={() => captureInputRef.current?.click()}>
-          {uploading ? "…" : "📷 Prendre une photo"}
+          {uploading ? (
+            "…"
+          ) : (
+            <span className="inline-flex items-center gap-1.5">
+              <Camera size={16} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              Prendre une photo
+            </span>
+          )}
         </MutedActionBtn>
         <MutedActionBtn disabled={uploading} onClick={() => importInputRef.current?.click()}>
-          {uploading ? "…" : "🖼 Importer une photo"}
+          {uploading ? (
+            "…"
+          ) : (
+            <span className="inline-flex items-center gap-1.5">
+              <ImageIcon size={16} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              Importer une photo
+            </span>
+          )}
         </MutedActionBtn>
       </div>
     </>
