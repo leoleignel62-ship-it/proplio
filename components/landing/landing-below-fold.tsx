@@ -222,7 +222,7 @@ export default function LandingBelowFold() {
           <div className="mt-10 flex justify-center">
             <Link
               href="/fonctionnalites"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-[#7c3aed] bg-transparent px-6 py-3 text-sm font-semibold text-[#7c3aed] transition hover:bg-violet-50"
+              className="inline-flex items-center justify-center border-2 border-[#7c3aed] text-[#7c3aed] bg-white px-6 py-3 rounded-xl font-semibold transition-all hover:bg-violet-50"
             >
               Voir toutes les fonctionnalités →
             </Link>
