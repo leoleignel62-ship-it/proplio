@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { AnimatedParticles } from "@/components/landing/animated-particles";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
+import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { PC } from "@/lib/locavio-colors";
 
@@ -226,6 +227,7 @@ export default function LandingPage() {
 
         <LandingBelowFold />
       </main>
+      <LandingFooter marginTopClassName="mt-6" />
       <AnimatedParticles />
     </div>
   );

@@ -103,9 +103,8 @@ export function QuiSommesNousClient() {
             <p className="text-sm text-white/90">Gratuit pour commencer · Sans carte bancaire</p>
           </PublicFinalCta>
         </RevealOnView>
-
-        <LandingFooter />
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

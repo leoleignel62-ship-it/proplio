@@ -113,9 +113,8 @@ export function BlogClient() {
             <p className="text-sm text-white/90">Gratuit · Sans carte bancaire</p>
           </PublicFinalCta>
         </RevealOnView>
-
-        <LandingFooter />
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

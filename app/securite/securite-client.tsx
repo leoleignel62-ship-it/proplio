@@ -139,10 +139,9 @@ export function SecuriteClient() {
             </a>
           </PublicFinalCta>
         </RevealOnView>
-
-        <LandingFooter />
         </div>
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

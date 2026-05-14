@@ -121,10 +121,9 @@ export function PourQuiClient() {
             </Link>
           </PublicFinalCta>
         </RevealOnView>
-
-        <LandingFooter />
         </div>
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

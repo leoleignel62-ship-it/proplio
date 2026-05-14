@@ -58,9 +58,8 @@ export function BlogArticlePublic({ article, dateLabel }: { article: Article; da
             </PublicFinalCta>
           </RevealOnView>
         </article>
-
-        <LandingFooter />
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

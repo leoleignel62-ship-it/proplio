@@ -632,10 +632,9 @@ export function FonctionnalitesClient() {
           <p className="text-sm text-white/90">Gratuit pour commencer · Sans carte bancaire</p>
         </PublicFinalCta>
         </RevealOnView>
-
-        <LandingFooter />
         </div>
       </main>
+      <LandingFooter />
     </MarketingPublicShell>
   );
 }

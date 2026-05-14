@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useScrollProgress } from "@/components/hooks/use-scroll-progress";
-import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { fieldInputStyle } from "@/lib/locavio-field-styles";
@@ -586,8 +585,6 @@ export default function LandingBelowFold() {
           </div>
         </section>
       </RevealOnView>
-
-      <LandingFooter marginTopClassName="mt-6" />
     </>
   );
 }
