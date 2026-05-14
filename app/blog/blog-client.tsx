@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { articles, type Article, type ArticleCategory } from "@/lib/blog/articles";
 
 const categories = [
@@ -47,53 +48,57 @@ export function BlogClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
-          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
-            Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
-          </p>
+        <RevealOnView>
+          <header className="space-y-6 pb-8 text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
+            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+              Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
+            </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {categories.map((cat) => {
-              const isOn = active === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActive(cat)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    isOn
-                      ? "border-violet-500 bg-violet-600 text-white"
-                      : "border-gray-200 bg-white text-[#6b7280] hover:bg-gray-50"
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
-        </header>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {categories.map((cat) => {
+                const isOn = active === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActive(cat)}
+                    className={`cursor-pointer rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                      isOn
+                        ? "border-violet-500 bg-violet-600 text-white"
+                        : "border-gray-200 bg-white text-[#6b7280] hover:border-violet-100 hover:shadow-md"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </header>
+        </RevealOnView>
 
-        <div className="marketing-fade-section my-12 mb-0 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {filtered.map((article: Article) => (
-            <Link
-              key={article.slug}
-              href={`/blog/${article.slug}`}
-              className="group cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 transition hover:border-violet-300 hover:bg-gray-50"
-            >
-              <span
-                className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${categoryBadgeClass(article.category)}`}
+        <RevealOnView className="my-12 mb-0">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {filtered.map((article: Article) => (
+              <Link
+                key={article.slug}
+                href={`/blog/${article.slug}`}
+                className={`group block rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-violet-100 hover:shadow-md cursor-pointer hover:bg-gray-50`}
               >
-                {article.category}
-              </span>
-              <h2 className="mt-3 text-lg font-bold text-[#1a0533] group-hover:text-violet-700">{article.title}</h2>
-              <p className="mt-2 line-clamp-2 text-sm text-[#6b7280]">{article.description}</p>
-              <p className="mt-4 text-xs text-[#9ca3af]">
-                {article.readTime} min · {formatPublished(article.publishedAt)}
-              </p>
-            </Link>
-          ))}
-        </div>
+                <span
+                  className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${categoryBadgeClass(article.category)}`}
+                >
+                  {article.category}
+                </span>
+                <h2 className="mt-3 text-lg font-bold text-[#1a0533] group-hover:text-violet-700">{article.title}</h2>
+                <p className="mt-2 line-clamp-2 text-sm text-[#6b7280]">{article.description}</p>
+                <p className="mt-4 text-xs text-[#9ca3af]">
+                  {article.readTime} min · {formatPublished(article.publishedAt)}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </RevealOnView>
 
         <LandingFooter />
       </main>

@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LANDING_PRICING_META, PLAN_ORDER } from "@/lib/landing-pricing-meta";
 import { PLAN_DISPLAY_LABELS, planDisplayRows } from "@/lib/plan-display-copy";
+import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { PC } from "@/lib/locavio-colors";
 
 type BillingMode = "mensuel" | "annuel";
@@ -113,18 +114,21 @@ export function LandingPricingSection({
       className={`landing-section mt-12 scroll-mt-24 py-8 will-change-transform ${className}`.trim()}
     >
       {showIntro ? (
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
-            {title}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-[1.7]" style={{ color: PC.muted }}>
-            {subtitle}
-          </p>
-        </div>
+        <RevealOnView>
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl" style={{ color: PC.text }}>
+              {title}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-[1.7]" style={{ color: PC.muted }}>
+              {subtitle}
+            </p>
+          </div>
+        </RevealOnView>
       ) : null}
 
-      <div className={`mx-auto flex max-w-md flex-col items-center gap-3 ${showIntro ? "mt-10" : "mt-0"}`}>
-        <div className="relative inline-flex rounded-full p-1" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
+      <RevealOnView className={showIntro ? "mt-10" : "mt-0"}>
+        <div className="mx-auto flex max-w-md flex-col items-center gap-3">
+          <div className="relative inline-flex rounded-full p-1" style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}>
           {(["mensuel", "annuel"] as const).map((mode) => {
             const active = billing === mode;
             return (
@@ -158,11 +162,13 @@ export function LandingPricingSection({
             </p>
           </>
         ) : null}
-      </div>
+        </div>
+      </RevealOnView>
 
-      {launchBanner ?? <PricingLaunchBanner />}
+      <RevealOnView className="mt-8">{launchBanner ?? <PricingLaunchBanner />}</RevealOnView>
 
-      <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <RevealOnView className="mt-12">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {pricingPlans.map((plan, index) => {
           const isAnnual = billing === "annuel";
           const price = plan.id === "free" ? plan.monthly : isAnnual ? plan.yearly : plan.monthly;
@@ -174,7 +180,7 @@ export function LandingPricingSection({
                 pricingRefs.current[index] = el;
               }}
               data-pricing-index={index}
-              className="relative flex will-change-transform flex-col rounded-2xl p-6 transition"
+              className="relative flex cursor-default will-change-transform flex-col rounded-2xl p-6 transition-all duration-300 hover:shadow-md"
               style={{
                 ...solidCard,
                 border:
@@ -257,13 +263,19 @@ export function LandingPricingSection({
             </article>
           );
         })}
-      </div>
+        </div>
+      </RevealOnView>
 
-      <ul className="mt-12 flex flex-col items-center gap-2 text-center text-sm font-medium sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6" style={{ color: PC.muted }}>
-        <li>✓ Résiliation possible à tout moment</li>
-        <li>✓ Paiement sécurisé par Stripe</li>
-        <li>✓ Données hébergées en Europe</li>
-      </ul>
+      <RevealOnView className="mt-12">
+        <ul
+          className="flex flex-col items-center gap-2 text-center text-sm font-medium sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6"
+          style={{ color: PC.muted }}
+        >
+          <li>✓ Résiliation possible à tout moment</li>
+          <li>✓ Paiement 100% sécurisé</li>
+          <li>✓ Données hébergées en Europe</li>
+        </ul>
+      </RevealOnView>
     </section>
   );
 }

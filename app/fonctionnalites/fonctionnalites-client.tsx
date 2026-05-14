@@ -2,9 +2,22 @@
 
 import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Home, TrendingUp, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  Check,
+  CheckCircle,
+  Home,
+  Mail,
+  MapPin,
+  TrendingUp,
+  User,
+  Users,
+} from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { publicWhiteCard } from "@/components/landing/marketing-card-icon";
+import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { PC } from "@/lib/locavio-colors";
 
 type Mode = "classique" | "saisonnier";
@@ -42,8 +55,10 @@ function ExempleEmailForm({ type }: { type: ExempleEmailFormType }) {
 
   if (status === "success") {
     return (
-      <p className="mt-3 text-sm text-emerald-400">
-        ✓ C&apos;est parti ! Vérifiez votre boîte mail 📬
+      <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-emerald-400">
+        <CheckCircle size={18} className="shrink-0 text-emerald-400" aria-hidden />
+        <span>C&apos;est parti ! Vérifiez votre boîte mail</span>
+        <Mail size={18} className="shrink-0 text-emerald-400/90" aria-hidden />
       </p>
     );
   }
@@ -87,7 +102,7 @@ function Badge({ children, tone }: { children: ReactNode; tone: "all" | "starter
   );
 }
 
-const visualShell = "rounded-2xl border border-gray-200 bg-white p-6";
+const visualShell = `${publicWhiteCard} p-6`;
 
 export function FonctionnalitesClient() {
   const [mode, setMode] = useState<Mode>("classique");
@@ -95,7 +110,8 @@ export function FonctionnalitesClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 pb-8 text-center">
+        <RevealOnView>
+        <header className="space-y-6 pb-8 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
           <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
             Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
@@ -133,6 +149,7 @@ export function FonctionnalitesClient() {
             </button>
           </div>
         </header>
+        </RevealOnView>
 
         {mode === "classique" ? (
           <div className="my-12 space-y-12">
@@ -169,9 +186,24 @@ export function FonctionnalitesClient() {
                     <p className="text-sm font-bold text-violet-400">BAIL D&apos;HABITATION</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">Conforme loi ALUR — 3 ans</p>
                     <hr className="my-4 border-gray-100" />
-                    <p className="text-sm text-[#6b7280]">📍 12 rue des Lilas, 75011 Paris</p>
-                    <p className="mt-2 text-sm text-[#6b7280]">👤 Locataire : Sophie Martin</p>
-                    <p className="mt-2 text-sm text-[#6b7280]">💰 Loyer mensuel : 850 € CC</p>
+                    <p className="mt-0 flex items-center gap-3 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <MapPin size={24} strokeWidth={2} />
+                      </span>
+                      12 rue des Lilas, 75011 Paris
+                    </p>
+                    <p className="mt-3 flex items-center gap-3 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <User size={24} strokeWidth={2} />
+                      </span>
+                      Locataire : Sophie Martin
+                    </p>
+                    <p className="mt-3 flex items-center gap-3 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <TrendingUp size={24} strokeWidth={2} />
+                      </span>
+                      Loyer mensuel : 850 € CC
+                    </p>
                     <hr className="my-4 border-gray-100" />
                     <p className="text-sm text-[#6b7280]">Date de début : 01/09/2023</p>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -194,28 +226,48 @@ export function FonctionnalitesClient() {
                     <hr className="my-4 border-gray-100" />
                     <ul className="space-y-2 text-sm text-[#6b7280]">
                       <li className="flex flex-wrap items-center justify-between gap-2">
-                        <span>✓ Salon</span>
+                        <span className="flex items-center gap-2">
+                          <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                          Salon
+                        </span>
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Bon état</span>
                       </li>
                       <li className="flex flex-wrap items-center justify-between gap-2">
-                        <span>✓ Cuisine</span>
+                        <span className="flex items-center gap-2">
+                          <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                          Cuisine
+                        </span>
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Bon état</span>
                       </li>
                       <li className="flex flex-wrap items-center justify-between gap-2">
-                        <span>✓ Chambre</span>
+                        <span className="flex items-center gap-2">
+                          <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                          Chambre
+                        </span>
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Bon état</span>
                       </li>
                       <li className="flex flex-wrap items-center justify-between gap-2">
-                        <span>✓ Salle de bain</span>
+                        <span className="flex items-center gap-2">
+                          <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                          Salle de bain
+                        </span>
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Bon état</span>
                       </li>
                       <li className="flex flex-wrap items-center justify-between gap-2">
-                        <span>⚠ Entrée</span>
+                        <span className="flex items-center gap-2">
+                          <AlertTriangle size={16} className="shrink-0 text-amber-500" aria-hidden />
+                          Entrée
+                        </span>
                         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Égratignure sol</span>
                       </li>
                     </ul>
                     <hr className="my-4 border-gray-100" />
-                    <p className="text-sm text-[#6b7280]">📸 12 photos jointes</p>
+                    <p className="flex items-center gap-3 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <Camera size={24} strokeWidth={2} />
+                      </span>
+                      12 photos jointes
+                    </p>
                     <span className="mt-3 inline-block rounded-full bg-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-300">PDF généré ✓</span>
                   </div>
                 ),
@@ -265,9 +317,18 @@ export function FonctionnalitesClient() {
                     </div>
                     <hr className="my-4 border-gray-100" />
                     <ul className="space-y-2 text-sm text-[#6b7280]">
-                      <li className="text-emerald-400/95">✓ Revenus : 3,2x le loyer</li>
-                      <li className="text-emerald-400/95">✓ CDI — 3 ans d&apos;ancienneté</li>
-                      <li className="text-emerald-400/95">✓ Garant Visale</li>
+                      <li className="flex items-center gap-2 text-emerald-400/95">
+                        <Check size={16} className="shrink-0 text-emerald-400" aria-hidden />
+                        Revenus : 3,2x le loyer
+                      </li>
+                      <li className="flex items-center gap-2 text-emerald-400/95">
+                        <Check size={16} className="shrink-0 text-emerald-400" aria-hidden />
+                        CDI — 3 ans d&apos;ancienneté
+                      </li>
+                      <li className="flex items-center gap-2 text-emerald-400/95">
+                        <Check size={16} className="shrink-0 text-emerald-400" aria-hidden />
+                        Garant Visale
+                      </li>
                     </ul>
                   </div>
                 ),
@@ -342,7 +403,8 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <section key={block.title} className="marketing-fade-section grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
+              <RevealOnView key={block.title}>
+              <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
                 <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone={block.badgeTone}>{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
@@ -351,6 +413,7 @@ export function FonctionnalitesClient() {
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
               </section>
+              </RevealOnView>
             ))}
           </div>
         ) : (
@@ -424,11 +487,25 @@ export function FonctionnalitesClient() {
                     <p className="mt-1 text-xs text-[#9ca3af]">12/07/2026 — Appt Paris</p>
                     <hr className="my-4 border-gray-100" />
                     <ul className="space-y-2 text-sm text-[#6b7280]">
-                      <li>✓ Salon — Bon état</li>
-                      <li>✓ Cuisine — Bon état</li>
-                      <li>✓ Chambre — Bon état</li>
+                      <li className="flex items-center gap-2">
+                        <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                        Salon — Bon état
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                        Cuisine — Bon état
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check size={16} className="shrink-0 text-emerald-500" aria-hidden />
+                        Chambre — Bon état
+                      </li>
                     </ul>
-                    <p className="mt-3 text-sm text-[#6b7280]">📸 8 photos jointes</p>
+                    <p className="mt-3 flex items-center gap-3 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <Camera size={24} strokeWidth={2} />
+                      </span>
+                      8 photos jointes
+                    </p>
                     <span className="mt-3 inline-block rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">Complété ✓</span>
                   </div>
                 ),
@@ -507,7 +584,8 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <section key={block.title} className="marketing-fade-section grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
+              <RevealOnView key={block.title}>
+              <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
                 <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone="starter">{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
@@ -516,20 +594,23 @@ export function FonctionnalitesClient() {
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
               </section>
+              </RevealOnView>
             ))}
           </div>
         )}
 
-        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-gray-200 bg-white px-8 py-8 text-center">
+        <RevealOnView>
+        <section className={`my-12 mb-0 px-8 py-8 text-center ${publicWhiteCard}`}>
           <h2 className="text-2xl font-bold text-[#1a0533]">Prêt à simplifier votre gestion locative ?</h2>
           <Link
             href="/register"
-            className="mt-6 inline-flex rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
+            className="mt-6 inline-flex cursor-pointer rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
           >
             Commencer gratuitement →
           </Link>
           <p className="mt-4 text-sm text-[#6b7280]">Gratuit pour commencer · Sans carte bancaire</p>
         </section>
+        </RevealOnView>
 
         <LandingFooter />
       </main>

@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { BarChart2, CheckCircle, Home, Waves, type LucideIcon } from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { MarketingCardIcon, publicWhiteCard } from "@/components/landing/marketing-card-icon";
+import { RevealOnView } from "@/components/landing/reveal-on-view";
 
-const cards = [
+const cards: {
+  Icon: LucideIcon;
+  title: string;
+  subtitle: string;
+  description: string;
+  features: string[];
+}[] = [
   {
-    emoji: "🏠",
+    Icon: Home,
     title: "Vous louez en longue durée",
     subtitle: "Le bailleur classique",
     description:
@@ -20,7 +29,7 @@ const cards = [
     ],
   },
   {
-    emoji: "🌊",
+    Icon: Waves,
     title: "Vous faites de la location saisonnière",
     subtitle: "Le loueur courte durée",
     description:
@@ -35,7 +44,7 @@ const cards = [
     ],
   },
   {
-    emoji: "📈",
+    Icon: BarChart2,
     title: "Vous gérez plusieurs biens",
     subtitle: "Le propriétaire qui se développe",
     description:
@@ -54,55 +63,56 @@ export function PourQuiClient() {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="marketing-fade-section space-y-6 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Locavio est fait pour vous</h1>
-          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
-            Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
-          </p>
-        </header>
+        <RevealOnView>
+          <header className="space-y-6 pb-8 text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Locavio est fait pour vous</h1>
+            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+              Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
+            </p>
+          </header>
+        </RevealOnView>
 
-        <div className="my-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-          {cards.map((c) => (
-            <article
-              key={c.title}
-              className="marketing-fade-section flex flex-col rounded-2xl border border-gray-200 bg-white p-5 sm:p-8"
+        <RevealOnView className="my-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            {cards.map((c) => (
+              <article key={c.title} className={`flex flex-col p-5 sm:p-8 ${publicWhiteCard}`}>
+                <MarketingCardIcon Icon={c.Icon} />
+                <h2 className="mt-4 text-xl font-bold text-[#1a0533]">{c.title}</h2>
+                <p className="mt-1 text-sm font-medium text-violet-700">{c.subtitle}</p>
+                <p className="mt-4 flex-1 text-sm leading-relaxed text-[#6b7280]">{c.description}</p>
+                <ul className="mt-6 space-y-2 text-sm text-[#6b7280]">
+                  {c.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <CheckCircle size={18} className="mt-0.5 shrink-0 text-[#7c3aed]" aria-hidden />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-violet-600 py-3 text-center text-sm font-semibold text-white transition hover:bg-violet-500"
+                >
+                  Commencer gratuitement →
+                </Link>
+              </article>
+            ))}
+          </div>
+        </RevealOnView>
+
+        <RevealOnView>
+          <section className={`my-12 mb-0 px-8 py-8 text-center ${publicWhiteCard}`}>
+            <h2 className="text-2xl font-bold text-[#1a0533]">Pas sûr de quel profil vous correspond ?</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
+              Commencez gratuitement et explorez Locavio à votre rythme. Aucune carte bancaire requise.
+            </p>
+            <Link
+              href="/register"
+              className="mt-6 inline-flex cursor-pointer rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
             >
-              <p className="text-3xl" aria-hidden>
-                {c.emoji}
-              </p>
-              <h2 className="mt-4 text-xl font-bold text-[#1a0533]">{c.title}</h2>
-              <p className="mt-1 text-sm font-medium text-violet-700">{c.subtitle}</p>
-              <p className="mt-4 flex-1 text-sm leading-relaxed text-[#6b7280]">{c.description}</p>
-              <ul className="mt-6 space-y-2 text-sm text-[#6b7280]">
-                {c.features.map((f) => (
-                  <li key={f}>
-                    <span className="mr-2 text-violet-600">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-violet-600 py-3 text-center text-sm font-semibold text-white transition hover:bg-violet-500"
-              >
-                Commencer gratuitement →
-              </Link>
-            </article>
-          ))}
-        </div>
-
-        <section className="marketing-fade-section my-12 mb-0 rounded-2xl border border-gray-200 bg-white px-8 py-8 text-center">
-          <h2 className="text-2xl font-bold text-[#1a0533]">Pas sûr de quel profil vous correspond ?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
-            Commencez gratuitement et explorez Locavio à votre rythme. Aucune carte bancaire requise.
-          </p>
-          <Link
-            href="/register"
-            className="mt-6 inline-flex rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
-          >
-            Essayer Locavio gratuitement →
-          </Link>
-        </section>
+              Essayer Locavio gratuitement →
+            </Link>
+          </section>
+        </RevealOnView>
 
         <LandingFooter />
       </main>
