@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
-import { publicWhiteCard } from "@/components/landing/marketing-card-icon";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { PC } from "@/lib/locavio-colors";
 
@@ -90,69 +91,103 @@ function ExempleEmailForm({ type }: { type: ExempleEmailFormType }) {
 function Badge({ children, tone }: { children: ReactNode; tone: "all" | "starter" }) {
   return (
     <span
-      className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-      style={{
-        backgroundColor: tone === "all" ? PC.successBg10 : PC.primaryBg10,
-        color: tone === "all" ? PC.success : PC.secondary,
-        border: `1px solid ${tone === "all" ? PC.borderSuccess40 : PC.primaryBorder40}`,
-      }}
+      className={
+        tone === "all"
+          ? "inline-block rounded-full bg-[#7c3aed] px-3 py-1 text-xs font-semibold text-white"
+          : "inline-block rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-[#7c3aed]"
+      }
     >
       {children}
     </span>
   );
 }
 
-const visualShell = `${publicWhiteCard} p-6`;
+type FeatureBlock = {
+  badge: string;
+  badgeTone: "all" | "starter";
+  title: string;
+  desc: string;
+  visual: ReactNode;
+  exempleType?: ExempleEmailFormType;
+};
+
+function FeatureBand({ index, block }: { index: number; block: FeatureBlock }) {
+  const oddSection = index % 2 === 0;
+  const bgClass = oddSection ? "bg-white" : "bg-violet-50";
+  const swapOrder = !oddSection;
+
+  return (
+    <section className={`w-full px-8 py-16 ${bgClass}`} aria-labelledby={`feat-title-${index}`}>
+      <RevealOnView>
+        <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
+          <div className={`min-w-0 ${swapOrder ? "lg:order-2" : ""}`}>
+            <Badge tone={block.badgeTone}>{block.badge}</Badge>
+            <h2 id={`feat-title-${index}`} className="mt-4 text-2xl font-bold text-[#7c3aed]">
+              {block.title}
+            </h2>
+            <p className="mt-4 leading-relaxed text-[#4b5563]">{block.desc}</p>
+            {block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
+          </div>
+          <div className={`min-w-0 overflow-x-auto ${swapOrder ? "lg:order-1" : ""}`}>{block.visual}</div>
+        </div>
+      </RevealOnView>
+    </section>
+  );
+}
+
+const visualCard = "rounded-2xl border border-gray-100 bg-white p-6 shadow-xl";
 
 export function FonctionnalitesClient() {
   const [mode, setMode] = useState<Mode>("classique");
 
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <RevealOnView>
-          <header className="mx-auto mb-8 max-w-4xl space-y-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
-            <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
-              Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
-            </p>
+      <main className="w-full">
+        <div className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+          <RevealOnView>
+            <PublicPageHeader>
+              <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
+              <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+                Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
+              </p>
 
-            <div
-              className="mx-auto inline-flex rounded-full p-1"
-              style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
-              role="group"
-              aria-label="Mode d'affichage"
-            >
-            <button
-              type="button"
-              onClick={() => setMode("classique")}
-              className="rounded-full px-6 py-2.5 text-sm font-semibold transition"
-              style={{
-                backgroundColor: mode === "classique" ? PC.primary : "transparent",
-                color: mode === "classique" ? PC.white : PC.muted,
-                boxShadow: mode === "classique" ? PC.activeRing : "none",
-              }}
-            >
-              Classique
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("saisonnier")}
-              className="rounded-full px-6 py-2.5 text-sm font-semibold transition"
-              style={{
-                backgroundColor: mode === "saisonnier" ? PC.primary : "transparent",
-                color: mode === "saisonnier" ? PC.white : PC.muted,
-                boxShadow: mode === "saisonnier" ? PC.activeRing : "none",
-              }}
-            >
-              Saisonnier
-            </button>
-          </div>
-        </header>
-        </RevealOnView>
+              <div
+                className="mx-auto inline-flex rounded-full p-1"
+                style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+                role="group"
+                aria-label="Mode d'affichage"
+              >
+                <button
+                  type="button"
+                  onClick={() => setMode("classique")}
+                  className="rounded-full px-6 py-2.5 text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: mode === "classique" ? PC.primary : "transparent",
+                    color: mode === "classique" ? PC.white : PC.muted,
+                    boxShadow: mode === "classique" ? PC.activeRing : "none",
+                  }}
+                >
+                  Classique
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("saisonnier")}
+                  className="rounded-full px-6 py-2.5 text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: mode === "saisonnier" ? PC.primary : "transparent",
+                    color: mode === "saisonnier" ? PC.white : PC.muted,
+                    boxShadow: mode === "saisonnier" ? PC.activeRing : "none",
+                  }}
+                >
+                  Saisonnier
+                </button>
+              </div>
+            </PublicPageHeader>
+          </RevealOnView>
+        </div>
 
         {mode === "classique" ? (
-          <div className="my-12 space-y-12">
+          <>
             {[
               {
                 badge: "Disponible sur tous les plans" as const,
@@ -161,7 +196,7 @@ export function FonctionnalitesClient() {
                 desc: "Générez et envoyez vos quittances en 1 clic dès réception du loyer. PDF conforme généré instantanément, envoyé par email à votre locataire automatiquement.",
                 exempleType: "quittance" as const,
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">QUITTANCE DE LOYER — Mai 2026</p>
                     <p className="mt-3 text-sm text-[#6b7280]">Bailleur : Sophie Proprietaire</p>
                     <p className="mt-1 text-sm text-[#6b7280]">Locataire : Thomas Dubois</p>
@@ -182,7 +217,7 @@ export function FonctionnalitesClient() {
                 desc: "Créez des baux conformes à la loi ALUR. Les données propriétaire et locataire sont injectées automatiquement. Envoyez par email et suivez le statut en temps réel.",
                 exempleType: "bail" as const,
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">BAIL D&apos;HABITATION</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">Conforme loi ALUR — 3 ans</p>
                     <hr className="my-4 border-gray-100" />
@@ -220,7 +255,7 @@ export function FonctionnalitesClient() {
                 desc: "Documentez l'état de votre logement à l'entrée et à la sortie avec photos, commentaires et PDF automatique. Comparaison entrée/sortie intégrée.",
                 exempleType: "edl" as const,
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">ÉTAT DES LIEUX D&apos;ENTRÉE</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">01/09/2023 — 12 rue des Lilas, Paris</p>
                     <hr className="my-4 border-gray-100" />
@@ -278,7 +313,7 @@ export function FonctionnalitesClient() {
                 title: "Révision annuelle des loyers calculée automatiquement",
                 desc: "Locavio détecte les baux éligibles et calcule le nouveau loyer selon l'indice IRL de l'INSEE. Envoyez la lettre officielle en PDF par email en un clic.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">RÉVISION ANNUELLE — IRL Q1 2026</p>
                     <hr className="my-4 border-gray-100" />
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -305,7 +340,7 @@ export function FonctionnalitesClient() {
                 title: "Analysez la solvabilité de vos candidats",
                 desc: "Envoyez un questionnaire personnalisé à chaque candidat. Locavio analyse automatiquement le dossier et vous attribue une note de solvabilité claire.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">DOSSIER DE CANDIDATURE</p>
                     <p className="mt-2 font-semibold text-[#1a0533]">Antoine Moreau</p>
                     <p className="text-xs text-[#9ca3af]">Candidature — Appt 75011 Paris</p>
@@ -339,7 +374,7 @@ export function FonctionnalitesClient() {
                 title: "Pilotez vos revenus en un coup d'œil",
                 desc: "Suivez vos loyers attendus, encaissés et en retard. Graphique annuel, suivi par logement, vue d'ensemble de votre patrimoine.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">REVENUS 2026</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">Suivi mensuel</p>
                     <div className="mt-4 flex h-28 items-end justify-between gap-1 px-0.5">
@@ -366,7 +401,7 @@ export function FonctionnalitesClient() {
                 title: "Toutes vos données au même endroit",
                 desc: "Centralisez les informations de vos locataires, coordonnées, historique des paiements et documents depuis une interface claire.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
                         <Home className="mx-auto h-5 w-5 text-violet-400" />
@@ -403,28 +438,19 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <RevealOnView key={block.title}>
-              <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
-                <div className={`min-w-0 rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm ${i % 2 === 1 ? "md:order-2" : ""}`}>
-                  <Badge tone={block.badgeTone}>{block.badge}</Badge>
-                  <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
-                  {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
-                </div>
-                <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
-              </section>
-              </RevealOnView>
+              <FeatureBand key={block.title} index={i} block={block} />
             ))}
-          </div>
+          </>
         ) : (
-          <div className="my-12 space-y-12">
+          <>
             {[
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "Gérez toutes vos réservations",
                 desc: "Vue liste ou calendrier planning. Statuts, sources (Airbnb, Booking, Direct) et actions rapides depuis une interface unifiée.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="font-semibold text-[#1a0533]">Thomas Martin</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">12 juil → 19 juil 2026 · 7 nuits</p>
                     <span className="mt-2 inline-block rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-300">À venir</span>
@@ -437,10 +463,11 @@ export function FonctionnalitesClient() {
               },
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "Centralisez vos voyageurs",
                 desc: "Coordonnées, pièce d'identité et historique complet des séjours pour chaque voyageur.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <div className="flex items-start gap-3">
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet-600 text-lg font-bold text-white">
                         TM
@@ -458,11 +485,12 @@ export function FonctionnalitesClient() {
               },
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "Contrats de séjour prêts en quelques minutes",
                 desc: "Générez et envoyez automatiquement les contrats de séjour à vos voyageurs par email en PDF. Toutes les informations de réservation sont injectées automatiquement.",
                 exempleType: "contrat-saisonnier" as const,
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">CONTRAT DE LOCATION SAISONNIÈRE</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">Articles L.324-1 du Code du tourisme</p>
                     <hr className="my-4 border-gray-100" />
@@ -479,10 +507,11 @@ export function FonctionnalitesClient() {
               },
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "États des lieux adaptés au saisonnier",
                 desc: "Réalisez vos états des lieux entre chaque séjour directement depuis votre smartphone avec photos et PDF automatique.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">ÉTAT DES LIEUX — ENTRÉE</p>
                     <p className="mt-1 text-xs text-[#9ca3af]">12/07/2026 — Appt Paris</p>
                     <hr className="my-4 border-gray-100" />
@@ -512,10 +541,11 @@ export function FonctionnalitesClient() {
               },
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "Taxes de séjour calculées automatiquement",
                 desc: "Calculez et exportez automatiquement les taxes de séjour à déclarer auprès de votre commune.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">TAXE DE SÉJOUR — T2 2026</p>
                     <hr className="my-4 border-gray-100" />
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -537,10 +567,11 @@ export function FonctionnalitesClient() {
               },
               {
                 badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
                 title: "Pilotez votre activité saisonnière",
                 desc: "Revenus encaissés et à venir, taux d'occupation, répartition par source Airbnb/Booking/Direct, graphique mensuel.",
                 visual: (
-                  <div className={visualShell}>
+                  <div className={visualCard}>
                     <p className="text-sm font-bold text-violet-400">REVENUS SAISONNIERS 2026</p>
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                       <div>
@@ -584,35 +615,26 @@ export function FonctionnalitesClient() {
                 ),
               },
             ].map((block, i) => (
-              <RevealOnView key={block.title}>
-              <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
-                <div className={`min-w-0 rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm ${i % 2 === 1 ? "md:order-2" : ""}`}>
-                  <Badge tone="starter">{block.badge}</Badge>
-                  <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
-                  {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
-                </div>
-                <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
-              </section>
-              </RevealOnView>
+              <FeatureBand key={block.title} index={i} block={block} />
             ))}
-          </div>
+          </>
         )}
 
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <RevealOnView>
-        <section className={`my-12 mb-0 px-8 py-8 text-center ${publicWhiteCard}`}>
-          <h2 className="text-2xl font-bold text-[#1a0533]">Prêt à simplifier votre gestion locative ?</h2>
+        <PublicFinalCta title="Prêt à simplifier votre gestion locative ?">
           <Link
             href="/register"
-            className="mt-6 inline-flex cursor-pointer rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
+            className="inline-flex cursor-pointer rounded-xl bg-white px-6 py-3 font-semibold text-[#7c3aed] transition hover:bg-gray-50"
           >
             Commencer gratuitement →
           </Link>
-          <p className="mt-4 text-sm text-[#6b7280]">Gratuit pour commencer · Sans carte bancaire</p>
-        </section>
+          <p className="text-sm text-white/90">Gratuit pour commencer · Sans carte bancaire</p>
+        </PublicFinalCta>
         </RevealOnView>
 
         <LandingFooter />
+        </div>
       </main>
     </MarketingPublicShell>
   );

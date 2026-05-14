@@ -4,6 +4,8 @@ import { CheckCircle, CreditCard, Globe, Lock, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { MarketingCardIcon, publicWhiteCard } from "@/components/landing/marketing-card-icon";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 
@@ -63,14 +65,19 @@ const faqSecurity = [
 export function SecuriteClient() {
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
+      <main className="relative mx-auto max-w-6xl overflow-hidden px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          <div className="absolute right-0 top-20 h-96 w-96 translate-x-1/2 rounded-full bg-violet-100 opacity-40 blur-3xl" />
+          <div className="absolute bottom-40 left-0 h-64 w-64 -translate-x-1/2 rounded-full bg-violet-200 opacity-30 blur-2xl" />
+        </div>
+        <div className="relative z-10">
         <RevealOnView>
-          <header className="mx-auto mb-8 max-w-4xl space-y-4 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
+          <PublicPageHeader>
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">La sécurité de vos données, notre priorité</h1>
             <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
               Vos données locatives sont confidentielles. Locavio repose sur des infrastructures certifiées aux standards les plus exigeants.
             </p>
-          </header>
+          </PublicPageHeader>
         </RevealOnView>
 
         <RevealOnView className="mt-4">
@@ -123,15 +130,18 @@ export function SecuriteClient() {
         </RevealOnView>
 
         <RevealOnView>
-          <section className={`my-12 mb-0 px-8 py-8 text-center ${publicWhiteCard}`}>
-            <h2 className="text-xl font-bold text-[#1a0533]">Vous avez d&apos;autres questions sur la sécurité ?</h2>
-            <a href="mailto:contact@locavio.fr" className="mt-4 inline-block text-violet-600 hover:text-[#1a0533]">
+          <PublicFinalCta title="Vous avez d&apos;autres questions sur la sécurité ?">
+            <a
+              href="mailto:contact@locavio.fr"
+              className="inline-flex cursor-pointer rounded-xl bg-white px-6 py-3 font-semibold text-[#7c3aed] transition hover:bg-gray-50"
+            >
               contact@locavio.fr
             </a>
-          </section>
+          </PublicFinalCta>
         </RevealOnView>
 
         <LandingFooter />
+        </div>
       </main>
     </MarketingPublicShell>
   );

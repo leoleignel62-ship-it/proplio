@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
-import { publicWhiteCard } from "@/components/landing/marketing-card-icon";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import type { Article, ArticleCategory } from "@/lib/blog/articles";
 
@@ -24,7 +25,7 @@ export function BlogArticlePublic({ article, dateLabel }: { article: Article; da
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <article>
           <RevealOnView>
-            <header className="mx-auto max-w-3xl text-center">
+            <PublicPageHeader maxWidthClass="max-w-3xl">
               <span
                 className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${categoryBadgeClass(article.category)}`}
               >
@@ -35,7 +36,7 @@ export function BlogArticlePublic({ article, dateLabel }: { article: Article; da
               <p className="mt-4 text-sm text-[#9ca3af]">
                 {article.readTime} min de lecture · Publié le {dateLabel}
               </p>
-            </header>
+            </PublicPageHeader>
           </RevealOnView>
 
           <RevealOnView className="mt-12">
@@ -46,16 +47,15 @@ export function BlogArticlePublic({ article, dateLabel }: { article: Article; da
           </RevealOnView>
 
           <RevealOnView className="mt-14">
-            <div className={`mx-auto max-w-3xl px-8 py-8 text-center ${publicWhiteCard}`}>
-              <h2 className="text-xl font-bold text-[#1a0533]">Prêt à simplifier votre gestion locative ?</h2>
+            <PublicFinalCta title="Prêt à simplifier votre gestion locative ?">
               <Link
                 href="/register"
-                className="mt-6 inline-flex cursor-pointer rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
+                className="inline-flex cursor-pointer rounded-xl bg-white px-6 py-3 font-semibold text-[#7c3aed] transition hover:bg-gray-50"
               >
                 Commencer gratuitement →
               </Link>
-              <p className="mt-4 text-sm text-[#6b7280]">Gratuit · Sans carte bancaire</p>
-            </div>
+              <p className="text-sm text-white/90">Gratuit · Sans carte bancaire</p>
+            </PublicFinalCta>
           </RevealOnView>
         </article>
 

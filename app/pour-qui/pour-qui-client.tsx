@@ -4,6 +4,8 @@ import Link from "next/link";
 import { BarChart2, CheckCircle, Home, Waves, type LucideIcon } from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { MarketingCardIcon, publicWhiteCard } from "@/components/landing/marketing-card-icon";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 
@@ -62,14 +64,19 @@ const cards: {
 export function PourQuiClient() {
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+      <main className="relative mx-auto max-w-6xl overflow-hidden px-4 pt-10 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          <div className="absolute right-0 top-20 h-96 w-96 translate-x-1/2 rounded-full bg-violet-100 opacity-40 blur-3xl" />
+          <div className="absolute bottom-40 left-0 h-64 w-64 -translate-x-1/2 rounded-full bg-violet-200 opacity-30 blur-2xl" />
+        </div>
+        <div className="relative z-10">
         <RevealOnView>
-          <header className="mx-auto mb-8 max-w-4xl space-y-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
+          <PublicPageHeader>
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Locavio est fait pour vous</h1>
             <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
               Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
             </p>
-          </header>
+          </PublicPageHeader>
         </RevealOnView>
 
         <RevealOnView className="my-12">
@@ -102,21 +109,21 @@ export function PourQuiClient() {
         </RevealOnView>
 
         <RevealOnView>
-          <section className={`my-12 mb-0 px-8 py-8 text-center ${publicWhiteCard}`}>
-            <h2 className="text-2xl font-bold text-[#1a0533]">Pas sûr de quel profil vous correspond ?</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
+          <PublicFinalCta title="Pas sûr de quel profil vous correspond ?">
+            <p className="mx-auto max-w-xl text-center text-sm text-white/90">
               Commencez gratuitement et explorez Locavio à votre rythme. Aucune carte bancaire requise.
             </p>
             <Link
               href="/register"
-              className="mt-6 inline-flex cursor-pointer rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500"
+              className="inline-flex cursor-pointer rounded-xl bg-white px-6 py-3 font-semibold text-[#7c3aed] transition hover:bg-gray-50"
             >
               Essayer Locavio gratuitement →
             </Link>
-          </section>
+          </PublicFinalCta>
         </RevealOnView>
 
         <LandingFooter />
+        </div>
       </main>
     </MarketingPublicShell>
   );

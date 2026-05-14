@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Home, MapPin, Zap } from "lucide-react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { MarketingCardIcon, publicWhiteCard } from "@/components/landing/marketing-card-icon";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 
@@ -19,17 +20,10 @@ export function QuiSommesNousClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <RevealOnView>
-          <header className="mx-auto max-w-3xl pb-10 text-center">
-            <Image
-              src="/logos/logomark-couleur.svg"
-              alt=""
-              width={56}
-              height={56}
-              className="mx-auto h-14 w-14"
-            />
-            <h1 className="mt-6 text-3xl font-bold text-[#1a0533]">Notre histoire</h1>
+          <PublicPageHeader maxWidthClass="max-w-3xl">
+            <h1 className="text-3xl font-bold text-[#1a0533]">Notre histoire</h1>
             <p className="mt-3 text-center text-[#4b5563]">Locavio est né d&apos;une vraie conversation.</p>
-          </header>
+          </PublicPageHeader>
         </RevealOnView>
 
         <RevealOnView>
@@ -79,15 +73,6 @@ export function QuiSommesNousClient() {
             </div>
 
             <p className="mt-8 text-right text-base font-semibold text-[#1a0533]">— Léo</p>
-
-            <div className="mt-10 text-center">
-              <Link
-                href="/register"
-                className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-violet-500"
-              >
-                Essayer Locavio gratuitement
-              </Link>
-            </div>
           </article>
         </RevealOnView>
 
@@ -105,6 +90,18 @@ export function QuiSommesNousClient() {
               </div>
             ))}
           </div>
+        </RevealOnView>
+
+        <RevealOnView>
+          <PublicFinalCta title="Prêt à simplifier votre gestion locative ?">
+            <Link
+              href="/register"
+              className="inline-flex cursor-pointer rounded-xl bg-white px-8 py-3 text-sm font-semibold text-[#7c3aed] transition hover:bg-gray-50"
+            >
+              Essayer Locavio gratuitement
+            </Link>
+            <p className="text-sm text-white/90">Gratuit pour commencer · Sans carte bancaire</p>
+          </PublicFinalCta>
         </RevealOnView>
 
         <LandingFooter />

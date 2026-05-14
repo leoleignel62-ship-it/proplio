@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { MarketingPublicShell } from "@/components/landing/marketing-public-shell";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PublicFinalCta } from "@/components/landing/public-final-cta";
+import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { articles, type Article, type ArticleCategory } from "@/lib/blog/articles";
 
@@ -49,7 +51,7 @@ export function BlogClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <RevealOnView>
-          <header className="mx-auto mb-8 max-w-4xl space-y-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
+          <PublicPageHeader>
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
             <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
               Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
@@ -74,7 +76,7 @@ export function BlogClient() {
                 );
               })}
             </div>
-          </header>
+          </PublicPageHeader>
         </RevealOnView>
 
         <RevealOnView className="my-12 mb-0">
@@ -98,6 +100,18 @@ export function BlogClient() {
               </Link>
             ))}
           </div>
+        </RevealOnView>
+
+        <RevealOnView>
+          <PublicFinalCta title="Prêt à simplifier votre gestion locative ?">
+            <Link
+              href="/register"
+              className="inline-flex cursor-pointer rounded-xl bg-white px-6 py-3 font-semibold text-[#7c3aed] transition hover:bg-gray-50"
+            >
+              Commencer gratuitement →
+            </Link>
+            <p className="text-sm text-white/90">Gratuit · Sans carte bancaire</p>
+          </PublicFinalCta>
         </RevealOnView>
 
         <LandingFooter />
