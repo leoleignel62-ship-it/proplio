@@ -28,7 +28,7 @@ export function QuiSommesNousClient() {
               className="mx-auto h-14 w-14"
             />
             <h1 className="mt-6 text-3xl font-bold text-[#1a0533]">Notre histoire</h1>
-            <p className="mt-3 text-center text-[#6b7280]">Locavio est né d&apos;une vraie conversation.</p>
+            <p className="mt-3 text-center text-[#4b5563]">Locavio est né d&apos;une vraie conversation.</p>
           </header>
         </RevealOnView>
 

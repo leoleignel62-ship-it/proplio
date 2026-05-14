@@ -113,7 +113,7 @@ export function FonctionnalitesClient() {
         <RevealOnView>
         <header className="space-y-6 pb-8 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
-          <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+          <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
             Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
           </p>
 
@@ -408,7 +408,7 @@ export function FonctionnalitesClient() {
                 <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone={block.badgeTone}>{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
+                  <p className="mt-4 leading-relaxed text-[#4b5563]">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
@@ -589,7 +589,7 @@ export function FonctionnalitesClient() {
                 <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone="starter">{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
+                  <p className="mt-4 leading-relaxed text-[#4b5563]">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>

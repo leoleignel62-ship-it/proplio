@@ -63,17 +63,17 @@ const faqSecurity = [
 export function SecuriteClient() {
   return (
     <MarketingPublicShell>
-      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
         <RevealOnView>
-          <header className="space-y-4 pb-8 text-center">
+          <header className="space-y-4 pb-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">La sécurité de vos données, notre priorité</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+            <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
               Vos données locatives sont confidentielles. Locavio repose sur des infrastructures certifiées aux standards les plus exigeants.
             </p>
           </header>
         </RevealOnView>
 
-        <RevealOnView className="my-12">
+        <RevealOnView className="mt-4">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {certifications.map((c) => (
               <article key={c.title} className={`px-5 py-6 sm:px-8 sm:py-8 ${publicWhiteCard}`}>

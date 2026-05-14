@@ -51,7 +51,7 @@ export function BlogClient() {
         <RevealOnView>
           <header className="space-y-6 pb-8 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+            <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
               Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
             </p>
 

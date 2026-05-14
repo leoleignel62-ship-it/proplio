@@ -66,7 +66,7 @@ export function PourQuiClient() {
         <RevealOnView>
           <header className="space-y-6 pb-8 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Locavio est fait pour vous</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+            <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
               Que vous soyez propriétaire bailleur, loueur saisonnier ou gestionnaire de plusieurs biens, Locavio s&apos;adapte à votre situation.
             </p>
           </header>
@@ -76,8 +76,10 @@ export function PourQuiClient() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {cards.map((c) => (
               <article key={c.title} className={`flex flex-col p-5 sm:p-8 ${publicWhiteCard}`}>
-                <MarketingCardIcon Icon={c.Icon} />
-                <h2 className="mt-4 text-xl font-bold text-[#1a0533]">{c.title}</h2>
+                <div className="mb-4 flex justify-center">
+                  <MarketingCardIcon Icon={c.Icon} />
+                </div>
+                <h2 className="text-xl font-bold text-[#1a0533]">{c.title}</h2>
                 <p className="mt-1 text-sm font-medium text-violet-700">{c.subtitle}</p>
                 <p className="mt-4 flex-1 text-sm leading-relaxed text-[#6b7280]">{c.description}</p>
                 <ul className="mt-6 space-y-2 text-sm text-[#6b7280]">

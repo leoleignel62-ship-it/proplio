@@ -31,7 +31,7 @@ export function BlogArticlePublic({ article, dateLabel }: { article: Article; da
                 {article.category}
               </span>
               <h1 className="mt-6 text-3xl font-bold tracking-tight text-[#1a0533] sm:text-4xl">{article.title}</h1>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-[#6b7280]">{article.description}</p>
+              <p className="mx-auto mt-4 max-w-2xl text-lg text-[#4b5563]">{article.description}</p>
               <p className="mt-4 text-sm text-[#9ca3af]">
                 {article.readTime} min de lecture · Publié le {dateLabel}
               </p>
