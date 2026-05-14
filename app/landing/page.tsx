@@ -138,8 +138,8 @@ export default function LandingPage() {
               animation: "locavio-pulse 3s ease infinite",
             }}
           />
-          <div className="relative z-[1] grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-            <div className="flex flex-col justify-center text-left">
+          <div className="relative z-[1] flex w-full flex-col items-center gap-12">
+            <div className="flex w-full flex-col items-center text-center">
               <h1
                 className="text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
                 style={{ color: "#1a0533" }}
@@ -148,11 +148,11 @@ export default function LandingPage() {
                 <br />
                 Sans perdre votre temps.
               </h1>
-              <p className="mt-5 line-clamp-2 max-w-xl text-base font-medium leading-snug sm:text-lg" style={{ color: "#6b7280" }}>
+              <p className="mx-auto mt-5 max-w-2xl text-base font-medium leading-snug sm:text-lg" style={{ color: "#6b7280" }}>
                 Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
                 votre patrimoine.
               </p>
-              <div className="mt-6 flex flex-col items-stretch justify-start gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-6 flex justify-center gap-4">
                 <Link
                   href="/register"
                   className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
@@ -173,7 +173,7 @@ export default function LandingPage() {
                   Voir les tarifs
                 </Link>
               </div>
-              <ul className="mt-10 flex max-w-lg flex-col gap-3 text-left text-sm font-medium" style={{ color: "#6b7280" }}>
+              <ul className="mt-10 flex flex-col items-center gap-3 text-sm font-medium" style={{ color: "#6b7280" }}>
                 <li className="flex items-center gap-2">
                   <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
                   Gratuit pour commencer
@@ -189,15 +189,18 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="relative w-full min-w-0">
-              <div className="absolute inset-0 scale-110 rounded-full bg-[#7c3aed] opacity-[0.08] blur-3xl" />
-              <div className="landing-hero-demo-animate relative overflow-hidden rounded-xl border border-gray-100 shadow-2xl">
+            <div className="relative mx-auto w-full max-w-5xl">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-full bg-[#7c3aed] opacity-[0.06] blur-3xl"
+                aria-hidden
+              />
+              <div className="landing-hero-demo-animate relative w-full">
                 <Image
                   src="/images/dashboard-preview.png"
                   alt="Dashboard Locavio"
-                  width={1200}
-                  height={800}
-                  className="w-full h-auto rounded-xl"
+                  width={1600}
+                  height={1000}
+                  className="w-full h-auto rounded-xl border border-gray-100 shadow-2xl"
                   priority
                 />
               </div>
