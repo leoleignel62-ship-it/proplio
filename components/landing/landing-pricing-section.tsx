@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LANDING_PRICING_META, PLAN_ORDER } from "@/lib/landing-pricing-meta";
 import { PLAN_DISPLAY_LABELS, planDisplayRows } from "@/lib/plan-display-copy";
@@ -22,7 +23,7 @@ export function PricingLaunchBanner() {
   return (
     <div className="mx-auto mb-8 max-w-xl rounded-xl border border-violet-200 bg-violet-50 px-5 py-3.5 text-center">
       <p className="text-sm font-medium text-violet-700">
-        🎉 Tarifs de lancement — Prix garantis à vie pour les premiers inscrits
+        Tarifs de lancement — Prix garantis à vie pour les premiers inscrits
       </p>
     </div>
   );
@@ -150,7 +151,7 @@ export function LandingPricingSection({
               className="rounded-full px-3 py-1 text-xs font-bold"
               style={{ backgroundColor: PC.successBg10, color: PC.success, border: `1px solid ${PC.borderSuccess40}` }}
             >
-              2 mois offerts 🎉
+              2 mois offerts
             </span>
             <p className="text-center text-sm font-medium" style={{ color: PC.muted }}>
               Économisez jusqu&apos;à 39,80€/an avec l&apos;abonnement annuel
@@ -188,10 +189,13 @@ export function LandingPricingSection({
             >
               {plan.popular ? (
                 <p
-                  className="absolute -top-3 left-1/2 w-max -translate-x-1/2 rounded-full px-3 py-1 text-xs font-bold"
+                  className="absolute -top-3 left-1/2 flex w-max -translate-x-1/2 items-center rounded-full px-3 py-1 text-xs font-bold"
                   style={{ backgroundColor: PC.primary, color: PC.white }}
                 >
-                  Le plus populaire ⭐
+                  <span className="inline-flex items-center gap-1">
+                    Le plus populaire
+                    <Star className="inline fill-[#f59e0b] text-[#f59e0b]" size={14} strokeWidth={1.5} aria-hidden />
+                  </span>
                 </p>
               ) : null}
               {isAnnual && plan.yearlySave ? (

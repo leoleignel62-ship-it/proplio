@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
+import { InteractiveDemo } from "@/components/landing/interactive-demo";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { PC } from "@/lib/locavio-colors";
@@ -117,7 +119,7 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-10 sm:px-12 sm:py-14 lg:py-16" style={glassCard}>
+        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-12 sm:px-10 sm:py-14 lg:px-12 lg:py-20" style={glassCard}>
           <div
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
@@ -136,82 +138,84 @@ export default function LandingPage() {
               animation: "locavio-pulse 3s ease infinite",
             }}
           />
-          <div className="relative z-[1] mx-auto max-w-3xl text-center">
-            <div className="hero-reveal" style={{ animationDelay: "0ms" }}>
-              <img
-                src="/logos/logomark-couleur.svg"
-                alt="Logo Locavio"
-                width={64}
-                height={64}
-                loading="eager"
-                fetchPriority="high"
-                className="mx-auto h-16 w-16"
-              />
-            </div>
-            <h1
-              className="hero-reveal mt-4 mb-4 text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
-              style={{ color: PC.text, animationDelay: "150ms" }}
-            >
-              <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
-              <br />
-              Sans perdre votre temps.
-            </h1>
-            <p
-              className="hero-reveal mx-auto mt-6 max-w-2xl text-base font-medium leading-[1.7] sm:text-lg"
-              style={{ color: PC.muted, animationDelay: "300ms" }}
-            >
-              Quittances, baux, états des lieux, révision des loyers, gestion des documents — tout est centralisé et
-              automatisé en quelques clics. Locavio vous libère des tâches administratives pour que vous vous concentriez
-              sur l&apos;essentiel : investir.
-            </p>
-            <div
-              className="hero-reveal mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center"
-              style={{ animationDelay: "450ms" }}
-            >
-              <Link
-                href="/register"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
-                style={{
-                  background: PC.gradientPrimary,
-                  color: PC.white,
-                  boxShadow: `${PC.activeRing}, ${PC.glowShadow}`,
-                  transitionDuration: "200ms",
-                  transitionTimingFunction: "ease-out",
-                }}
+          <div className="relative z-[1] grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+            <div className="flex flex-col justify-center text-left">
+              <h1
+                className="text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-5xl sm:leading-[1.08] lg:text-6xl"
+                style={{ color: "#1a0533" }}
               >
-                Commencer gratuitement
-              </Link>
-              <Link
-                href="/tarifs"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
-              >
-                Voir les tarifs
-              </Link>
+                <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
+                <br />
+                Sans perdre votre temps.
+              </h1>
+              <p className="mt-5 line-clamp-2 max-w-xl text-base font-medium leading-snug sm:text-lg" style={{ color: "#6b7280" }}>
+                Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
+                votre patrimoine.
+              </p>
+              <div className="mt-6 flex flex-col items-stretch justify-start gap-3 sm:flex-row sm:flex-wrap">
+                <Link
+                  href="/register"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
+                  style={{
+                    background: PC.gradientPrimary,
+                    color: PC.white,
+                    boxShadow: `${PC.activeRing}, ${PC.glowShadow}`,
+                    transitionDuration: "200ms",
+                    transitionTimingFunction: "ease-out",
+                  }}
+                >
+                  Commencer gratuitement
+                </Link>
+                <Link
+                  href="/tarifs"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
+                >
+                  Voir les tarifs
+                </Link>
+              </div>
+              <ul className="mt-10 flex max-w-lg flex-col gap-3 text-left text-sm font-medium" style={{ color: "#6b7280" }}>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Gratuit pour commencer
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Sans carte bancaire
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Données sécurisées
+                </li>
+              </ul>
             </div>
-            <ul
-              className="hero-reveal mx-auto mt-10 flex max-w-lg flex-col gap-2 text-left text-sm font-medium sm:mx-auto sm:max-w-md sm:text-center"
-              style={{ color: PC.tertiary, animationDelay: "600ms" }}
-            >
-              <li>✓ Gratuit pour commencer</li>
-              <li>✓ Sans carte bancaire</li>
-              <li>✓ Données sécurisées</li>
-            </ul>
-            {Array.from({ length: 7 }).map((_, i) => (
-              <span
-                key={i}
-                className="pointer-events-none absolute rounded-full will-change-transform"
-                style={{
-                  width: 4,
-                  height: 4,
-                  left: `${12 + i * 11}%`,
-                  top: `${18 + (i % 3) * 16}%`,
-                  backgroundColor: i % 2 === 0 ? "#a78bfa" : "#6366f1",
-                  opacity: 0.3,
-                  animation: `locavio-float-y ${3 + i * 0.7}s ease-in-out ${i * 0.3}s infinite`,
-                }}
+
+            <div className="relative flex min-h-0 w-full justify-center lg:justify-end">
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[min(420px,55vw)] w-[min(420px,85vw)] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+                style={{ backgroundColor: "#7c3aed", opacity: 0.08 }}
+                aria-hidden
               />
-            ))}
+              <div className="landing-hero-demo-animate relative z-[1] w-full max-w-[1000px] origin-center scale-95 rotate-1 rounded-xl border border-gray-100 bg-white/80 p-1 shadow-2xl backdrop-blur-sm">
+                <InteractiveDemo />
+              </div>
+            </div>
           </div>
+
+          {Array.from({ length: 7 }).map((_, i) => (
+            <span
+              key={i}
+              className="pointer-events-none absolute z-0 rounded-full will-change-transform"
+              style={{
+                width: 4,
+                height: 4,
+                left: `${12 + i * 11}%`,
+                top: `${18 + (i % 3) * 16}%`,
+                backgroundColor: i % 2 === 0 ? "#a78bfa" : "#6366f1",
+                opacity: 0.3,
+                animation: `locavio-float-y ${3 + i * 0.7}s ease-in-out ${i * 0.3}s infinite`,
+              }}
+            />
+          ))}
         </section>
 
         <LandingBelowFold />

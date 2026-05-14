@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, X } from "lucide-react";
+import { Check, CreditCard, Globe, Lock, Plus, Shield, X, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { InteractiveDemo } from "@/components/landing/interactive-demo";
+import { useInView } from "@/components/hooks/use-in-view";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
 import { fieldInputStyle } from "@/lib/locavio-field-styles";
@@ -50,24 +50,28 @@ const faqItems = [
   },
 ];
 
-const securityBadges = [
+const securityBadges: Array<{
+  Icon: LucideIcon;
+  name: string;
+  text: string;
+}> = [
   {
-    icon: "🔒",
+    Icon: Shield,
     name: "SOC 2 Type II",
     text: "Standard de sécurité cloud exigeant, validé par des audits indépendants.",
   },
   {
-    icon: "💳",
+    Icon: CreditCard,
     name: "PCI-DSS Level 1",
     text: "Certification maximale pour le traitement sécurisé des paiements.",
   },
   {
-    icon: "🇪🇺",
+    Icon: Globe,
     name: "RGPD & Données en Europe",
     text: "Hébergement et traitement conformes au règlement européen.",
   },
   {
-    icon: "🔐",
+    Icon: Lock,
     name: "Chiffrement TLS/HTTPS",
     text: "Toutes les communications sont chiffrées ; rien ne transite en clair.",
   },
@@ -76,9 +80,17 @@ const securityBadges = [
 export default function LandingBelowFold() {
   const [logements, setLogements] = useState([{ id: 1, loyer: 850 }]);
   const [statsAnimatedValues, setStatsAnimatedValues] = useState<number[]>([]);
-  const statsRef = useRef<HTMLElement | null>(null);
+  const statsRef = useRef<HTMLDivElement | null>(null);
   const statsAnimatedOnceRef = useRef(false);
   const reduceMotionRef = useRef(false);
+
+  const revealStats = useInView(0.15);
+  const revealCompare = useInView(0.15);
+  const revealCalc = useInView(0.15);
+  const revealSecurity = useInView(0.15);
+  const revealPricing = useInView(0.15);
+  const revealFaq = useInView(0.15);
+  const revealCta = useInView(0.15);
 
   const statsData = useMemo(
     () => [
@@ -105,28 +117,6 @@ export default function LandingBelowFold() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }, []);
-
-  useEffect(() => {
-    const elements = Array.from(document.querySelectorAll<HTMLElement>(".reveal-on-scroll"));
-    if (!elements.length) return;
-    if (reduceMotionRef.current) {
-      elements.forEach((el) => el.classList.add("is-visible"));
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 },
-    );
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -176,23 +166,13 @@ export default function LandingBelowFold() {
 
   return (
     <>
-      <section
-        className="landing-section landing-mockup-reveal mx-auto mt-12 max-w-[1000px] px-0 py-8 will-change-transform"
-        style={{ color: PC.text }}
+      <div
+        ref={revealStats.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealStats.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
       >
-        <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
-          Votre tableau de bord, pensé pour aller vite
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-base font-medium leading-[1.7]" style={{ color: PC.muted }}>
-          Suivez vos loyers, gérez vos documents et pilotez votre patrimoine depuis une interface claire et intuitive.
-        </p>
-        <div className="landing-mockup-reveal mt-10">
-          <InteractiveDemo />
-        </div>
-      </section>
-
-      <section ref={statsRef} className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
+        <section className="landing-section mt-12 py-8">
         <div
+          ref={statsRef}
           className="grid grid-cols-1 gap-8 rounded-2xl border border-gray-100 bg-white px-4 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-gray-100"
           style={{ boxShadow: PC.cardShadow }}
         >
@@ -211,9 +191,14 @@ export default function LandingBelowFold() {
         <p className="mt-8 text-center text-base font-semibold" style={{ color: PC.primaryLight }}>
           Avec Locavio, toutes ces tâches prennent moins de 5 minutes.
         </p>
-      </section>
+        </section>
+      </div>
 
-      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
+      <div
+        ref={revealCompare.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealCompare.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <section className="landing-section mt-12 py-8">
         <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
           Locavio vs agence traditionnelle
         </h2>
@@ -257,9 +242,14 @@ export default function LandingBelowFold() {
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+      </div>
 
-      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
+      <div
+        ref={revealCalc.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealCalc.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <section className="landing-section mt-12 py-8">
         <div className="mx-auto max-w-4xl rounded-2xl border border-gray-100 bg-white px-8 py-10">
           <h2 className="text-center text-3xl font-bold text-[#1a0533]">Combien allez-vous économiser ?</h2>
           <p className="mt-3 text-center text-[#6b7280]">
@@ -367,8 +357,9 @@ export default function LandingBelowFold() {
                 <span className="text-4xl font-bold text-emerald-600">{economieMax.toLocaleString("fr-FR")} €</span>
               </div>
               <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
-              <span className="mt-1 inline-block rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs text-emerald-700">
-                ✓ Garanti
+              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs text-emerald-700">
+                <Check className="size-3 shrink-0" strokeWidth={2.5} aria-hidden />
+                Garanti
               </span>
             </div>
           </div>
@@ -389,36 +380,44 @@ export default function LandingBelowFold() {
             <p className="mt-3 text-center text-sm text-[#9ca3af]">Gratuit pour commencer · Sans carte bancaire</p>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
 
-      <section className="landing-section reveal-on-scroll mt-12 py-8 will-change-transform">
+      <div
+        ref={revealSecurity.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealSecurity.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <section className="landing-section mt-12 py-8">
         <div className="mx-auto max-w-5xl rounded-2xl border border-gray-100 bg-white px-6 py-16 sm:px-10">
           <h2 className="text-center text-2xl font-bold text-[#1a0533] sm:text-3xl">Vos données sont entre de bonnes mains</h2>
 
           <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-            {securityBadges.map((item) => (
-              <div
-                key={item.name}
-                className="flex min-w-0 items-start gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3"
-              >
-                <span className="text-xl shrink-0" aria-hidden>
-                  {item.icon}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#1a0533]">{item.name}</p>
-                  <p className="mt-0.5 text-xs leading-snug text-[#6b7280]">{item.text}</p>
+            {securityBadges.map((item) => {
+              const Icon = item.Icon;
+              return (
+                <div
+                  key={item.name}
+                  className="flex min-w-0 items-start gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-violet-50 p-3" aria-hidden>
+                    <Icon className="size-6 text-[#7c3aed]" strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#1a0533]">{item.name}</p>
+                    <p className="mt-0.5 text-xs leading-snug text-[#6b7280]">{item.text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <ul className="mt-8 flex flex-col items-start gap-2 text-[#6b7280] sm:items-center">
-            <li>
-              <span className="mr-2 text-[#7c3aed]">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
               Sauvegardes automatiques quotidiennes
             </li>
-            <li>
-              <span className="mr-2 text-[#7c3aed]">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
               Accès aux données strictement limité par rôle
             </li>
           </ul>
@@ -433,11 +432,21 @@ export default function LandingBelowFold() {
             </Link>
           </p>
         </div>
-      </section>
+        </section>
+      </div>
 
-      <LandingPricingSection sectionId="tarifs" />
+      <div
+        ref={revealPricing.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealPricing.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <LandingPricingSection sectionId="tarifs" />
+      </div>
 
-      <section id="faq" className="landing-section reveal-on-scroll mt-12 scroll-mt-24 py-8 will-change-transform">
+      <div
+        ref={revealFaq.ref}
+        className={`will-change-transform transition-all duration-700 ease-out ${revealFaq.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <section id="faq" className="landing-section mt-12 scroll-mt-24 py-8">
         <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
           Questions fréquentes
         </h2>
@@ -458,31 +467,49 @@ export default function LandingBelowFold() {
             </details>
           ))}
         </div>
-      </section>
+        </section>
+      </div>
 
-      <section className="landing-section reveal-on-scroll mx-auto mb-0 mt-12 max-w-4xl px-0 py-8 will-change-transform">
+      <div
+        ref={revealCta.ref}
+        className={`mx-auto mb-0 max-w-4xl px-0 will-change-transform transition-all duration-700 ease-out ${revealCta.inView ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"}`}
+      >
+        <section className="landing-section mx-auto mt-12 py-8">
         <div
-          className="rounded-2xl border border-white/10 px-8 py-16 text-center"
+          className="relative overflow-hidden rounded-xl border border-white/10 px-8 py-16 text-center"
           style={{
             background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
             boxShadow: "0 4px 24px rgba(124, 58, 237, 0.25)",
           }}
         >
-          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            Prêt à reprendre le contrôle de vos locations ?
-          </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base text-white/90">
-            Rejoignez les propriétaires qui gagnent du temps chaque mois.
-          </p>
-          <Link
-            href="/register"
-            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-semibold text-[#7c3aed] shadow-lg transition hover:bg-gray-50"
-          >
-            Commencer gratuitement →
-          </Link>
-          <p className="mt-4 text-sm text-white/80">Gratuit pour commencer · Sans carte bancaire</p>
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 z-0 size-48 rounded-full bg-white"
+            style={{ opacity: 0.1 }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-20 -left-12 z-0 size-56 rounded-full bg-white"
+            style={{ opacity: 0.1 }}
+            aria-hidden
+          />
+          <div className="relative z-[1]">
+            <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Prêt à reprendre le contrôle de vos locations ?
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-base text-white/90">
+              Rejoignez les propriétaires qui gagnent du temps chaque mois.
+            </p>
+            <Link
+              href="/register"
+              className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-semibold text-[#7c3aed] shadow-lg transition hover:bg-gray-50"
+            >
+              Commencer gratuitement →
+            </Link>
+            <p className="mt-4 text-sm text-white/80">Gratuit pour commencer · Sans carte bancaire</p>
+          </div>
         </div>
-      </section>
+        </section>
+      </div>
 
       <LandingFooter />
     </>

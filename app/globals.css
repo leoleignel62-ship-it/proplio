@@ -494,7 +494,6 @@ body::before {
 }
 
 .hero-reveal,
-.reveal-on-scroll,
 .landing-shell [class*="animate-"],
 .landing-shell [style*="animation"] {
   will-change: transform, opacity;
@@ -566,6 +565,21 @@ button:not(:disabled):active,
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes landing-hero-demo-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) rotate(1deg) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(1deg) scale(0.95);
+  }
+}
+
+.landing-hero-demo-animate {
+  animation: landing-hero-demo-in 0.8s ease-out 0.3s both;
+}
+
 @keyframes locavio-orbit-1 {
   0% { transform: translate3d(-4%, -2%, 0) scale(1); }
   50% { transform: translate3d(6%, 4%, 0) scale(1.06); }
@@ -596,17 +610,6 @@ button:not(:disabled):active,
   animation: locavio-reveal-up 600ms ease-out forwards;
 }
 
-.reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 700ms ease-out, transform 700ms ease-out;
-}
-
-.reveal-on-scroll.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -616,11 +619,13 @@ button:not(:disabled):active,
     scroll-behavior: auto !important;
   }
 
-  .hero-reveal,
-  .reveal-on-scroll,
-  .reveal-on-scroll.is-visible {
+  .hero-reveal {
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  .landing-hero-demo-animate {
+    animation: none !important;
   }
 }
 

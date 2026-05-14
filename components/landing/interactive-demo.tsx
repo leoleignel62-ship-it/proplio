@@ -5,6 +5,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
   Building2,
   Calendar,
+  Check,
   ClipboardList,
   FileText,
   FolderOpen,
@@ -595,7 +596,9 @@ export function InteractiveDemo() {
               <p className="font-semibold text-[#1a0533]">Thomas Martin · 12-19 juil 2026 · 1 604€</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge tone="green">Envoyé</Badge>
-                <span className="text-xs text-[#9ca3af]">PDF ✓</span>
+                <span className="inline-flex items-center gap-1 text-xs text-[#9ca3af]">
+                  PDF <Check className="inline size-3 text-emerald-500" strokeWidth={2.5} aria-hidden />
+                </span>
               </div>
             </CardShell>
             <CardShell>
@@ -615,7 +618,9 @@ export function InteractiveDemo() {
               <p className="font-semibold text-[#1a0533]">Jean-Pierre Blanc · 15-22 juin 2026 · 1 450€</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge tone="green">Envoyé</Badge>
-                <span className="text-xs text-[#9ca3af]">PDF ✓</span>
+                <span className="inline-flex items-center gap-1 text-xs text-[#9ca3af]">
+                  PDF <Check className="inline size-3 text-emerald-500" strokeWidth={2.5} aria-hidden />
+                </span>
               </div>
             </CardShell>
           </div>
