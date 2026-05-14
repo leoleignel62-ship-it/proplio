@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { PC } from "@/lib/locavio-colors";
 
-const LANDING_LOGO_SRC = "/logos/lockup-horizontal-clair.svg";
+const LANDING_LOGO_SRC = "/logos/lockup-horizontal-clair.svg?v=2";
 
 type LandingNavbarProps = {
   isScrolled: boolean;

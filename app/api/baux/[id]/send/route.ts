@@ -136,7 +136,7 @@ export async function POST(
       html: `<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
   <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
     <div style="text-align:center;margin-bottom:24px;">
-      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
+      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
     </div>
     <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour,</p>
     <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Veuillez trouver en pièce jointe le contrat de bail d'habitation concernant : <strong style="color:#f5f3ff;">${adresseSujet}</strong>.</p>

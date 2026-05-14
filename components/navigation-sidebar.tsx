@@ -26,7 +26,7 @@ import {
 } from "@/components/locavio-icons";
 
 /** Lockup horizontal pour fond clair (sidebar blanche). */
-const SIDEBAR_LOGO_SRC = "/logos/lockup-horizontal-clair.svg";
+const SIDEBAR_LOGO_SRC = "/logos/lockup-horizontal-clair.svg?v=2";
 import { detecterBauxEligibles } from "@/lib/irl-revision";
 import { useModeLocation, type ModeLocation } from "@/lib/mode-location";
 import {

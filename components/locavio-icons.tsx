@@ -20,14 +20,14 @@ export function LogoMarkColor({ className = "h-8 w-8" }: { className?: string })
 
 export function LogoFull({ className = "h-7 w-auto" }: { className?: string }) {
   return (
-    <img src="/logos/lockup-horizontal-clair.svg" alt="Locavio" width={140} height={28} className={className} />
+    <img src="/logos/lockup-horizontal-clair.svg?v=2" alt="Locavio" width={140} height={28} className={className} />
   );
 }
 
 /** Lockup pour fonds sombres (auth violet, emails, CTA sombre). */
 export function LogoFullDark({ className = "h-7 w-auto" }: { className?: string }) {
   return (
-    <img src="/logos/lockup-horizontal-sombre.svg" alt="Locavio" width={140} height={28} className={className} />
+    <img src="/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" width={140} height={28} className={className} />
   );
 }
 

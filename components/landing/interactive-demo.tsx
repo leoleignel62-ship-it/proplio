@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { PC } from "@/lib/locavio-colors";
 
-const DEMO_LOGO_SRC = "/logos/lockup-horizontal-clair.svg";
+const DEMO_LOGO_SRC = "/logos/lockup-horizontal-clair.svg?v=2";
 
 type DemoMode = "classique" | "saisonnier";
 
