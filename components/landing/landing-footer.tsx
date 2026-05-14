@@ -5,11 +5,16 @@ import Link from "next/link";
 
 const ease = "200ms ease-out";
 
-export function LandingFooter() {
+type LandingFooterProps = {
+  /** Marge au-dessus du footer (ex. mt-6 sur la landing après la réassurance). */
+  marginTopClassName?: string;
+};
+
+export function LandingFooter({ marginTopClassName = "mt-12" }: LandingFooterProps) {
   return (
     <footer
       id="footer"
-      className="mt-12 border-t border-[rgba(124,58,237,0.1)] px-4 pt-12 pb-8 sm:px-6"
+      className={`${marginTopClassName} border-t border-[rgba(124,58,237,0.1)] px-4 pt-12 pb-8 sm:px-6`}
       style={{
         background: "#ffffff",
       }}

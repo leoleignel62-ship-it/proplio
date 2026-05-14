@@ -503,10 +503,10 @@ export default function LandingBelowFold() {
       </RevealOnView>
 
       {/* Réassurance sécurité — dernière section avant le footer */}
-      <RevealOnView className="mt-12">
-        <section className="landing-section py-8">
+      <RevealOnView className="mt-12 mb-0">
+        <section className="landing-section py-6">
           <hr className="mx-auto max-w-3xl border-gray-200" />
-          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-6 lg:grid-cols-4">
+          <div className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-6 lg:grid-cols-4">
             {reassurance.map(({ Icon, text }) => (
               <div key={text} className="flex min-w-0 items-center gap-2">
                 <Icon className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2} aria-hidden />
@@ -517,7 +517,7 @@ export default function LandingBelowFold() {
         </section>
       </RevealOnView>
 
-      <LandingFooter />
+      <LandingFooter marginTopClassName="mt-6" />
     </>
   );
 }
