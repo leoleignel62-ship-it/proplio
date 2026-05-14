@@ -18,7 +18,6 @@ const glassCard: CSSProperties = {
   background: "#ffffff",
   border: "1px solid #e5e7eb",
   borderRadius: 16,
-  boxShadow: PC.cardShadow,
 };
 
 const pageBg: CSSProperties = {
@@ -119,7 +118,10 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-8 sm:px-12 sm:py-8 lg:py-10" style={glassCard}>
+        <section
+          className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 pt-8 pb-10 shadow-sm sm:px-12 lg:pb-12"
+          style={glassCard}
+        >
           <div
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
@@ -146,18 +148,20 @@ export default function LandingPage() {
               height={56}
               className="mb-6 mx-auto"
             />
-            <h1
-              className="text-5xl font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-6xl lg:leading-[1.08]"
-              style={{ color: "#1a0533" }}
-            >
-              <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
-              <br />
-              Sans perdre votre temps.
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-[1.7] text-[#6b7280]">
-              Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
-              votre patrimoine.
-            </p>
+            <div className="landing-hero-title-intro" style={{ animation: "fadeInUp 0.7s ease-out both" }}>
+              <h1
+                className="text-5xl font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-6xl lg:leading-[1.08]"
+                style={{ color: "#1a0533" }}
+              >
+                <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
+                <br />
+                Sans perdre votre temps.
+              </h1>
+              <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-[1.7] text-[#6b7280]">
+                Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
+                votre patrimoine.
+              </p>
+            </div>
             <div className="mt-6 flex flex-wrap justify-center gap-4">
               <Link
                 href="/register"
@@ -174,12 +178,12 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/tarifs"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-300 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] shadow-sm transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-md"
               >
                 Voir les tarifs
               </Link>
             </div>
-            <ul className="mt-10 flex flex-col items-center gap-3 text-sm font-medium text-[#6b7280]">
+            <ul className="mt-10 flex flex-col items-center gap-3 text-sm font-medium text-[#4b5563]">
               <li className="flex items-center justify-center gap-2">
                 <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
                 Gratuit pour commencer
