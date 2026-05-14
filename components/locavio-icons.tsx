@@ -18,13 +18,14 @@ export function LogoMarkColor({ className = "h-8 w-8" }: { className?: string })
   );
 }
 
+/** Lockup pour fonds clairs (sidebar, pages légales, marketing). */
 export function LogoFull({ className = "h-7 w-auto" }: { className?: string }) {
   return (
     <img src="/logos/lockup-horizontal-clair.svg?v=2" alt="Locavio" width={140} height={28} className={className} />
   );
 }
 
-/** Lockup pour fonds sombres (auth violet, emails, CTA sombre). */
+/** Lockup pour fonds sombres (auth violet, e-mails #141428, cartes sombres). */
 export function LogoFullDark({ className = "h-7 w-auto" }: { className?: string }) {
   return (
     <img src="/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" width={140} height={28} className={className} />

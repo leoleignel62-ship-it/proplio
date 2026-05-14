@@ -55,7 +55,7 @@ const ORGANIZATION_JSON_LD = {
   "@type": "Organization",
   name: "Locavio",
   url: "https://locavio.fr",
-  logo: "https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2",
+  logo: "https://locavio.fr/logos/lockup-horizontal-clair.svg?v=2",
   contactPoint: {
     "@type": "ContactPoint",
     email: "contact@locavio.fr",

@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-const LOCKUP_PNG = path.join(process.cwd(), "public", "logos", "lockup-horizontal-sombre.png");
+const LOCKUP_PNG = path.join(process.cwd(), "public", "logos", "lockup-horizontal-clair.png");
 
-/** Octets PNG du lockup Locavio pour les en-têtes PDF ; `null` si le fichier est absent. */
+/** Lockup foncé sur fond blanc (PDF) ; `null` si le fichier est absent. */
 export function getLocavioLockupPngBytes(): Uint8Array | null {
   try {
     if (!fs.existsSync(LOCKUP_PNG)) return null;
