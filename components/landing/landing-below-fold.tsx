@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import { LandingFooter } from "@/components/landing/landing-footer";
@@ -92,6 +93,13 @@ const featureCards = [
     text: "Dossiers en ligne avec scoring de solvabilité automatique.",
   },
 ] as const;
+
+function FeatureCardLeading({ title, Icon }: { title: string; Icon: LucideIcon }) {
+  if (title === "Révision IRL") {
+    return <TrendingUp size={32} className="text-[#7c3aed] mb-4" aria-hidden />;
+  }
+  return <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />;
+}
 
 const reassurance = [
   { Icon: Shield, text: "Données hébergées en Europe" },
@@ -181,7 +189,7 @@ export default function LandingBelowFold() {
                 key={title}
                 className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md"
               >
-                <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
+                <FeatureCardLeading title={title} Icon={Icon} />
                 <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
                 <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
               </div>
@@ -192,7 +200,7 @@ export default function LandingBelowFold() {
                   key={title}
                   className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md lg:max-w-none"
                 >
-                  <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
+                  <FeatureCardLeading title={title} Icon={Icon} />
                   <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
                   <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
                 </div>
@@ -204,7 +212,7 @@ export default function LandingBelowFold() {
                   key={title}
                   className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md"
                 >
-                  <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
+                  <FeatureCardLeading title={title} Icon={Icon} />
                   <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
                   <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
                 </div>
