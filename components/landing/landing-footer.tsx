@@ -14,13 +14,10 @@ export function LandingFooter({ marginTopClassName = "mt-12" }: LandingFooterPro
   return (
     <footer
       id="footer"
-      className={`${marginTopClassName} border-t border-[rgba(124,58,237,0.1)] px-4 pt-12 pb-8 sm:px-6`}
-      style={{
-        background: "#ffffff",
-      }}
+      className={`${marginTopClassName} w-full border-t border-[rgba(124,58,237,0.1)] bg-white px-6 pt-12 pb-8 sm:px-12 lg:px-16`}
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-xs shrink-0">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+        <div className="shrink-0">
           <Image
             src="/logos/lockup-horizontal-clair.svg"
             alt="Locavio"
@@ -56,10 +53,10 @@ export function LandingFooter({ marginTopClassName = "mt-12" }: LandingFooterPro
           </Link>
         </nav>
       </div>
-      <p className="mx-auto mt-8 max-w-6xl text-center text-sm text-[#9ca3af] sm:text-left">
+      <p className="mt-8 text-center text-sm text-[#9ca3af] sm:text-left">
         © {new Date().getFullYear()} Locavio. Tous droits réservés.
       </p>
-      <p className="mx-auto mt-6 max-w-6xl border-t border-gray-100 pt-6 text-center text-xs text-[#6b7280] sm:text-left">
+      <p className="mt-6 border-t border-gray-100 pt-6 text-center text-xs text-[#6b7280] sm:text-left">
         ✓ Hébergé en Europe · ✓ Données chiffrées · ✓ Conforme RGPD
       </p>
     </footer>
