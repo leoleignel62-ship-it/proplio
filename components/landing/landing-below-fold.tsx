@@ -441,9 +441,9 @@ export default function LandingBelowFold() {
       <RevealOnView className="mt-12">
         <section className="landing-section py-8">
           <hr className="mx-auto max-w-3xl border-gray-200" />
-          <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-8">
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-6 lg:grid-cols-4">
             {reassurance.map(({ Icon, text }) => (
-              <div key={text} className="flex items-center gap-2">
+              <div key={text} className="flex min-w-0 items-center gap-2">
                 <Icon className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2} aria-hidden />
                 <span className="text-sm text-[#4b5563]">{text}</span>
               </div>
