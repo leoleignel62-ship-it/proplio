@@ -22,9 +22,7 @@ const glassCard: CSSProperties = {
 
 const pageBg: CSSProperties = {
   backgroundColor: "#f8f7ff",
-  backgroundImage: `${PC.gradientBg}, radial-gradient(circle at 0% 100%, rgba(79, 70, 229, 0.04), transparent 45%)`,
-  backgroundSize: "100% 100%, 100% 100%, 48px 48px, 48px 48px",
-  color: PC.text,
+  color: "#1a0533",
   minHeight: "100vh",
 };
 
