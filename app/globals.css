@@ -820,3 +820,98 @@ button:not(:disabled):active,
     transform: none;
   }
 }
+
+@keyframes float1 {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes float2 {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(20px);
+  }
+}
+
+.landing-hero-halo-float1 {
+  animation: float1 6s ease-in-out infinite;
+}
+
+.landing-hero-halo-float2 {
+  animation: float2 6s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-halo-float1,
+  .landing-hero-halo-float2 {
+    animation: none;
+  }
+}
+
+@keyframes landing-stat-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.landing-stat-pulse {
+  animation: landing-stat-pulse 3s ease-in-out infinite;
+}
+
+.landing-stat-pulse-delay-1s {
+  animation-delay: 1s;
+}
+
+.landing-stat-pulse-delay-2s {
+  animation-delay: 2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-stat-pulse,
+  .landing-stat-pulse-delay-1s,
+  .landing-stat-pulse-delay-2s {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@keyframes landing-gestion-title-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.landing-gestion-title-gradient {
+  background: linear-gradient(90deg, #1a0533, #7c3aed, #1a0533);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: landing-gestion-title-gradient 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-gestion-title-gradient {
+    animation: none;
+    background: none;
+    color: #1a0533;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+  }
+}

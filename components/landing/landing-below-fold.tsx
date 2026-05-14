@@ -16,7 +16,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useScrollProgress } from "@/components/hooks/use-scroll-progress";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingPricingSection } from "@/components/landing/landing-pricing-section";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
@@ -110,6 +111,45 @@ const reassurance = [
 
 export default function LandingBelowFold() {
   const [logements, setLogements] = useState([{ id: 1, loyer: 850 }]);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [dashboardScale, setDashboardScale] = useState(0.95);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useScrollProgress();
+
+  useLayoutEffect(() => {
+    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDashboardScale(1);
+      return;
+    }
+    const el = dashboardRef.current;
+    if (!el) return;
+    const thresholds = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1];
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const r = Math.min(1, Math.max(0, entry.intersectionRatio * 1.25));
+        setDashboardScale(0.95 + 0.05 * r);
+      },
+      { threshold: thresholds, rootMargin: "0px 0px -8% 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reducedMotion]);
+
+  const statParallaxY = reducedMotion ? 0 : -20 * Math.min(1, scrollProgress / 0.3);
 
   const loyerTotal = logements.reduce((sum, l) => sum + l.loyer, 0);
   const coutAgenceMin = loyerTotal * 12 * 0.06;
@@ -125,17 +165,29 @@ export default function LandingBelowFold() {
       {/* Section 2 — Chiffres choc */}
       <RevealOnView className="mt-12">
         <section className="landing-section py-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div
+            className="grid grid-cols-1 gap-6 md:grid-cols-3"
+            style={
+              reducedMotion
+                ? undefined
+                : {
+                    transform: `translateY(${statParallaxY}px)`,
+                    willChange: "transform",
+                  }
+            }
+          >
             <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-              <p className="text-5xl font-black text-[#7c3aed]">2-3h</p>
+              <p className="landing-stat-pulse text-5xl font-black text-[#7c3aed]">2-3h</p>
               <p className="mt-3 text-sm text-[#4b5563]">économisées chaque mois par logement</p>
             </div>
             <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-              <p className="text-5xl font-black text-[#7c3aed]">7-10%</p>
+              <p className="landing-stat-pulse landing-stat-pulse-delay-1s text-5xl font-black text-[#7c3aed]">
+                7-10%
+              </p>
               <p className="mt-3 text-sm text-[#4b5563]">de vos loyers annuels perdus en agence traditionnelle</p>
             </div>
             <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-              <p className="text-5xl font-black text-[#7c3aed]">100%</p>
+              <p className="landing-stat-pulse landing-stat-pulse-delay-2s text-5xl font-black text-[#7c3aed]">100%</p>
               <p className="mt-3 text-sm text-[#4b5563]">conforme loi ALUR — baux, quittances et EDL inclus</p>
             </div>
           </div>
@@ -145,7 +197,9 @@ export default function LandingBelowFold() {
       {/* Section 3 — Problème → Solution */}
       <RevealOnView className="mt-12">
         <section className="landing-section py-8">
-          <h2 className="text-center text-3xl font-bold text-[#1a0533]">La gestion locative, sans la galère</h2>
+          <h2 className="landing-gestion-title-gradient text-center text-3xl font-bold">
+            La gestion locative, sans la galère
+          </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-[#4b5563]">
             Locavio remplace des heures de paperasse par quelques clics.
           </p>
@@ -237,7 +291,15 @@ export default function LandingBelowFold() {
           <p className="mx-auto mt-3 max-w-2xl text-center text-[#4b5563]">
             Suivez vos loyers, gérez vos documents et pilotez votre patrimoine depuis une interface claire.
           </p>
-          <div className="relative mx-auto mt-10 max-w-4xl">
+          <div
+            ref={dashboardRef}
+            className="relative mx-auto mt-10 max-w-4xl"
+            style={{
+              transform: `scale(${dashboardScale})`,
+              transformOrigin: "center top",
+              transition: reducedMotion ? "none" : "transform 0.35s ease-out",
+            }}
+          >
             <div
               className="pointer-events-none absolute inset-0 -z-10 scale-110 rounded-full bg-[#7c3aed] opacity-[0.06] blur-3xl"
               aria-hidden

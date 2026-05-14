@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
+import { AnimatedParticles } from "@/components/landing/animated-particles";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { PC } from "@/lib/locavio-colors";
@@ -114,14 +115,22 @@ export default function LandingPage() {
       <LandingAnimatedBackground />
       <LandingNavbar isScrolled={isScrolled} />
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
         <div className="flex min-h-[calc(100vh-80px)] flex-col pt-10 pb-10">
           <section
             className="landing-shell landing-section relative flex min-h-0 flex-1 flex-col justify-center overflow-hidden rounded-2xl px-6 pt-8 pb-8 shadow-sm sm:px-12"
             style={glassCard}
           >
             <div
-              className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
+              className="landing-hero-halo-float1 pointer-events-none absolute left-[-12%] top-[8%] z-0 h-96 w-96 rounded-full bg-[#7c3aed] opacity-[0.06] blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="landing-hero-halo-float2 pointer-events-none absolute right-[-8%] top-[22%] z-0 h-64 w-64 rounded-full bg-[#7c3aed] opacity-[0.04] blur-2xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0 z-0 opacity-70 will-change-transform"
               style={{
                 backgroundImage:
                   "linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)",
@@ -131,7 +140,7 @@ export default function LandingPage() {
               }}
             />
             <div
-              className="pointer-events-none absolute left-1/2 top-[34%] h-44 w-96 -translate-x-1/2 rounded-full will-change-transform"
+              className="pointer-events-none absolute left-1/2 top-[34%] z-0 h-44 w-96 -translate-x-1/2 rounded-full will-change-transform"
               style={{
                 background: "radial-gradient(ellipse at center, rgba(124,58,237,0.14) 0%, rgba(124,58,237,0) 70%)",
                 filter: "blur(60px)",
@@ -217,6 +226,7 @@ export default function LandingPage() {
 
         <LandingBelowFold />
       </main>
+      <AnimatedParticles />
     </div>
   );
 }

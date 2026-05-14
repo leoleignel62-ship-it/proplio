@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { PublicMarketingParticlesGate } from "@/components/landing/public-marketing-particles-gate";
 import { PC } from "@/lib/locavio-colors";
 
 const geistSans = Geist({
@@ -84,6 +85,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full" style={shellBg} suppressHydrationWarning>
+        <PublicMarketingParticlesGate />
         <AppShell>{children}</AppShell>
       </body>
     </html>

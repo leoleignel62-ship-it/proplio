@@ -176,7 +176,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isPublicPage) {
     return (
       <ToastProvider>
-        <main className="min-h-screen" style={shellStyle}>{children}</main>
+        <main className="relative z-10 min-h-screen" style={shellStyle}>
+          {children}
+        </main>
       </ToastProvider>
     );
   }
