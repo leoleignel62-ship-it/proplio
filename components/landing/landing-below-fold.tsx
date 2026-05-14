@@ -175,30 +175,41 @@ export default function LandingBelowFold() {
           <p className="mx-auto mt-3 max-w-2xl text-center text-[#4b5563]">
             Des outils pensés pour chaque étape de la gestion locative.
           </p>
-          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featureCards.map(({ Icon, title, text }, index) => {
-              const cardInner = (
-                <>
+          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-2 gap-6 lg:grid-cols-3">
+            {featureCards.slice(0, 2).map(({ Icon, title, text }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md"
+              >
+                <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
+                <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
+                <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
+              </div>
+            ))}
+            <div className="col-span-2 flex justify-center lg:col-span-1 lg:block">
+              {featureCards.slice(2, 3).map(({ Icon, title, text }) => (
+                <div
+                  key={title}
+                  className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md lg:max-w-none"
+                >
                   <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
                   <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
                   <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
-                </>
-              );
-              const cardClass =
-                "rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md";
-              if (index === featureCards.length - 1) {
-                return (
-                  <div key={title} className="col-span-full flex justify-center sm:col-span-2 lg:col-span-3">
-                    <div className={`w-full max-w-sm ${cardClass} lg:max-w-sm`}>{cardInner}</div>
-                  </div>
-                );
-              }
-              return (
-                <div key={title} className={cardClass}>
-                  {cardInner}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <div className="col-span-2 flex flex-col justify-center gap-6 sm:flex-row lg:col-span-3">
+              {featureCards.slice(3, 5).map(({ Icon, title, text }) => (
+                <div
+                  key={title}
+                  className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md"
+                >
+                  <Icon className="size-8 text-[#7c3aed]" strokeWidth={1.75} aria-hidden />
+                  <p className="mt-4 font-bold text-[#1a0533]">{title}</p>
+                  <p className="mt-2 text-sm text-[#4b5563]">{text}</p>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="mt-10 flex justify-center">
             <Link
