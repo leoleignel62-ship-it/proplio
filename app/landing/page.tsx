@@ -119,7 +119,7 @@ export default function LandingPage() {
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
         <section
-          className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 pt-8 pb-10 shadow-sm sm:px-12 lg:pb-12"
+          className="landing-shell landing-section relative flex min-h-[calc(100vh-80px)] flex-col justify-center overflow-hidden rounded-2xl px-6 pt-8 pb-6 shadow-sm sm:px-12 lg:pb-8"
           style={glassCard}
         >
           <div
