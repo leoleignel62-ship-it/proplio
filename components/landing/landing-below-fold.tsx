@@ -437,22 +437,7 @@ export default function LandingBelowFold() {
         <LandingPricingSection sectionId="tarifs" />
       </RevealOnView>
 
-      {/* Section 9 — Réassurance sécurité */}
-      <RevealOnView className="mt-12">
-        <section className="landing-section py-8">
-          <hr className="mx-auto max-w-3xl border-gray-200" />
-          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-6 lg:grid-cols-4">
-            {reassurance.map(({ Icon, text }) => (
-              <div key={text} className="flex min-w-0 items-center gap-2">
-                <Icon className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2} aria-hidden />
-                <span className="text-sm text-[#4b5563]">{text}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </RevealOnView>
-
-      {/* Section 10 — FAQ */}
+      {/* Section 9 — FAQ */}
       <RevealOnView className="mt-12">
         <section id="faq" className="landing-section scroll-mt-24 py-8">
           <h2 className="text-center text-3xl font-extrabold tracking-[-0.03em]" style={{ color: PC.text }}>
@@ -478,7 +463,7 @@ export default function LandingBelowFold() {
         </section>
       </RevealOnView>
 
-      {/* Section 11 — CTA final (inchangé) */}
+      {/* Section 10 — CTA final (inchangé) */}
       <RevealOnView className="mx-auto mb-0 max-w-4xl px-0">
         <section className="landing-section mx-auto mt-12 py-8">
           <div
@@ -513,6 +498,21 @@ export default function LandingBelowFold() {
               </Link>
               <p className="mt-4 text-sm text-white/80">Gratuit pour commencer · Sans carte bancaire</p>
             </div>
+          </div>
+        </section>
+      </RevealOnView>
+
+      {/* Réassurance sécurité — dernière section avant le footer */}
+      <RevealOnView className="mt-12">
+        <section className="landing-section py-8">
+          <hr className="mx-auto max-w-3xl border-gray-200" />
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-6 lg:grid-cols-4">
+            {reassurance.map(({ Icon, text }) => (
+              <div key={text} className="flex min-w-0 items-center gap-2">
+                <Icon className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2} aria-hidden />
+                <span className="text-sm text-[#4b5563]">{text}</span>
+              </div>
+            ))}
           </div>
         </section>
       </RevealOnView>
