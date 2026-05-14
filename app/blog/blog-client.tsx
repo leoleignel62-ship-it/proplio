@@ -49,9 +49,9 @@ export function BlogClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <RevealOnView>
-          <header className="space-y-6 pb-8 text-center">
+          <header className="mx-auto mb-8 max-w-4xl space-y-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Ressources pour les propriétaires</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
+            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
               Conseils pratiques, guides juridiques et actualités pour gérer vos locations en toute sérénité.
             </p>
 

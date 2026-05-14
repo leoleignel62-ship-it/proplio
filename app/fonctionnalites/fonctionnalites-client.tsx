@@ -111,18 +111,18 @@ export function FonctionnalitesClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <RevealOnView>
-        <header className="space-y-6 pb-8 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
-          <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
-            Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
-          </p>
+          <header className="mx-auto mb-8 max-w-4xl space-y-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">Tout ce dont vous avez besoin</h1>
+            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
+              Des outils pensés pour simplifier chaque étape de la gestion locative, que vous louiez en longue durée ou en saisonnier.
+            </p>
 
-          <div
-            className="mx-auto inline-flex rounded-full p-1"
-            style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
-            role="group"
-            aria-label="Mode d'affichage"
-          >
+            <div
+              className="mx-auto inline-flex rounded-full p-1"
+              style={{ backgroundColor: PC.inputBg, border: `1px solid ${PC.border}` }}
+              role="group"
+              aria-label="Mode d'affichage"
+            >
             <button
               type="button"
               onClick={() => setMode("classique")}
@@ -405,10 +405,10 @@ export function FonctionnalitesClient() {
             ].map((block, i) => (
               <RevealOnView key={block.title}>
               <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
-                <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
+                <div className={`min-w-0 rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone={block.badgeTone}>{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#4b5563]">{block.desc}</p>
+                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>
@@ -586,10 +586,10 @@ export function FonctionnalitesClient() {
             ].map((block, i) => (
               <RevealOnView key={block.title}>
               <section className="grid min-w-0 gap-10 md:grid-cols-2 md:items-center">
-                <div className={`min-w-0 ${i % 2 === 1 ? "md:order-2" : ""}`}>
+                <div className={`min-w-0 rounded-2xl border border-gray-100 bg-white px-6 py-8 shadow-sm ${i % 2 === 1 ? "md:order-2" : ""}`}>
                   <Badge tone="starter">{block.badge}</Badge>
                   <h2 className="mt-4 text-2xl font-bold text-[#1a0533] sm:text-3xl">{block.title}</h2>
-                  <p className="mt-4 leading-relaxed text-[#4b5563]">{block.desc}</p>
+                  <p className="mt-4 leading-relaxed text-[#6b7280]">{block.desc}</p>
                   {"exempleType" in block && block.exempleType ? <ExempleEmailForm type={block.exempleType} /> : null}
                 </div>
                 <div className={`min-w-0 overflow-x-auto ${i % 2 === 1 ? "md:order-1" : ""}`}>{block.visual}</div>

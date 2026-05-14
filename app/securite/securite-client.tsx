@@ -65,9 +65,9 @@ export function SecuriteClient() {
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
         <RevealOnView>
-          <header className="space-y-4 pb-4 text-center">
+          <header className="mx-auto mb-8 max-w-4xl space-y-4 rounded-2xl border border-gray-100 bg-white px-8 py-10 text-center shadow-sm">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#1a0533] sm:text-5xl">La sécurité de vos données, notre priorité</h1>
-            <p className="mx-auto max-w-2xl text-lg text-[#4b5563]">
+            <p className="mx-auto max-w-2xl text-lg text-[#6b7280]">
               Vos données locatives sont confidentielles. Locavio repose sur des infrastructures certifiées aux standards les plus exigeants.
             </p>
           </header>
@@ -86,21 +86,24 @@ export function SecuriteClient() {
           </div>
         </RevealOnView>
 
-        <RevealOnView className="my-12 py-8">
-          <h2 className="text-center text-2xl font-bold text-[#1a0533]">Ce que nous nous engageons à faire</h2>
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <RevealOnView className="my-12">
+          <section className="mx-auto max-w-6xl rounded-2xl border border-gray-100 bg-white px-8 py-10 shadow-sm">
+            <h2 className="text-center text-2xl font-bold text-[#1a0533]">Ce que nous nous engageons à faire</h2>
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {engagements.map((line) => (
               <div key={line} className={`flex items-start gap-2 px-4 py-3 text-[#6b7280] ${publicWhiteCard}`}>
                 <CheckCircle size={20} className="mt-0.5 shrink-0 text-[#7c3aed]" aria-hidden />
                 <span>{line}</span>
               </div>
             ))}
-          </div>
+            </div>
+          </section>
         </RevealOnView>
 
-        <RevealOnView className="my-12 space-y-4 py-8">
-          <h2 className="text-center text-2xl font-bold text-[#1a0533]">Questions fréquentes</h2>
-          <div className="mx-auto max-w-3xl space-y-3">
+        <RevealOnView className="my-12">
+          <section className="mx-auto max-w-3xl rounded-2xl border border-gray-100 bg-white px-8 py-10 shadow-sm">
+            <h2 className="text-center text-2xl font-bold text-[#1a0533]">Questions fréquentes</h2>
+            <div className="mt-8 space-y-3">
             {faqSecurity.map((item) => (
               <details
                 key={item.q}
@@ -115,7 +118,8 @@ export function SecuriteClient() {
                 <p className="mt-3 text-sm leading-relaxed text-[#6b7280]">{item.a}</p>
               </details>
             ))}
-          </div>
+            </div>
+          </section>
         </RevealOnView>
 
         <RevealOnView>
