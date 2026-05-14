@@ -1,0 +1,38 @@
+/* ====================================================
+   LOCAVIO — Design Tokens
+   v2.0 · Wordmark typography updated to Plus Jakarta Sans
+   ==================================================== */
+
+:root {
+  /* ── Couleurs ── */
+  --locavio-encre:         #0B0A14;  /* Fond le plus sombre */
+  --locavio-nuit:          #1C1438;  /* Moitié sombre du mark */
+  --locavio-wordmark-ink:  #1a0533;  /* Texte wordmark fond clair */
+  --locavio-principal:     #7C5CBF;  /* Violet principal SaaS */
+  --locavio-fracture:      #C4A0FF;  /* Ligne médiane du mark */
+  --locavio-pale:          #D4B8FF;  /* Texte secondaire */
+  --locavio-fond-clair:    #F0EBF9;  /* Fond clair lavé */
+  --locavio-blanc:         #FDFCFF;  /* Blanc tonal */
+
+  /* ── Typographie ── */
+  --locavio-wordmark:  'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --locavio-ui:        'DM Sans', system-ui, sans-serif;
+
+  /* Wordmark settings */
+  --locavio-wordmark-weight:  600;
+  --locavio-wordmark-tracking: -0.022em;
+}
+
+/* ── Wordmark utility class ── */
+.locavio-wordmark {
+  font-family: var(--locavio-wordmark);
+  font-weight: var(--locavio-wordmark-weight);
+  letter-spacing: var(--locavio-wordmark-tracking);
+  font-style: normal;
+  line-height: 1;
+}
+.locavio-wordmark--ink   { color: var(--locavio-wordmark-ink); }
+.locavio-wordmark--blanc { color: #ffffff; }
+
+/* ── Google Fonts import ── */
+/* @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap'); */
