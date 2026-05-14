@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { Check } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
@@ -119,10 +118,7 @@ export default function LandingPage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section
-          className="landing-shell landing-section relative flex h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] flex-col overflow-hidden rounded-2xl px-6 py-6 sm:px-10 sm:py-8 lg:px-12 lg:py-10"
-          style={glassCard}
-        >
+        <section className="landing-shell landing-section relative overflow-hidden rounded-2xl px-6 py-12 sm:px-12 sm:py-14 lg:py-16" style={glassCard}>
           <div
             className="pointer-events-none absolute inset-0 opacity-70 will-change-transform"
             style={{
@@ -141,73 +137,54 @@ export default function LandingPage() {
               animation: "locavio-pulse 3s ease infinite",
             }}
           />
-          <div className="relative z-[1] flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-hidden">
-            <div className="flex w-full flex-col items-center text-center">
-              <h1
-                className="text-4xl font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-5xl lg:leading-[1.08]"
-                style={{ color: "#1a0533" }}
+          <div className="relative z-[1] flex min-h-[calc(100vh-80px)] flex-col items-center justify-center text-center">
+            <h1
+              className="text-5xl font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-6xl lg:leading-[1.08]"
+              style={{ color: "#1a0533" }}
+            >
+              <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
+              <br />
+              Sans perdre votre temps.
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-[1.7] text-[#6b7280]">
+              Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
+              votre patrimoine.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
+              <Link
+                href="/register"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3 text-sm font-semibold transition"
+                style={{
+                  background: PC.gradientPrimary,
+                  color: PC.white,
+                  boxShadow: `${PC.activeRing}, ${PC.glowShadow}`,
+                  transitionDuration: "200ms",
+                  transitionTimingFunction: "ease-out",
+                }}
               >
-                <span className="locavio-gradient-text-animated">Gérez vos locations.</span>
-                <br />
-                Sans perdre votre temps.
-              </h1>
-              <p className="mx-auto mt-3 max-w-2xl py-1 text-base font-medium leading-snug" style={{ color: "#6b7280" }}>
-                Quittances, baux, états des lieux et révision IRL : tout centralisé et automatisé. Concentrez-vous sur
-                votre patrimoine.
-              </p>
-              <div className="mt-4 flex justify-center gap-4">
-                <Link
-                  href="/register"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-7 py-2.5 text-sm font-semibold transition"
-                  style={{
-                    background: PC.gradientPrimary,
-                    color: PC.white,
-                    boxShadow: `${PC.activeRing}, ${PC.glowShadow}`,
-                    transitionDuration: "200ms",
-                    transitionTimingFunction: "ease-out",
-                  }}
-                >
-                  Commencer gratuitement
-                </Link>
-                <Link
-                  href="/tarifs"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-2.5 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
-                >
-                  Voir les tarifs
-                </Link>
-              </div>
-              <ul className="mt-6 flex flex-col items-center gap-1.5 text-sm font-medium" style={{ color: "#6b7280" }}>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
-                  Gratuit pour commencer
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
-                  Sans carte bancaire
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
-                  Données sécurisées
-                </li>
-              </ul>
+                Commencer gratuitement
+              </Link>
+              <Link
+                href="/tarifs"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gray-200 bg-white px-7 py-3 text-sm font-semibold text-[#1a0533] transition hover:bg-gray-50"
+              >
+                Voir les tarifs
+              </Link>
             </div>
-
-            <div className="relative mx-auto w-full max-w-4xl">
-              <div
-                className="pointer-events-none absolute inset-0 rounded-full bg-[#7c3aed] opacity-[0.06] blur-3xl"
-                aria-hidden
-              />
-              <div className="landing-hero-demo-animate relative w-full overflow-hidden rounded-xl">
-                <Image
-                  src="/images/dashboard-preview.png"
-                  alt="Dashboard Locavio"
-                  width={1600}
-                  height={1000}
-                  className="max-h-[40vh] w-full overflow-hidden rounded-xl border border-gray-100 object-cover object-top shadow-2xl"
-                  priority
-                />
-              </div>
-            </div>
+            <ul className="mt-10 flex flex-col items-center gap-3 text-sm font-medium text-[#6b7280]">
+              <li className="flex items-center justify-center gap-2">
+                <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                Gratuit pour commencer
+              </li>
+              <li className="flex items-center justify-center gap-2">
+                <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                Sans carte bancaire
+              </li>
+              <li className="flex items-center justify-center gap-2">
+                <Check className="size-4 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                Données sécurisées
+              </li>
+            </ul>
           </div>
 
           {Array.from({ length: 7 }).map((_, i) => (
