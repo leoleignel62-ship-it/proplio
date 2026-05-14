@@ -150,19 +150,19 @@ export default function LandingBelowFold() {
             Locavio remplace des heures de paperasse par quelques clics.
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-6">
-              <p className="mb-4 font-semibold text-red-600">Avant Locavio</p>
+            <div className="rounded-2xl border border-[#e9d5ff] bg-[#faf5ff] p-6">
+              <p className="mb-4 font-semibold text-[#6b7280]">Avant Locavio</p>
               <ul className="space-y-3 text-sm text-[#4b5563]">
                 {avantItems.map((line) => (
                   <li key={line} className="flex items-start gap-2">
-                    <X className="mt-0.5 size-4 shrink-0 text-red-400" strokeWidth={2.5} aria-hidden />
+                    <X className="mt-0.5 size-4 shrink-0 text-[#9ca3af]" strokeWidth={2.5} aria-hidden />
                     <span>{line}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-2xl border border-green-100 bg-green-50 p-6">
-              <p className="mb-4 font-semibold text-green-700">Avec Locavio</p>
+            <div className="rounded-2xl border border-[#e9d5ff] border-l-4 border-l-[#7c3aed] bg-white p-6">
+              <p className="mb-4 font-semibold text-[#7c3aed]">Avec Locavio</p>
               <ul className="space-y-3 text-sm text-[#4b5563]">
                 {avecItems.map((line) => (
                   <li key={line} className="flex items-start gap-2">
