@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { Check } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
-import { InteractiveDemo } from "@/components/landing/interactive-demo";
 import { LandingAnimatedBackground } from "@/components/landing/landing-animated-background";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { PC } from "@/lib/locavio-colors";
@@ -189,14 +189,19 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="relative flex min-h-0 w-full justify-center lg:justify-end">
-              <div
-                className="pointer-events-none absolute left-1/2 top-1/2 h-[min(420px,55vw)] w-[min(420px,85vw)] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
-                style={{ backgroundColor: "#7c3aed", opacity: 0.08 }}
-                aria-hidden
-              />
-              <div className="landing-hero-demo-animate relative z-[1] w-full max-w-[1000px] origin-center scale-95 rotate-1 rounded-xl border border-gray-100 bg-white/80 p-1 shadow-2xl backdrop-blur-sm">
-                <InteractiveDemo />
+            <div className="flex min-h-0 w-full justify-center lg:justify-end">
+              <div className="relative w-full max-w-[1000px]">
+                <div className="absolute inset-0 bg-[#7c3aed] opacity-[0.08] blur-3xl rounded-full scale-110" />
+                <div className="relative rounded-xl overflow-hidden shadow-2xl border border-gray-100 transform rotate-1 scale-95 landing-hero-demo-animate">
+                  <Image
+                    src="/images/dashboard-preview.png"
+                    alt="Dashboard Locavio"
+                    width={1200}
+                    height={800}
+                    className="w-full h-auto"
+                    priority
+                  />
+                </div>
               </div>
             </div>
           </div>
