@@ -5,7 +5,7 @@ import { useState } from "react";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
 import { startStripeCheckout } from "@/lib/stripe-checkout";
-import type { LocavioPlan } from "@/lib/plan-limits";
+import { PLAN_UPGRADE_PATH, type LocavioPlan } from "@/lib/plan-limits";
 import { panelCard } from "@/lib/locavio-field-styles";
 import type { CSSProperties } from "react";
 
@@ -79,14 +79,26 @@ const copy = {
   dossiers: {
     kicker: "Dossiers de candidature",
     benefits:
-      "Les dossiers de candidature sont disponibles à partir du plan Starter. Analysez la solvabilité de vos candidats en quelques minutes.",
+      "Envoyez un questionnaire à vos candidats et recevez une note de solvabilité automatique (A à E) pour analyser chaque dossier en quelques minutes.",
   },
 } as const;
 
 export type PlanFreeModuleUpsellVariant = keyof typeof copy;
 
-export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsellVariant }) {
+export type PlanFreeModuleUpsellRequiredPlan = "starter" | "pro";
+
+export function PlanFreeModuleUpsell({
+  variant,
+  requiredPlan = "starter",
+}: {
+  variant: PlanFreeModuleUpsellVariant;
+  requiredPlan?: PlanFreeModuleUpsellRequiredPlan;
+}) {
   const { kicker, benefits } = copy[variant];
+  const requiredPlanLabel =
+    requiredPlan === "pro"
+      ? "Cette fonctionnalité est disponible à partir du plan Pro."
+      : "Cette fonctionnalité est disponible à partir du plan Starter.";
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlanId, setLoadingPlanId] = useState<PaidPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState("");
@@ -109,11 +121,14 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
           {kicker}
         </p>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: PC.text }}>
-          Fonctionnalité disponible à partir du plan Starter
+          {requiredPlanLabel}
         </h1>
         <p className="text-sm leading-relaxed sm:text-base" style={{ color: PC.muted }}>
           {benefits}
         </p>
+        <Link href={PLAN_UPGRADE_PATH} className="inline-block">
+          <BtnPrimary className="mt-2">Choisir un plan</BtnPrimary>
+        </Link>
       </div>
 
       <div className="mx-auto max-w-lg space-y-6" style={HERO_CARD}>
@@ -257,7 +272,7 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
 
         <div className="flex justify-center">
           <Link
-            href="/parametres/abonnement"
+            href={PLAN_UPGRADE_PATH}
             className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium transition hover:opacity-90"
             style={{
               border: `1px solid ${PC.border}`,
@@ -265,7 +280,7 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
               backgroundColor: PC.card,
             }}
           >
-            Voir tous les plans
+            Choisir un plan
           </Link>
         </div>
       </div>

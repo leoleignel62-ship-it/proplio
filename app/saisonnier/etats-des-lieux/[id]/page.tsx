@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
@@ -48,7 +48,7 @@ export default function SaisonnierEdlDetailPage() {
     }
     const plan = await getOwnerPlan(proprietaireId);
     setCurrentPlan(plan);
-    if (plan === "free") {
+    if (!canAccessSaisonnier(plan)) {
       setLoading(false);
       setEdlStatut(null);
       return;
@@ -95,8 +95,8 @@ export default function SaisonnierEdlDetailPage() {
     void loadReservations();
   }, [loadReservations]);
 
-  if (!loading && currentPlan === "free") {
-    return <PlanFreeModuleUpsell variant="etats-des-lieux" />;
+  if (!loading && currentPlan && !canAccessSaisonnier(currentPlan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
   if (loading || !id) {

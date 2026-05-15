@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { compressImage } from "@/lib/compress-image";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
@@ -53,7 +53,7 @@ export default function VoyageursSaisonnierPage() {
     }
     const p = await getOwnerPlan(proprietaireId);
     setPlan(p);
-    if (p === "free") {
+    if (!canAccessSaisonnier(p)) {
       setLoading(false);
       return;
     }
@@ -90,8 +90,8 @@ export default function VoyageursSaisonnierPage() {
       </section>
     );
   }
-  if (plan === "free") {
-    return <PlanFreeModuleUpsell variant="saisonnier" />;
+  if (!canAccessSaisonnier(plan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
   function openCreate() {

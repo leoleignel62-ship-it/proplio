@@ -6,7 +6,7 @@ import { IconFolder, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnPrimary, ConfirmModal } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessDocuments, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 import { NOTE_COLORS } from "@/lib/candidature";
@@ -47,7 +47,7 @@ export default function DossiersPage() {
       const plan = ownerId ? await getOwnerPlan(ownerId) : "free";
       if (cancelled) return;
       setCurrentPlan(plan);
-      if (plan === "free") {
+      if (!canAccessDocuments(plan)) {
         setLoading(false);
         return;
       }
@@ -122,8 +122,8 @@ export default function DossiersPage() {
     setIsDeleting(false);
   }
 
-  if (!loading && currentPlan === "free") {
-    return <PlanFreeModuleUpsell variant="dossiers" />;
+  if (!loading && currentPlan && !canAccessDocuments(currentPlan)) {
+    return <PlanFreeModuleUpsell variant="dossiers" requiredPlan="pro" />;
   }
 
   return (

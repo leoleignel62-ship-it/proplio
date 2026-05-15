@@ -22,10 +22,9 @@ import {
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import {
-  canCreateEtatDesLieux,
-  getMonthlyCreatedCount,
+  canAccessSaisonnier,
   getOwnerPlan,
-  PLAN_LIMIT_ERROR_MESSAGE,
+  UPSELL_MESSAGES,
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -290,9 +289,8 @@ export function SaisonnierEdlWizard({
       return null;
     }
     const plan = await getOwnerPlan(proprietaireId);
-    const monthlyCount = await getMonthlyCreatedCount("etats_des_lieux", proprietaireId);
-    if (!canCreateEtatDesLieux(plan)) {
-      setError(PLAN_LIMIT_ERROR_MESSAGE);
+    if (!canAccessSaisonnier(plan)) {
+      setError(UPSELL_MESSAGES.saisonnier);
       setSaving(false);
       return null;
     }

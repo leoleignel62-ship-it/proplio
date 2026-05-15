@@ -6,7 +6,7 @@ import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnSecondary } from "@/components/ui";
 import { formatBytes, NOTE_COLORS, TYPE_DOCUMENT_LABELS } from "@/lib/candidature";
 import { PC } from "@/lib/locavio-colors";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessDocuments, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 
@@ -54,7 +54,7 @@ export default function DossierDetailPage() {
       const plan = ownerId ? await getOwnerPlan(ownerId) : "free";
       if (cancelled) return;
       setCurrentPlan(plan);
-      if (plan === "free") {
+      if (!canAccessDocuments(plan)) {
         setLoading(false);
         return;
       }
@@ -98,7 +98,8 @@ export default function DossierDetailPage() {
     if (candidateUrl) await navigator.clipboard.writeText(candidateUrl);
   }
 
-  if (!loading && currentPlan === "free") return <PlanFreeModuleUpsell variant="dossiers" />;
+  if (!loading && currentPlan && !canAccessDocuments(currentPlan))
+    return <PlanFreeModuleUpsell variant="dossiers" requiredPlan="pro" />;
   if (loading) return <section className="locavio-page-wrap">Chargement...</section>;
   if (!dossier) return <section className="locavio-page-wrap">Dossier introuvable.</section>;
 

@@ -11,10 +11,10 @@ import { useToast } from "@/components/ui/toast";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import {
+  canAccessSaisonnier,
   canCreateEtatDesLieux,
   getMonthlyCreatedCount,
   getOwnerPlan,
-  PLAN_FREE_EDL_BANNER,
   PLAN_UPGRADE_PATH,
   type LocavioPlan,
 } from "@/lib/plan-limits";
@@ -76,8 +76,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
 
     const plan = await getOwnerPlan(proprietaireId);
     setCurrentPlan(plan);
-    if (plan === "free") {
-      setPlanLimitMessage(PLAN_FREE_EDL_BANNER);
+    if (!canAccessSaisonnier(plan)) {
       setLoading(false);
       return;
     }
@@ -205,8 +204,8 @@ export default function EtatsDesLieuxSaisonnierPage() {
     }
   }
 
-  if (!loading && currentPlan === "free") {
-    return <PlanFreeModuleUpsell variant="etats-des-lieux" />;
+  if (!loading && currentPlan && !canAccessSaisonnier(currentPlan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
   return (

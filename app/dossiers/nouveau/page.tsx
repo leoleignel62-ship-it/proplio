@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessDocuments, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -68,7 +68,7 @@ export default function NouveauDossierPage() {
       const plan = await getOwnerPlan(ownerId);
       if (cancelled) return;
       setCurrentPlan(plan);
-      if (plan === "free") {
+      if (!canAccessDocuments(plan)) {
         setIsLoadingLogements(false);
         return;
       }
@@ -140,8 +140,8 @@ export default function NouveauDossierPage() {
     router.push(`/dossiers/${payload.dossier_id}`);
   }
 
-  if (!isLoadingLogements && currentPlan === "free") {
-    return <PlanFreeModuleUpsell variant="dossiers" />;
+  if (!isLoadingLogements && currentPlan && !canAccessDocuments(currentPlan)) {
+    return <PlanFreeModuleUpsell variant="dossiers" requiredPlan="pro" />;
   }
 
   return (

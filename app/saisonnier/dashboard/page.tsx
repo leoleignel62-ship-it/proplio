@@ -11,7 +11,10 @@ import {
   getSourcesRepartition,
   getTauxOccupation,
 } from "@/lib/saisonnier-dashboard-metrics";
+import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { useToast } from "@/components/ui/toast";
+import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { PC } from "@/lib/locavio-colors";
 
 const RevenusMensuelsChart = dynamic(
@@ -56,6 +59,8 @@ export default function SaisonnierDashboardPage() {
   const [logements, setLogements] = useState<LogementOption[]>([]);
   const [logementId, setLogementId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<LocavioPlan | null>(null);
+  const [planChecked, setPlanChecked] = useState(false);
 
   const [revenus, setRevenus] = useState(EMPTY_REVENUS);
   const [stats, setStats] = useState(EMPTY_RES_STATS);
@@ -70,19 +75,24 @@ export default function SaisonnierDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     const loadOwner = async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-      const { data: proprietaire } = await supabase
-        .from("proprietaires")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      const nextOwnerId = String(proprietaire?.id ?? "");
-      if (!nextOwnerId || cancelled) return;
+      const { proprietaireId, error } = await getCurrentProprietaireId();
+      if (cancelled) return;
+      if (error || !proprietaireId) {
+        setPlanChecked(true);
+        setLoading(false);
+        return;
+      }
+      const ownerPlan = await getOwnerPlan(proprietaireId);
+      if (cancelled) return;
+      setPlan(ownerPlan);
+      setPlanChecked(true);
+      if (!canAccessSaisonnier(ownerPlan)) {
+        setLoading(false);
+        return;
+      }
+      const nextOwnerId = proprietaireId;
       setOwnerId(nextOwnerId);
+      const supabase = createSupabaseBrowserClient();
 
       const [anneesList, logementsData] = await Promise.all([
         getAnneesDisponibles(supabase, nextOwnerId),
@@ -196,6 +206,10 @@ export default function SaisonnierDashboardPage() {
   const yearIndex = annees.findIndex((y) => y === annee);
   const canGoPreviousYear = yearIndex >= 0 && yearIndex < annees.length - 1;
   const canGoNextYear = yearIndex > 0;
+
+  if (planChecked && plan && !canAccessSaisonnier(plan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
+  }
 
   return (
     <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>

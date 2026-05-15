@@ -14,11 +14,13 @@ import {
   type ChambreDetail,
 } from "@/lib/colocation";
 import {
+  canAccessSaisonnier,
   canCreateLogement,
   getOwnedCount,
   getOwnerPlan,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
+  UPSELL_MESSAGES,
 } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
@@ -1187,8 +1189,9 @@ export default function LogementsPage() {
                   ).map((opt) => {
                     const OptIcon = opt.Icon;
                     const active = typeLocation === opt.id;
-                    const isFreeLockedExploitationOption =
-                      currentPlan === "free" && (opt.id === "saisonnier" || opt.id === "les_deux");
+                    const isSaisonnierExploitationLocked =
+                      !canAccessSaisonnier(currentPlan) &&
+                      (opt.id === "saisonnier" || opt.id === "les_deux");
                     return (
                       <button
                         key={opt.id}
@@ -1198,17 +1201,17 @@ export default function LogementsPage() {
                           backgroundColor: EXPLOITATION_CARD_BG,
                           border: `2px solid ${active ? PC.primary : PC.border}`,
                           boxShadow: active ? PC.activeRing : "none",
-                          cursor: isFreeLockedExploitationOption ? "not-allowed" : "pointer",
+                          cursor: isSaisonnierExploitationLocked ? "not-allowed" : "pointer",
                         }}
                         onClick={() => {
-                          if (isFreeLockedExploitationOption) {
-                            toast.info("Disponible à partir du plan Starter");
+                          if (isSaisonnierExploitationLocked) {
+                            toast.info(UPSELL_MESSAGES.saisonnier);
                             return;
                           }
                           setTypeLocation(opt.id);
                         }}
                       >
-                        {isFreeLockedExploitationOption ? (
+                        {isSaisonnierExploitationLocked ? (
                           <>
                             <span
                               aria-hidden

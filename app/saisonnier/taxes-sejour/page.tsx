@@ -5,7 +5,7 @@ import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnNeutral } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
@@ -61,7 +61,7 @@ export default function TaxesSejourPage() {
     }
     const p = await getOwnerPlan(proprietaireId);
     setPlan(p);
-    if (p === "free") {
+    if (!canAccessSaisonnier(p)) {
       setLoading(false);
       return;
     }
@@ -214,8 +214,8 @@ export default function TaxesSejourPage() {
       </section>
     );
   }
-  if (plan === "free") {
-    return <PlanFreeModuleUpsell variant="saisonnier" />;
+  if (!canAccessSaisonnier(plan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
   return (

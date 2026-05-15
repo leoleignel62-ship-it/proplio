@@ -17,7 +17,7 @@ import { BtnDanger, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal }
 import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
-import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
@@ -248,7 +248,7 @@ export default function ReservationsSaisonnierPage() {
     }
     const p = await getOwnerPlan(proprietaireId);
     setPlan(p);
-    if (p === "free") {
+    if (!canAccessSaisonnier(p)) {
       setLoading(false);
       return;
     }
@@ -883,8 +883,8 @@ export default function ReservationsSaisonnierPage() {
       </section>
     );
   }
-  if (plan === "free") {
-    return <PlanFreeModuleUpsell variant="saisonnier" />;
+  if (!canAccessSaisonnier(plan)) {
+    return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
   return (
