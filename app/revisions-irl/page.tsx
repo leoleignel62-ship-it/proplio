@@ -329,7 +329,7 @@ export default function RevisionsIrlPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <section className="locavio-page-wrap space-y-8">
       <nav className="text-sm" style={{ color: PC.muted }}>
         <Link href="/" className="inline-flex items-center gap-1.5 transition hover:underline" style={{ color: PC.muted }}>
           <IconBuilding className="h-4 w-4" />
@@ -340,9 +340,7 @@ export default function RevisionsIrlPage() {
       </nav>
 
       <header className="space-y-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: PC.text }}>
-          Révision des loyers (IRL)
-        </h1>
+        <h1 className="locavio-page-title">Révision des loyers (IRL)</h1>
         <p className="max-w-3xl text-sm leading-relaxed md:text-base" style={{ color: PC.muted }}>
           Calculez et appliquez la révision annuelle de vos loyers basée sur l&apos;Indice de Référence des Loyers publié
           par l&apos;INSEE.
@@ -685,6 +683,6 @@ export default function RevisionsIrlPage() {
           void onEnvoyerLettre(revisionId, { resend: true, tenantEmail });
         }}
       />
-    </div>
+    </section>
   );
 }
