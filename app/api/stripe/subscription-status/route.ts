@@ -56,14 +56,18 @@ export async function GET() {
     }
 
     const sub = subscriptions.data[0];
-    const lineItem = sub.items.data[0];
-    const currentPeriodEnd = lineItem?.current_period_end ?? null;
 
     console.log("subscription data:", JSON.stringify(sub, null, 2));
 
+    const cancelAt = sub.cancel_at;
+    const cancelAtPeriodEnd = sub.cancel_at_period_end;
+    const isCanceling =
+      cancelAtPeriodEnd || (cancelAt !== null && cancelAt > Math.floor(Date.now() / 1000));
+    const endDate = cancelAt || (sub.items.data[0]?.current_period_end ?? null);
+
     const payload = {
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
-      currentPeriodEnd,
+      cancelAtPeriodEnd: isCanceling,
+      currentPeriodEnd: endDate,
     };
 
     console.log("[subscription-status] response:", JSON.stringify(payload, null, 2));
