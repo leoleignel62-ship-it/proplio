@@ -29,6 +29,32 @@ async function applyPlanUpdateByEmail(email: string, plan: "starter" | "pro" | "
   await supabaseAdmin.from("proprietaires").update({ plan }).eq("email", email);
 }
 
+function resolveStripeCustomerId(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null | undefined,
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  if ("deleted" in customer && customer.deleted) return null;
+  return customer.id;
+}
+
+async function saveStripeCustomerId(
+  customerId: string | null | undefined,
+  userId: string | null,
+  proprietaireId: string | null,
+) {
+  const id = String(customerId ?? "").trim();
+  if (!id) return;
+
+  if (userId) {
+    await supabaseAdmin.from("proprietaires").update({ stripe_customer_id: id }).eq("user_id", userId);
+    return;
+  }
+  if (proprietaireId) {
+    await supabaseAdmin.from("proprietaires").update({ stripe_customer_id: id }).eq("id", proprietaireId);
+  }
+}
+
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -52,10 +78,23 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata ?? {};
       const plan = metadata.plan;
+      const userId = metadata.userId ? String(metadata.userId) : null;
+      const proprietaireId = metadata.proprietaireId ? String(metadata.proprietaireId) : null;
+
+      await saveStripeCustomerId(resolveStripeCustomerId(session.customer), userId, proprietaireId);
 
       if (plan === "starter" || plan === "pro" || plan === "expert") {
-        await applyPlanUpdate(metadata.proprietaireId ?? null, metadata.userId ?? null, plan);
+        await applyPlanUpdate(proprietaireId, userId, plan);
       }
+    }
+
+    if (event.type === "customer.subscription.created") {
+      const subscription = event.data.object as Stripe.Subscription;
+      const metadata = subscription.metadata ?? {};
+      const userId = metadata.userId ? String(metadata.userId) : null;
+      const proprietaireId = metadata.proprietaireId ? String(metadata.proprietaireId) : null;
+
+      await saveStripeCustomerId(resolveStripeCustomerId(subscription.customer), userId, proprietaireId);
     }
 
     if (event.type === "customer.subscription.deleted") {
