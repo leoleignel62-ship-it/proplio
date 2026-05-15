@@ -143,6 +143,7 @@ function ModeLocationPill({
       <div className="grid grid-cols-2 gap-1">
         <button
           type="button"
+          id="nav-mode-classique"
           data-tour-id="mode-classique"
           className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
@@ -156,6 +157,7 @@ function ModeLocationPill({
         </button>
         <button
           type="button"
+          id="nav-mode-saisonnier"
           data-tour-id="mode-saisonnier"
           className="inline-flex items-center justify-center gap-1 rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
@@ -230,6 +232,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      id={tourId ? `nav-${tourId}` : undefined}
       data-tour-id={tourId}
       className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-[background-color,color] duration-200 ease-out"
       style={isActive ? activeStyle : idleStyle}

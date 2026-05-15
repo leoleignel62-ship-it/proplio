@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { useState } from "react";
 import { BtnPrimary } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
@@ -95,10 +96,6 @@ export function PlanFreeModuleUpsell({
   requiredPlan?: PlanFreeModuleUpsellRequiredPlan;
 }) {
   const { kicker, benefits } = copy[variant];
-  const requiredPlanLabel =
-    requiredPlan === "pro"
-      ? "Cette fonctionnalité est disponible à partir du plan Pro."
-      : "Cette fonctionnalité est disponible à partir du plan Starter.";
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlanId, setLoadingPlanId] = useState<PaidPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState("");
@@ -116,19 +113,33 @@ export function PlanFreeModuleUpsell({
 
   return (
     <section className="locavio-page-wrap space-y-10" style={{ color: PC.text }}>
-      <div className="mx-auto max-w-2xl space-y-5 text-center">
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PC.secondary }}>
+      <div className="mx-auto max-w-2xl space-y-5">
+        <p className="text-center text-xs font-semibold uppercase tracking-wider" style={{ color: PC.secondary }}>
           {kicker}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: PC.text }}>
-          {requiredPlanLabel}
-        </h1>
-        <p className="text-sm leading-relaxed sm:text-base" style={{ color: PC.muted }}>
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-[#7c3aed] px-5 py-4 text-white shadow-lg">
+          <Lock size={20} className="shrink-0" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold">
+              {requiredPlan === "pro"
+                ? "Fonctionnalité disponible à partir du plan Pro (12,90€/mois)"
+                : "Fonctionnalité disponible à partir du plan Starter (6,90€/mois)"}
+            </p>
+            <p className="mt-0.5 text-xs text-white/80">
+              {requiredPlan === "pro"
+                ? "Passez au plan Pro pour accéder aux dossiers de candidature et au mode saisonnier."
+                : "Passez au plan Starter pour accéder aux baux, états des lieux et révision IRL."}
+            </p>
+          </div>
+        </div>
+        <p className="text-center text-sm leading-relaxed sm:text-base" style={{ color: PC.muted }}>
           {benefits}
         </p>
-        <Link href={PLAN_UPGRADE_PATH} className="inline-block">
-          <BtnPrimary className="mt-2">Choisir un plan</BtnPrimary>
-        </Link>
+        <div className="text-center">
+          <Link href={PLAN_UPGRADE_PATH} className="inline-block">
+            <BtnPrimary className="mt-2">Choisir un plan</BtnPrimary>
+          </Link>
+        </div>
       </div>
 
       <div className="mx-auto max-w-lg space-y-6" style={HERO_CARD}>

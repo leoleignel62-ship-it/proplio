@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import confetti from "canvas-confetti";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { canAccessDocuments, canAccessSaisonnier } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 
@@ -24,6 +25,7 @@ type TourStep = {
 };
 
 const MODE_LOCATION_KEY = "locavio-mode-location";
+const STEP_TRANSITION_MS = 150;
 
 const FREE_TOUR_STEPS: TourStep[] = [
   {
@@ -171,6 +173,11 @@ const PAID_TOUR_STEPS: TourStep[] = [
 ];
 
 function findVisibleTourTarget(targetId: string): HTMLElement | null {
+  const byNavId = document.getElementById(`nav-${targetId}`);
+  if (byNavId) {
+    const rect = byNavId.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0) return byNavId;
+  }
   const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-id="${targetId}"]`));
   for (const node of nodes) {
     const rect = node.getBoundingClientRect();
@@ -179,9 +186,21 @@ function findVisibleTourTarget(targetId: string): HTMLElement | null {
   return null;
 }
 
+function fireTourConfetti() {
+  confetti({
+    particleCount: 80,
+    spread: 60,
+    colors: ["#7c3aed", "#a78bfa", "#ffffff"],
+    origin: { y: 0.6 },
+  });
+}
+
 export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: GuidedTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const transitionTimerRef = useRef<number | null>(null);
+
   const steps = useMemo(() => {
     if (tourType === "free") return FREE_TOUR_STEPS;
     return PAID_TOUR_STEPS.filter((s) => {
@@ -190,20 +209,23 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
       return true;
     });
   }, [tourType, currentPlan]);
-  const safeStepIndex = Math.min(Math.max(stepIndex, 0), Math.max(steps.length - 1, 0));
-  const step = steps[safeStepIndex];
-  const isLastStep = safeStepIndex === steps.length - 1;
-  const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step.lockedOnFree);
-  const lockBadgeText =
-    step.lockPlan === "pro" ? "🔒 Disponible dès le plan Pro" : "🔒 Disponible dès le plan Starter";
 
-  function switchMode(nextMode: "classique" | "saisonnier") {
+  const totalSteps = steps.length;
+  const safeStepIndex = Math.min(Math.max(stepIndex, 0), Math.max(totalSteps - 1, 0));
+  const step = steps[safeStepIndex];
+  const isLastStep = safeStepIndex === totalSteps - 1;
+  const progressPercent = totalSteps > 0 ? Math.round(((safeStepIndex + 1) / totalSteps) * 100) : 0;
+  const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step?.lockedOnFree);
+  const lockBadgeText =
+    step?.lockPlan === "pro" ? "🔒 Disponible dès le plan Pro" : "🔒 Disponible dès le plan Starter";
+
+  const switchMode = useCallback((nextMode: "classique" | "saisonnier") => {
     window.localStorage.setItem(MODE_LOCATION_KEY, nextMode);
     window.dispatchEvent(new Event("storage"));
     const targetButtonId = nextMode === "saisonnier" ? "mode-saisonnier" : "mode-classique";
     const button = findVisibleTourTarget(targetButtonId);
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  }
+  }, []);
 
   const bubblePos = useMemo(() => {
     if (!targetRect) return { top: 120, left: 290 };
@@ -215,24 +237,56 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
     return { top, left };
   }, [targetRect]);
 
+  const goToStep = useCallback((nextIndex: number) => {
+    if (transitionTimerRef.current) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+    setIsTransitioning(true);
+    transitionTimerRef.current = window.setTimeout(() => {
+      setStepIndex(nextIndex);
+      setIsTransitioning(false);
+      transitionTimerRef.current = null;
+    }, STEP_TRANSITION_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) {
+        window.clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setStepIndex(0);
+    setIsTransitioning(false);
   }, [open, tourType]);
 
   useEffect(() => {
-    if (!open) return;
-  }, [open, tourType, steps.length]);
-
-  useEffect(() => {
-    if (!open) return;
+    if (!open || !step) return;
     if (tourType !== "paid") return;
     if (step.key !== "mode-saisonnier") return;
     switchMode("saisonnier");
-  }, [open, step.key, tourType]);
+  }, [open, step?.key, tourType, switchMode]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !step?.targetId) return;
+
+    const el = document.getElementById(`nav-${step.targetId}`) ?? findVisibleTourTarget(step.targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("tour-highlight");
+      const highlightTimer = window.setTimeout(() => el.classList.remove("tour-highlight"), 2000);
+      return () => {
+        window.clearTimeout(highlightTimer);
+        el.classList.remove("tour-highlight");
+      };
+    }
+  }, [open, step?.targetId, safeStepIndex]);
+
+  useEffect(() => {
+    if (!open || !step) return;
 
     const updateTarget = () => {
       const node = findVisibleTourTarget(step.targetId);
@@ -251,30 +305,9 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
       window.removeEventListener("scroll", updateTarget, true);
       window.cancelAnimationFrame(raf);
     };
-  }, [open, step.key, step.targetId, tourType]);
+  }, [open, step, tourType]);
 
-  useEffect(() => {
-    if (!open || !targetRect) return;
-    const node = findVisibleTourTarget(step.targetId);
-    if (!node) return;
-    const previousOutline = node.style.outline;
-    const previousOutlineOffset = node.style.outlineOffset;
-    const previousBorderRadius = node.style.borderRadius;
-    const previousBoxShadow = node.style.boxShadow;
-    node.style.outline = "2px solid #7c3aed";
-    node.style.outlineOffset = "2px";
-    node.style.borderRadius = "10px";
-    node.style.boxShadow = "0 0 0 4px rgba(124,58,237,0.35)";
-
-    return () => {
-      node.style.outline = previousOutline;
-      node.style.outlineOffset = previousOutlineOffset;
-      node.style.borderRadius = previousBorderRadius;
-      node.style.boxShadow = previousBoxShadow;
-    };
-  }, [open, step.targetId, targetRect]);
-
-  if (!open || steps.length === 0) return null;
+  if (!open || totalSteps === 0 || !step) return null;
 
   async function markTourDone(type: "free" | "paid", ownerUserId: string | null) {
     const column = type === "free" ? "guided_tour_free_done" : "guided_tour_paid_done";
@@ -287,10 +320,21 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
     window.localStorage.setItem(`guided_tour_${type}_done`, "true");
   }
 
-  async function finishTour() {
+  async function finishTour(playConfetti: boolean) {
+    if (playConfetti) {
+      fireTourConfetti();
+    }
     switchMode("classique");
     await markTourDone(tourType, userId);
     onClose();
+  }
+
+  function handleNext() {
+    if (isLastStep) {
+      void finishTour(true);
+      return;
+    }
+    goToStep(safeStepIndex + 1);
   }
 
   return (
@@ -307,37 +351,47 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
         className="absolute w-[340px] rounded-xl p-4 shadow-2xl"
         style={{ top: bubblePos.top, left: bubblePos.left, backgroundColor: "#7c3aed" }}
       >
-        <p className="text-xs" style={{ color: "#d1d5db" }}>
-          Étape {safeStepIndex + 1} sur {steps.length}
-        </p>
-        <h2 id="guided-tour-title" className="mt-2 text-lg font-bold text-white">
-          {step.title}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: "#e5e7eb" }}>
-          {step.description}
-        </p>
-        {showLockBadge ? (
-          <p
-            className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-            style={{ backgroundColor: "rgba(245, 158, 11, 0.2)", color: "#fbbf24" }}
-          >
-            {lockBadgeText}
+        <div
+          className={isTransitioning ? "tour-content-exit" : "tour-content-enter"}
+        >
+          <div className="mb-3">
+            <div className="mb-1.5 flex justify-between text-xs text-white/70">
+              <span>
+                Étape {safeStepIndex + 1} sur {totalSteps}
+              </span>
+              <span>{progressPercent}%</span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-white/20">
+              <div
+                className="h-1.5 rounded-full bg-white transition-all duration-500 ease-out"
+                style={{ width: `${((safeStepIndex + 1) / totalSteps) * 100}%` }}
+              />
+            </div>
+          </div>
+          <h2 id="guided-tour-title" className="text-lg font-bold text-white">
+            {step.title}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: "#e5e7eb" }}>
+            {step.description}
           </p>
-        ) : null}
+          {showLockBadge ? (
+            <p
+              className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+              style={{ backgroundColor: "rgba(245, 158, 11, 0.2)", color: "#fbbf24" }}
+            >
+              {lockBadgeText}
+            </p>
+          ) : null}
+        </div>
         <div className="mt-4 flex items-center justify-between">
-          <button type="button" className="text-sm" style={{ color: "#d1d5db" }} onClick={() => void finishTour()}>
+          <button type="button" className="text-sm" style={{ color: "#d1d5db" }} onClick={() => void finishTour(false)}>
             Passer le tour
           </button>
           <button
             type="button"
             className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-[#7c3aed]"
-            onClick={() => {
-              if (isLastStep) {
-                void finishTour();
-                return;
-              }
-              setStepIndex((prev) => prev + 1);
-            }}
+            disabled={isTransitioning}
+            onClick={handleNext}
           >
             {isLastStep ? "Terminer 🎉" : "Suivant →"}
           </button>
@@ -346,4 +400,3 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
     </div>
   );
 }
-

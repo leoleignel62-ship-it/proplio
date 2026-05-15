@@ -915,3 +915,34 @@ button:not(:disabled):active,
     background-clip: unset;
   }
 }
+
+@keyframes tour-ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
+  }
+}
+
+.tour-highlight {
+  animation: tour-ring-pulse 1s ease-out 3;
+  border-radius: 8px;
+}
+
+.tour-content-enter {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.tour-content-exit {
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
