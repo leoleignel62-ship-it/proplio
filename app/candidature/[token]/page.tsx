@@ -47,6 +47,34 @@ const initialForm: FormState = {
   nom_prenom_garant: "",
 };
 
+function stepFromDraft(raw: unknown): number | null {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  const n = Math.floor(raw);
+  if (n < 1 || n > 6) return null;
+  return n;
+}
+
+function formFromDraft(raw: unknown): FormState {
+  if (!raw || typeof raw !== "object") return initialForm;
+  const o = raw as Record<string, unknown>;
+  return {
+    type_contrat: typeof o.type_contrat === "string" ? o.type_contrat : initialForm.type_contrat,
+    employeur: typeof o.employeur === "string" ? o.employeur : initialForm.employeur,
+    anciennete_mois: typeof o.anciennete_mois === "string" ? o.anciennete_mois : initialForm.anciennete_mois,
+    revenus_nets_mensuels:
+      typeof o.revenus_nets_mensuels === "string" ? o.revenus_nets_mensuels : initialForm.revenus_nets_mensuels,
+    situation: typeof o.situation === "string" ? o.situation : initialForm.situation,
+    nb_personnes_foyer: typeof o.nb_personnes_foyer === "string" ? o.nb_personnes_foyer : initialForm.nb_personnes_foyer,
+    a_garant: typeof o.a_garant === "boolean" ? o.a_garant : initialForm.a_garant,
+    type_garant: typeof o.type_garant === "string" ? o.type_garant : initialForm.type_garant,
+    revenus_garant: typeof o.revenus_garant === "string" ? o.revenus_garant : initialForm.revenus_garant,
+    employeur_garant: typeof o.employeur_garant === "string" ? o.employeur_garant : initialForm.employeur_garant,
+    type_contrat_garant:
+      typeof o.type_contrat_garant === "string" ? o.type_contrat_garant : initialForm.type_contrat_garant,
+    nom_prenom_garant: typeof o.nom_prenom_garant === "string" ? o.nom_prenom_garant : initialForm.nom_prenom_garant,
+  };
+}
+
 const TYPE_CONTRAT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "CDI", label: "CDI" },
   { value: "CDD", label: "CDD" },
@@ -198,6 +226,8 @@ export default function CandidatureTokenPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rgpdAccepted, setRgpdAccepted] = useState(false);
+  const [draftBootstrapped, setDraftBootstrapped] = useState(false);
+  const [showDraftRestoredMessage, setShowDraftRestoredMessage] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,8 +244,36 @@ export default function CandidatureTokenPage() {
       if (!res.ok && res.status !== 410) {
         setTokenInfo({ valide: false, expire: false, soumis: false, prenom_candidat: "", nom_candidat: "" });
       } else {
-        setTokenInfo((payload ?? null) as TokenInfo | null);
+        const info = (payload ?? null) as TokenInfo | null;
+        setTokenInfo(info);
+        if (
+          typeof window !== "undefined" &&
+          info?.valide &&
+          !info.expire &&
+          !info.soumis
+        ) {
+          try {
+            const raw = localStorage.getItem(`candidature-draft-${token}`);
+            if (raw) {
+              const parsed = JSON.parse(raw) as { step?: unknown; form?: unknown };
+              let restored = false;
+              const s = stepFromDraft(parsed.step);
+              if (s != null) {
+                setStep(s);
+                restored = true;
+              }
+              if (parsed.form != null && typeof parsed.form === "object") {
+                setForm(formFromDraft(parsed.form));
+                restored = true;
+              }
+              if (restored) setShowDraftRestoredMessage(true);
+            }
+          } catch {
+            /* ignore invalid draft */
+          }
+        }
       }
+      setDraftBootstrapped(true);
       setLoadingToken(false);
     })();
 
@@ -223,6 +281,22 @@ export default function CandidatureTokenPage() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (!draftBootstrapped || !token || token.trim().length < 10) return;
+    if (!tokenInfo?.valide || tokenInfo.expire || tokenInfo.soumis) return;
+    try {
+      localStorage.setItem(`candidature-draft-${token}`, JSON.stringify({ step, form }));
+    } catch {
+      /* quota / private mode */
+    }
+  }, [draftBootstrapped, token, tokenInfo, step, form]);
+
+  useEffect(() => {
+    if (!showDraftRestoredMessage) return;
+    const t = window.setTimeout(() => setShowDraftRestoredMessage(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [showDraftRestoredMessage]);
 
   const progress = Math.round((Math.min(step, 6) / 6) * 100);
   const hideEmployerBlock = skipEmployerSeniority(form.type_contrat);
@@ -271,6 +345,11 @@ export default function CandidatureTokenPage() {
       setSubmitError(j.error ?? "Soumission impossible.");
       setIsSubmitting(false);
       return;
+    }
+    try {
+      localStorage.removeItem(`candidature-draft-${token}`);
+    } catch {
+      /* ignore */
     }
     setSubmitSuccess(true);
     setIsSubmitting(false);
@@ -323,6 +402,11 @@ export default function CandidatureTokenPage() {
         <div className="mb-4 h-2 w-full rounded-full" style={{ backgroundColor: PC.cardHover }}>
           <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: PC.primary }} />
         </div>
+        {showDraftRestoredMessage ? (
+          <p className="mb-4 text-sm" style={{ color: PC.muted }}>
+            Votre progression a été restaurée automatiquement.
+          </p>
+        ) : null}
 
         {step === 1 ? (
           <section className="space-y-3">
