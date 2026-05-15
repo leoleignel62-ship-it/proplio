@@ -57,6 +57,11 @@ type StripeSubscriptionInfo = {
   status: string;
 };
 
+type SubscriptionStatus = {
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: number | null;
+};
+
 export default function ParametresPage() {
   const toast = useToast();
   const router = useRouter();
@@ -70,6 +75,7 @@ export default function ParametresPage() {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [stripeSubscription, setStripeSubscription] = useState<StripeSubscriptionInfo | null>(null);
   const [stripeSubscriptionLoading, setStripeSubscriptionLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const signatureFileRef = useRef<HTMLInputElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -137,6 +143,15 @@ export default function ParametresPage() {
       window.clearTimeout(t);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    fetch("/api/stripe/subscription-status")
+      .then((r) => r.json())
+      .then((data: SubscriptionStatus) => setSubscriptionStatus(data))
+      .catch(() => setSubscriptionStatus({ cancelAtPeriodEnd: false, currentPeriodEnd: null }));
+  }, [isLoading]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -489,23 +504,27 @@ export default function ParametresPage() {
           </p>
         ) : null}
 
-        {plan !== "free" && !stripeSubscriptionLoading && stripeSubscription ? (
+        {plan !== "free" && !stripeSubscriptionLoading && (stripeSubscription || subscriptionStatus?.currentPeriodEnd) ? (
           <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-            {stripeSubscription.cancel_at_period_end ? (
+            {subscriptionStatus?.cancelAtPeriodEnd === true ? (
               <>
-                <span style={{ color: PC.warning }}>
-                  ⚠️ Abonnement résilié — Accès jusqu&apos;au :{" "}
-                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                <span className="font-semibold text-red-600">
+                  Fin d&apos;abonnement :{" "}
+                  {formatSubscriptionDateFr(
+                    subscriptionStatus.currentPeriodEnd ??
+                      stripeSubscription?.current_period_end ??
+                      0,
+                  )}
                 </span>
               </>
-            ) : stripeSubscription.interval === "month" ? (
+            ) : stripeSubscription?.interval === "month" ? (
               <>
-                Prochain renouvellement :{" "}
+                <span className="font-semibold text-[#7c3aed]">Prochain renouvellement : </span>
                 <span className="font-medium" style={{ color: PC.secondary }}>
                   {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
                 </span>
               </>
-            ) : stripeSubscription.interval === "year" ? (
+            ) : stripeSubscription?.interval === "year" ? (
               <>
                 Abonnement valide jusqu&apos;au :{" "}
                 <span className="font-medium" style={{ color: PC.secondary }}>
@@ -516,7 +535,9 @@ export default function ParametresPage() {
               <>
                 Prochaine échéance :{" "}
                 <span className="font-medium" style={{ color: PC.secondary }}>
-                  {formatSubscriptionDateFr(stripeSubscription.current_period_end)}
+                  {formatSubscriptionDateFr(
+                    stripeSubscription?.current_period_end ?? subscriptionStatus?.currentPeriodEnd ?? 0,
+                  )}
                 </span>
               </>
             )}
