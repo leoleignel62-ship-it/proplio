@@ -44,13 +44,22 @@ import {
   montantSoldeRestant,
   type SaisonnierRappelReservationRow,
 } from "@/lib/saisonnier-rappel-conditions";
-import { normalizePlan, PLAN_UPGRADE_PATH, type LocavioPlan } from "@/lib/plan-limits";
+import {
+  canAccessDocuments,
+  canAccessSaisonnier,
+  canAccessStarterFeatures,
+  normalizePlan,
+  PLAN_UPGRADE_PATH,
+  UPSELL_MESSAGES,
+  type LocavioPlan,
+} from "@/lib/plan-limits";
 import { BtnEmail, BtnNeutral, BtnPrimary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/locavio-colors";
 import { supabase } from "@/lib/supabase";
 
-const SIDEBAR_STARTER_ONLY_TOOLTIP = "Disponible à partir du plan Starter";
+const SIDEBAR_TOOLTIP_STARTER = "Disponible à partir du plan Starter";
+const SIDEBAR_TOOLTIP_PRO = "Disponible à partir du plan Pro";
 
 /** Ligne de séparation sidebar (léger trait sur fond clair). */
 const SIDEBAR_SEP_COLOR = "rgba(0, 0, 0, 0.06)";
@@ -112,15 +121,18 @@ function ModeLocationPill({
   mode,
   onSelectClassique,
   onSelectSaisonnier,
+  saisonnierLocked = false,
   className = "",
 }: {
   mode: ModeLocation;
   onSelectClassique: () => void;
   onSelectSaisonnier: () => void;
+  saisonnierLocked?: boolean;
   className?: string;
 }) {
   const pillInactive = "#f3f4f6";
   const pillActive = "#7c3aed";
+  const saisonnierMuted = "#9ca3af";
   return (
     <div
       className={`w-full rounded-full p-1 ${className}`.trim()}
@@ -145,19 +157,42 @@ function ModeLocationPill({
         <button
           type="button"
           data-tour-id="mode-saisonnier"
-          className="rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
+          className="inline-flex items-center justify-center gap-1 rounded-full py-2.5 text-xs font-semibold transition-all duration-200 ease-out"
           style={{
-            backgroundColor: mode === "saisonnier" ? pillActive : pillInactive,
-            color: mode === "saisonnier" ? PC.white : "#6b7280",
-            boxShadow: mode === "saisonnier" ? PC.activeRing : "none",
+            backgroundColor: saisonnierLocked ? pillInactive : mode === "saisonnier" ? pillActive : pillInactive,
+            color: saisonnierLocked ? saisonnierMuted : mode === "saisonnier" ? PC.white : "#6b7280",
+            boxShadow: saisonnierLocked || mode !== "saisonnier" ? "none" : PC.activeRing,
+            cursor: saisonnierLocked ? "not-allowed" : "pointer",
+            opacity: saisonnierLocked ? 0.75 : 1,
           }}
+          title={saisonnierLocked ? SIDEBAR_TOOLTIP_PRO : undefined}
           onClick={onSelectSaisonnier}
         >
           Saisonnier
+          {saisonnierLocked ? <Lock size={14} strokeWidth={1.75} className="shrink-0" aria-hidden /> : null}
         </button>
       </div>
     </div>
   );
+}
+
+function getNavLockInfo(
+  href: string,
+  plan: LocavioPlan,
+): { locked: boolean; tooltip?: string; hrefOverride?: string } {
+  if (
+    (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux") &&
+    !canAccessStarterFeatures(plan)
+  ) {
+    return { locked: true, tooltip: SIDEBAR_TOOLTIP_STARTER };
+  }
+  if (href === "/dossiers" && !canAccessDocuments(plan)) {
+    return { locked: true, tooltip: SIDEBAR_TOOLTIP_PRO };
+  }
+  if (href.startsWith("/saisonnier") && !canAccessSaisonnier(plan)) {
+    return { locked: true, tooltip: SIDEBAR_TOOLTIP_PRO, hrefOverride: PLAN_UPGRADE_PATH };
+  }
+  return { locked: false };
 }
 
 function NavLink({
@@ -166,7 +201,8 @@ function NavLink({
   Icon,
   isActive,
   onNavigate,
-  starterOnlyLock = false,
+  navLocked = false,
+  lockTooltip,
   tourId,
 }: {
   href: string;
@@ -174,8 +210,8 @@ function NavLink({
   Icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   isActive: boolean;
   onNavigate?: () => void;
-  /** Plan Free : lien cliquable vers la page upsell, avec icône cadenas + tooltip. */
-  starterOnlyLock?: boolean;
+  navLocked?: boolean;
+  lockTooltip?: string;
   tourId?: string;
 }) {
   const [hover, setHover] = useState(false);
@@ -197,7 +233,7 @@ function NavLink({
       data-tour-id={tourId}
       className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-[background-color,color] duration-200 ease-out"
       style={isActive ? activeStyle : idleStyle}
-      title={starterOnlyLock ? SIDEBAR_STARTER_ONLY_TOOLTIP : undefined}
+      title={navLocked ? lockTooltip : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={() => onNavigate?.()}
@@ -206,7 +242,7 @@ function NavLink({
         className="h-5 w-5 shrink-0"
         style={{ color: isActive ? PC.primary : hover ? PC.primary : PC.tertiary }}
       />
-      {starterOnlyLock ? (
+      {navLocked ? (
         <span className="flex min-w-0 items-center gap-1.5">
           <span>{label}</span>
           <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
@@ -274,36 +310,32 @@ export function NavigationSidebar() {
     };
   }, []);
 
+  const effectivePlan = ownerPlan ?? "free";
+  const saisonnierAccessible = canAccessSaisonnier(effectivePlan);
+
   useEffect(() => {
-    if (ownerPlan === "free" && mode === "saisonnier") {
+    if (!saisonnierAccessible && mode === "saisonnier") {
       setMode("classique");
     }
-  }, [ownerPlan, mode, setMode]);
+  }, [saisonnierAccessible, mode, setMode]);
 
   /** Toggle aligné sur l’URL : /saisonnier/… → Saisonnier, sinon Classique. */
   useEffect(() => {
     const isSaisonnierPath = pathname === "/saisonnier" || pathname.startsWith("/saisonnier/");
     if (isSaisonnierPath) {
-      if (ownerPlan !== "free") {
+      if (saisonnierAccessible) {
         setMode("saisonnier");
       }
     } else {
       setMode("classique");
     }
-  }, [pathname, ownerPlan, setMode]);
+  }, [pathname, saisonnierAccessible, setMode]);
 
   const navigationModeItems = mode === "saisonnier" ? navigationModeSaisonnier : navigationModeClassique;
 
-  function isSidebarStarterOnlyLocked(href: string): boolean {
-    if (ownerPlan !== "free") return false;
-    if (href === "/baux" || href === "/revisions-irl" || href === "/etats-des-lieux" || href === "/dossiers") return true;
-    if (mode === "saisonnier" && href.startsWith("/saisonnier")) return true;
-    return false;
-  }
-
   function renderNavItem(item: NavSidebarItem, closeMobile?: () => void) {
-    const locked = isSidebarStarterOnlyLocked(item.href);
-    const href = locked && item.href.startsWith("/saisonnier") ? PLAN_UPGRADE_PATH : item.href;
+    const lock = getNavLockInfo(item.href, effectivePlan);
+    const href = lock.hrefOverride ?? item.href;
     const tourIdMap: Record<string, string> = {
       "/": "dashboard",
       "/logements": "logements",
@@ -326,7 +358,8 @@ export function NavigationSidebar() {
         Icon={item.icon}
         isActive={pathIsActive(pathname, item.href)}
         onNavigate={closeMobile}
-        starterOnlyLock={locked}
+        navLocked={lock.locked}
+        lockTooltip={lock.tooltip}
         tourId={tourIdMap[item.href]}
       />
     );
@@ -338,7 +371,7 @@ export function NavigationSidebar() {
   }
 
   function selectSaisonnierMode() {
-    if (ownerPlan === "free") {
+    if (!saisonnierAccessible) {
       setSaisonnierUpsellOpen(true);
       return;
     }
@@ -414,7 +447,8 @@ export function NavigationSidebar() {
 
         <div className="w-full shrink-0 px-0 pb-3 pt-1">
           <ModeLocationPill
-            mode={ownerPlan === "free" ? "classique" : mode}
+            mode={saisonnierAccessible ? mode : "classique"}
+            saisonnierLocked={!saisonnierAccessible}
             onSelectClassique={() => {
               selectClassiqueMode();
               closeMobile?.();
@@ -504,7 +538,7 @@ export function NavigationSidebar() {
               Location saisonnière
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
-              Le mode saisonnier est disponible à partir du plan Starter.
+              {UPSELL_MESSAGES.saisonnier}
             </p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <BtnNeutral onClick={() => setSaisonnierUpsellOpen(false)}>Fermer</BtnNeutral>
@@ -759,7 +793,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   let rappelsAcompteSaisonnier: HeaderAlertMetrics["rappelsAcompteSaisonnier"] = [];
   let rappelsSoldeSaisonnier: HeaderAlertMetrics["rappelsSoldeSaisonnier"] = [];
 
-  if (ownerPlan !== "free") {
+  if (canAccessSaisonnier(ownerPlan)) {
     const { data: resaRows } = await supabase
       .from("reservations")
       .select(
