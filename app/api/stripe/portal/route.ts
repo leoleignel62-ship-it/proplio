@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient } from "@/lib/stripe";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -11,12 +11,12 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: "Utilisateur non authentifié." }, { status: 401 });
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("email")
+      .select("stripe_customer_id, email")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -24,26 +24,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
 
-    const email = String(proprietaire.email ?? user.email ?? "").trim();
-    if (!email) {
-      return NextResponse.json({ error: "Email client introuvable." }, { status: 400 });
-    }
-
     const stripe = getStripeServerClient();
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    const customer = customers.data[0];
-    if (!customer) {
-      return NextResponse.json({ error: "Client Stripe introuvable." }, { status: 404 });
+    let customerId = String((proprietaire as { stripe_customer_id?: string | null }).stripe_customer_id ?? "").trim();
+
+    if (!customerId) {
+      const email = String((proprietaire as { email?: string | null }).email ?? user.email ?? "").trim();
+      if (email) {
+        const customers = await stripe.customers.list({ email, limit: 1 });
+        customerId = customers.data[0]?.id ?? "";
+      }
     }
 
-    const origin = request.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
-    if (!origin) {
+    if (!customerId) {
+      return NextResponse.json({ error: "Aucun abonnement trouvé" }, { status: 400 });
+    }
+
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "");
+    if (!siteUrl) {
       return NextResponse.json({ error: "URL du site indisponible." }, { status: 500 });
     }
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: customer.id,
-      return_url: `${origin}/parametres/abonnement`,
+      customer: customerId,
+      return_url: `${siteUrl}/parametres/abonnement`,
     });
 
     return NextResponse.json({ url: session.url });

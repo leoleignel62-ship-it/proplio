@@ -12,7 +12,7 @@ import {
 import { startStripeCheckout } from "@/lib/stripe-checkout";
 import { PLAN_LIMITS, type LocavioPlan } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
-import { BtnDanger, BtnPrimary, BtnSecondary } from "@/components/ui";
+import { BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/locavio-colors";
 import { panelCard } from "@/lib/locavio-field-styles";
@@ -224,11 +224,6 @@ export default function AbonnementPage() {
           Limites : {currentLimits.maxLogements ?? "illimité"} logements, {currentLimits.maxLocataires ?? "illimité"}{" "}
           locataires.
         </p>
-        {plan !== "free" ? (
-          <BtnPrimary className="mt-6" loading={isOpeningPortal} onClick={() => void openPortal()}>
-            Gérer mon abonnement
-          </BtnPrimary>
-        ) : null}
       </div>
 
       {error ? (
@@ -403,22 +398,22 @@ export default function AbonnementPage() {
         Paiement sécurisé par Stripe · Résiliation sans engagement · Données hébergées en Europe
       </p>
 
-      <div className="rounded-2xl p-6" style={panelCard}>
-        <h2 className="text-lg font-bold">Résiliation</h2>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
-          Vous pouvez demander la résiliation à tout moment.
-        </p>
-        <BtnDanger
-          className="mt-4"
-          onClick={() => {
-            const ok = window.confirm("Confirmer la résiliation de votre abonnement ?");
-            if (!ok) return;
-            toast.success("Résiliation demandée. Notre équipe vous contactera rapidement.");
-          }}
-        >
-          Résilier
-        </BtnDanger>
-      </div>
+      {plan !== "free" ? (
+        <div className="rounded-2xl p-6" style={panelCard}>
+          <h2 className="text-lg font-bold">Abonnement et facturation</h2>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+            Modifiez votre formule, mettez à jour votre moyen de paiement ou résiliez via le portail client Stripe.
+          </p>
+          <button
+            type="button"
+            className="mt-4 rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 transition-all hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isOpeningPortal}
+            onClick={() => void openPortal()}
+          >
+            {isOpeningPortal ? "Redirection..." : "Gérer mon abonnement"}
+          </button>
+        </div>
+      ) : null}
 
       <p className="text-sm" style={{ color: PC.muted }}>
         Retour vers{" "}
