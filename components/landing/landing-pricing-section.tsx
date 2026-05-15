@@ -158,7 +158,7 @@ export function LandingPricingSection({
               2 mois offerts
             </span>
             <p className="text-center text-sm font-medium" style={{ color: PC.muted }}>
-              Économisez jusqu&apos;à 39,80€/an avec l&apos;abonnement annuel
+              Économisez jusqu&apos;à 49,80€/an avec l&apos;abonnement annuel
             </p>
           </>
         ) : null}

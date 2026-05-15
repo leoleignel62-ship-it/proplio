@@ -49,21 +49,21 @@ const ABONNEMENT_PRICING: Record<
     popular: false,
   },
   starter: {
-    monthlyPriceLabel: "4,90€/mois",
-    yearlyPriceLabel: "49€/an",
-    annualSaveBadge: "Économisez 9,80€/an",
+    monthlyPriceLabel: "6,90€/mois",
+    yearlyPriceLabel: "69€/an",
+    annualSaveBadge: "Économisez 13,80€/an",
     popular: false,
   },
   pro: {
-    monthlyPriceLabel: "9,90€/mois",
-    yearlyPriceLabel: "99€/an",
-    annualSaveBadge: "Économisez 19,80€/an",
+    monthlyPriceLabel: "12,90€/mois",
+    yearlyPriceLabel: "129€/an",
+    annualSaveBadge: "Économisez 25,80€/an",
     popular: true,
   },
   expert: {
-    monthlyPriceLabel: "19,90€/mois",
-    yearlyPriceLabel: "199€/an",
-    annualSaveBadge: "Économisez 39,80€/an",
+    monthlyPriceLabel: "24,90€/mois",
+    yearlyPriceLabel: "249€/an",
+    annualSaveBadge: "Économisez 49,80€/an",
     popular: false,
   },
 };
@@ -289,7 +289,7 @@ export default function AbonnementPage() {
               2 mois offerts 🎉
             </span>
             <p className="text-center text-sm" style={{ color: PC.muted }}>
-              Économisez jusqu&apos;à <span style={{ color: PC.primaryLight, fontWeight: 600 }}>39,80€/an</span> avec la
+              Économisez jusqu&apos;à <span style={{ color: PC.primaryLight, fontWeight: 600 }}>49,80€/an</span> avec la
               facturation annuelle.
             </p>
           </>

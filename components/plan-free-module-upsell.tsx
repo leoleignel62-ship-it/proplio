@@ -35,22 +35,22 @@ const PLAN_ROWS: Array<{
   {
     id: "starter",
     label: "Starter",
-    monthlyLine: "4,90 €/mois",
-    yearlyLine: "49 €/an",
+    monthlyLine: "6,90 €/mois",
+    yearlyLine: "69 €/an",
     cta: "Choisir Starter",
   },
   {
     id: "pro",
     label: "Pro",
-    monthlyLine: "9,90 €/mois",
-    yearlyLine: "99 €/an",
+    monthlyLine: "12,90 €/mois",
+    yearlyLine: "129 €/an",
     cta: "Choisir Pro",
   },
   {
     id: "expert",
     label: "Expert",
-    monthlyLine: "19,90 €/mois",
-    yearlyLine: "199 €/an",
+    monthlyLine: "24,90 €/mois",
+    yearlyLine: "249 €/an",
     cta: "Choisir Expert",
   },
 ];
@@ -183,34 +183,34 @@ export function PlanFreeModuleUpsell({ variant }: { variant: PlanFreeModuleUpsel
                 <span className="font-semibold" style={{ color: PC.primary }}>
                   Starter
                 </span>{" "}
-                4,90&nbsp;€/mois
+                6,90&nbsp;€/mois
                 <span style={{ color: PC.border }}> · </span>
                 <span className="font-semibold" style={{ color: PC.secondary }}>
                   Pro
                 </span>{" "}
-                9,90&nbsp;€/mois
+                12,90&nbsp;€/mois
                 <span style={{ color: PC.border }}> · </span>
                 <span className="font-semibold" style={{ color: PC.text }}>
                   Expert
                 </span>{" "}
-                19,90&nbsp;€/mois
+                24,90&nbsp;€/mois
               </>
             ) : (
               <>
                 <span className="font-semibold" style={{ color: PC.primary }}>
                   Starter
                 </span>{" "}
-                49&nbsp;€/an
+                69&nbsp;€/an
                 <span style={{ color: PC.border }}> · </span>
                 <span className="font-semibold" style={{ color: PC.secondary }}>
                   Pro
                 </span>{" "}
-                99&nbsp;€/an
+                129&nbsp;€/an
                 <span style={{ color: PC.border }}> · </span>
                 <span className="font-semibold" style={{ color: PC.text }}>
                   Expert
                 </span>{" "}
-                199&nbsp;€/an
+                249&nbsp;€/an
               </>
             )}
           </p>

@@ -236,7 +236,7 @@ const excelHtml = `<h2>Pourquoi autant de propriétaires utilisent encore Excel 
 <li>Suivi financier : 2h/mois = <strong>24 heures/an</strong></li>
 </ul>
 <p>Total : environ <strong>48 heures par an</strong> passées sur de l'administratif pur. À un taux horaire de 30€ (valeur conservatrice), c'est 1 440€ de "coût caché" annuel.</p>
-<p>Le plan Pro de Locavio coûte 99€/an. La différence parle d'elle-même.</p>
+<p>Le plan Pro de Locavio coûte 129€/an. La différence parle d'elle-même.</p>
 
 <h2>Que gagne-t-on concrètement avec un logiciel dédié ?</h2>
 <ul>

@@ -63,7 +63,7 @@ const avecItems = [
   "Bail conforme ALUR en quelques minutes",
   "État des lieux avec photos depuis votre smartphone",
   "Révision IRL calculée et envoyée automatiquement",
-  "Locavio à partir de 4,90€/mois — économisez jusqu'à 921€/an",
+  "Locavio à partir de 6,90€/mois — économisez jusqu'à 891€/an",
 ] as const;
 
 const featureCards = [
@@ -153,7 +153,7 @@ export default function LandingBelowFold() {
   const loyerTotal = logements.reduce((sum, l) => sum + l.loyer, 0);
   const coutAgenceMin = loyerTotal * 12 * 0.06;
   const coutAgenceMax = loyerTotal * 12 * 0.1;
-  const coutLocavio = 99;
+  const coutLocavio = 129;
   const economieMin = coutAgenceMin - coutLocavio;
   const economieMax = coutAgenceMax - coutLocavio;
   const xFoisMin = Math.round(coutAgenceMin / coutLocavio);
@@ -339,7 +339,7 @@ export default function LandingBelowFold() {
               </thead>
               <tbody>
                 {[
-                  ["Coût annuel", "~1 mois loyer", "99€/an"],
+                  ["Coût annuel", "~1 mois loyer", "129€/an"],
                   ["Quittances", "Inclus", "✓ PDF + envoi en 1 clic"],
                   ["Baux", "~150-200€", "✓ Inclus"],
                   ["États des lieux", "~150-300€", "✓ Inclus + photos"],
@@ -458,7 +458,7 @@ export default function LandingBelowFold() {
               >
                 <p className="text-sm font-medium text-[#7c3aed]">Locavio Pro</p>
                 <p className="text-xs text-[#7c3aed]/70">Tout inclus, illimité</p>
-                <p className="text-3xl font-bold text-[#7c3aed]">99 €</p>
+                <p className="text-3xl font-bold text-[#7c3aed]">129 €</p>
                 <p className="text-sm text-[#9ca3af]">par an</p>
               </div>
               <div
@@ -485,7 +485,7 @@ export default function LandingBelowFold() {
             <p className="mt-6 text-center text-sm text-[#6b7280]">
               Avec un loyer total de {loyerTotal.toLocaleString("fr-FR")} €/mois, une agence vous coûte entre{" "}
               {coutAgenceMin.toLocaleString("fr-FR")} € et {coutAgenceMax.toLocaleString("fr-FR")} € par an (6 à 10% de vos
-              loyers). Locavio vous revient à 99 € — soit jusqu&apos;à {xFoisMax}x moins cher.
+              loyers). Locavio vous revient à 129 € — soit jusqu&apos;à {xFoisMax}x moins cher.
             </p>
 
             <div className="mt-8 text-center">
