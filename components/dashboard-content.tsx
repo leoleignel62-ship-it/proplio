@@ -263,12 +263,14 @@ function StatCard({
   description,
   icon: Icon,
   iconTint,
+  loading = false,
 }: {
   titre: string;
   valeur: number;
   description: string;
   icon: typeof IconOffice;
   iconTint: string;
+  loading?: boolean;
 }) {
   return (
     <article
@@ -282,9 +284,13 @@ function StatCard({
           <p className="text-[13px] font-medium leading-snug" style={{ color: PC.muted }}>
             {titre}
           </p>
-          <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-[-0.03em] sm:text-[34px]" style={{ color: PC.text }}>
-            {valeur}
-          </p>
+          {loading ? (
+            <div className="mt-2 h-8 w-16 animate-pulse rounded bg-gray-200" aria-hidden />
+          ) : (
+            <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-[-0.03em] sm:text-[34px]" style={{ color: PC.text }}>
+              {valeur}
+            </p>
+          )}
           <p className="mt-2 text-sm font-normal leading-[1.6]" style={{ color: PC.muted }}>
             {description}
           </p>
@@ -314,6 +320,7 @@ export function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats>(emptyDashboardStats);
   const [financial, setFinancial] = useState<FinancialMetrics>(emptyFinancialMetrics);
   const [annual, setAnnual] = useState<AnnualChartData>(emptyAnnualChart);
+  const [isLoading, setIsLoading] = useState(true);
 
   const annualChartRows = useMemo(
     () =>
@@ -385,6 +392,8 @@ export function DashboardContent() {
         setAnnual(derived.annual);
       } catch {
         if (!cancelled) resetToZeros();
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -439,6 +448,7 @@ export function DashboardContent() {
           description="Biens enregistrés sur Locavio."
           icon={IconOffice}
           iconTint={PC.primaryLight}
+          loading={isLoading}
         />
         <StatCard
           titre="Locataires actifs"
@@ -446,6 +456,7 @@ export function DashboardContent() {
           description="Profils locataires suivis."
           icon={IconUsers}
           iconTint={PC.secondary}
+          loading={isLoading}
         />
         <StatCard
           titre="Quittances ce mois"
@@ -453,6 +464,7 @@ export function DashboardContent() {
           description="Marquées comme envoyées."
           icon={IconDocument}
           iconTint={PC.success}
+          loading={isLoading}
         />
         <StatCard
           titre="Baux actifs"
@@ -460,6 +472,7 @@ export function DashboardContent() {
           description="Contrats au statut actif."
           icon={IconContract}
           iconTint={PC.primary}
+          loading={isLoading}
         />
       </div>
 
@@ -473,38 +486,78 @@ export function DashboardContent() {
         <div className="grid gap-3 md:grid-cols-3">
           <article className="rounded-xl p-4" style={{ backgroundColor: PC.primaryBg10, border: `1px solid ${PC.primaryBorder40}` }}>
             <p className="text-xs font-medium" style={{ color: PC.secondary }}>Potentiel total du parc</p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.primary }}>{financial.potentielTotal.toLocaleString("fr-FR")} €</p>
-            <p className="mt-1 text-xs" style={{ color: PC.muted }}>{financial.totalLogements} logement(s) total</p>
+            {isLoading ? (
+              <>
+                <div className="mt-2 h-8 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
+                <div className="mt-1 h-4 w-36 animate-pulse rounded bg-gray-200" aria-hidden />
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-semibold" style={{ color: PC.primary }}>{financial.potentielTotal.toLocaleString("fr-FR")} €</p>
+                <p className="mt-1 text-xs" style={{ color: PC.muted }}>{financial.totalLogements} logement(s) total</p>
+              </>
+            )}
           </article>
           <article className="rounded-xl p-4" style={{ backgroundColor: PC.successBg10, border: `1px solid ${PC.borderSuccess40}` }}>
             <p className="text-xs font-medium" style={{ color: PC.success }}>Actuellement encaissé</p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.success }}>{financial.encaisseMois.toLocaleString("fr-FR")} €</p>
-            <p className="mt-1 text-xs" style={{ color: PC.muted }}>
-              {financial.logementsLouesCeMois} logements · {financial.chambresLouees} chambres louées
-            </p>
+            {isLoading ? (
+              <>
+                <div className="mt-2 h-8 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
+                <div className="mt-1 h-4 w-44 animate-pulse rounded bg-gray-200" aria-hidden />
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-semibold" style={{ color: PC.success }}>{financial.encaisseMois.toLocaleString("fr-FR")} €</p>
+                <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                  {financial.logementsLouesCeMois} logements · {financial.chambresLouees} chambres louées
+                </p>
+              </>
+            )}
           </article>
           <article className="rounded-xl p-4" style={{ backgroundColor: PC.dangerBg10, border: `1px solid ${PC.borderDanger40}` }}>
             <p className="text-xs font-medium" style={{ color: PC.danger }}>Manque à gagner</p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: PC.danger }}>{financial.manque.toLocaleString("fr-FR")} €</p>
-            <p className="mt-1 text-xs" style={{ color: PC.muted }}>
-              {financial.logementsVacants} logement(s) vacant(s) · {financial.chambresDisponibles} chambre(s) disponible(s)
-            </p>
+            {isLoading ? (
+              <>
+                <div className="mt-2 h-8 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
+                <div className="mt-1 h-4 w-full max-w-[14rem] animate-pulse rounded bg-gray-200" aria-hidden />
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-semibold" style={{ color: PC.danger }}>{financial.manque.toLocaleString("fr-FR")} €</p>
+                <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                  {financial.logementsVacants} logement(s) vacant(s) · {financial.chambresDisponibles} chambre(s) disponible(s)
+                </p>
+              </>
+            )}
           </article>
         </div>
         <div className="space-y-2 rounded-xl p-4" style={{ backgroundColor: PC.bg, border: `1px solid ${PC.border}` }}>
           <div className="h-3 w-full overflow-hidden rounded-full" style={{ backgroundColor: PC.border }}>
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.max(0, Math.min(100, financial.tauxRemplissage))}%`,
-                background: `linear-gradient(90deg, ${PC.primary} 0%, ${PC.success} 100%)`,
-              }}
-            />
+            {isLoading ? (
+              <div className="h-full w-full animate-pulse rounded-full bg-gray-200" aria-hidden />
+            ) : (
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max(0, Math.min(100, financial.tauxRemplissage))}%`,
+                  background: `linear-gradient(90deg, ${PC.primary} 0%, ${PC.success} 100%)`,
+                }}
+              />
+            )}
           </div>
           <div className="flex items-center justify-between text-xs" style={{ color: PC.muted }}>
             <span>0€</span>
-            <span>{Math.round(financial.tauxRemplissage)}%</span>
-            <span>Objectif : {financial.potentielTotal.toLocaleString("fr-FR")}€</span>
+            {isLoading ? (
+              <>
+                <div className="h-3 w-9 animate-pulse rounded bg-gray-200" aria-hidden />
+                <div className="h-3 w-32 animate-pulse rounded bg-gray-200" aria-hidden />
+              </>
+            ) : (
+              <>
+                <span>{Math.round(financial.tauxRemplissage)}%</span>
+                <span>Objectif : {financial.potentielTotal.toLocaleString("fr-FR")}€</span>
+              </>
+            )}
           </div>
         </div>
       </section>
