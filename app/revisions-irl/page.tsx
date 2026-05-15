@@ -14,7 +14,7 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
-import { BtnEmail, BtnPrimary, BtnSecondary } from "@/components/ui";
+import { BtnEmail, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/locavio-colors";
 import { panelCard } from "@/lib/locavio-field-styles";
@@ -85,6 +85,7 @@ export default function RevisionsIrlPage() {
     [],
   );
   const [missingIrlDraft, setMissingIrlDraft] = useState<Record<string, string>>({});
+  const [resendConfirm, setResendConfirm] = useState<{ revisionId: string; tenantEmail: string } | null>(null);
 
   const loadData = useCallback(async () => {
     setError("");
@@ -306,11 +307,6 @@ export default function RevisionsIrlPage() {
     revisionId: string,
     opts?: { resend?: boolean; tenantEmail?: string },
   ) {
-    if (opts?.resend) {
-      const em = (opts.tenantEmail ?? "").trim();
-      const msg = em ? `Renvoyer la lettre à ${em} ?` : "Renvoyer la lettre au locataire ?";
-      if (!window.confirm(msg)) return;
-    }
     setActionKey(`s-${revisionId}`);
     setError("");
     try {
@@ -620,7 +616,9 @@ export default function RevisionsIrlPage() {
                           disabled={sendBusy}
                           loading={sendBusy}
                           icon={<IconArrowPath className="!h-3.5 !w-3.5 shrink-0" />}
-                          onClick={() => void onEnvoyerLettre(r.id, { resend: true, tenantEmail })}
+                          onClick={() =>
+                            setResendConfirm({ revisionId: r.id, tenantEmail: String(tenantEmail ?? "") })
+                          }
                         >
                           Renvoyer
                         </BtnEmail>
@@ -671,6 +669,22 @@ export default function RevisionsIrlPage() {
           </table>
         </div>
       </section>
+
+      <ConfirmModal
+        open={resendConfirm != null}
+        title="Renvoyer la lettre de révision par email ?"
+        description="Une nouvelle copie de la lettre sera envoyée au locataire avec le PDF en pièce jointe."
+        variant="primary"
+        confirmLabel="Renvoyer"
+        cancelLabel="Annuler"
+        onClose={() => setResendConfirm(null)}
+        onConfirm={() => {
+          if (!resendConfirm) return;
+          const { revisionId, tenantEmail } = resendConfirm;
+          setResendConfirm(null);
+          void onEnvoyerLettre(revisionId, { resend: true, tenantEmail });
+        }}
+      />
     </div>
   );
 }
