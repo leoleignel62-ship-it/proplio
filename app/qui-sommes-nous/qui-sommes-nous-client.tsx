@@ -74,14 +74,33 @@ export function QuiSommesNousClient() {
                 bricolés. Pas par négligence — par manque d&apos;un outil vraiment accessible et pensé pour eux.
               </p>
 
-              <p>
-                Je m&apos;appelle Léo. Je ne suis pas développeur de formation — mais j&apos;ai appris, construit,
-                itéré, jusqu&apos;à ce que Locavio existe vraiment. Pas de fonds levés. Pas d&apos;équipe de 40
-                personnes. Juste moi, la conviction qu&apos;on pouvait faire mieux, et l&apos;obsession de livrer
-                quelque chose qui fonctionne vraiment pour de vrais propriétaires.
-              </p>
+              <div
+                style={{
+                  background: "#f3f0ff",
+                  borderRadius: "12px",
+                  padding: "1.5rem",
+                  marginTop: "2rem",
+                }}
+              >
+                <p>
+                  Je m&apos;appelle{" "}
+                  <span style={{ color: "#7c3aed", fontWeight: 600 }}>Léo</span>. Je ne suis pas développeur de
+                  formation — mais j&apos;ai appris, construit, itéré, jusqu&apos;à ce que Locavio existe vraiment. Pas
+                  de fonds levés. Pas d&apos;équipe de 40 personnes. Juste moi, la conviction qu&apos;on pouvait faire
+                  mieux, et l&apos;obsession de livrer quelque chose qui fonctionne vraiment pour de vrais propriétaires.
+                </p>
 
-              <p>On n&apos;en est qu&apos;au début. Et j&apos;ai hâte de la suite.</p>
+                <p
+                  style={{
+                    marginTop: "1.5rem",
+                    fontStyle: "italic",
+                    fontSize: "1.1rem",
+                    textAlign: "center",
+                  }}
+                >
+                  On n&apos;en est qu&apos;au début. Et j&apos;ai hâte de la suite.
+                </p>
+              </div>
             </div>
 
             <p className="mt-8 text-right text-base font-semibold text-[#1a0533]">— Léo</p>
