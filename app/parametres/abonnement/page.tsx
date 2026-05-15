@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
@@ -95,6 +96,11 @@ function isPaidPlan(plan: LocavioPlan): plan is Exclude<LocavioPlan, "free"> {
   return plan === "starter" || plan === "pro" || plan === "expert";
 }
 
+type SubscriptionStatus = {
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: number | null;
+};
+
 export default function AbonnementPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -107,6 +113,10 @@ export default function AbonnementPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [billing, setBilling] = useState<BillingPeriod>("yearly");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -128,6 +138,30 @@ export default function AbonnementPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || plan === "free") return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/stripe/subscription-status");
+        const payload = (await response.json()) as SubscriptionStatus;
+        if (!mounted || !response.ok) return;
+        setSubscriptionStatus({
+          cancelAtPeriodEnd: Boolean(payload.cancelAtPeriodEnd),
+          currentPeriodEnd: payload.currentPeriodEnd ?? null,
+        });
+      } catch {
+        if (!mounted) return;
+        setSubscriptionStatus({ cancelAtPeriodEnd: false, currentPeriodEnd: null });
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, plan]);
 
   useEffect(() => {
     if (searchParams.get("canceled") || searchParams.get("success")) {
@@ -224,6 +258,23 @@ export default function AbonnementPage() {
           Limites : {currentLimits.maxLogements ?? "illimité"} logements, {currentLimits.maxLocataires ?? "illimité"}{" "}
           locataires.
         </p>
+        {subscriptionStatus.cancelAtPeriodEnd && subscriptionStatus.currentPeriodEnd ? (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Résiliation programmée</p>
+              <p className="mt-0.5 text-sm text-amber-700">
+                Votre abonnement sera résilié le{" "}
+                {new Date(subscriptionStatus.currentPeriodEnd * 1000).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+                . Vous conservez l&apos;accès jusqu&apos;à cette date.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {error ? (
