@@ -270,7 +270,7 @@ export function EdlElementField({
               >
                 <Image
                   src={previewUrl}
-                  alt=""
+                  alt="Photo de l'élément"
                   fill
                   className="object-cover"
                   sizes="60px"

@@ -668,7 +668,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
                       >
                         <Image
                           src={photoUrls[path]}
-                          alt=""
+                          alt={`Photo du compteur : ${label}`}
                           fill
                           className="object-cover"
                           sizes="60px"
@@ -830,7 +830,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
         >
           <Image
             src={preview}
-            alt=""
+            alt="Agrandissement de la photo"
             width={1600}
             height={1200}
             className="max-h-[90vh] w-auto max-w-full object-contain"
