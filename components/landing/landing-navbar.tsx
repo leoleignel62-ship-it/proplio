@@ -22,7 +22,7 @@ export function LandingNavbar({ isScrolled }: LandingNavbarProps) {
     { href: "/tarifs", label: "Tarifs" },
     { href: "/securite", label: "Sécurité" },
     { href: "/blog", label: "Blog" },
-    { href: "/qui-sommes-nous", label: "Qui sommes-nous" },
+    { href: "/qui-sommes-nous", label: "Notre histoire" },
   ];
 
   return (

@@ -49,7 +49,7 @@ export function LandingFooter({ marginTopClassName = "mt-12" }: LandingFooterPro
             Politique de confidentialité
           </Link>
           <Link href="/qui-sommes-nous" className="transition hover:text-[#1a0533]" style={{ transition: ease }}>
-            Qui sommes-nous
+            Notre histoire
           </Link>
         </nav>
       </div>

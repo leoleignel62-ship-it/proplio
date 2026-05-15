@@ -65,7 +65,7 @@ export function LegalPageShell({
               Politique de confidentialité
             </Link>
             <Link href="/qui-sommes-nous" className="transition hover:text-[#7c3aed]">
-              Qui sommes-nous
+              Notre histoire
             </Link>
           </nav>
         </div>
