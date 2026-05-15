@@ -117,6 +117,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
 
+    const { data: bailApres, error: bailApresErr } = await supabase
+      .from("baux")
+      .select("logement_id, colocation_chambre_index")
+      .eq("id", bail.id)
+      .eq("proprietaire_id", proprio.id)
+      .maybeSingle();
+
+    if (bailApresErr) {
+      return NextResponse.json({ error: bailApresErr.message }, { status: 500 });
+    }
+
+    if (bailApres) {
+      const chambreIdx = Number((bailApres as { colocation_chambre_index?: unknown }).colocation_chambre_index);
+      const isColocationBail = Number.isFinite(chambreIdx) && chambreIdx >= 1;
+      const logementId = (bailApres as { logement_id?: string | null }).logement_id;
+      if (!isColocationBail && logementId) {
+        const { error: logErr } = await supabase
+          .from("logements")
+          .update({ loyer: nouveauLoyer })
+          .eq("id", logementId)
+          .eq("proprietaire_id", proprio.id);
+        if (logErr) {
+          return NextResponse.json({ error: logErr.message }, { status: 500 });
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       revisionId: inserted.id as string,
