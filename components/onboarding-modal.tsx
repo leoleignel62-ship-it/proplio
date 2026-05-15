@@ -16,15 +16,7 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
     return {
       title: "🎉 Bienvenue sur le plan Expert !",
       subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
-      bullets: [
-        "📋 Baux illimités (PDF conforme loi ALUR)",
-        "🔍 États des lieux illimités (photos + PDF)",
-        "📈 Révision annuelle des loyers (IRL INSEE)",
-        "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
-        "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
-        "🏠 Logements illimités",
-        "👥 Locataires illimités",
-      ],
+      bullets: ["Logements et locataires illimités", "Toutes les fonctionnalités sans restriction"],
     };
   }
   if (plan === "pro") {
@@ -32,12 +24,10 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
       title: "🎉 Bienvenue sur le plan Pro !",
       subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
       bullets: [
-        "📋 Baux illimités (PDF conforme loi ALUR)",
-        "🔍 États des lieux illimités (photos + PDF)",
-        "📈 Révision annuelle des loyers (IRL INSEE)",
-        "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
-        "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
-        "🏠 Jusqu'à 5 logements simultanés",
+        "Jusqu'à 5 logements et 5 locataires",
+        "Tout le plan Starter inclus",
+        "Mode saisonnier complet",
+        "Dossiers de candidature illimités",
       ],
     };
   }
@@ -45,11 +35,13 @@ function getPaidWelcomeContent(plan: LocavioPlan): { title: string; subtitle: st
     title: "🎉 Bienvenue sur le plan Starter !",
     subtitle: "Vous avez débloqué de nouvelles fonctionnalités :",
     bullets: [
-      "📋 Baux illimités (PDF conforme loi ALUR)",
-      "🔍 États des lieux illimités (photos + PDF)",
-      "📈 Révision annuelle des loyers (IRL INSEE)",
-      "🌴 Mode saisonnier (réservations, contrats, calendrier iCal)",
-      "🗂️ Dossiers de candidature — analysez la solvabilité de vos candidats avec une note automatique (A à E)",
+      "Jusqu'à 3 logements et 3 locataires",
+      "Quittances illimitées",
+      "Baux conformes loi ALUR",
+      "États des lieux avec photos",
+      "Révision IRL automatique",
+      "Mode saisonnier non inclus — disponible en Pro",
+      "Dossiers de candidature non inclus — disponibles en Pro",
     ],
   };
 }

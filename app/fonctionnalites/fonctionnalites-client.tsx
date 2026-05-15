@@ -88,7 +88,7 @@ function ExempleEmailForm({ type }: { type: ExempleEmailFormType }) {
   );
 }
 
-function Badge({ children, tone }: { children: ReactNode; tone: "all" | "starter" }) {
+function Badge({ children, tone }: { children: ReactNode; tone: "all" | "starter" | "pro" }) {
   return (
     <span
       className={
@@ -104,7 +104,7 @@ function Badge({ children, tone }: { children: ReactNode; tone: "all" | "starter
 
 type FeatureBlock = {
   badge: string;
-  badgeTone: "all" | "starter";
+  badgeTone: "all" | "starter" | "pro";
   title: string;
   desc: string;
   visual: ReactNode;
@@ -335,8 +335,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Analysez la solvabilité de vos candidats",
                 desc: "Envoyez un questionnaire personnalisé à chaque candidat. Locavio analyse automatiquement le dossier et vous attribue une note de solvabilité claire.",
                 visual: (
@@ -445,8 +445,8 @@ export function FonctionnalitesClient() {
           <>
             {[
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Gérez toutes vos réservations",
                 desc: "Vue liste ou calendrier planning. Statuts, sources (Airbnb, Booking, Direct) et actions rapides depuis une interface unifiée.",
                 visual: (
@@ -462,8 +462,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Centralisez vos voyageurs",
                 desc: "Coordonnées, pièce d'identité et historique complet des séjours pour chaque voyageur.",
                 visual: (
@@ -484,8 +484,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Contrats de séjour prêts en quelques minutes",
                 desc: "Générez et envoyez automatiquement les contrats de séjour à vos voyageurs par email en PDF. Toutes les informations de réservation sont injectées automatiquement.",
                 exempleType: "contrat-saisonnier" as const,
@@ -506,8 +506,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "États des lieux adaptés au saisonnier",
                 desc: "Réalisez vos états des lieux entre chaque séjour directement depuis votre smartphone avec photos et PDF automatique.",
                 visual: (
@@ -540,8 +540,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Taxes de séjour calculées automatiquement",
                 desc: "Calculez et exportez automatiquement les taxes de séjour à déclarer auprès de votre commune.",
                 visual: (
@@ -566,8 +566,8 @@ export function FonctionnalitesClient() {
                 ),
               },
               {
-                badge: "Plan Starter et plus",
-                badgeTone: "starter" as const,
+                badge: "Plan Pro et plus",
+                badgeTone: "pro" as const,
                 title: "Pilotez votre activité saisonnière",
                 desc: "Revenus encaissés et à venir, taux d'occupation, répartition par source Airbnb/Booking/Direct, graphique mensuel.",
                 visual: (

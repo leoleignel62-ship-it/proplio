@@ -27,7 +27,7 @@ const cards: {
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
-      "Dossiers de candidature",
+      "Dossiers de candidature (Plan Pro)",
     ],
   },
   {
@@ -35,7 +35,7 @@ const cards: {
     title: "Vous faites de la location saisonnière",
     subtitle: "Le loueur courte durée",
     description:
-      "Vous gérez des locations courte durée via Airbnb, Booking ou en direct. Entre les réservations, les contrats, les voyageurs et les taxes de séjour, Locavio centralise tout en quelques clics.",
+      "Vous gérez des locations courte durée via Airbnb, Booking ou en direct. Entre les réservations, les contrats, les voyageurs et les taxes de séjour, Locavio centralise tout en quelques clics — disponible à partir du plan Pro.",
     features: [
       "Gestion des réservations",
       "Contrats de séjour automatiques",
@@ -55,7 +55,7 @@ const cards: {
       "Vue centralisée multi-logements",
       "Suivi financier global",
       "Classique et saisonnier au même endroit",
-      "Dossiers candidats avec scoring",
+      "Dossiers candidats avec scoring (Plan Pro)",
       "Historique complet",
     ],
   },

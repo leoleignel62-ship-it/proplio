@@ -2,6 +2,14 @@
 
 export type PlanDisplayId = "free" | "starter" | "pro" | "expert";
 
+export type PlanDisplayRowVariant = "limit" | "banner" | "default" | "differentiator" | "muted";
+
+export type PlanDisplayRow = {
+  text: string;
+  included: boolean;
+  variant?: PlanDisplayRowVariant;
+};
+
 export const PLAN_DISPLAY_LABELS: Record<PlanDisplayId, string> = {
   free: "Découverte",
   starter: "Starter",
@@ -11,12 +19,7 @@ export const PLAN_DISPLAY_LABELS: Record<PlanDisplayId, string> = {
 
 export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[]; negatives?: string[] }> = {
   free: {
-    positives: [
-      "1 logement",
-      "1 locataire",
-      "1 quittance à vie",
-      "Dashboard financier",
-    ],
+    positives: ["1 logement · 1 locataire", "1 quittance à vie", "Dashboard financier"],
     negatives: [
       "Baux non inclus",
       "États des lieux non inclus",
@@ -27,34 +30,28 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
   },
   starter: {
     positives: [
-      "3 logements",
-      "3 locataires",
+      "Jusqu'à 3 logements et 3 locataires",
       "Quittances illimitées",
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
     ],
-    negatives: [
-      "Mode saisonnier non inclus",
-      "Dossiers de candidature non inclus",
-    ],
+    negatives: ["Mode saisonnier non inclus", "Dossiers de candidature non inclus"],
   },
   pro: {
     positives: [
-      "5 logements",
-      "5 locataires",
+      "Jusqu'à 5 logements et 5 locataires",
       "Quittances illimitées",
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
       "Mode saisonnier complet",
-      "Dossiers de candidature illimités",
+      "Dossiers de candidature",
     ],
   },
   expert: {
     positives: [
-      "Logements illimités",
-      "Locataires illimités",
+      "Logements et locataires illimités",
       "Quittances illimitées",
       "Baux illimités",
       "États des lieux illimités",
@@ -65,10 +62,48 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
   },
 };
 
-export function planDisplayRows(id: PlanDisplayId): Array<{ text: string; included: boolean }> {
-  const f = PLAN_DISPLAY_FEATURES[id];
-  return [
-    ...f.positives.map((text) => ({ text, included: true })),
-    ...(f.negatives ?? []).map((text) => ({ text, included: false })),
-  ];
+export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
+  switch (id) {
+    case "free":
+      return [
+        { text: "1 logement · 1 locataire", included: true, variant: "limit" },
+        { text: "1 quittance à vie", included: true },
+        { text: "Dashboard financier", included: true },
+        { text: "Baux non inclus", included: false },
+        { text: "États des lieux non inclus", included: false },
+        { text: "Révision IRL non incluse", included: false },
+        { text: "Mode saisonnier non inclus", included: false },
+        { text: "Dossiers de candidature non inclus", included: false },
+      ];
+    case "starter":
+      return [
+        { text: "Jusqu'à 3 logements et 3 locataires", included: true, variant: "banner" },
+        { text: "Quittances illimitées", included: true },
+        { text: "Baux conformes loi ALUR", included: true },
+        { text: "États des lieux avec photos", included: true },
+        { text: "Révision IRL automatique", included: true },
+        { text: "Mode saisonnier non inclus", included: false, variant: "muted" },
+        { text: "Dossiers de candidature non inclus", included: false, variant: "muted" },
+      ];
+    case "pro":
+      return [
+        { text: "Jusqu'à 5 logements et 5 locataires", included: true, variant: "banner" },
+        { text: "Quittances illimitées", included: true },
+        { text: "Baux conformes loi ALUR", included: true },
+        { text: "États des lieux avec photos", included: true },
+        { text: "Révision IRL automatique", included: true },
+        { text: "Mode saisonnier complet", included: true, variant: "differentiator" },
+        { text: "Dossiers de candidature", included: true, variant: "differentiator" },
+      ];
+    case "expert":
+      return [
+        { text: "Logements et locataires illimités", included: true, variant: "banner" },
+        { text: "Quittances illimitées", included: true },
+        { text: "Baux illimités", included: true },
+        { text: "États des lieux illimités", included: true },
+        { text: "Révision IRL automatique", included: true },
+        { text: "Mode saisonnier illimité", included: true, variant: "differentiator" },
+        { text: "Dossiers de candidature illimités", included: true, variant: "differentiator" },
+      ];
+  }
 }

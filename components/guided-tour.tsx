@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { canAccessDocuments, canAccessSaisonnier } from "@/lib/plan-limits";
 import { supabase } from "@/lib/supabase";
 
 type GuidedTourProps = {
@@ -17,6 +18,9 @@ type TourStep = {
   title: string;
   description: string;
   lockedOnFree?: boolean;
+  lockPlan?: "starter" | "pro";
+  requiresSaisonnier?: boolean;
+  requiresDocuments?: boolean;
 };
 
 const MODE_LOCATION_KEY = "locavio-mode-location";
@@ -79,16 +83,18 @@ const FREE_TOUR_STEPS: TourStep[] = [
     targetId: "dossiers-candidature",
     title: "🗂️ Dossiers de candidature",
     description:
-      "Envoyez un questionnaire à vos candidats locataires et recevez une note de solvabilité automatique. Disponible à partir du plan Starter.",
+      "Envoyez un questionnaire à vos candidats locataires et recevez une note de solvabilité automatique. Disponible à partir du plan Pro.",
     lockedOnFree: true,
+    lockPlan: "pro",
   },
   {
     key: "mode-saisonnier",
     targetId: "mode-saisonnier",
     title: "🌴 Mode saisonnier",
     description:
-      "Gérez vos locations courte durée : réservations, voyageurs, contrats de séjour, calendrier iCal et synchronisation Airbnb.",
+      "Gérez vos locations courte durée : réservations, voyageurs, contrats de séjour, calendrier iCal et synchronisation Airbnb. Disponible à partir du plan Pro.",
     lockedOnFree: true,
+    lockPlan: "pro",
   },
 ];
 
@@ -120,6 +126,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "🗂️ Dossiers de candidature",
     description:
       "Créez un dossier, envoyez le lien au candidat par email, et recevez automatiquement une note de solvabilité (A à E) basée sur ses revenus, son contrat de travail et la présence d'un garant.",
+    requiresDocuments: true,
   },
   {
     key: "mode-saisonnier",
@@ -127,6 +134,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "🌴 Mode saisonnier — Débloqué ✅",
     description:
       "Basculez en mode saisonnier pour accéder à la gestion complète de vos locations courte durée.",
+    requiresSaisonnier: true,
   },
   {
     key: "saisonnier-reservations",
@@ -134,6 +142,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "📅 Réservations",
     description:
       "Gérez toutes vos réservations courte durée. Vue liste ou calendrier planning, statuts, sources (Airbnb, Booking, Direct) et actions rapides.",
+    requiresSaisonnier: true,
   },
   {
     key: "saisonnier-voyageurs",
@@ -141,6 +150,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "👤 Voyageurs",
     description:
       "Centralisez les informations de vos voyageurs : coordonnées, pièce d'identité et historique des séjours.",
+    requiresSaisonnier: true,
   },
   {
     key: "saisonnier-contrats",
@@ -148,6 +158,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "📋 Contrats de séjour",
     description:
       "Générez et envoyez automatiquement les contrats de séjour à vos voyageurs par email en PDF.",
+    requiresSaisonnier: true,
   },
   {
     key: "saisonnier-taxes",
@@ -155,6 +166,7 @@ const PAID_TOUR_STEPS: TourStep[] = [
     title: "💰 Taxes de séjour",
     description:
       "Calculez et exportez automatiquement les taxes de séjour à déclarer auprès de votre commune.",
+    requiresSaisonnier: true,
   },
 ];
 
@@ -170,11 +182,20 @@ function findVisibleTourTarget(targetId: string): HTMLElement | null {
 export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: GuidedTourProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const steps = tourType === "free" ? FREE_TOUR_STEPS : PAID_TOUR_STEPS;
+  const steps = useMemo(() => {
+    if (tourType === "free") return FREE_TOUR_STEPS;
+    return PAID_TOUR_STEPS.filter((s) => {
+      if (s.requiresSaisonnier && !canAccessSaisonnier(currentPlan)) return false;
+      if (s.requiresDocuments && !canAccessDocuments(currentPlan)) return false;
+      return true;
+    });
+  }, [tourType, currentPlan]);
   const safeStepIndex = Math.min(Math.max(stepIndex, 0), Math.max(steps.length - 1, 0));
   const step = steps[safeStepIndex];
   const isLastStep = safeStepIndex === steps.length - 1;
   const showLockBadge = tourType === "free" && currentPlan === "free" && Boolean(step.lockedOnFree);
+  const lockBadgeText =
+    step.lockPlan === "pro" ? "🔒 Disponible dès le plan Pro" : "🔒 Disponible dès le plan Starter";
 
   function switchMode(nextMode: "classique" | "saisonnier") {
     window.localStorage.setItem(MODE_LOCATION_KEY, nextMode);
@@ -300,7 +321,7 @@ export function GuidedTour({ currentPlan, tourType, open, userId, onClose }: Gui
             className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
             style={{ backgroundColor: "rgba(245, 158, 11, 0.2)", color: "#fbbf24" }}
           >
-            🔒 Disponible dès le plan Starter
+            {lockBadgeText}
           </p>
         ) : null}
         <div className="mt-4 flex items-center justify-between">

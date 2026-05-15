@@ -4,13 +4,42 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LANDING_PRICING_META, PLAN_ORDER } from "@/lib/landing-pricing-meta";
-import { PLAN_DISPLAY_LABELS, planDisplayRows } from "@/lib/plan-display-copy";
+import { PLAN_DISPLAY_LABELS, planDisplayRows, type PlanDisplayRow } from "@/lib/plan-display-copy";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { PC } from "@/lib/locavio-colors";
 
 type BillingMode = "mensuel" | "annuel";
 
 const ease = "200ms ease-out";
+
+function PricingFeatureRow({ row }: { row: PlanDisplayRow }) {
+  if (row.variant === "banner") {
+    return (
+      <li className="mb-1 list-none">
+        <span className="block rounded-lg bg-violet-50 px-3 py-1.5 text-sm font-semibold text-[#7c3aed]">{row.text}</span>
+      </li>
+    );
+  }
+  if (row.variant === "limit") {
+    return (
+      <li className="list-none text-[#9ca3af]" style={{ color: PC.muted }}>
+        {row.text}
+      </li>
+    );
+  }
+  const textClass =
+    row.variant === "differentiator"
+      ? "font-medium text-[#7c3aed]"
+      : row.variant === "muted"
+        ? "text-[#9ca3af]"
+        : undefined;
+  return (
+    <li className="flex gap-2">
+      <span style={{ color: row.included ? PC.success : PC.warning }}>{row.included ? "✓" : "✗"}</span>
+      <span className={textClass}>{row.text}</span>
+    </li>
+  );
+}
 
 const solidCard: CSSProperties = {
   background: PC.gradientCard,
@@ -233,10 +262,7 @@ export function LandingPricingSection({
               </p>
               <ul className="mt-6 flex-1 space-y-2.5 text-sm leading-snug" style={{ color: PC.muted }}>
                 {plan.featureRows.map((row) => (
-                  <li key={row.text} className="flex gap-2">
-                    <span style={{ color: row.included ? PC.success : PC.warning }}>{row.included ? "✓" : "✗"}</span>
-                    <span>{row.text}</span>
-                  </li>
+                  <PricingFeatureRow key={row.text} row={row} />
                 ))}
               </ul>
               <Link
