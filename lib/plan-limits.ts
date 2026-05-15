@@ -45,9 +45,9 @@ export const PLAN_LIMITS: Record<LocavioPlan, PlanLimits> = {
     maxQuittances: null,
     baux: true,
     etatsDesLieux: true,
-    saisonnier: true,
+    saisonnier: false,
     revisionIrl: true,
-    documents: true,
+    documents: false,
   },
   pro: {
     maxLogements: 5,
@@ -70,6 +70,26 @@ export const PLAN_LIMITS: Record<LocavioPlan, PlanLimits> = {
     documents: true,
   },
 };
+
+export const UPSELL_MESSAGES = {
+  saisonnier: "Le mode saisonnier est disponible à partir du plan Pro.",
+  documents: "Les dossiers de candidature sont disponibles à partir du plan Pro.",
+  baux: "Les baux sont disponibles à partir du plan Starter.",
+  etatsDesLieux: "Les états des lieux sont disponibles à partir du plan Starter.",
+  revisionIrl: "La révision IRL est disponible à partir du plan Starter.",
+} as const;
+
+export function canAccessSaisonnier(plan: LocavioPlan): boolean {
+  return plan === "pro" || plan === "expert";
+}
+
+export function canAccessDocuments(plan: LocavioPlan): boolean {
+  return plan === "pro" || plan === "expert";
+}
+
+export function canAccessStarterFeatures(plan: LocavioPlan): boolean {
+  return plan === "starter" || plan === "pro" || plan === "expert";
+}
 
 export function normalizePlan(plan: string | null | undefined): LocavioPlan {
   if (plan === "starter" || plan === "pro" || plan === "expert") return plan;
