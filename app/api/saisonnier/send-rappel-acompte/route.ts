@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
 import { executeRappelAcompte } from "@/lib/saisonnier-rappels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -31,8 +31,8 @@ export async function POST(req: Request) {
     if (pErr || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
-    if (normalizePlan((proprietaire as { plan?: string | null }).plan) === "free") {
-      return NextResponse.json({ error: "Fonction réservée au plan Starter ou supérieur." }, { status: 403 });
+    if (!canAccessSaisonnier(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+      return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
     }
 
     const { data: reservation, error: rErr } = await supabase

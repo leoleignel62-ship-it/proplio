@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { fetchLatestIrlFromInsee } from "@/lib/irl-insee";
 import { formatDateIsoLocal, getDerniereDateAnniversaireBail } from "@/lib/irl-revision";
 import { generateRevisionIrlLetterPdfBuffer } from "@/lib/pdf/generate-revision-irl-letter-pdf";
-import { normalizePlan } from "@/lib/plan-limits";
+import { canAccessStarterFeatures, normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -39,8 +39,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (pErr || !proprio?.id) {
       return NextResponse.json({ error: "Profil introuvable." }, { status: 400 });
     }
-    if (normalizePlan((proprio as { plan?: string | null }).plan) === "free") {
-      return NextResponse.json({ error: "Fonction réservée au plan Starter ou supérieur." }, { status: 403 });
+    if (!canAccessStarterFeatures(normalizePlan((proprio as { plan?: string | null }).plan))) {
+      return NextResponse.json({ error: "Plan Starter ou supérieur requis." }, { status: 403 });
     }
 
     const { data: revision, error: revErr } = await supabase

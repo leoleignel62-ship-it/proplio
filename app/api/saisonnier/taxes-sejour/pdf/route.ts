@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateTaxeSejourPdfBuffer } from "@/lib/pdf/generate-taxe-sejour-pdf";
-import { normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -20,8 +20,8 @@ export async function POST(request: Request) {
     if (pErr || !proprietaire) {
       return NextResponse.json({ error: "Profil introuvable." }, { status: 400 });
     }
-    if (normalizePlan((proprietaire as { plan?: string | null }).plan) === "free") {
-      return NextResponse.json({ error: "Plan Starter requis." }, { status: 403 });
+    if (!canAccessSaisonnier(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+      return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
     }
 
     const body = (await request.json()) as { periode?: string; mois?: number; annee?: number; row_ids?: string[] };

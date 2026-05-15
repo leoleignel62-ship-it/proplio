@@ -6,7 +6,7 @@ import {
   formatDateIsoLocal,
   getDerniereDateAnniversaireBail,
 } from "@/lib/irl-revision";
-import { normalizePlan } from "@/lib/plan-limits";
+import { canAccessStarterFeatures, normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     if (pErr || !proprio?.id) {
       return NextResponse.json({ error: "Profil introuvable." }, { status: 400 });
     }
-    if (normalizePlan((proprio as { plan?: string | null }).plan) === "free") {
-      return NextResponse.json({ error: "Fonction réservée au plan Starter ou supérieur." }, { status: 403 });
+    if (!canAccessStarterFeatures(normalizePlan((proprio as { plan?: string | null }).plan))) {
+      return NextResponse.json({ error: "Plan Starter ou supérieur requis." }, { status: 403 });
     }
 
     const irl = await fetchLatestIrlFromInsee();

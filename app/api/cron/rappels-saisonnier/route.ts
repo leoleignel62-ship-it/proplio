@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
 import { cronShouldSendAcompte, cronShouldSendSolde } from "@/lib/saisonnier-rappel-conditions";
 import type { SaisonnierRappelReservationRow } from "@/lib/saisonnier-rappel-conditions";
 import { executeRappelAcompte, executeRappelSolde } from "@/lib/saisonnier-rappels";
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const results: { id: string; acompte?: string; solde?: string }[] = [];
 
   for (const r of rows) {
-    if (normalizePlan(planByOwner.get(r.proprietaire_id)) === "free") continue;
+    if (!canAccessSaisonnier(normalizePlan(planByOwner.get(r.proprietaire_id)))) continue;
 
     if (cronShouldSendAcompte(r)) {
       const res = await executeRappelAcompte(supabaseAdmin, r.id);

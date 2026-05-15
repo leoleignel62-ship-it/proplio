@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canAccessDocuments, normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -14,6 +15,18 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Utilisateur non authentifié." }, { status: 401 });
+
+    const { data: proprietaire, error: proprietaireError } = await supabaseAdmin
+      .from("proprietaires")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (proprietaireError || !proprietaire) {
+      return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
+    }
+    if (!canAccessDocuments(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+      return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
+    }
 
     const { data: doc, error } = await supabaseAdmin
       .from("candidature_documents")
