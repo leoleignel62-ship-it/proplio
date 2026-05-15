@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import {
+  emailButton,
+  emailGreeting,
+  emailMutedNote,
+  emailParagraph,
+  wrapLocavioEmail,
+} from "@/lib/email-templates";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { generateBailPdfBuffer, type BailPdfLocataire } from "@/lib/pdf/generate-bail-pdf";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
@@ -19,10 +26,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const ipRateStore = new Map<string, number[]>();
 
 const SUBJECT_BY_TYPE: Record<ExampleType, string> = {
-  quittance: "Voici votre exemple de quittance Locavio 🏠",
-  bail: "Voici votre exemple de bail Locavio 📄",
-  "etat-des-lieux": "Voici votre exemple d'état des lieux Locavio 🔑",
-  "contrat-sejour": "Voici votre exemple de contrat saisonnier Locavio 🌊",
+  quittance: "Votre exemple de quittance de loyer — Locavio",
+  bail: "Votre exemple de bail de location — Locavio",
+  "etat-des-lieux": "Votre exemple d'état des lieux — Locavio",
+  "contrat-sejour": "Votre exemple de contrat saisonnier — Locavio",
 };
 
 const FICTIVE_OWNER = {
@@ -238,22 +245,23 @@ export async function POST(request: Request) {
     }
 
     const pdfBytes = await buildPdfBuffer(type);
+    const emailHtml = wrapLocavioEmail(
+      [
+        emailGreeting(),
+        emailParagraph("Vous trouverez en pièce jointe l'exemple de document que vous avez demandé."),
+        emailParagraph(
+          "Locavio vous permet de générer et envoyer ce type de document en quelques clics, directement depuis votre espace propriétaire.",
+        ),
+        emailButton("Découvrir Locavio gratuitement →", "https://locavio.fr/landing"),
+        emailMutedNote("Aucune carte bancaire requise."),
+      ].join(""),
+    );
+
     const emailResult = await resend.emails.send({
       from: "Locavio <noreply@locavio.fr>",
       to: [email],
       subject: SUBJECT_BY_TYPE[type],
-      html: `<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
-  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
-    </div>
-    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour,</p>
-    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Voici votre exemple de document Locavio en pièce jointe.</p>
-    <p style="margin:0;color:#c4b5fd;">Bonne découverte 👋</p>
-    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
-    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
-  </div>
-</div>`,
+      html: emailHtml,
       attachments: [
         {
           filename: fileNameForType(type),

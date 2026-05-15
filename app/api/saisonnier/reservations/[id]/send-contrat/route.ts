@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
 import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -95,22 +96,24 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
     const to = voyageur.email as string;
+    const logementNom = String(logement.nom ?? "votre logement");
+    const bailleurNom = `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim();
+    const emailHtml = wrapLocavioEmail(
+      [
+        emailGreeting(String(voyageur.prenom ?? "")),
+        emailParagraph(
+          `Veuillez trouver en pièce jointe votre contrat de location saisonnière pour votre séjour à <strong style="color:#1a0533;">${logementNom}</strong>.`,
+        ),
+        emailParagraph("Nous vous souhaitons un excellent séjour."),
+        emailSignoff(bailleurNom),
+      ].join(""),
+    );
+
     const emailResult = await resend.emails.send({
       from: "Locavio <noreply@locavio.fr>",
       to: [to],
-      subject: "Contrat de location saisonnière",
-      html: `<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
-  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
-    </div>
-    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour ${voyageur.prenom ?? ""},</p>
-    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Veuillez trouver votre contrat de location saisonnière en pièce jointe.</p>
-    <p style="margin:0;color:#f5f3ff;">Cordialement,<br/><span style="color:#c4b5fd;">${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}</span></p>
-    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
-    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
-  </div>
-</div>`,
+      subject: `Votre contrat de location saisonnière — ${logementNom}`,
+      html: emailHtml,
       attachments: [{ filename: "contrat-sejour-locavio.pdf", content: pdfBase64 }],
     });
     if (emailResult.error) {

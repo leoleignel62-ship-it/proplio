@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { fetchLatestIrlFromInsee } from "@/lib/irl-insee";
 import { formatDateIsoLocal, getDerniereDateAnniversaireBail } from "@/lib/irl-revision";
 import { generateRevisionIrlLetterPdfBuffer } from "@/lib/pdf/generate-revision-irl-letter-pdf";
@@ -167,24 +168,25 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     });
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
-    const subject = "Révision annuelle du loyer (IRL)";
+    const subject = "Révision annuelle de votre loyer (IRL)";
+    const locPrenom = String(locataire?.prenom ?? "").trim();
+
+    const emailHtml = wrapLocavioEmail(
+      [
+        emailGreeting(locPrenom),
+        emailParagraph(
+          "Votre propriétaire vous adresse la lettre officielle de révision annuelle de votre loyer, calculée selon l'indice IRL de l'INSEE.",
+        ),
+        emailParagraph("Veuillez trouver ce document en pièce jointe."),
+        emailSignoff(proprioNom),
+      ].join(""),
+    );
 
     const emailResult = await resend.emails.send({
       from: "Locavio <noreply@locavio.fr>",
       to: [tenantEmail],
       subject,
-      html: `<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
-  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
-    </div>
-    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour,</p>
-    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Veuillez trouver en pièce jointe la lettre de révision annuelle du loyer (IRL).</p>
-    <p style="margin:0;color:#f5f3ff;">Cordialement,<br/><span style="color:#c4b5fd;">${proprioNom}</span></p>
-    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
-    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
-  </div>
-</div>`,
+      html: emailHtml,
       attachments: [{ filename: `revision-loyer-irl-${revisionId.slice(0, 8)}.pdf`, content: pdfBase64 }],
     });
 

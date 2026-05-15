@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
@@ -72,7 +73,9 @@ export async function POST(
       (edl.reservation_id as string | undefined) ?? (edl.bail_id as string | undefined) ?? null;
     const sigPath = proprietaire.signature_path as string | undefined;
 
-    const [locRes, resaRes, sigDownload] = await Promise.all([
+    const logementId = edlRec.logement_id as string | undefined;
+
+    const [locRes, resaRes, logRes, sigDownload] = await Promise.all([
       locataireId
         ? supabase.from("locataires").select("email").eq("id", locataireId).maybeSingle()
         : Promise.resolve({ data: null as { email: string | null } | null }),
@@ -83,6 +86,14 @@ export async function POST(
             .eq("id", reservationId)
             .maybeSingle()
         : Promise.resolve({ data: null as Record<string, unknown> | null }),
+      logementId
+        ? supabase
+            .from("logements")
+            .select("adresse, code_postal, ville")
+            .eq("id", logementId)
+            .eq("proprietaire_id", proprietaire.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null as { adresse?: string; code_postal?: string; ville?: string } | null }),
       sigPath
         ? supabaseAdmin.storage.from("signatures").download(sigPath)
         : Promise.resolve({ data: null as Blob | null }),
@@ -129,29 +140,33 @@ export async function POST(
         );
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
-    const typeLabel = getEdlTypeEtatFromRow(edl as Record<string, unknown>) === "sortie" ? "sortie" : "entrée";
-    const subject = `État des lieux (${typeLabel}) — Locavio`;
+    const isSortie = getEdlTypeEtatFromRow(edl as Record<string, unknown>) === "sortie";
+    const typeLabel = isSortie ? "sortie" : "entrée";
+    const adresseSujet =
+      [logRes.data?.adresse, logRes.data?.code_postal, logRes.data?.ville].filter(Boolean).join(" ").trim() ||
+      "votre logement";
+    const subject = `État des lieux (${typeLabel}) — ${adresseSujet}`;
     const bailleurNom = `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim();
+    const typePhrase = isSortie ? "de sortie" : "d'entrée";
 
     const to = [...new Set([ownerEmail, tenantEmail])];
+
+    const emailHtml = wrapLocavioEmail(
+      [
+        emailGreeting(),
+        emailParagraph(
+          `Veuillez trouver en pièce jointe l'état des lieux ${typePhrase} établi via Locavio.`,
+        ),
+        emailParagraph("Ce document est adressé au bailleur et au locataire pour conservation."),
+        emailSignoff(bailleurNom),
+      ].join(""),
+    );
 
     const emailResult = await resend.emails.send({
       from: "Locavio <noreply@locavio.fr>",
       to,
       subject,
-      html: `<div style="background:#0f0f1a;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#f5f3ff;">
-  <div style="max-width:600px;margin:0 auto;background:#141428;border:1px solid rgba(124,58,237,0.35);border-radius:14px;padding:28px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <img src="https://locavio.fr/logos/lockup-horizontal-sombre.svg?v=2" alt="Locavio" height="36" style="height:36px;width:auto;display:inline-block;" />
-    </div>
-    <p style="margin:0 0 14px 0;color:#f5f3ff;">Bonjour,</p>
-    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Veuillez trouver en pièce jointe l'état des lieux (${typeLabel}) établi via Locavio.</p>
-    <p style="margin:0 0 14px 0;color:#c4b5fd;line-height:1.6;">Ce message est adressé au bailleur et au ${isSaisonnierPdf ? "preneur (voyageur)" : "locataire"} pour conservation.</p>
-    <p style="margin:0;color:#f5f3ff;">Cordialement,<br/><span style="color:#c4b5fd;">${bailleurNom}</span></p>
-    <hr style="border:none;border-top:1px solid rgba(124,58,237,0.2);margin:24px 0;" />
-    <p style="margin:0;text-align:center;color:rgba(245,243,255,0.45);font-size:12px;">© 2026 Locavio · Axio Tech</p>
-  </div>
-</div>`,
+      html: emailHtml,
       attachments: [
         {
           filename: `etat-des-lieux-${id.slice(0, 8)}.pdf`,
