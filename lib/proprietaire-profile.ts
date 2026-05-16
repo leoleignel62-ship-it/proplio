@@ -75,6 +75,62 @@ export async function getCurrentProprietaireId() {
   }
 }
 
+const REFERRAL_CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const REFERRAL_CODE_LENGTH = 6;
+const REFERRAL_CODE_MAX_ATTEMPTS = 25;
+
+function generateReferralCodeCandidate(): string {
+  let code = "";
+  for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
+    code += REFERRAL_CODE_ALPHABET.charAt(Math.floor(Math.random() * REFERRAL_CODE_ALPHABET.length));
+  }
+  return code;
+}
+
+async function ensureReferralCodeForUser(userId: string) {
+  const { data: codeRow, error: codeSelectError } = await supabase
+    .from("proprietaires")
+    .select("referral_code")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (codeSelectError) {
+    return { data: null as Record<string, unknown> | null, error: codeSelectError };
+  }
+
+  const existingCode = String((codeRow as { referral_code?: string | null } | null)?.referral_code ?? "").trim();
+  if (existingCode) {
+    return { data: null, error: null };
+  }
+
+  for (let attempt = 0; attempt < REFERRAL_CODE_MAX_ATTEMPTS; attempt++) {
+    const candidate = generateReferralCodeCandidate();
+    const { data: taken } = await supabase
+      .from("proprietaires")
+      .select("id")
+      .eq("referral_code", candidate)
+      .maybeSingle();
+
+    if (taken) continue;
+
+    const { data: updated, error: updateError } = await supabase
+      .from("proprietaires")
+      .update({ referral_code: candidate })
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (!updateError && updated) {
+      return { data: updated as Record<string, unknown>, error: null };
+    }
+  }
+
+  return {
+    data: null,
+    error: { message: "Impossible de générer un code de parrainage unique." } as { message: string },
+  };
+}
+
 export async function ensureProprietaireRow() {
   try {
     const {
@@ -92,6 +148,9 @@ export async function ensureProprietaireRow() {
       .maybeSingle();
 
     if (selectError) return { data: null, error: { ...selectError, message: formatSubmitError(selectError) } };
+
+    let row: Record<string, unknown> | null = null;
+
     if (existing) {
       const md = (user.user_metadata ?? {}) as { prenom?: string; nom?: string };
       const prenomMeta = String(md.prenom ?? "").trim();
@@ -110,23 +169,30 @@ export async function ensureProprietaireRow() {
           .eq("user_id", user.id)
           .select("*")
           .single();
-        if (patchError) return { data: existing, error: null };
-        return { data: patched, error: null };
+        row = (patchError ? existing : patched) as Record<string, unknown>;
+      } else {
+        row = existing as Record<string, unknown>;
       }
-      return { data: existing, error: null };
+    } else {
+      const { data, error } = await supabase
+        .from("proprietaires")
+        .insert({
+          user_id: user.id,
+          email: user.email ?? "",
+        })
+        .select()
+        .single();
+
+      if (error) return { data, error: { ...error, message: formatSubmitError(error) } };
+      row = data as Record<string, unknown>;
     }
 
-    const { data, error } = await supabase
-      .from("proprietaires")
-      .insert({
-        user_id: user.id,
-        email: user.email ?? "",
-      })
-      .select()
-      .single();
+    const referralResult = await ensureReferralCodeForUser(user.id);
+    if (referralResult.data) {
+      return { data: referralResult.data, error: null };
+    }
 
-    if (error) return { data, error: { ...error, message: formatSubmitError(error) } };
-    return { data, error: null };
+    return { data: row, error: null };
   } catch (e) {
     return { data: null, error: { message: formatSubmitError(e) } as { message: string } };
   }
