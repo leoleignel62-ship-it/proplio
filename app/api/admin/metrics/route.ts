@@ -1,35 +1,11 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { assertAdminUser } from "@/lib/admin/assert-admin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getStripeServerClient } from "@/lib/stripe";
 import { normalizePlan, type LocavioPlan } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
-
-async function assertAdminUser() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { ok: false as const, status: 401 };
-  }
-
-  const { data: proprietaire, error } = await supabaseAdmin
-    .from("proprietaires")
-    .select("is_admin")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error || !proprietaire?.is_admin) {
-    return { ok: false as const, status: 403 };
-  }
-
-  return { ok: true as const };
-}
 
 function computeMrrFromSubscriptions(subscriptions: Stripe.Subscription[]): number {
   let mrr = 0;

@@ -7,7 +7,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { PublicFinalCta } from "@/components/landing/public-final-cta";
 import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
-import { articles, type Article, type ArticleCategory } from "@/lib/blog/articles";
+import type { ArticleCategory, PublicArticle } from "@/lib/blog/types";
 
 const categories = [
   "Tous",
@@ -39,13 +39,13 @@ function categoryBadgeClass(cat: ArticleCategory): string {
   return map[cat];
 }
 
-export function BlogClient() {
+export function BlogClient({ articles }: { articles: PublicArticle[] }) {
   const [active, setActive] = useState<Cat>("Tous");
 
   const filtered = useMemo(() => {
     if (active === "Tous") return articles;
     return articles.filter((a) => a.category === active);
-  }, [active]);
+  }, [active, articles]);
 
   return (
     <MarketingPublicShell>
@@ -80,26 +80,30 @@ export function BlogClient() {
         </RevealOnView>
 
         <RevealOnView className="my-12 mb-0">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {filtered.map((article: Article) => (
-              <Link
-                key={article.slug}
-                href={`/blog/${article.slug}`}
-                className={`group block rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-violet-100 hover:shadow-md cursor-pointer hover:bg-gray-50`}
-              >
-                <span
-                  className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${categoryBadgeClass(article.category)}`}
+          {filtered.length === 0 ? (
+            <p className="text-center text-sm text-[#6b7280]">Aucun article publié pour le moment.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+              {filtered.map((article) => (
+                <Link
+                  key={article.slug}
+                  href={`/blog/${article.slug}`}
+                  className="group block cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-violet-100 hover:bg-gray-50 hover:shadow-md"
                 >
-                  {article.category}
-                </span>
-                <h2 className="mt-3 text-lg font-bold text-[#1a0533] group-hover:text-violet-700">{article.title}</h2>
-                <p className="mt-2 line-clamp-2 text-sm text-[#6b7280]">{article.description}</p>
-                <p className="mt-4 text-xs text-[#9ca3af]">
-                  {article.readTime} min · {formatPublished(article.publishedAt)}
-                </p>
-              </Link>
-            ))}
-          </div>
+                  <span
+                    className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${categoryBadgeClass(article.category)}`}
+                  >
+                    {article.category}
+                  </span>
+                  <h2 className="mt-3 text-lg font-bold text-[#1a0533] group-hover:text-violet-700">{article.title}</h2>
+                  <p className="mt-2 line-clamp-2 text-sm text-[#6b7280]">{article.description}</p>
+                  <p className="mt-4 text-xs text-[#9ca3af]">
+                    {article.readTime} min · {formatPublished(article.publishedAt)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
         </RevealOnView>
 
         <RevealOnView>

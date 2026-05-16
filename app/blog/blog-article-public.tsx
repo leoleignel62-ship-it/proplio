@@ -6,7 +6,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { PublicFinalCta } from "@/components/landing/public-final-cta";
 import { PublicPageHeader } from "@/components/landing/public-page-header";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
-import type { Article, ArticleCategory } from "@/lib/blog/articles";
+import type { ArticleCategory, PublicArticle } from "@/lib/blog/types";
 
 function categoryBadgeClass(cat: ArticleCategory): string {
   const map: Record<ArticleCategory, string> = {
@@ -19,7 +19,7 @@ function categoryBadgeClass(cat: ArticleCategory): string {
   return map[cat];
 }
 
-export function BlogArticlePublic({ article, dateLabel }: { article: Article; dateLabel: string }) {
+export function BlogArticlePublic({ article, dateLabel }: { article: PublicArticle; dateLabel: string }) {
   return (
     <MarketingPublicShell>
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">

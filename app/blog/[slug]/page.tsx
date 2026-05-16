@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { articles, getArticleBySlug, type ArticleCategory } from "@/lib/blog/articles";
 import { BlogArticlePublic } from "../blog-article-public";
+import { fetchAllBlogSlugsPublic, fetchBlogArticleBySlug } from "@/lib/blog/fetch-articles";
 
 const siteUrl = "https://locavio.fr";
 
@@ -15,13 +15,16 @@ function formatPublished(iso: string): string {
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return articles.map((a) => ({ slug: a.slug }));
+export const dynamic = "force-dynamic";
+
+export async function generateStaticParams() {
+  const slugs = await fetchAllBlogSlugsPublic();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const article = await fetchBlogArticleBySlug(slug);
   if (!article) {
     return { title: "Article introuvable — Locavio" };
   }
@@ -48,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const article = await fetchBlogArticleBySlug(slug);
   if (!article) notFound();
 
   const dateLabel = formatPublished(article.publishedAt);
