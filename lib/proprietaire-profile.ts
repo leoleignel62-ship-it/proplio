@@ -141,13 +141,31 @@ export async function ensureProprietaireRow() {
     if (userError) return { data: null, error: { ...userError, message: formatSubmitError(userError) } };
     if (!user) return { data: null, error: null };
 
-    const { data: existing, error: selectError } = await supabase
+    let { data: existing, error: selectError } = await supabase
       .from("proprietaires")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (selectError) return { data: null, error: { ...selectError, message: formatSubmitError(selectError) } };
+
+    if (!existing) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const retry = await supabase
+          .from("proprietaires")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (retry.error) {
+          return { data: null, error: { ...retry.error, message: formatSubmitError(retry.error) } };
+        }
+        if (retry.data) {
+          existing = retry.data;
+          break;
+        }
+      }
+    }
 
     let row: Record<string, unknown> | null = null;
 
