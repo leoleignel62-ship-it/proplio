@@ -76,11 +76,7 @@ function subscriptionIsYearly(subscription: Stripe.Subscription): boolean {
 }
 
 async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulProprietaireId: string | null) {
-  console.log("[parrainage-debug] webhook reward: démarrage", { filleulProprietaireId });
-  if (!filleulProprietaireId) {
-    console.log("[parrainage-debug] webhook reward: arrêt — filleulProprietaireId manquant");
-    return;
-  }
+  if (!filleulProprietaireId) return;
 
   try {
     const { data: filleul, error: filleulError } = await supabaseAdmin
@@ -91,20 +87,11 @@ async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulPropr
 
     if (filleulError) {
       console.warn("Parrainage récompense: filleul:", filleulError.message);
-      console.log("[parrainage-debug] webhook reward: erreur lecture filleul", filleulError.message);
       return;
     }
 
     const referredBy = String(filleul?.referred_by ?? "").trim();
-    console.log("[parrainage-debug] webhook reward: filleul", {
-      filleulId: filleul?.id,
-      referredBy: referredBy || "(vide)",
-      plan: filleul?.plan,
-    });
-    if (!referredBy || !filleul?.id) {
-      console.log("[parrainage-debug] webhook reward: arrêt — referred_by vide ou filleul absent");
-      return;
-    }
+    if (!referredBy || !filleul?.id) return;
 
     const { data: parrain, error: parrainError } = await supabaseAdmin
       .from("proprietaires")
@@ -114,25 +101,13 @@ async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulPropr
 
     if (parrainError) {
       console.warn("Parrainage récompense: parrain:", parrainError.message);
-      console.log("[parrainage-debug] webhook reward: erreur lecture parrain", parrainError.message);
       return;
     }
-
-    console.log("[parrainage-debug] webhook reward: parrain trouvé", {
-      parrainId: parrain?.id,
-      stripe_customer_id: parrain?.stripe_customer_id ?? "(vide)",
-      plan: parrain?.plan,
-    });
 
     const parrainCustomerId = String(parrain?.stripe_customer_id ?? "").trim();
     const parrainPlan = normalizeParrainPlan(parrain?.plan);
     if (!parrain?.id || !parrainCustomerId || !parrainPlan) {
       console.warn("Parrainage récompense: parrain incomplet ou plan invalide.");
-      console.log("[parrainage-debug] webhook reward: arrêt — parrain incomplet", {
-        hasParrainId: Boolean(parrain?.id),
-        parrainCustomerId: parrainCustomerId || "(vide)",
-        parrainPlan,
-      });
       return;
     }
 
@@ -145,16 +120,9 @@ async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulPropr
 
     if (parrainageError) {
       console.warn("Parrainage récompense: parrainage:", parrainageError.message);
-      console.log("[parrainage-debug] webhook reward: erreur lecture parrainage", parrainageError.message);
       return;
     }
-    console.log("[parrainage-debug] webhook reward: parrainage en_attente", {
-      parrainageId: parrainage?.id ?? null,
-    });
-    if (!parrainage?.id) {
-      console.log("[parrainage-debug] webhook reward: arrêt — aucun parrainage en_attente");
-      return;
-    }
+    if (!parrainage?.id) return;
 
     const subscriptions = await stripe.subscriptions.list({
       customer: parrainCustomerId,
@@ -164,27 +132,17 @@ async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulPropr
     const activeSubscription = subscriptions.data[0];
     if (!activeSubscription) {
       console.warn("Parrainage récompense: aucun abonnement actif pour le parrain.");
-      console.log("[parrainage-debug] webhook reward: arrêt — parrain sans abonnement actif");
       return;
     }
 
     const isYearly = subscriptionIsYearly(activeSubscription);
     const creditAmount = PARRAIN_CREDIT_CENTIMES[parrainPlan][isYearly ? "yearly" : "monthly"];
 
-    console.log("[parrainage-debug] webhook reward: crédit Stripe tenté", {
-      parrainCustomerId,
-      creditAmountCentimes: creditAmount,
-      isYearly,
-      parrainPlan,
-    });
-
     await stripe.customers.createBalanceTransaction(parrainCustomerId, {
       amount: -creditAmount,
       currency: "eur",
       description: "Récompense parrainage Locavio - 1 mois offert",
     });
-
-    console.log("[parrainage-debug] webhook reward: crédit Stripe OK");
 
     const { error: updateParrainageError } = await supabaseAdmin
       .from("parrainages")
@@ -197,13 +155,9 @@ async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulPropr
 
     if (updateParrainageError) {
       console.warn("Parrainage récompense: mise à jour parrainage:", updateParrainageError.message);
-      console.log("[parrainage-debug] webhook reward: erreur UPDATE parrainages", updateParrainageError.message);
-    } else {
-      console.log("[parrainage-debug] webhook reward: parrainage passé en converti", { parrainageId: parrainage.id });
     }
   } catch (error) {
     console.warn("Parrainage récompense:", error);
-    console.log("[parrainage-debug] webhook reward: exception", error);
   }
 }
 
@@ -233,21 +187,11 @@ export async function POST(request: Request) {
       const userId = metadata.userId ? String(metadata.userId) : null;
       const proprietaireId = metadata.proprietaireId ? String(metadata.proprietaireId) : null;
 
-      console.log("[parrainage-debug] webhook: checkout.session.completed", {
-        sessionId: session.id,
-        plan,
-        userId,
-        proprietaireId,
-      });
-
       await saveStripeCustomerId(resolveStripeCustomerId(session.customer), userId, proprietaireId);
 
       if (plan === "starter" || plan === "pro" || plan === "expert") {
         await applyPlanUpdate(proprietaireId, userId, plan);
-        console.log("[parrainage-debug] webhook: appel rewardReferrerAfterFilleulConversion");
         await rewardReferrerAfterFilleulConversion(stripe, proprietaireId);
-      } else {
-        console.log("[parrainage-debug] webhook: reward ignorée — plan metadata invalide", { plan });
       }
     }
 

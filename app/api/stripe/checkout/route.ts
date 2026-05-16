@@ -71,9 +71,6 @@ export async function POST(request: Request) {
     }
 
     if (existingSubscription && customerId) {
-      console.log("[parrainage-debug] checkout: abonnement actif existant → portail (pas de coupon)", {
-        customerId,
-      });
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
         return_url: `${origin}/parametres/abonnement`,
@@ -84,34 +81,18 @@ export async function POST(request: Request) {
     const proprietaireId = String(body.proprietaireId ?? proprietaire.id).trim();
 
     let checkoutDiscounts: { coupon: string }[] | undefined;
-    const { data: referralProfile, error: referralProfileError } = await supabaseAdmin
+    const { data: referralProfile } = await supabaseAdmin
       .from("proprietaires")
       .select("referred_by, plan")
       .eq("id", proprietaireId)
       .maybeSingle();
 
-    console.log("[parrainage-debug] checkout: lecture filleul", {
-      proprietaireId,
-      referralProfileError: referralProfileError?.message ?? null,
-      referralProfile,
-    });
-
     const referredBy = String(referralProfile?.referred_by ?? "").trim();
     const currentPlan = String(referralProfile?.plan ?? "free").trim() || "free";
-
-    console.log("[parrainage-debug] checkout: referred_by / plan", {
-      referredBy: referredBy || "(vide)",
-      currentPlan,
-    });
 
     if (referredBy && currentPlan === "free") {
       const couponId = "x12wcXtt";
       checkoutDiscounts = [{ coupon: couponId }];
-      console.log("[parrainage-debug] checkout: coupon appliqué", { couponId });
-    } else {
-      console.log("[parrainage-debug] checkout: coupon NON appliqué", {
-        raison: !referredBy ? "referred_by vide" : `plan=${currentPlan} (attendu free)`,
-      });
     }
 
     const session = await stripe.checkout.sessions.create({
