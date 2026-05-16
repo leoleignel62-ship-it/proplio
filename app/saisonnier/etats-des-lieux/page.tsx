@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
@@ -43,19 +43,28 @@ const SaisonnierEdlWizard = dynamic(
 type EdlRow = {
   id: string;
   reservation_id: string | null;
+  logement_id: string | null;
   type_etat?: string | null;
   type?: string | null;
   date_etat: string | null;
   statut: string;
 };
 
+type LogementOption = {
+  id: string;
+  nom: string;
+};
+
 export default function EtatsDesLieuxSaisonnierPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const logementFilter = searchParams.get("logement_id") ?? "";
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [rows, setRows] = useState<EdlRow[]>([]);
+  const [logements, setLogements] = useState<LogementOption[]>([]);
   const [reservations, setReservations] = useState<SaisonnierReservationOption[]>([]);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
@@ -81,10 +90,10 @@ export default function EtatsDesLieuxSaisonnierPage() {
       return;
     }
 
-    const [edlRes, resaRes] = await Promise.all([
+    const [edlRes, resaRes, logementsRes] = await Promise.all([
       supabase
         .from("etats_des_lieux")
-        .select("id, reservation_id, type, type_etat, date_etat, statut, created_at")
+        .select("id, reservation_id, logement_id, type, type_etat, date_etat, statut, created_at")
         .eq("proprietaire_id", proprietaireId)
         .not("reservation_id", "is", null)
         .order("created_at", { ascending: false }),
@@ -94,6 +103,11 @@ export default function EtatsDesLieuxSaisonnierPage() {
         .eq("proprietaire_id", proprietaireId)
         .neq("source", "blocage")
         .order("date_arrivee", { ascending: false }),
+      supabase
+        .from("logements")
+        .select("id, nom, type_location")
+        .eq("proprietaire_id", proprietaireId)
+        .order("nom", { ascending: true }),
     ]);
 
     if (edlRes.error || resaRes.error) {
@@ -112,7 +126,28 @@ export default function EtatsDesLieuxSaisonnierPage() {
       return;
     }
 
-    setRows((edlRes.data ?? []) as EdlRow[]);
+    setRows(
+      ((edlRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+        id: String(r.id),
+        reservation_id: r.reservation_id ? String(r.reservation_id) : null,
+        logement_id: r.logement_id ? String(r.logement_id) : null,
+        type_etat: (r.type_etat as string | null | undefined) ?? null,
+        type: (r.type as string | null | undefined) ?? null,
+        date_etat: (r.date_etat as string | null) ?? null,
+        statut: String(r.statut ?? ""),
+      })),
+    );
+    setLogements(
+      ((logementsRes.data ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
+        .filter((row) => {
+          const t = row.type_location ?? "classique";
+          return t === "saisonnier" || t === "les_deux";
+        })
+        .map((row) => ({
+          id: String(row.id ?? ""),
+          nom: String(row.nom ?? "").trim() || "Logement",
+        })),
+    );
 
     const resaList = (resaRes.data ?? []).map((r) => {
       const rec = r as Record<string, unknown>;
@@ -145,14 +180,17 @@ export default function EtatsDesLieuxSaisonnierPage() {
     void load();
   }, [load]);
 
-  const rowsWithReservation = useMemo(
-    () =>
-      rows.map((r) => ({
-        row: r,
-        reservation: reservations.find((res) => res.id === r.reservation_id) ?? null,
-      })),
-    [rows, reservations],
-  );
+  const rowsWithReservation = useMemo(() => {
+    const list = rows.map((r) => ({
+      row: r,
+      reservation: reservations.find((res) => res.id === r.reservation_id) ?? null,
+    }));
+    if (!logementFilter) return list;
+    return list.filter(({ row, reservation }) => {
+      const logementId = row.logement_id ?? reservation?.logement_id ?? null;
+      return logementId === logementFilter;
+    });
+  }, [rows, reservations, logementFilter]);
 
   async function executeDeleteConfirmed() {
     if (!deleteTarget) return;
@@ -217,17 +255,36 @@ export default function EtatsDesLieuxSaisonnierPage() {
             Formulaire simplifié (pièces, inventaire, PDF dédié location saisonnière).
           </p>
         </div>
-        <BtnPrimary
-          icon={<IconPlus className="h-4 w-4" />}
-          disabled={isPlanLimitReached}
-          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
-          onClick={() => {
-            setError("");
-            setWizardOpen(true);
-          }}
-        >
-          Nouvel état des lieux
-        </BtnPrimary>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={logementFilter}
+            onChange={(event) => {
+              const next = event.target.value;
+              const base = "/saisonnier/etats-des-lieux";
+              router.push(next ? `${base}?logement_id=${encodeURIComponent(next)}` : base);
+            }}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          >
+            <option value="">Tous les logements</option>
+            {logements.map((logement) => (
+              <option key={logement.id} value={logement.id}>
+                {logement.nom}
+              </option>
+            ))}
+          </select>
+          <BtnPrimary
+            icon={<IconPlus className="h-4 w-4" />}
+            disabled={isPlanLimitReached}
+            style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
+            onClick={() => {
+              setError("");
+              setWizardOpen(true);
+            }}
+          >
+            Nouvel état des lieux
+          </BtnPrimary>
+        </div>
       </div>
 
       {isPlanLimitReached ? (
