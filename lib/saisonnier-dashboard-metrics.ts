@@ -57,6 +57,28 @@ function countNightsInCalendarMonth(arriveStr: string, departStr: string, year: 
   return n;
 }
 
+function isLeapYear(year: number): boolean {
+  if (year % 400 === 0) return true;
+  if (year % 100 === 0) return false;
+  return year % 4 === 0;
+}
+
+function getDaysInYear(year: number): number {
+  return isLeapYear(year) ? 366 : 365;
+}
+
+function countNightsInCalendarYear(arriveStr: string, departStr: string, year: number): number {
+  const arr = parseISODate(arriveStr);
+  const dep = parseISODate(departStr);
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  let n = 0;
+  for (let d = new Date(arr.getTime()); d < dep; d.setDate(d.getDate() + 1)) {
+    if (d >= yearStart && d <= yearEnd) n++;
+  }
+  return n;
+}
+
 type DashboardReservationRow = {
   date_arrivee: string;
   date_depart: string;
@@ -138,6 +160,19 @@ async function getNbLogements(
   let query = supabase.from("logements").select("id", { count: "exact", head: true }).eq("proprietaire_id", proprietaireId);
   if (logementId) query = query.eq("id", logementId);
   const { count, error } = await query;
+  if (error) return 0;
+  return count ?? 0;
+}
+
+async function getNbLogementsSaisonnier(
+  supabase: SupabaseClient,
+  proprietaireId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("logements")
+    .select("id", { count: "exact", head: true })
+    .eq("proprietaire_id", proprietaireId)
+    .in("type_location", ["saisonnier", "les_deux"]);
   if (error) return 0;
   return count ?? 0;
 }
@@ -256,12 +291,12 @@ export async function getTauxOccupation(
   let nuitsOccupees = 0;
   for (const row of rows) {
     if (row.statut === "annulee") continue;
-    nuitsOccupees += getReservationNights(row);
+    nuitsOccupees += countNightsInCalendarYear(row.date_arrivee, row.date_depart, annee);
     const month = parseISODate(row.date_arrivee).getMonth();
     revenusParMois[month] += montantPourRevenu(row.tarif_total);
   }
-  const nbLogements = await getNbLogements(supabase, proprietaireId, logementId);
-  const nuitsDisponibles = 365 * nbLogements;
+  const nbLogements = logementId ? 1 : await getNbLogementsSaisonnier(supabase, proprietaireId);
+  const nuitsDisponibles = getDaysInYear(annee) * nbLogements;
   const tauxOccupation = nuitsDisponibles > 0 ? (nuitsOccupees / nuitsDisponibles) * 100 : 0;
   const moisFr = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sep", "Oct", "Nov", "Dec"];
   let idxMax = 0;
