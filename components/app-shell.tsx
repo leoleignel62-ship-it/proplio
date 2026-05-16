@@ -53,7 +53,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [showGuidedTour, setShowGuidedTour] = useState<"free" | "paid" | null>(null);
-  const [simulatedPlanLabel, setSimulatedPlanLabel] = useState<string | null>(null);
 
   const normalizedOnboardingPlanVu = onboardingPlanVu == null ? null : normalizePlan(onboardingPlanVu);
   const isPaidPlan = plan !== "free";
@@ -87,8 +86,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setProprietaireId(ownerData.id ?? null);
       setUserId(ownerData.user_id ?? null);
       setPlan(getEffectivePlan(ownerData));
-      const overrideRaw = String(ownerData.override_plan ?? "").trim();
-      setSimulatedPlanLabel(overrideRaw ? normalizePlan(overrideRaw) : null);
       setOnboardingPlanVu(ownerData.onboarding_plan_vu ?? null);
       setOnboardingReady(true);
     })();
@@ -192,17 +189,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <div className="min-h-screen" style={shellStyle}>
         <NavigationSidebar />
-        {simulatedPlanLabel ? (
-          <div
-            className="fixed left-0 right-0 top-0 z-[35] px-4 py-2 text-center text-xs font-semibold text-white md:left-64"
-            style={{ backgroundColor: "#d97706" }}
-            role="status"
-          >
-            Mode test actif — Plan simulé : {simulatedPlanLabel}
-          </div>
-        ) : null}
         <main
-          className={`p-4 md:ml-64 md:p-8 md:pl-6 ${simulatedPlanLabel ? "pt-[88px] md:pt-[112px]" : "pt-[60px] md:pt-[84px]"}`}
+          className="p-4 pt-[60px] md:ml-64 md:p-8 md:pl-6 md:pt-[84px]"
         >
           {children}
           {proprietaireId ? (
