@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { canAccessDocuments, normalizePlan } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -47,7 +48,7 @@ export async function DELETE(request: Request) {
     if (proprietaireError || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
-    if (!canAccessDocuments(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+    if (!canAccessDocuments(getEffectivePlan(proprietaire as { plan?: string | null; override_plan?: string | null }))) {
       return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
     }
 

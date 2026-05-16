@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseVeventsFromIcs } from "@/lib/ical-saisonnier";
 import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -48,13 +49,13 @@ export async function POST(request: Request) {
 
     const { data: proprietaire, error: pErr } = await supabase
       .from("proprietaires")
-      .select("id, plan")
+      .select("id, plan, override_plan")
       .eq("user_id", user.id)
       .maybeSingle();
     if (pErr || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
-    if (!canAccessSaisonnier(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+    if (!canAccessSaisonnier(getEffectivePlan(proprietaire as { plan?: string | null; override_plan?: string | null }))) {
       return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
     }
 

@@ -16,7 +16,7 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
       .from("proprietaires")
-      .select("id, nom, prenom, email, plan, is_beta, created_at")
+      .select("id, nom, prenom, email, plan, override_plan, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
     const body = (await request.json()) as {
       id?: string;
       plan?: string;
-      is_beta?: boolean;
+      override_plan?: string | null;
     };
     const id = String(body.id ?? "").trim();
     if (!id) {
@@ -54,8 +54,16 @@ export async function PATCH(request: Request) {
       }
       patch.plan = plan;
     }
-    if (body.is_beta !== undefined) {
-      patch.is_beta = Boolean(body.is_beta);
+    if (body.override_plan !== undefined) {
+      if (body.override_plan === null || String(body.override_plan).trim() === "") {
+        patch.override_plan = null;
+      } else {
+        const simulated = normalizePlan(body.override_plan);
+        if (!ALLOWED_PLANS.includes(simulated)) {
+          return NextResponse.json({ error: "Plan simulé invalide." }, { status: 400 });
+        }
+        patch.override_plan = simulated;
+      }
     }
 
     if (Object.keys(patch).length === 0) {
@@ -66,7 +74,7 @@ export async function PATCH(request: Request) {
       .from("proprietaires")
       .update(patch)
       .eq("id", id)
-      .select("id, nom, prenom, email, plan, is_beta, created_at")
+      .select("id, nom, prenom, email, plan, override_plan, created_at")
       .single();
 
     if (error) {

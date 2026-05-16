@@ -1,3 +1,4 @@
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
 
 export type LocavioPlan = "free" | "starter" | "pro" | "expert";
@@ -100,11 +101,11 @@ export async function getOwnerPlan(proprietaireId: string): Promise<LocavioPlan>
   if (!proprietaireId) return "free";
   const { data } = await supabase
     .from("proprietaires")
-    .select("plan")
+    .select("plan, override_plan")
     .eq("id", proprietaireId)
     .maybeSingle();
 
-  return normalizePlan((data as { plan?: string | null } | null)?.plan);
+  return getEffectivePlan(data as { plan?: string | null; override_plan?: string | null } | null);
 }
 
 export function canCreateLogement(

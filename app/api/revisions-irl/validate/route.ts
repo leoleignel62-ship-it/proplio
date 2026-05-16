@@ -7,6 +7,7 @@ import {
   getDerniereDateAnniversaireBail,
 } from "@/lib/irl-revision";
 import { canAccessStarterFeatures, normalizePlan } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -28,13 +29,13 @@ export async function POST(request: Request) {
 
     const { data: proprio, error: pErr } = await supabase
       .from("proprietaires")
-      .select("id, plan")
+      .select("id, plan, override_plan")
       .eq("user_id", user.id)
       .maybeSingle();
     if (pErr || !proprio?.id) {
       return NextResponse.json({ error: "Profil introuvable." }, { status: 400 });
     }
-    if (!canAccessStarterFeatures(normalizePlan((proprio as { plan?: string | null }).plan))) {
+    if (!canAccessStarterFeatures(getEffectivePlan(proprio as { plan?: string | null; override_plan?: string | null }))) {
       return NextResponse.json({ error: "Plan Starter ou supérieur requis." }, { status: 403 });
     }
 

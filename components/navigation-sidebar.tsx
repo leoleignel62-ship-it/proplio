@@ -62,6 +62,7 @@ import {
   UPSELL_MESSAGES,
   type LocavioPlan,
 } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { BtnEmail, BtnNeutral, BtnPrimary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/locavio-colors";
@@ -305,7 +306,7 @@ export function NavigationSidebar() {
       setEmail(user.email ?? null);
       const { data: row } = await supabase
         .from("proprietaires")
-        .select("prenom, nom, plan")
+        .select("prenom, nom, plan, override_plan")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -315,7 +316,7 @@ export function NavigationSidebar() {
       }
       const n = `${row.prenom ?? ""} ${row.nom ?? ""}`.trim();
       setOwnerName(n || null);
-      setOwnerPlan(normalizePlan((row as { plan?: string | null }).plan));
+      setOwnerPlan(getEffectivePlan(row as { plan?: string | null; override_plan?: string | null }));
     })();
     return () => {
       cancelled = true;
@@ -712,11 +713,11 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
 
   const { data: proprietaire } = await supabase
     .from("proprietaires")
-    .select("id, plan")
+    .select("id, plan, override_plan")
     .eq("user_id", user.id)
     .maybeSingle();
   const ownerId = proprietaire?.id as string | undefined;
-  const ownerPlan = normalizePlan((proprietaire as { plan?: string | null } | null)?.plan);
+  const ownerPlan = getEffectivePlan(proprietaire as { plan?: string | null; override_plan?: string | null } | null);
   if (!ownerId) {
     return { ...EMPTY_HEADER_ALERTS };
   }

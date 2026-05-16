@@ -1,6 +1,21 @@
 import { supabase } from "@/lib/supabase";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
+import { normalizePlan, type LocavioPlan } from "@/lib/plan-limits";
 import type { User } from "@supabase/supabase-js";
+
+export type ProprietairePlanSource = {
+  plan?: string | null;
+  override_plan?: string | null;
+};
+
+/** Plan effectif pour accès / limites : override_plan si défini, sinon plan Stripe. */
+export function getEffectivePlan(proprietaire: ProprietairePlanSource | null | undefined): LocavioPlan {
+  const override = proprietaire?.override_plan;
+  if (override != null && String(override).trim() !== "") {
+    return normalizePlan(override);
+  }
+  return normalizePlan(proprietaire?.plan);
+}
 
 export type ProprietaireProfile = {
   id?: string;

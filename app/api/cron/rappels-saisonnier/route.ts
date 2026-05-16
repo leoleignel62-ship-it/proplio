@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { cronShouldSendAcompte, cronShouldSendSolde } from "@/lib/saisonnier-rappel-conditions";
 import type { SaisonnierRappelReservationRow } from "@/lib/saisonnier-rappel-conditions";
 import { executeRappelAcompte, executeRappelSolde } from "@/lib/saisonnier-rappels";
@@ -31,16 +32,21 @@ export async function GET(request: Request) {
 
   const rows = (reservations ?? []) as SaisonnierRappelReservationRow[];
   const ownerIds = [...new Set(rows.map((r) => r.proprietaire_id))];
-  const { data: owners } = await supabaseAdmin.from("proprietaires").select("id, plan").in("id", ownerIds);
-  const planByOwner = new Map<string, string | null>();
+  const { data: owners } = await supabaseAdmin
+    .from("proprietaires")
+    .select("id, plan, override_plan")
+    .in("id", ownerIds);
+  const planByOwner = new Map<string, ReturnType<typeof getEffectivePlan>>();
   for (const o of owners ?? []) {
-    planByOwner.set(String((o as { id: string }).id), (o as { plan?: string | null }).plan ?? null);
+    const rec = o as { id: string; plan?: string | null; override_plan?: string | null };
+    planByOwner.set(String(rec.id), getEffectivePlan(rec));
   }
 
   const results: { id: string; acompte?: string; solde?: string }[] = [];
 
   for (const r of rows) {
-    if (!canAccessSaisonnier(normalizePlan(planByOwner.get(r.proprietaire_id)))) continue;
+    const ownerPlan = planByOwner.get(r.proprietaire_id);
+    if (!ownerPlan || !canAccessSaisonnier(ownerPlan)) continue;
 
     if (cronShouldSendAcompte(r)) {
       const res = await executeRappelAcompte(supabaseAdmin, r.id);

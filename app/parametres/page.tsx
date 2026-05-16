@@ -8,6 +8,7 @@ import {
   emptyProprietaireProfile,
   fetchProprietaireProfile,
   getCurrentProprietaireId,
+  getEffectivePlan,
   isProprietaireOnboardingIncomplete,
   saveProprietaireProfile,
   type ProprietaireProfile,
@@ -136,11 +137,10 @@ export default function ParametresPage() {
         }
         const { data: planData } = await supabase
           .from("proprietaires")
-          .select("plan")
+          .select("plan, override_plan")
           .eq("id", existingProfile.id)
           .maybeSingle();
-        const rawPlan = (planData as { plan?: string | null } | null)?.plan;
-        setPlan(rawPlan && rawPlan.trim() ? rawPlan : "free");
+        setPlan(getEffectivePlan(planData as { plan?: string | null; override_plan?: string | null } | null));
       }
 
       setIsLoading(false);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
+import { getCurrentProprietaireId, getEffectivePlan } from "@/lib/proprietaire-profile";
 import {
   PLAN_DISPLAY_FEATURES,
   PLAN_DISPLAY_LABELS,
@@ -126,9 +126,13 @@ export default function AbonnementPage() {
         return;
       }
       setProprietaireId(proprietaireId);
-      const { data } = await supabase.from("proprietaires").select("plan").eq("id", proprietaireId).maybeSingle();
+      const { data } = await supabase
+        .from("proprietaires")
+        .select("plan, override_plan")
+        .eq("id", proprietaireId)
+        .maybeSingle();
       if (!mounted) return;
-      setPlan(normalizePlan((data as { plan?: string | null } | null)?.plan));
+      setPlan(getEffectivePlan(data as { plan?: string | null; override_plan?: string | null } | null));
       setLoading(false);
     })();
     return () => {

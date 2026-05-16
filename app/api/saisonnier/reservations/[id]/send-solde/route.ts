@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { generateRecuSoldePdfBuffer } from "@/lib/pdf/generate-recu-solde-pdf";
 import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -26,7 +27,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
     if (pErr || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
-    if (!canAccessSaisonnier(normalizePlan((proprietaire as { plan?: string | null }).plan))) {
+    if (!canAccessSaisonnier(getEffectivePlan(proprietaire as { plan?: string | null; override_plan?: string | null }))) {
       return NextResponse.json({ error: "Plan Pro ou supérieur requis." }, { status: 403 });
     }
 

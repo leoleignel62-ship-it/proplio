@@ -23,9 +23,11 @@ type UserRow = {
   prenom: string;
   email: string;
   plan: string;
-  is_beta: boolean;
+  override_plan: string | null;
   created_at: string;
 };
+
+type OverrideSelectValue = "" | LocavioPlan;
 
 function PlanBadge({ plan }: { plan: string }) {
   const p = normalizePlan(plan);
@@ -40,9 +42,27 @@ function PlanBadge({ plan }: { plan: string }) {
   );
 }
 
+function SimulatedBadge({ plan }: { plan: string }) {
+  const p = normalizePlan(plan);
+  const s = PLAN_BADGE[p];
+  return (
+    <span
+      className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+      style={{ backgroundColor: "#ffedd5", color: "#c2410c" }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
 function formatDate(iso: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function overrideToSelectValue(override: string | null | undefined): OverrideSelectValue {
+  if (override == null || String(override).trim() === "") return "";
+  return normalizePlan(override);
 }
 
 export default function AdminUtilisateursPage() {
@@ -53,7 +73,7 @@ export default function AdminUtilisateursPage() {
   const [planFilter, setPlanFilter] = useState<"" | LocavioPlan>("");
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [modalPlan, setModalPlan] = useState<LocavioPlan>("free");
-  const [modalBeta, setModalBeta] = useState(false);
+  const [modalOverride, setModalOverride] = useState<OverrideSelectValue>("");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -73,7 +93,8 @@ export default function AdminUtilisateursPage() {
         prenom: String(u.prenom ?? ""),
         email: String(u.email ?? ""),
         plan: String(u.plan ?? "free"),
-        is_beta: Boolean(u.is_beta),
+        override_plan:
+          u.override_plan != null && String(u.override_plan).trim() !== "" ? String(u.override_plan) : null,
         created_at: String(u.created_at ?? ""),
       })),
     );
@@ -87,7 +108,7 @@ export default function AdminUtilisateursPage() {
   useEffect(() => {
     if (!selected) return;
     setModalPlan(normalizePlan(selected.plan));
-    setModalBeta(selected.is_beta);
+    setModalOverride(overrideToSelectValue(selected.override_plan));
   }, [selected]);
 
   const filtered = useMemo(() => {
@@ -100,39 +121,63 @@ export default function AdminUtilisateursPage() {
     });
   }, [users, search, planFilter]);
 
-  async function patchUser(patch: { plan?: LocavioPlan; is_beta?: boolean }) {
+  async function patchUser(patch: { plan?: LocavioPlan; override_plan?: OverrideSelectValue }) {
     if (!selected) return;
     setSaving(true);
+    const body: { id: string; plan?: LocavioPlan; override_plan?: string | null } = { id: selected.id };
+    if (patch.plan !== undefined) body.plan = patch.plan;
+    if (patch.override_plan !== undefined) {
+      body.override_plan = patch.override_plan === "" ? null : patch.override_plan;
+    }
     const res = await fetch("/api/admin/utilisateurs", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: selected.id, ...patch }),
+      body: JSON.stringify(body),
     });
     setSaving(false);
     if (!res.ok) {
       toast.error("Échec de la mise à jour.");
       return;
     }
-    const body = (await res.json()) as { user: UserRow };
-    const updated = body.user;
+    const data = (await res.json()) as { user: UserRow };
+    const updated = {
+      ...data.user,
+      override_plan:
+        data.user.override_plan != null && String(data.user.override_plan).trim() !== ""
+          ? String(data.user.override_plan)
+          : null,
+    };
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
     setSelected((u) => (u && u.id === updated.id ? { ...u, ...updated } : u));
     toast.success("Utilisateur mis à jour.");
   }
 
-  async function toggleBetaRow(user: UserRow, next: boolean) {
+  async function saveOverrideRow(user: UserRow, value: OverrideSelectValue) {
     const res = await fetch("/api/admin/utilisateurs", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: user.id, is_beta: next }),
+      body: JSON.stringify({
+        id: user.id,
+        override_plan: value === "" ? null : value,
+      }),
     });
     if (!res.ok) {
-      toast.error("Échec de la mise à jour beta.");
+      toast.error("Échec de la mise à jour du plan simulé.");
       return;
     }
-    const body = (await res.json()) as { user: UserRow };
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, is_beta: body.user.is_beta } : u)));
-    toast.success(next ? "Beta activé." : "Beta désactivé.");
+    const data = (await res.json()) as { user: UserRow };
+    const updated = {
+      ...data.user,
+      override_plan:
+        data.user.override_plan != null && String(data.user.override_plan).trim() !== ""
+          ? String(data.user.override_plan)
+          : null,
+    };
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, ...updated } : u)));
+    if (selected?.id === user.id) {
+      setModalOverride(overrideToSelectValue(updated.override_plan));
+    }
+    toast.success(value === "" ? "Simulation désactivée." : `Plan simulé : ${value}.`);
   }
 
   return (
@@ -164,7 +209,7 @@ export default function AdminUtilisateursPage() {
           className="rounded-lg border bg-white px-3 py-2 text-sm"
           style={{ borderColor: "rgba(124,58,237,0.2)" }}
         >
-          <option value="">Tous les plans</option>
+          <option value="">Tous les plans (Stripe)</option>
           {PLANS.map((p) => (
             <option key={p} value={p}>
               {PLAN_BADGE[p].label}
@@ -180,13 +225,14 @@ export default function AdminUtilisateursPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[860px] text-left text-sm">
               <thead>
                 <tr className="border-b text-xs uppercase tracking-wide" style={{ color: MUTED, borderColor: "rgba(124,58,237,0.1)" }}>
                   <th className="px-4 py-3">Nom</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Plan</th>
-                  <th className="px-4 py-3">Beta</th>
+                  <th className="px-4 py-3">Simulé</th>
+                  <th className="px-4 py-3">Plan simulé</th>
                   <th className="px-4 py-3">Inscription</th>
                 </tr>
               </thead>
@@ -207,20 +253,23 @@ export default function AdminUtilisateursPage() {
                     <td className="px-4 py-3">
                       <PlanBadge plan={row.plan} />
                     </td>
+                    <td className="px-4 py-3">
+                      {row.override_plan ? <SimulatedBadge plan={row.override_plan} /> : <span style={{ color: MUTED }}>—</span>}
+                    </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={row.is_beta}
-                        onClick={() => void toggleBetaRow(row, !row.is_beta)}
-                        className="relative h-7 w-12 rounded-full"
-                        style={{ backgroundColor: row.is_beta ? ACCENT : "#d1d5db" }}
+                      <select
+                        value={overrideToSelectValue(row.override_plan)}
+                        onChange={(e) => void saveOverrideRow(row, e.target.value as OverrideSelectValue)}
+                        className="rounded-lg border bg-white px-2 py-1.5 text-xs"
+                        style={{ borderColor: "rgba(124,58,237,0.2)" }}
                       >
-                        <span
-                          className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition"
-                          style={{ left: row.is_beta ? "1.375rem" : "0.125rem" }}
-                        />
-                      </button>
+                        <option value="">Aucun</option>
+                        {PLANS.map((p) => (
+                          <option key={p} value={p}>
+                            {PLAN_BADGE[p].label}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3" style={{ color: MUTED }}>
                       {formatDate(row.created_at)}
@@ -259,7 +308,7 @@ export default function AdminUtilisateursPage() {
             </p>
 
             <label className="mt-6 block text-sm font-medium" style={{ color: TEXT }}>
-              Plan
+              Plan Stripe (réel)
               <select
                 value={modalPlan}
                 onChange={(e) => setModalPlan(e.target.value as LocavioPlan)}
@@ -280,30 +329,29 @@ export default function AdminUtilisateursPage() {
               className="mt-3 w-full rounded-lg py-2 text-sm font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: ACCENT }}
             >
-              Enregistrer le plan
+              Enregistrer le plan Stripe
             </button>
 
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm font-medium">Beta testeur</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={modalBeta}
-                disabled={saving}
-                onClick={() => {
-                  const next = !modalBeta;
-                  setModalBeta(next);
-                  void patchUser({ is_beta: next });
+            <label className="mt-4 block text-sm font-medium" style={{ color: TEXT }}>
+              Plan simulé (override)
+              <select
+                value={modalOverride}
+                onChange={(e) => {
+                  const v = e.target.value as OverrideSelectValue;
+                  setModalOverride(v);
+                  void patchUser({ override_plan: v });
                 }}
-                className="relative h-7 w-12 rounded-full disabled:opacity-60"
-                style={{ backgroundColor: modalBeta ? ACCENT : "#d1d5db" }}
+                disabled={saving}
+                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
               >
-                <span
-                  className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow"
-                  style={{ left: modalBeta ? "1.375rem" : "0.125rem" }}
-                />
-              </button>
-            </div>
+                <option value="">Aucun</option>
+                {PLANS.map((p) => (
+                  <option key={p} value={p}>
+                    {PLAN_BADGE[p].label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <button
               type="button"
