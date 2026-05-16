@@ -18,7 +18,14 @@ const REFERRAL_STORAGE_KEY = "locavio_referral_code";
 
 async function linkReferralAfterSignup(userId: string, referralCode: string) {
   const code = referralCode.trim();
-  if (!code) return;
+  console.log("[parrainage-debug] register linkReferralAfterSignup: démarrage", {
+    userId,
+    referralCode: code || "(vide)",
+  });
+  if (!code) {
+    console.log("[parrainage-debug] register linkReferralAfterSignup: arrêt — code vide");
+    return;
+  }
 
   try {
     const { data: parrain, error: parrainError } = await supabase
@@ -29,9 +36,14 @@ async function linkReferralAfterSignup(userId: string, referralCode: string) {
 
     if (parrainError) {
       console.warn("Parrainage: recherche parrain:", parrainError.message);
+      console.log("[parrainage-debug] register: erreur recherche parrain", parrainError.message);
       return;
     }
-    if (!parrain?.id) return;
+    if (!parrain?.id) {
+      console.log("[parrainage-debug] register: parrain NON trouvé pour referral_code", code);
+      return;
+    }
+    console.log("[parrainage-debug] register: parrain trouvé", { parrainId: parrain.id });
 
     const { data: filleul, error: filleulError } = await supabase
       .from("proprietaires")
@@ -41,10 +53,18 @@ async function linkReferralAfterSignup(userId: string, referralCode: string) {
 
     if (filleulError || !filleul?.id) {
       console.warn("Parrainage: filleul introuvable:", filleulError?.message);
+      console.log("[parrainage-debug] register: filleul introuvable", {
+        userId,
+        error: filleulError?.message,
+      });
       return;
     }
+    console.log("[parrainage-debug] register: filleul trouvé", { filleulId: filleul.id });
 
-    if (parrain.id === filleul.id) return;
+    if (parrain.id === filleul.id) {
+      console.log("[parrainage-debug] register: arrêt — parrain et filleul identiques");
+      return;
+    }
 
     const { error: updateError } = await supabase
       .from("proprietaires")
@@ -53,8 +73,10 @@ async function linkReferralAfterSignup(userId: string, referralCode: string) {
 
     if (updateError) {
       console.warn("Parrainage: referred_by:", updateError.message);
+      console.log("[parrainage-debug] register: échec UPDATE referred_by", updateError.message);
       return;
     }
+    console.log("[parrainage-debug] register: referred_by mis à jour", { referred_by: code });
 
     const { error: insertError } = await supabase.from("parrainages").insert({
       parrain_id: parrain.id,
@@ -64,9 +86,16 @@ async function linkReferralAfterSignup(userId: string, referralCode: string) {
 
     if (insertError) {
       console.warn("Parrainage: insert parrainages:", insertError.message);
+      console.log("[parrainage-debug] register: échec INSERT parrainages", insertError.message);
+    } else {
+      console.log("[parrainage-debug] register: ligne parrainages insérée (en_attente)", {
+        parrain_id: parrain.id,
+        filleul_id: filleul.id,
+      });
     }
   } catch (e) {
     console.warn("Parrainage:", e);
+    console.log("[parrainage-debug] register linkReferralAfterSignup: exception", e);
   } finally {
     try {
       localStorage.removeItem(REFERRAL_STORAGE_KEY);
@@ -108,9 +137,16 @@ export default function RegisterPage() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
-      if (stored) setReferralCode(stored.trim());
+      if (stored) {
+        const trimmed = stored.trim();
+        setReferralCode(trimmed);
+        console.log("[parrainage-debug] register: referralCode lu depuis localStorage", trimmed);
+      } else {
+        console.log("[parrainage-debug] register: aucun referralCode dans localStorage");
+      }
     } catch {
       // localStorage indisponible
+      console.log("[parrainage-debug] register: localStorage indisponible");
     }
   }, []);
 
@@ -164,7 +200,14 @@ export default function RegisterPage() {
         }
 
         if (referralCode.trim()) {
+          console.log("[parrainage-debug] register: appel linkReferralAfterSignup", {
+            userId: data.user.id,
+            referralCode: referralCode.trim(),
+            hasSession: Boolean(data.session),
+          });
           await linkReferralAfterSignup(data.user.id, referralCode);
+        } else {
+          console.log("[parrainage-debug] register: linkReferralAfterSignup ignoré — referralCode vide");
         }
       }
 
