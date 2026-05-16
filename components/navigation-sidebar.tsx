@@ -64,6 +64,7 @@ import {
   type LocavioPlan,
 } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
+import { SupportNavNotificationDot } from "@/components/support-nav-notification-dot";
 import { BtnEmail, BtnNeutral, BtnPrimary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PC } from "@/lib/locavio-colors";
@@ -220,6 +221,7 @@ function NavLink({
   navLocked = false,
   lockTooltip,
   tourId,
+  showNotificationDot = false,
 }: {
   href: string;
   label: string;
@@ -229,6 +231,7 @@ function NavLink({
   navLocked?: boolean;
   lockTooltip?: string;
   tourId?: string;
+  showNotificationDot?: boolean;
 }) {
   const [hover, setHover] = useState(false);
 
@@ -260,12 +263,15 @@ function NavLink({
         style={{ color: isActive ? PC.primary : hover ? PC.primary : PC.tertiary }}
       />
       {navLocked ? (
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span>{label}</span>
           <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
         </span>
       ) : (
-        label
+        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <span>{label}</span>
+          {showNotificationDot ? <SupportNavNotificationDot /> : null}
+        </span>
       )}
     </Link>
   );
@@ -298,6 +304,8 @@ export function NavigationSidebar() {
   const [email, setEmail] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [ownerPlan, setOwnerPlan] = useState<LocavioPlan | null>(null);
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [saisonnierUpsellOpen, setSaisonnierUpsellOpen] = useState(false);
 
   useEffect(() => {
@@ -310,22 +318,66 @@ export function NavigationSidebar() {
       setEmail(user.email ?? null);
       const { data: row } = await supabase
         .from("proprietaires")
-        .select("prenom, nom, plan, override_plan")
+        .select("id, prenom, nom, plan, override_plan")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
       if (!row) {
         setOwnerPlan("free");
+        setProprietaireId(null);
         return;
       }
       const n = `${row.prenom ?? ""} ${row.nom ?? ""}`.trim();
       setOwnerName(n || null);
+      setProprietaireId(String(row.id));
       setOwnerPlan(getEffectivePlan(row as { plan?: string | null; override_plan?: string | null }));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!proprietaireId) {
+      setSupportUnreadCount(0);
+      return;
+    }
+    let cancelled = false;
+
+    async function loadSupportUnread(ownerId: string) {
+      const { data: tickets, error: ticketsError } = await supabase
+        .from("support_tickets")
+        .select("id")
+        .eq("proprietaire_id", ownerId);
+
+      if (cancelled || ticketsError) {
+        if (!cancelled) setSupportUnreadCount(0);
+        return;
+      }
+
+      const ticketIds = (tickets ?? []).map((t) => String(t.id));
+      if (ticketIds.length === 0) {
+        if (!cancelled) setSupportUnreadCount(0);
+        return;
+      }
+
+      const { count, error: messagesError } = await supabase
+        .from("support_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("auteur", "admin")
+        .eq("lu", false)
+        .in("ticket_id", ticketIds);
+
+      if (!cancelled) {
+        setSupportUnreadCount(messagesError ? 0 : count ?? 0);
+      }
+    }
+
+    void loadSupportUnread(proprietaireId);
+    return () => {
+      cancelled = true;
+    };
+  }, [proprietaireId, pathname]);
 
   const effectivePlan = ownerPlan ?? "free";
   const saisonnierAccessible = canAccessSaisonnier(effectivePlan);
@@ -378,6 +430,7 @@ export function NavigationSidebar() {
         navLocked={lock.locked}
         lockTooltip={lock.tooltip}
         tourId={tourIdMap[item.href]}
+        showNotificationDot={item.href === "/support" && supportUnreadCount > 0}
       />
     );
   }

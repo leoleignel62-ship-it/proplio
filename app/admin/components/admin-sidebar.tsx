@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { FileText, Flag, LayoutDashboard, MessageCircle, Users } from "lucide-react";
+import { SupportNavNotificationDot } from "@/components/support-nav-notification-dot";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -19,6 +21,25 @@ function isActive(pathname: string, href: string, exact: boolean): boolean {
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [supportUnreadTotal, setSupportUnreadTotal] = useState(0);
+
+  const loadSupportUnread = useCallback(async () => {
+    const res = await fetch("/api/admin/support/unread");
+    if (!res.ok) {
+      setSupportUnreadTotal(0);
+      return;
+    }
+    const body = (await res.json()) as {
+      nb_tickets_nouveaux?: number;
+      nb_messages_non_lus?: number;
+    };
+    const total = (body.nb_tickets_nouveaux ?? 0) + (body.nb_messages_non_lus ?? 0);
+    setSupportUnreadTotal(total);
+  }, []);
+
+  useEffect(() => {
+    void loadSupportUnread();
+  }, [loadSupportUnread, pathname]);
 
   return (
     <aside
@@ -32,6 +53,7 @@ export function AdminSidebar() {
       <nav className="flex flex-1 flex-col gap-1">
         {NAV.map(({ href, label, icon: Icon, exact }) => {
           const active = isActive(pathname, href, exact);
+          const showDot = href === "/admin/support" && supportUnreadTotal > 0;
           return (
             <Link
               key={href}
@@ -43,7 +65,10 @@ export function AdminSidebar() {
               }}
             >
               <Icon size={18} strokeWidth={2} aria-hidden />
-              {label}
+              <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <span>{label}</span>
+                {showDot ? <SupportNavNotificationDot /> : null}
+              </span>
             </Link>
           );
         })}
