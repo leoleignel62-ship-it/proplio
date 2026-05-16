@@ -2,13 +2,19 @@
 
 import {
   AlertTriangle,
+  CalendarClock,
+  ClipboardList,
+  ClipboardX,
   Clock,
   CreditCard,
-  FileText,
+  FolderOpen,
   Gift,
+  Home as HomeIcon,
   Landmark,
   Lock,
+  LogIn,
   TrendingUp,
+  UserX,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -653,7 +659,8 @@ export function NavigationSidebar() {
 type HeaderAlertMetrics = {
   quittancesNonEnvoyeesMois: number;
   bauxUrgents: Array<{ id: string; locataireNom: string; dateFin: string }>;
-  edlManquants: Array<{ bailId: string; logementNom: string }>;
+  edlEntreeManquants: number;
+  edlSortieManquants: number;
   revisionsIrlDisponibles: Array<{ bailId: string; logementNom: string }>;
   rappelsAcompteSaisonnier: Array<{
     reservationId: string;
@@ -670,6 +677,27 @@ type HeaderAlertMetrics = {
     dates: string;
   }>;
   parrainagesConvertisRecents: number;
+  dossiersCandidatureATraiter: number;
+  logementsVacants: number;
+  reservationsSaisonnierEnAttente: number;
+  checkinsSaisonnier7Jours: number;
+  locatairesSansLogement: number;
+};
+
+const EMPTY_HEADER_ALERTS: HeaderAlertMetrics = {
+  quittancesNonEnvoyeesMois: 0,
+  bauxUrgents: [],
+  edlEntreeManquants: 0,
+  edlSortieManquants: 0,
+  revisionsIrlDisponibles: [],
+  rappelsAcompteSaisonnier: [],
+  rappelsSoldeSaisonnier: [],
+  parrainagesConvertisRecents: 0,
+  dossiersCandidatureATraiter: 0,
+  logementsVacants: 0,
+  reservationsSaisonnierEnAttente: 0,
+  checkinsSaisonnier7Jours: 0,
+  locatairesSansLogement: 0,
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
@@ -677,15 +705,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return {
-      quittancesNonEnvoyeesMois: 0,
-      bauxUrgents: [],
-      edlManquants: [],
-      revisionsIrlDisponibles: [],
-      rappelsAcompteSaisonnier: [],
-      rappelsSoldeSaisonnier: [],
-      parrainagesConvertisRecents: 0,
-    };
+    return { ...EMPTY_HEADER_ALERTS };
   }
 
   const { data: proprietaire } = await supabase
@@ -696,15 +716,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   const ownerId = proprietaire?.id as string | undefined;
   const ownerPlan = normalizePlan((proprietaire as { plan?: string | null } | null)?.plan);
   if (!ownerId) {
-    return {
-      quittancesNonEnvoyeesMois: 0,
-      bauxUrgents: [],
-      edlManquants: [],
-      revisionsIrlDisponibles: [],
-      rappelsAcompteSaisonnier: [],
-      rappelsSoldeSaisonnier: [],
-      parrainagesConvertisRecents: 0,
-    };
+    return { ...EMPTY_HEADER_ALERTS };
   }
 
   const now = new Date();
@@ -712,10 +724,12 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   const currentYear = now.getFullYear();
   const in30 = new Date();
   in30.setDate(in30.getDate() + 30);
-  const last7Days = new Date();
-  last7Days.setDate(last7Days.getDate() - 7);
+  const in7 = new Date();
+  in7.setDate(in7.getDate() + 7);
   const parrainageSince = new Date();
   parrainageSince.setDate(parrainageSince.getDate() - 7);
+  const todayIso = now.toISOString().slice(0, 10);
+  const in7Iso = in7.toISOString().slice(0, 10);
 
   const [
     { data: qRows },
@@ -725,6 +739,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     { data: edlRows },
     revRes,
     parrainageRes,
+    candidatureRes,
   ] = await Promise.all([
     supabase.from("quittances").select("envoyee, mois, annee").eq("proprietaire_id", ownerId),
     supabase
@@ -735,7 +750,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
       .eq("proprietaire_id", ownerId)
       .eq("statut", "actif"),
     supabase.from("logements").select("id, nom").eq("proprietaire_id", ownerId),
-    supabase.from("locataires").select("id, nom, prenom").eq("proprietaire_id", ownerId),
+    supabase.from("locataires").select("id, nom, prenom, logement_id").eq("proprietaire_id", ownerId),
     supabase.from("etats_des_lieux").select("bail_id, type").eq("proprietaire_id", ownerId),
     supabase.from("revisions_irl").select("bail_id, statut, date_revision").eq("proprietaire_id", ownerId),
     supabase
@@ -744,6 +759,11 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
       .eq("parrain_id", ownerId)
       .eq("statut", "converti")
       .gte("converted_at", parrainageSince.toISOString()),
+    supabase
+      .from("candidature_dossiers")
+      .select("id, statut, candidature_tokens(soumis_at)")
+      .eq("proprietaire_id", user.id)
+      .in("statut", ["recu", "en_attente", "analyse"]),
   ]);
 
   const parrainagesConvertisRecents = parrainageRes.error ? 0 : (parrainageRes.count ?? 0);
@@ -780,17 +800,45 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
       .filter((edl) => String(edl.type ?? "").toLowerCase() === "entree")
       .map((edl) => String(edl.bail_id)),
   );
-  const edlManquants: Array<{ bailId: string; logementNom: string }> = [];
+  const edlSortieBailIds = new Set(
+    (edlRows ?? [])
+      .filter((edl) => String(edl.type ?? "").toLowerCase() === "sortie")
+      .map((edl) => String(edl.bail_id)),
+  );
+  let edlEntreeManquants = 0;
+  let edlSortieManquants = 0;
   for (const bail of bRows ?? []) {
-    const start = new Date(String(bail.date_debut));
-    if (Number.isNaN(start.getTime())) continue;
-    if (start >= last7Days && start <= now && !edlEntreeBailIds.has(String(bail.id))) {
-      edlManquants.push({
-        bailId: String(bail.id),
-        logementNom: logementsMap.get(String(bail.logement_id ?? "")) ?? "Logement",
-      });
+    const bailId = String(bail.id);
+    if (!edlEntreeBailIds.has(bailId)) {
+      edlEntreeManquants += 1;
+    }
+    const end = new Date(String(bail.date_fin));
+    if (
+      !Number.isNaN(end.getTime()) &&
+      end >= now &&
+      end <= in30 &&
+      !edlSortieBailIds.has(bailId)
+    ) {
+      edlSortieManquants += 1;
     }
   }
+
+  const logementIdsAvecLocataire = new Set(
+    (locRows ?? [])
+      .filter((loc) => loc.logement_id != null && String(loc.logement_id).trim() !== "")
+      .map((loc) => String(loc.logement_id)),
+  );
+  const logementsVacants = (logementsRows ?? []).filter(
+    (logement) => !logementIdsAvecLocataire.has(String(logement.id)),
+  ).length;
+
+  const locatairesSansLogement = (locRows ?? []).filter((loc) => loc.logement_id == null).length;
+
+  const dossiersCandidatureATraiter = (candidatureRes.data ?? []).filter((dossier) => {
+    const tokens = dossier.candidature_tokens;
+    const list = Array.isArray(tokens) ? tokens : tokens ? [tokens] : [];
+    return list.some((t) => t?.soumis_at != null && String(t.soumis_at).trim() !== "");
+  }).length;
 
   const revData = revRes.error ? [] : (revRes.data ?? []);
   const proposeeBailIds = new Set(
@@ -807,23 +855,43 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     logementNom: logementsMap.get(String(b.logement_id ?? "")) ?? "Logement",
   }));
 
-  const todayIso = new Date().toISOString().slice(0, 10);
   let rappelsAcompteSaisonnier: HeaderAlertMetrics["rappelsAcompteSaisonnier"] = [];
   let rappelsSoldeSaisonnier: HeaderAlertMetrics["rappelsSoldeSaisonnier"] = [];
+  let reservationsSaisonnierEnAttente = 0;
+  let checkinsSaisonnier7Jours = 0;
 
   if (canAccessSaisonnier(ownerPlan)) {
     const { data: resaRows } = await supabase
       .from("reservations")
       .select(
-        "id, voyageur_id, date_arrivee, date_depart, montant_acompte, tarif_total, tarif_menage, taxe_sejour_total, delai_solde_jours, acompte_recu, solde_recu, voyageurs(prenom, nom), logements(nom)",
+        "id, source, statut, voyageur_id, date_arrivee, date_depart, montant_acompte, tarif_total, tarif_menage, taxe_sejour_total, delai_solde_jours, acompte_recu, solde_recu, voyageurs(prenom, nom), logements(nom)",
       )
-      .eq("proprietaire_id", ownerId)
-      .eq("source", "direct")
-      .eq("statut", "confirmee")
-      .not("voyageur_id", "is", null)
-      .gte("date_arrivee", todayIso);
+      .eq("proprietaire_id", ownerId);
 
     for (const raw of resaRows ?? []) {
+      const rec = raw as Record<string, unknown>;
+      const statut = String(rec.statut ?? "");
+      const dateArrivee = String(rec.date_arrivee ?? "");
+      if (statut === "en_attente") {
+        reservationsSaisonnierEnAttente += 1;
+      }
+      if (statut === "confirmee" && dateArrivee >= todayIso && dateArrivee <= in7Iso) {
+        checkinsSaisonnier7Jours += 1;
+      }
+    }
+
+    const resaRappelRows = (resaRows ?? []).filter((raw) => {
+      const rec = raw as Record<string, unknown>;
+      return (
+        String(rec.source ?? "direct") === "direct" &&
+        String(rec.statut ?? "") === "confirmee" &&
+        rec.voyageur_id != null &&
+        String(rec.date_arrivee ?? "") >= todayIso
+      );
+    });
+
+    for (const raw of resaRappelRows) {
+
       const rec = raw as Record<string, unknown>;
       const vg = rec.voyageurs;
       const lg = rec.logements;
@@ -879,11 +947,17 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   return {
     quittancesNonEnvoyeesMois,
     bauxUrgents,
-    edlManquants,
+    edlEntreeManquants,
+    edlSortieManquants,
     revisionsIrlDisponibles,
     rappelsAcompteSaisonnier,
     rappelsSoldeSaisonnier,
     parrainagesConvertisRecents,
+    dossiersCandidatureATraiter,
+    logementsVacants,
+    reservationsSaisonnierEnAttente,
+    checkinsSaisonnier7Jours,
+    locatairesSansLogement,
   };
 }
 
@@ -900,17 +974,8 @@ function ensureHeaderAlertsLoaded(): Promise<HeaderAlertMetrics> {
       })
       .catch(() => {
         headerAlertsInflight = null;
-        const empty: HeaderAlertMetrics = {
-          quittancesNonEnvoyeesMois: 0,
-          bauxUrgents: [],
-          edlManquants: [],
-          revisionsIrlDisponibles: [],
-          rappelsAcompteSaisonnier: [],
-          rappelsSoldeSaisonnier: [],
-          parrainagesConvertisRecents: 0,
-        };
-        headerAlertsCache = empty;
-        return empty;
+        headerAlertsCache = { ...EMPTY_HEADER_ALERTS };
+        return { ...EMPTY_HEADER_ALERTS };
       });
   }
   return headerAlertsInflight;
@@ -932,15 +997,7 @@ export async function refreshHeaderAlerts(): Promise<HeaderAlertMetrics> {
 function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [alerts, setAlerts] = useState<HeaderAlertMetrics>({
-    quittancesNonEnvoyeesMois: 0,
-    bauxUrgents: [],
-    edlManquants: [],
-    revisionsIrlDisponibles: [],
-    rappelsAcompteSaisonnier: [],
-    rappelsSoldeSaisonnier: [],
-    parrainagesConvertisRecents: 0,
-  });
+  const [alerts, setAlerts] = useState<HeaderAlertMetrics>({ ...EMPTY_HEADER_ALERTS });
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -959,11 +1016,17 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
   const badgeCount =
     alerts.quittancesNonEnvoyeesMois +
     alerts.bauxUrgents.length +
-    alerts.edlManquants.length +
+    alerts.edlEntreeManquants +
+    alerts.edlSortieManquants +
     alerts.revisionsIrlDisponibles.length +
     alerts.rappelsAcompteSaisonnier.length +
     alerts.rappelsSoldeSaisonnier.length +
-    alerts.parrainagesConvertisRecents;
+    alerts.parrainagesConvertisRecents +
+    alerts.dossiersCandidatureATraiter +
+    alerts.logementsVacants +
+    alerts.reservationsSaisonnierEnAttente +
+    alerts.checkinsSaisonnier7Jours +
+    alerts.locatairesSansLogement;
   const hasAnyAlert = badgeCount > 0;
 
   return (
@@ -1019,12 +1082,36 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
                   </Link>
                 ))}
-                {alerts.edlManquants.map((item) => (
-                  <Link key={item.bailId} href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <FileText size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>État des lieux d&apos;entrée manquant pour {item.logementNom}</span>
+                {alerts.dossiersCandidatureATraiter > 0 ? (
+                  <Link href="/dossiers" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }} onClick={() => setOpen(false)}>
+                    <FolderOpen size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.dossiersCandidatureATraiter} dossier(s) de candidature à traiter</span>
                   </Link>
-                ))}
+                ) : null}
+                {alerts.logementsVacants > 0 ? (
+                  <Link href="/logements" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.muted, backgroundColor: PC.primaryBg15 }} onClick={() => setOpen(false)}>
+                    <HomeIcon size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.logementsVacants} logement(s) vacant(s)</span>
+                  </Link>
+                ) : null}
+                {alerts.locatairesSansLogement > 0 ? (
+                  <Link href="/locataires" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
+                    <UserX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.locatairesSansLogement} locataire(s) sans logement affecté</span>
+                  </Link>
+                ) : null}
+                {alerts.edlEntreeManquants > 0 ? (
+                  <Link href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
+                    <ClipboardList size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.edlEntreeManquants} bail(aux) sans état des lieux d&apos;entrée</span>
+                  </Link>
+                ) : null}
+                {alerts.edlSortieManquants > 0 ? (
+                  <Link href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }} onClick={() => setOpen(false)}>
+                    <ClipboardX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.edlSortieManquants} bail(aux) avec EDL de sortie manquant</span>
+                  </Link>
+                ) : null}
                 {alerts.revisionsIrlDisponibles.map((item) => (
                   <Link
                     key={item.bailId}
@@ -1049,6 +1136,30 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                       🎉 {alerts.parrainagesConvertisRecents} filleul(s) ont rejoint Locavio —{" "}
                       {alerts.parrainagesConvertisRecents} mois offert(s) ajouté(s) à votre abonnement !
                     </span>
+                  </Link>
+                ) : null}
+                {alerts.reservationsSaisonnierEnAttente > 0 ? (
+                  <Link
+                    href="/saisonnier/reservations"
+                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                    onClick={() => setOpen(false)}
+                  >
+                    <CalendarClock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>
+                      {alerts.reservationsSaisonnierEnAttente} réservation(s) en attente de confirmation
+                    </span>
+                  </Link>
+                ) : null}
+                {alerts.checkinsSaisonnier7Jours > 0 ? (
+                  <Link
+                    href="/saisonnier/reservations"
+                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                    onClick={() => setOpen(false)}
+                  >
+                    <LogIn size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>{alerts.checkinsSaisonnier7Jours} arrivée(s) prévue(s) dans les 7 prochains jours</span>
                   </Link>
                 ) : null}
                 {alerts.rappelsAcompteSaisonnier.map((item) => (
