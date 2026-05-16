@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState, type CSSProperties } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LogoFullDark } from "@/components/locavio-icons";
 import { ensureProprietaireRow, upsertProprietaireIdentityFromSignup } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
@@ -14,95 +14,10 @@ const LEFT_BG: CSSProperties = {
   backgroundImage: "linear-gradient(135deg, #0a0020 0%, #1a0a3a 55%, #0d0520 100%)",
 };
 
-const REFERRAL_STORAGE_KEY = "locavio_referral_code";
+const REFERRAL_COOKIE_NAME = "locavio_referral_code";
 
-async function linkReferralAfterSignup(userId: string, referralCode: string) {
-  const code = referralCode.trim();
-  console.log("[parrainage-debug] register linkReferralAfterSignup: démarrage", {
-    userId,
-    referralCode: code || "(vide)",
-  });
-  if (!code) {
-    console.log("[parrainage-debug] register linkReferralAfterSignup: arrêt — code vide");
-    return;
-  }
-
-  try {
-    const { data: parrain, error: parrainError } = await supabase
-      .from("proprietaires")
-      .select("id")
-      .eq("referral_code", code)
-      .maybeSingle();
-
-    if (parrainError) {
-      console.warn("Parrainage: recherche parrain:", parrainError.message);
-      console.log("[parrainage-debug] register: erreur recherche parrain", parrainError.message);
-      return;
-    }
-    if (!parrain?.id) {
-      console.log("[parrainage-debug] register: parrain NON trouvé pour referral_code", code);
-      return;
-    }
-    console.log("[parrainage-debug] register: parrain trouvé", { parrainId: parrain.id });
-
-    const { data: filleul, error: filleulError } = await supabase
-      .from("proprietaires")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (filleulError || !filleul?.id) {
-      console.warn("Parrainage: filleul introuvable:", filleulError?.message);
-      console.log("[parrainage-debug] register: filleul introuvable", {
-        userId,
-        error: filleulError?.message,
-      });
-      return;
-    }
-    console.log("[parrainage-debug] register: filleul trouvé", { filleulId: filleul.id });
-
-    if (parrain.id === filleul.id) {
-      console.log("[parrainage-debug] register: arrêt — parrain et filleul identiques");
-      return;
-    }
-
-    const { error: updateError } = await supabase
-      .from("proprietaires")
-      .update({ referred_by: code })
-      .eq("user_id", userId);
-
-    if (updateError) {
-      console.warn("Parrainage: referred_by:", updateError.message);
-      console.log("[parrainage-debug] register: échec UPDATE referred_by", updateError.message);
-      return;
-    }
-    console.log("[parrainage-debug] register: referred_by mis à jour", { referred_by: code });
-
-    const { error: insertError } = await supabase.from("parrainages").insert({
-      parrain_id: parrain.id,
-      filleul_id: filleul.id,
-      statut: "en_attente",
-    });
-
-    if (insertError) {
-      console.warn("Parrainage: insert parrainages:", insertError.message);
-      console.log("[parrainage-debug] register: échec INSERT parrainages", insertError.message);
-    } else {
-      console.log("[parrainage-debug] register: ligne parrainages insérée (en_attente)", {
-        parrain_id: parrain.id,
-        filleul_id: filleul.id,
-      });
-    }
-  } catch (e) {
-    console.warn("Parrainage:", e);
-    console.log("[parrainage-debug] register linkReferralAfterSignup: exception", e);
-  } finally {
-    try {
-      localStorage.removeItem(REFERRAL_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  }
+function setReferralCookie(code: string) {
+  document.cookie = `${REFERRAL_COOKIE_NAME}=${encodeURIComponent(code)};path=/;max-age=3600;SameSite=Lax`;
 }
 
 function translateSupabaseError(message: string): string {
@@ -122,8 +37,9 @@ function translateSupabaseError(message: string): string {
   return "Une erreur est survenue. Veuillez réessayer.";
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
@@ -135,20 +51,11 @@ export default function RegisterPage() {
   const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
-      if (stored) {
-        const trimmed = stored.trim();
-        setReferralCode(trimmed);
-        console.log("[parrainage-debug] register: referralCode lu depuis localStorage", trimmed);
-      } else {
-        console.log("[parrainage-debug] register: aucun referralCode dans localStorage");
-      }
-    } catch {
-      // localStorage indisponible
-      console.log("[parrainage-debug] register: localStorage indisponible");
-    }
-  }, []);
+    const refFromUrl = searchParams.get("ref")?.trim() ?? "";
+    if (!refFromUrl) return;
+    setReferralCode(refFromUrl);
+    setReferralCookie(refFromUrl);
+  }, [searchParams]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -162,6 +69,10 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
+      if (referralCode.trim()) {
+        setReferralCookie(referralCode.trim());
+      }
+
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
       const emailRedirectTo = siteUrl
         ? `${siteUrl}/auth/callback`
@@ -199,16 +110,6 @@ export default function RegisterPage() {
           console.warn("Upsert proprietaire post-signup non bloquant:", upsertRes.error.message);
         }
 
-        if (referralCode.trim()) {
-          console.log("[parrainage-debug] register: appel linkReferralAfterSignup", {
-            userId: data.user.id,
-            referralCode: referralCode.trim(),
-            hasSession: Boolean(data.session),
-          });
-          await linkReferralAfterSignup(data.user.id, referralCode);
-        } else {
-          console.log("[parrainage-debug] register: linkReferralAfterSignup ignoré — referralCode vide");
-        }
       }
 
       setSuccess("Compte créé. Vérifie ta boîte email pour confirmer ton inscription.");
@@ -368,5 +269,19 @@ export default function RegisterPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full p-8 text-center text-sm" style={{ backgroundColor: "#ffffff", color: PC.muted }}>
+          Chargement…
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { LogoFull } from "@/components/locavio-icons";
-
-const REFERRAL_STORAGE_KEY = "locavio_referral_code";
 
 const PAGE_BG = "#f8f7ff";
 const TEXT_COLOR = "#1a0533";
@@ -15,15 +13,7 @@ const MUTED = "#6b7280";
 function RejoindreContent() {
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref")?.trim() ?? "";
-
-  useEffect(() => {
-    if (!ref) return;
-    try {
-      localStorage.setItem(REFERRAL_STORAGE_KEY, ref);
-    } catch {
-      // localStorage indisponible (navigation privée, quota, etc.)
-    }
-  }, [ref]);
+  const registerHref = ref ? `/register?ref=${encodeURIComponent(ref)}` : "/register";
 
   return (
     <div
@@ -56,7 +46,7 @@ function RejoindreContent() {
         </p>
 
         <Link
-          href="/register"
+          href={registerHref}
           className="mt-8 inline-flex w-full items-center justify-center rounded-xl px-6 py-3.5 text-sm font-semibold transition hover:opacity-95 sm:w-auto"
           style={{
             backgroundColor: ACCENT,

@@ -16,6 +16,51 @@ import { getSupabasePublicConfig } from "@/lib/supabase/env-public";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const REFERRAL_COOKIE_NAME = "locavio_referral_code";
+
+async function linkReferralFromCookie(userId: string, referralCode: string) {
+  const code = referralCode.trim();
+  if (!code) return;
+
+  try {
+    const { data: parrain, error: parrainError } = await supabaseAdmin
+      .from("proprietaires")
+      .select("id")
+      .eq("referral_code", code)
+      .maybeSingle();
+
+    if (parrainError || !parrain?.id) return;
+
+    const { data: filleul, error: filleulError } = await supabaseAdmin
+      .from("proprietaires")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (filleulError || !filleul?.id) return;
+    if (parrain.id === filleul.id) return;
+
+    const { error: updateError } = await supabaseAdmin
+      .from("proprietaires")
+      .update({ referred_by: code })
+      .eq("id", filleul.id);
+
+    if (updateError) return;
+
+    await supabaseAdmin.from("parrainages").insert({
+      parrain_id: parrain.id,
+      filleul_id: filleul.id,
+      statut: "en_attente",
+    });
+  } catch (error) {
+    console.warn("Parrainage auth/callback:", error);
+  }
+}
+
+function clearReferralCookie(response: NextResponse) {
+  response.cookies.set(REFERRAL_COOKIE_NAME, "", { path: "/", maxAge: 0 });
+}
+
 function getAppBaseUrl(request: NextRequest): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
   if (siteUrl) return siteUrl;
@@ -73,6 +118,12 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const referralCodeFromCookie = request.cookies.get(REFERRAL_COOKIE_NAME)?.value?.trim() ?? "";
+  if (user?.id && referralCodeFromCookie) {
+    await linkReferralFromCookie(user.id, referralCodeFromCookie);
+    clearReferralCookie(response);
+  }
 
   const welcomeEmailSent = Boolean(user?.user_metadata?.welcome_email_sent);
 
