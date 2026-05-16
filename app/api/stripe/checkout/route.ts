@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getStripeServerClient } from "@/lib/stripe";
 import type { LocavioPlan } from "@/lib/plan-limits";
 
@@ -7,6 +8,7 @@ type CheckoutPayload = {
   priceId?: string;
   userId?: string;
   plan?: LocavioPlan;
+  proprietaireId?: string;
 };
 
 const ALLOWED_PLANS: LocavioPlan[] = ["starter", "pro", "expert"];
@@ -76,10 +78,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: portalSession.url });
     }
 
+    const proprietaireId = String(body.proprietaireId ?? proprietaire.id).trim();
+
+    let checkoutDiscounts: { coupon: string }[] | undefined;
+    const { data: referralProfile } = await supabaseAdmin
+      .from("proprietaires")
+      .select("referred_by, plan")
+      .eq("id", proprietaireId)
+      .maybeSingle();
+
+    const referredBy = String(referralProfile?.referred_by ?? "").trim();
+    const currentPlan = String(referralProfile?.plan ?? "free").trim() || "free";
+
+    if (referredBy && currentPlan === "free") {
+      const coupon = await stripe.coupons.create({
+        duration: "once",
+        percent_off: 100,
+        max_redemptions: 1,
+        name: "1 mois offert - Parrainage Locavio",
+      });
+      checkoutDiscounts = [{ coupon: coupon.id }];
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       ...(customerId ? { customer: customerId } : { customer_email: email }),
+      ...(checkoutDiscounts ? { discounts: checkoutDiscounts } : {}),
       success_url: `${origin}/parametres/abonnement?success=true`,
       cancel_url: `${origin}/parametres/abonnement?canceled=true`,
       metadata: {
