@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -25,10 +26,25 @@ type Voyageur = {
   document_identite_path: string | null;
 };
 
+type LogementOption = {
+  id: string;
+  nom: string;
+};
+
+type ReservationVoyageurLink = {
+  voyageur_id: string;
+  logement_id: string;
+};
+
 export default function VoyageursSaisonnierPage() {
   const toast = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const logementFilter = searchParams.get("logement_id") ?? "";
   const [plan, setPlan] = useState<LocavioPlan>("free");
   const [rows, setRows] = useState<Voyageur[]>([]);
+  const [logements, setLogements] = useState<LogementOption[]>([]);
+  const [reservationLinks, setReservationLinks] = useState<ReservationVoyageurLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,27 +73,58 @@ export default function VoyageursSaisonnierPage() {
       setLoading(false);
       return;
     }
-    const { data, error: fErr } = await supabase
-      .from("voyageurs")
-      .select("*")
-      .eq("proprietaire_id", proprietaireId)
-      .order("created_at", { ascending: false });
+    const [{ data, error: fErr }, { data: resa }, { data: logementsData }] = await Promise.all([
+      supabase
+        .from("voyageurs")
+        .select("*")
+        .eq("proprietaire_id", proprietaireId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("reservations")
+        .select("voyageur_id, logement_id")
+        .eq("proprietaire_id", proprietaireId)
+        .not("voyageur_id", "is", null),
+      supabase
+        .from("logements")
+        .select("id, nom, type_location")
+        .eq("proprietaire_id", proprietaireId)
+        .order("nom", { ascending: true }),
+    ]);
     if (fErr) setError(formatSubmitError(fErr));
     setRows((data as Voyageur[]) ?? []);
 
-    const { data: resa } = await supabase
-      .from("reservations")
-      .select("voyageur_id")
-      .eq("proprietaire_id", proprietaireId)
-      .not("voyageur_id", "is", null);
+    const links: ReservationVoyageurLink[] = [];
     const counts: Record<string, number> = {};
     for (const r of resa ?? []) {
-      const vid = r.voyageur_id as string;
+      const vid = String(r.voyageur_id ?? "");
+      const lid = String(r.logement_id ?? "");
+      if (!vid || !lid) continue;
+      links.push({ voyageur_id: vid, logement_id: lid });
       counts[vid] = (counts[vid] ?? 0) + 1;
     }
+    setReservationLinks(links);
     setSejoursByVoy(counts);
+    setLogements(
+      ((logementsData ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
+        .filter((row) => {
+          const t = row.type_location ?? "classique";
+          return t === "saisonnier" || t === "les_deux";
+        })
+        .map((row) => ({
+          id: String(row.id ?? ""),
+          nom: String(row.nom ?? "").trim() || "Logement",
+        })),
+    );
     setLoading(false);
   }, []);
+
+  const filteredRows = useMemo(() => {
+    if (!logementFilter) return rows;
+    const voyageurIds = new Set(
+      reservationLinks.filter((link) => link.logement_id === logementFilter).map((link) => link.voyageur_id),
+    );
+    return rows.filter((row) => voyageurIds.has(row.id));
+  }, [rows, logementFilter, reservationLinks]);
 
   useEffect(() => {
     void load();
@@ -181,9 +228,28 @@ export default function VoyageursSaisonnierPage() {
           <h1 className="locavio-page-title">Voyageurs</h1>
           <p className="locavio-page-subtitle">Profils pour la location saisonnière.</p>
         </div>
-        <BtnPrimary icon={<IconPlus className="h-4 w-4" />} onClick={openCreate}>
-          Nouveau voyageur
-        </BtnPrimary>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={logementFilter}
+            onChange={(event) => {
+              const next = event.target.value;
+              const base = "/saisonnier/voyageurs";
+              router.push(next ? `${base}?logement_id=${encodeURIComponent(next)}` : base);
+            }}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          >
+            <option value="">Tous les logements</option>
+            {logements.map((logement) => (
+              <option key={logement.id} value={logement.id}>
+                {logement.nom}
+              </option>
+            ))}
+          </select>
+          <BtnPrimary icon={<IconPlus className="h-4 w-4" />} onClick={openCreate}>
+            Nouveau voyageur
+          </BtnPrimary>
+        </div>
       </div>
       {error ? (
         <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: PC.dangerBg10, color: PC.danger }}>
@@ -191,7 +257,7 @@ export default function VoyageursSaisonnierPage() {
         </p>
       ) : null}
 
-      {rows.length === 0 ? (
+      {filteredRows.length === 0 ? (
         <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
           Aucun voyageur. Créez-en un pour lier des réservations.
         </div>
@@ -208,7 +274,7 @@ export default function VoyageursSaisonnierPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {filteredRows.map((row) => (
                 <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}`, backgroundColor: PC.bg }}>
                   <td className="px-4 py-3">
                     {row.prenom} {row.nom}
