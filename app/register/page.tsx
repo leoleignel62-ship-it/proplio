@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { LogoFullDark } from "@/components/locavio-icons";
 import { ensureProprietaireRow, upsertProprietaireIdentityFromSignup } from "@/lib/proprietaire-profile";
@@ -13,6 +13,68 @@ const LEFT_BG: CSSProperties = {
   backgroundColor: "#0a0020",
   backgroundImage: "linear-gradient(135deg, #0a0020 0%, #1a0a3a 55%, #0d0520 100%)",
 };
+
+const REFERRAL_STORAGE_KEY = "locavio_referral_code";
+
+async function linkReferralAfterSignup(userId: string, referralCode: string) {
+  const code = referralCode.trim();
+  if (!code) return;
+
+  try {
+    const { data: parrain, error: parrainError } = await supabase
+      .from("proprietaires")
+      .select("id")
+      .eq("referral_code", code)
+      .maybeSingle();
+
+    if (parrainError) {
+      console.warn("Parrainage: recherche parrain:", parrainError.message);
+      return;
+    }
+    if (!parrain?.id) return;
+
+    const { data: filleul, error: filleulError } = await supabase
+      .from("proprietaires")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (filleulError || !filleul?.id) {
+      console.warn("Parrainage: filleul introuvable:", filleulError?.message);
+      return;
+    }
+
+    if (parrain.id === filleul.id) return;
+
+    const { error: updateError } = await supabase
+      .from("proprietaires")
+      .update({ referred_by: code })
+      .eq("user_id", userId);
+
+    if (updateError) {
+      console.warn("Parrainage: referred_by:", updateError.message);
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("parrainages").insert({
+      parrain_id: parrain.id,
+      filleul_id: filleul.id,
+      statut: "en_attente",
+    });
+
+    if (insertError) {
+      console.warn("Parrainage: insert parrainages:", insertError.message);
+    }
+  } catch (e) {
+    console.warn("Parrainage:", e);
+  } finally {
+    try {
+      localStorage.removeItem(REFERRAL_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+}
 
 function translateSupabaseError(message: string): string {
   const normalized = message.toLowerCase();
@@ -41,6 +103,16 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
+      if (stored) setReferralCode(stored.trim());
+    } catch {
+      // localStorage indisponible
+    }
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,6 +161,10 @@ export default function RegisterPage() {
         if (upsertRes.error) {
           // Ne bloque pas le flux d'inscription : le backfill est aussi assuré dans ensureProprietaireRow.
           console.warn("Upsert proprietaire post-signup non bloquant:", upsertRes.error.message);
+        }
+
+        if (referralCode.trim()) {
+          await linkReferralAfterSignup(data.user.id, referralCode);
         }
       }
 
