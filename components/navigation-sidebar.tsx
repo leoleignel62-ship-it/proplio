@@ -5,6 +5,7 @@ import {
   Clock,
   CreditCard,
   FileText,
+  Gift,
   Landmark,
   Lock,
   TrendingUp,
@@ -668,6 +669,7 @@ type HeaderAlertMetrics = {
     logement: string;
     dates: string;
   }>;
+  parrainagesConvertisRecents: number;
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
@@ -682,6 +684,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
       revisionsIrlDisponibles: [],
       rappelsAcompteSaisonnier: [],
       rappelsSoldeSaisonnier: [],
+      parrainagesConvertisRecents: 0,
     };
   }
 
@@ -700,6 +703,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
       revisionsIrlDisponibles: [],
       rappelsAcompteSaisonnier: [],
       rappelsSoldeSaisonnier: [],
+      parrainagesConvertisRecents: 0,
     };
   }
 
@@ -710,6 +714,8 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   in30.setDate(in30.getDate() + 30);
   const last7Days = new Date();
   last7Days.setDate(last7Days.getDate() - 7);
+  const parrainageSince = new Date();
+  parrainageSince.setDate(parrainageSince.getDate() - 7);
 
   const [
     { data: qRows },
@@ -718,6 +724,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     { data: locRows },
     { data: edlRows },
     revRes,
+    parrainageRes,
   ] = await Promise.all([
     supabase.from("quittances").select("envoyee, mois, annee").eq("proprietaire_id", ownerId),
     supabase
@@ -731,7 +738,15 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     supabase.from("locataires").select("id, nom, prenom").eq("proprietaire_id", ownerId),
     supabase.from("etats_des_lieux").select("bail_id, type").eq("proprietaire_id", ownerId),
     supabase.from("revisions_irl").select("bail_id, statut, date_revision").eq("proprietaire_id", ownerId),
+    supabase
+      .from("parrainages")
+      .select("*", { count: "exact", head: true })
+      .eq("parrain_id", ownerId)
+      .eq("statut", "converti")
+      .gte("converted_at", parrainageSince.toISOString()),
   ]);
+
+  const parrainagesConvertisRecents = parrainageRes.error ? 0 : (parrainageRes.count ?? 0);
 
   const quittancesNonEnvoyeesMois = (qRows ?? []).filter(
     (q) => !q.envoyee && Number(q.mois) === currentMonth && Number(q.annee) === currentYear,
@@ -868,6 +883,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     revisionsIrlDisponibles,
     rappelsAcompteSaisonnier,
     rappelsSoldeSaisonnier,
+    parrainagesConvertisRecents,
   };
 }
 
@@ -891,6 +907,7 @@ function ensureHeaderAlertsLoaded(): Promise<HeaderAlertMetrics> {
           revisionsIrlDisponibles: [],
           rappelsAcompteSaisonnier: [],
           rappelsSoldeSaisonnier: [],
+          parrainagesConvertisRecents: 0,
         };
         headerAlertsCache = empty;
         return empty;
@@ -922,6 +939,7 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     revisionsIrlDisponibles: [],
     rappelsAcompteSaisonnier: [],
     rappelsSoldeSaisonnier: [],
+    parrainagesConvertisRecents: 0,
   });
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -944,7 +962,8 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     alerts.edlManquants.length +
     alerts.revisionsIrlDisponibles.length +
     alerts.rappelsAcompteSaisonnier.length +
-    alerts.rappelsSoldeSaisonnier.length;
+    alerts.rappelsSoldeSaisonnier.length +
+    alerts.parrainagesConvertisRecents;
   const hasAnyAlert = badgeCount > 0;
 
   return (
@@ -1018,6 +1037,20 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     <span>Révision de loyer disponible pour {item.logementNom}</span>
                   </Link>
                 ))}
+                {alerts.parrainagesConvertisRecents > 0 ? (
+                  <Link
+                    href="/parametres"
+                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                    onClick={() => setOpen(false)}
+                  >
+                    <Gift size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                    <span>
+                      🎉 {alerts.parrainagesConvertisRecents} filleul(s) ont rejoint Locavio —{" "}
+                      {alerts.parrainagesConvertisRecents} mois offert(s) ajouté(s) à votre abonnement !
+                    </span>
+                  </Link>
+                ) : null}
                 {alerts.rappelsAcompteSaisonnier.map((item) => (
                   <div
                     key={`acompte-${item.reservationId}`}
