@@ -76,31 +76,32 @@ export default function TaxesSejourPage() {
       setLoading(false);
       return;
     }
-    const [{ data, error: qErr }, { data: logementsData, error: logementsErr }] = await Promise.all([
-      supabase
-        .from("taxes_sejour")
-        .select("*, logements(nom)")
-        .eq("proprietaire_id", proprietaireId)
-        .order("annee", { ascending: false })
-        .order("mois", { ascending: false }),
-      supabase
-        .from("logements")
-        .select("id, nom, type_location")
-        .eq("proprietaire_id", proprietaireId)
-        .order("nom", { ascending: true }),
-    ]);
+    const { data: logsData, error: logementsErr } = await supabase
+      .from("logements")
+      .select("id, nom, type_location")
+      .eq("proprietaire_id", proprietaireId)
+      .in("type_location", ["saisonnier", "les_deux"])
+      .order("nom", { ascending: true });
+    const saisonnierIds = (logsData ?? []).map((l) => String(l.id));
+    const logementsData = logsData;
+
+    const { data, error: qErr } =
+      saisonnierIds.length === 0
+        ? { data: [] as Record<string, unknown>[], error: null }
+        : await supabase
+            .from("taxes_sejour")
+            .select("*, logements(nom)")
+            .eq("proprietaire_id", proprietaireId)
+            .in("logement_id", saisonnierIds)
+            .order("annee", { ascending: false })
+            .order("mois", { ascending: false });
     if (qErr) setError(formatSubmitError(qErr));
     if (logementsErr) setError((prev) => prev || formatSubmitError(logementsErr));
     setLogements(
-      ((logementsData ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
-        .filter((row) => {
-          const t = row.type_location ?? "classique";
-          return t === "saisonnier" || t === "les_deux";
-        })
-        .map((row) => ({
-          id: String(row.id ?? ""),
-          nom: String(row.nom ?? "").trim() || "Logement",
-        })),
+      ((logementsData ?? []) as Array<{ id?: string; nom?: string }>).map((row) => ({
+        id: String(row.id ?? ""),
+        nom: String(row.nom ?? "").trim() || "Logement",
+      })),
     );
     const raw = (data ?? []) as Record<string, unknown>[];
     setRows(

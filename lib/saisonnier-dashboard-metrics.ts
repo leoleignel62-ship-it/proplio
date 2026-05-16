@@ -129,17 +129,33 @@ function getReservationStatus(
   return "aVenir";
 }
 
+async function fetchSaisonnierLogementIds(
+  supabase: SupabaseClient,
+  proprietaireId: string,
+): Promise<string[]> {
+  const { data: logsData } = await supabase
+    .from("logements")
+    .select("id")
+    .eq("proprietaire_id", proprietaireId)
+    .in("type_location", ["saisonnier", "les_deux"]);
+  return (logsData ?? []).map((l) => String(l.id));
+}
+
 async function fetchDashboardReservations(
   supabase: SupabaseClient,
   proprietaireId: string,
   annee: number,
   logementId?: string,
 ): Promise<DashboardReservationRow[]> {
+  const saisonnierIds = await fetchSaisonnierLogementIds(supabase, proprietaireId);
+  if (saisonnierIds.length === 0) return [];
+
   const { start, end } = getYearWindow(annee);
   let query = supabase
     .from("reservations")
     .select("logement_id, date_arrivee, date_depart, statut, tarif_total, source, nb_nuits")
     .eq("proprietaire_id", proprietaireId)
+    .in("logement_id", saisonnierIds)
     .lte("date_arrivee", end)
     .gte("date_depart", start);
 
@@ -181,10 +197,14 @@ export async function getAnneesDisponibles(
   supabase: SupabaseClient,
   proprietaireId: string,
 ): Promise<number[]> {
+  const saisonnierIds = await fetchSaisonnierLogementIds(supabase, proprietaireId);
+  if (saisonnierIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("reservations")
     .select("date_arrivee, date_depart")
-    .eq("proprietaire_id", proprietaireId);
+    .eq("proprietaire_id", proprietaireId)
+    .in("logement_id", saisonnierIds);
   if (error || !data) return [];
 
   const years = new Set<number>();

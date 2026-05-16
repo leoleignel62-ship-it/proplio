@@ -90,25 +90,37 @@ export default function EtatsDesLieuxSaisonnierPage() {
       return;
     }
 
-    const [edlRes, resaRes, logementsRes] = await Promise.all([
-      supabase
-        .from("etats_des_lieux")
-        .select("id, reservation_id, logement_id, type, type_etat, date_etat, statut, created_at")
-        .eq("proprietaire_id", proprietaireId)
-        .not("reservation_id", "is", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("reservations")
-        .select("id, logement_id, voyageur_id, date_arrivee, date_depart, logements(nom), voyageurs(prenom, nom)")
-        .eq("proprietaire_id", proprietaireId)
-        .neq("source", "blocage")
-        .order("date_arrivee", { ascending: false }),
-      supabase
-        .from("logements")
-        .select("id, nom, type_location")
-        .eq("proprietaire_id", proprietaireId)
-        .order("nom", { ascending: true }),
-    ]);
+    const { data: logsData } = await supabase
+      .from("logements")
+      .select("id, nom, type_location")
+      .eq("proprietaire_id", proprietaireId)
+      .in("type_location", ["saisonnier", "les_deux"])
+      .order("nom", { ascending: true });
+    const saisonnierIds = (logsData ?? []).map((l) => String(l.id));
+    const logementsRes = { data: logsData, error: null };
+
+    const [edlRes, resaRes] =
+      saisonnierIds.length === 0
+        ? await Promise.all([
+            Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
+            Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
+          ])
+        : await Promise.all([
+            supabase
+              .from("etats_des_lieux")
+              .select("id, reservation_id, logement_id, type, type_etat, date_etat, statut, created_at")
+              .eq("proprietaire_id", proprietaireId)
+              .in("logement_id", saisonnierIds)
+              .not("reservation_id", "is", null)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("reservations")
+              .select("id, logement_id, voyageur_id, date_arrivee, date_depart, logements(nom), voyageurs(prenom, nom)")
+              .eq("proprietaire_id", proprietaireId)
+              .in("logement_id", saisonnierIds)
+              .neq("source", "blocage")
+              .order("date_arrivee", { ascending: false }),
+          ]);
 
     if (edlRes.error || resaRes.error) {
       if (
@@ -138,15 +150,10 @@ export default function EtatsDesLieuxSaisonnierPage() {
       })),
     );
     setLogements(
-      ((logementsRes.data ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
-        .filter((row) => {
-          const t = row.type_location ?? "classique";
-          return t === "saisonnier" || t === "les_deux";
-        })
-        .map((row) => ({
-          id: String(row.id ?? ""),
-          nom: String(row.nom ?? "").trim() || "Logement",
-        })),
+      ((logementsRes.data ?? []) as Array<{ id?: string; nom?: string }>).map((row) => ({
+        id: String(row.id ?? ""),
+        nom: String(row.nom ?? "").trim() || "Logement",
+      })),
     );
 
     const resaList = (resaRes.data ?? []).map((r) => {

@@ -253,18 +253,29 @@ export default function ReservationsSaisonnierPage() {
       return;
     }
     setError("");
+    const { data: logsData } = await supabase
+      .from("logements")
+      .select("id")
+      .eq("proprietaire_id", proprietaireId)
+      .in("type_location", ["saisonnier", "les_deux"]);
+    const saisonnierIds = (logsData ?? []).map((l) => String(l.id));
+
     const [r1, r2, r3] = await Promise.all([
-      supabase
-        .from("reservations")
-        .select("*, logements(nom), voyageurs(prenom, nom, email)")
-        .eq("proprietaire_id", proprietaireId)
-        .order("date_arrivee", { ascending: true }),
+      saisonnierIds.length === 0
+        ? Promise.resolve({ data: [] as Record<string, unknown>[], error: null })
+        : supabase
+            .from("reservations")
+            .select("*, logements(nom), voyageurs(prenom, nom, email)")
+            .eq("proprietaire_id", proprietaireId)
+            .in("logement_id", saisonnierIds)
+            .order("date_arrivee", { ascending: true }),
       supabase
         .from("logements")
         .select(
           "id, nom, tarifs_creneaux, tarif_nuit_defaut, tarif_nuit_moyenne, tarif_menage, tarif_caution, taxe_sejour_nuit, ical_airbnb_url, ical_booking_url, type_location",
         )
-        .eq("proprietaire_id", proprietaireId),
+        .eq("proprietaire_id", proprietaireId)
+        .in("type_location", ["saisonnier", "les_deux"]),
       supabase.from("voyageurs").select("id, prenom, nom, email").eq("proprietaire_id", proprietaireId).order("nom"),
     ]);
     const errParts: string[] = [];

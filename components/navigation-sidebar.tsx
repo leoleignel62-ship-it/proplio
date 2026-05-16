@@ -863,12 +863,23 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   let checkinsSaisonnier7Jours = 0;
 
   if (canAccessSaisonnier(ownerPlan)) {
-    const { data: resaRows } = await supabase
-      .from("reservations")
-      .select(
-        "id, source, statut, voyageur_id, date_arrivee, date_depart, montant_acompte, tarif_total, tarif_menage, taxe_sejour_total, delai_solde_jours, acompte_recu, solde_recu, voyageurs(prenom, nom), logements(nom)",
-      )
-      .eq("proprietaire_id", ownerId);
+    const { data: logsData } = await supabase
+      .from("logements")
+      .select("id")
+      .eq("proprietaire_id", ownerId)
+      .in("type_location", ["saisonnier", "les_deux"]);
+    const saisonnierIds = (logsData ?? []).map((l) => String(l.id));
+
+    const { data: resaRows } =
+      saisonnierIds.length === 0
+        ? { data: [] as Record<string, unknown>[] }
+        : await supabase
+            .from("reservations")
+            .select(
+              "id, source, statut, voyageur_id, date_arrivee, date_depart, montant_acompte, tarif_total, tarif_menage, taxe_sejour_total, delai_solde_jours, acompte_recu, solde_recu, voyageurs(prenom, nom), logements(nom)",
+            )
+            .eq("proprietaire_id", ownerId)
+            .in("logement_id", saisonnierIds);
 
     for (const raw of resaRows ?? []) {
       const rec = raw as Record<string, unknown>;

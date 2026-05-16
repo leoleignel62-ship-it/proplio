@@ -73,22 +73,29 @@ export default function VoyageursSaisonnierPage() {
       setLoading(false);
       return;
     }
-    const [{ data, error: fErr }, { data: resa }, { data: logementsData }] = await Promise.all([
+    const { data: logsData } = await supabase
+      .from("logements")
+      .select("id, nom, type_location")
+      .eq("proprietaire_id", proprietaireId)
+      .in("type_location", ["saisonnier", "les_deux"])
+      .order("nom", { ascending: true });
+    const saisonnierIds = (logsData ?? []).map((l) => String(l.id));
+    const logementsData = logsData;
+
+    const [{ data, error: fErr }, { data: resa }] = await Promise.all([
       supabase
         .from("voyageurs")
         .select("*")
         .eq("proprietaire_id", proprietaireId)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("reservations")
-        .select("voyageur_id, logement_id")
-        .eq("proprietaire_id", proprietaireId)
-        .not("voyageur_id", "is", null),
-      supabase
-        .from("logements")
-        .select("id, nom, type_location")
-        .eq("proprietaire_id", proprietaireId)
-        .order("nom", { ascending: true }),
+      saisonnierIds.length === 0
+        ? Promise.resolve({ data: [] as Array<{ voyageur_id: string | null; logement_id: string | null }>, error: null })
+        : supabase
+            .from("reservations")
+            .select("voyageur_id, logement_id")
+            .eq("proprietaire_id", proprietaireId)
+            .in("logement_id", saisonnierIds)
+            .not("voyageur_id", "is", null),
     ]);
     if (fErr) setError(formatSubmitError(fErr));
     setRows((data as Voyageur[]) ?? []);
@@ -105,15 +112,10 @@ export default function VoyageursSaisonnierPage() {
     setReservationLinks(links);
     setSejoursByVoy(counts);
     setLogements(
-      ((logementsData ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
-        .filter((row) => {
-          const t = row.type_location ?? "classique";
-          return t === "saisonnier" || t === "les_deux";
-        })
-        .map((row) => ({
-          id: String(row.id ?? ""),
-          nom: String(row.nom ?? "").trim() || "Logement",
-        })),
+      ((logementsData ?? []) as Array<{ id?: string; nom?: string }>).map((row) => ({
+        id: String(row.id ?? ""),
+        nom: String(row.nom ?? "").trim() || "Logement",
+      })),
     );
     setLoading(false);
   }, []);
