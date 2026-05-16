@@ -62,6 +62,22 @@ type SubscriptionStatus = {
   currentPeriodEnd: number | null;
 };
 
+const REFERRAL_LINK_ORIGIN = "https://locavio.fr/rejoindre";
+const MAX_REFERRAL_FILLEULS = 3;
+
+function buildReferralLink(code: string): string {
+  return `${REFERRAL_LINK_ORIGIN}?ref=${encodeURIComponent(code)}`;
+}
+
+function buildReferralMailto(code: string): string {
+  const link = buildReferralLink(code);
+  const subject = encodeURIComponent("Je t'offre 1 mois gratuit sur Locavio");
+  const body = encodeURIComponent(
+    `Salut,\n\nJ'utilise Locavio pour gérer mes locations et c'est vraiment pratique.\nTu peux commencer gratuitement et obtenir 1 mois offert avec mon lien :\n\n${link}\n\nBonne gestion !`,
+  );
+  return `mailto:?subject=${subject}&body=${body}`;
+}
+
 export default function ParametresPage() {
   const toast = useToast();
   const router = useRouter();
@@ -78,6 +94,11 @@ export default function ParametresPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const signatureFileRef = useRef<HTMLInputElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [convertedReferralsCount, setConvertedReferralsCount] = useState(0);
+  const [referralDataLoading, setReferralDataLoading] = useState(true);
+  const [referralLinkCopied, setReferralLinkCopied] = useState(false);
+  const copyLinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -186,6 +207,46 @@ export default function ParametresPage() {
     };
   }, [plan, isLoading]);
 
+  useEffect(() => {
+    if (isLoading || !userId || !profile.id) {
+      setReferralDataLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setReferralDataLoading(true);
+
+    void (async () => {
+      const { data: ownerRow } = await supabase
+        .from("proprietaires")
+        .select("referral_code")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const { count } = await supabase
+        .from("parrainages")
+        .select("*", { count: "exact", head: true })
+        .eq("parrain_id", profile.id)
+        .eq("statut", "converti");
+
+      if (!cancelled) {
+        setReferralCode(String((ownerRow as { referral_code?: string | null } | null)?.referral_code ?? "").trim());
+        setConvertedReferralsCount(count ?? 0);
+        setReferralDataLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, userId, profile.id]);
+
+  useEffect(() => {
+    return () => {
+      if (copyLinkTimeoutRef.current) clearTimeout(copyLinkTimeoutRef.current);
+    };
+  }, []);
+
   function onChange(field: keyof ProprietaireProfile, value: string) {
     setProfile((prev) => ({ ...prev, [field]: value }));
     if (error) setError("");
@@ -271,6 +332,26 @@ export default function ParametresPage() {
     toast.success("Profil enregistré.");
     setIsSaving(false);
   }
+
+  async function copyReferralLink() {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(buildReferralLink(referralCode));
+      setReferralLinkCopied(true);
+      if (copyLinkTimeoutRef.current) clearTimeout(copyLinkTimeoutRef.current);
+      copyLinkTimeoutRef.current = setTimeout(() => setReferralLinkCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien.");
+    }
+  }
+
+  function shareReferralByEmail() {
+    if (!referralCode) return;
+    window.location.href = buildReferralMailto(referralCode);
+  }
+
+  const isPaidPlan = plan === "starter" || plan === "pro" || plan === "expert";
+  const referralLinkDisplay = referralCode ? buildReferralLink(referralCode) : "";
 
   async function resetTour(type: "free" | "paid") {
     if (typeof window === "undefined" || !userId) return;
@@ -564,6 +645,76 @@ export default function ParametresPage() {
         <div className="mt-6">
           <BtnPrimary onClick={() => router.push("/parametres/abonnement")}>Gérer mon abonnement</BtnPrimary>
         </div>
+      </div>
+
+      <div className="rounded-2xl p-6 sm:p-8" style={panelCard}>
+        <h2 className="text-lg font-bold tracking-tight">Parrainez un ami propriétaire</h2>
+
+        {referralDataLoading ? (
+          <p className="mt-3 text-sm" style={{ color: PC.muted }}>
+            Chargement…
+          </p>
+        ) : plan === "free" ? (
+          <>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Cette fonctionnalité est disponible à partir du plan Starter.
+            </p>
+            <div className="mt-6">
+              <BtnPrimary onClick={() => router.push("/parametres/abonnement")}>Passer au plan Starter</BtnPrimary>
+            </div>
+          </>
+        ) : isPaidPlan ? (
+          <>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Il gagne 1 mois offert. Vous aussi.
+            </p>
+
+            <p
+              className="mt-5 break-all rounded-xl px-4 py-3 text-sm font-medium"
+              style={{
+                ...fieldInputStyle,
+                backgroundColor: PC.card,
+                color: PC.text,
+              }}
+            >
+              {referralLinkDisplay || "Code de parrainage en cours de génération…"}
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <BtnPrimary disabled={!referralCode} onClick={() => void copyReferralLink()}>
+                {referralLinkCopied ? "✓ Lien copié !" : "Copier le lien"}
+              </BtnPrimary>
+              <BtnSecondary disabled={!referralCode} onClick={shareReferralByEmail}>
+                Partager par email
+              </BtnSecondary>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-sm font-medium" style={{ color: PC.text }}>
+                {Math.min(convertedReferralsCount, MAX_REFERRAL_FILLEULS)}/{MAX_REFERRAL_FILLEULS} filleuls
+                parrainés
+              </p>
+              <div className="mt-3 flex items-center gap-3" aria-hidden>
+                {Array.from({ length: MAX_REFERRAL_FILLEULS }, (_, index) => {
+                  const filled = index < convertedReferralsCount;
+                  return (
+                    <span
+                      key={index}
+                      className="text-2xl leading-none"
+                      style={{ color: filled ? "#7c3aed" : PC.border }}
+                    >
+                      {filled ? "●" : "○"}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs leading-relaxed" style={{ color: PC.muted }}>
+              Maximum 3 mois cumulables. Récompense créditée dès la première souscription de votre filleul.
+            </p>
+          </>
+        ) : null}
       </div>
     </section>
   );
