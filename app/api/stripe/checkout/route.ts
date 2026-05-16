@@ -91,13 +91,8 @@ export async function POST(request: Request) {
     const currentPlan = String(referralProfile?.plan ?? "free").trim() || "free";
 
     if (referredBy && currentPlan === "free") {
-      const coupon = await stripe.coupons.create({
-        duration: "once",
-        percent_off: 100,
-        max_redemptions: 1,
-        name: "1 mois offert - Parrainage Locavio",
-      });
-      checkoutDiscounts = [{ coupon: coupon.id }];
+      const couponId = "x12wcXtt";
+      checkoutDiscounts = [{ coupon: couponId }];
     }
 
     const session = await stripe.checkout.sessions.create({
