@@ -55,6 +55,112 @@ async function saveStripeCustomerId(
   }
 }
 
+const PARRAIN_CREDIT_CENTIMES: Record<
+  "starter" | "pro" | "expert",
+  { monthly: number; yearly: number }
+> = {
+  starter: { monthly: 690, yearly: 575 },
+  pro: { monthly: 1290, yearly: 1075 },
+  expert: { monthly: 2490, yearly: 2075 },
+};
+
+function normalizeParrainPlan(plan: string | null | undefined): "starter" | "pro" | "expert" | null {
+  const p = String(plan ?? "").trim().toLowerCase();
+  if (p === "starter" || p === "pro" || p === "expert") return p;
+  return null;
+}
+
+function subscriptionIsYearly(subscription: Stripe.Subscription): boolean {
+  const interval = subscription.items.data[0]?.price?.recurring?.interval;
+  return interval === "year";
+}
+
+async function rewardReferrerAfterFilleulConversion(stripe: Stripe, filleulProprietaireId: string | null) {
+  if (!filleulProprietaireId) return;
+
+  try {
+    const { data: filleul, error: filleulError } = await supabaseAdmin
+      .from("proprietaires")
+      .select("id, referred_by, plan")
+      .eq("id", filleulProprietaireId)
+      .maybeSingle();
+
+    if (filleulError) {
+      console.warn("Parrainage récompense: filleul:", filleulError.message);
+      return;
+    }
+
+    const referredBy = String(filleul?.referred_by ?? "").trim();
+    if (!referredBy || !filleul?.id) return;
+
+    const { data: parrain, error: parrainError } = await supabaseAdmin
+      .from("proprietaires")
+      .select("id, stripe_customer_id, plan")
+      .eq("referral_code", referredBy)
+      .maybeSingle();
+
+    if (parrainError) {
+      console.warn("Parrainage récompense: parrain:", parrainError.message);
+      return;
+    }
+
+    const parrainCustomerId = String(parrain?.stripe_customer_id ?? "").trim();
+    const parrainPlan = normalizeParrainPlan(parrain?.plan);
+    if (!parrain?.id || !parrainCustomerId || !parrainPlan) {
+      console.warn("Parrainage récompense: parrain incomplet ou plan invalide.");
+      return;
+    }
+
+    const { data: parrainage, error: parrainageError } = await supabaseAdmin
+      .from("parrainages")
+      .select("id")
+      .eq("filleul_id", filleul.id)
+      .eq("statut", "en_attente")
+      .maybeSingle();
+
+    if (parrainageError) {
+      console.warn("Parrainage récompense: parrainage:", parrainageError.message);
+      return;
+    }
+    if (!parrainage?.id) return;
+
+    const subscriptions = await stripe.subscriptions.list({
+      customer: parrainCustomerId,
+      status: "active",
+      limit: 1,
+    });
+    const activeSubscription = subscriptions.data[0];
+    if (!activeSubscription) {
+      console.warn("Parrainage récompense: aucun abonnement actif pour le parrain.");
+      return;
+    }
+
+    const isYearly = subscriptionIsYearly(activeSubscription);
+    const creditAmount = PARRAIN_CREDIT_CENTIMES[parrainPlan][isYearly ? "yearly" : "monthly"];
+
+    await stripe.customers.createBalanceTransaction(parrainCustomerId, {
+      amount: -creditAmount,
+      currency: "eur",
+      description: "Récompense parrainage Locavio - 1 mois offert",
+    });
+
+    const { error: updateParrainageError } = await supabaseAdmin
+      .from("parrainages")
+      .update({
+        statut: "converti",
+        mois_credites: 1,
+        converted_at: new Date().toISOString(),
+      })
+      .eq("id", parrainage.id);
+
+    if (updateParrainageError) {
+      console.warn("Parrainage récompense: mise à jour parrainage:", updateParrainageError.message);
+    }
+  } catch (error) {
+    console.warn("Parrainage récompense:", error);
+  }
+}
+
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -85,6 +191,7 @@ export async function POST(request: Request) {
 
       if (plan === "starter" || plan === "pro" || plan === "expert") {
         await applyPlanUpdate(proprietaireId, userId, plan);
+        await rewardReferrerAfterFilleulConversion(stripe, proprietaireId);
       }
     }
 
