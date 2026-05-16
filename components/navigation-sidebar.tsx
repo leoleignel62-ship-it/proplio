@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CalendarClock,
+  Check,
   ClipboardList,
   ClipboardX,
   Clock,
@@ -19,6 +20,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -994,14 +996,124 @@ export async function refreshHeaderAlerts(): Promise<HeaderAlertMetrics> {
   return data;
 }
 
+const READ_ALERTS_STORAGE_KEY = "locavio_read_alerts";
+const READ_ALERTS_TTL_MS = 24 * 60 * 60 * 1000;
+
+type ReadAlertsStorage = {
+  savedAt: number;
+  ids: string[];
+};
+
+function loadReadAlertsFromStorage(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(READ_ALERTS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as ReadAlertsStorage;
+    if (!parsed?.savedAt || !Array.isArray(parsed.ids)) return new Set();
+    if (Date.now() - parsed.savedAt > READ_ALERTS_TTL_MS) {
+      localStorage.removeItem(READ_ALERTS_STORAGE_KEY);
+      return new Set();
+    }
+    return new Set(parsed.ids.map(String));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistReadAlerts(ids: Set<string>): void {
+  if (typeof window === "undefined") return;
+  let savedAt = Date.now();
+  try {
+    const raw = localStorage.getItem(READ_ALERTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as ReadAlertsStorage;
+      if (parsed?.savedAt && Date.now() - parsed.savedAt <= READ_ALERTS_TTL_MS) {
+        savedAt = parsed.savedAt;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  const payload: ReadAlertsStorage = { savedAt, ids: [...ids] };
+  localStorage.setItem(READ_ALERTS_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function getAllAlertIds(alerts: HeaderAlertMetrics): string[] {
+  const ids: string[] = [];
+  if (alerts.quittancesNonEnvoyeesMois > 0) {
+    ids.push(`quittances-${alerts.quittancesNonEnvoyeesMois}`);
+  }
+  for (const bail of alerts.bauxUrgents) {
+    ids.push(`bail-${bail.id}`);
+  }
+  if (alerts.dossiersCandidatureATraiter > 0) {
+    ids.push(`dossiers-${alerts.dossiersCandidatureATraiter}`);
+  }
+  if (alerts.logementsVacants > 0) {
+    ids.push(`logements-vacants-${alerts.logementsVacants}`);
+  }
+  if (alerts.locatairesSansLogement > 0) {
+    ids.push(`locataires-sans-logement-${alerts.locatairesSansLogement}`);
+  }
+  if (alerts.edlEntreeManquants > 0) {
+    ids.push(`edl-entree-${alerts.edlEntreeManquants}`);
+  }
+  if (alerts.edlSortieManquants > 0) {
+    ids.push(`edl-sortie-${alerts.edlSortieManquants}`);
+  }
+  for (const item of alerts.revisionsIrlDisponibles) {
+    ids.push(`revision-irl-${item.bailId}`);
+  }
+  if (alerts.parrainagesConvertisRecents > 0) {
+    ids.push(`parrainage-${alerts.parrainagesConvertisRecents}`);
+  }
+  if (alerts.reservationsSaisonnierEnAttente > 0) {
+    ids.push(`resa-en-attente-${alerts.reservationsSaisonnierEnAttente}`);
+  }
+  if (alerts.checkinsSaisonnier7Jours > 0) {
+    ids.push(`checkins-7j-${alerts.checkinsSaisonnier7Jours}`);
+  }
+  for (const item of alerts.rappelsAcompteSaisonnier) {
+    ids.push(`acompte-${item.reservationId}`);
+  }
+  for (const item of alerts.rappelsSoldeSaisonnier) {
+    ids.push(`solde-${item.reservationId}`);
+  }
+  return ids;
+}
+
+function AlertMarkReadButton({ alertId, onMarkRead }: { alertId: string; onMarkRead: (id: string) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Marquer comme lu"
+      className="mt-0.5 shrink-0 rounded p-1 transition hover:opacity-100"
+      style={{ color: PC.muted, opacity: 0.55 }}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onMarkRead(alertId);
+      }}
+    >
+      <Check size={14} strokeWidth={2} aria-hidden />
+    </button>
+  );
+}
+
 function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<HeaderAlertMetrics>({ ...EMPTY_HEADER_ALERTS });
+  const [readAlerts, setReadAlerts] = useState<Set<string>>(() => new Set());
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void ensureHeaderAlertsLoaded().then(setAlerts);
+  }, []);
+
+  useEffect(() => {
+    setReadAlerts(loadReadAlertsFromStorage());
   }, []);
 
   useEffect(() => {
@@ -1013,21 +1125,33 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  const badgeCount =
-    alerts.quittancesNonEnvoyeesMois +
-    alerts.bauxUrgents.length +
-    alerts.edlEntreeManquants +
-    alerts.edlSortieManquants +
-    alerts.revisionsIrlDisponibles.length +
-    alerts.rappelsAcompteSaisonnier.length +
-    alerts.rappelsSoldeSaisonnier.length +
-    alerts.parrainagesConvertisRecents +
-    alerts.dossiersCandidatureATraiter +
-    alerts.logementsVacants +
-    alerts.reservationsSaisonnierEnAttente +
-    alerts.checkinsSaisonnier7Jours +
-    alerts.locatairesSansLogement;
-  const hasAnyAlert = badgeCount > 0;
+  const markAsRead = useCallback((alertId: string) => {
+    setReadAlerts((prev) => {
+      const next = new Set(prev);
+      next.add(alertId);
+      persistReadAlerts(next);
+      return next;
+    });
+  }, []);
+
+  const allAlertIds = useMemo(() => getAllAlertIds(alerts), [alerts]);
+
+  const markAllAsRead = useCallback(() => {
+    setReadAlerts((prev) => {
+      const next = new Set(prev);
+      for (const id of allAlertIds) next.add(id);
+      persistReadAlerts(next);
+      return next;
+    });
+  }, [allAlertIds]);
+
+  const isUnread = useCallback((alertId: string) => !readAlerts.has(alertId), [readAlerts]);
+
+  const badgeCount = useMemo(
+    () => allAlertIds.filter((id) => !readAlerts.has(id)).length,
+    [allAlertIds, readAlerts],
+  );
+  const hasAnyUnread = badgeCount > 0;
 
   return (
     <div ref={wrapRef} className="relative">
@@ -1064,179 +1188,301 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
             <p className="text-sm font-semibold" style={{ color: PC.text }}>Notifications</p>
           </div>
           <div className="max-h-[min(420px,70vh)] overflow-y-auto p-2">
-            {!hasAnyAlert ? (
+            {!hasAnyUnread ? (
               <div className="rounded-lg px-3 py-2 text-sm" style={{ color: PC.success, backgroundColor: PC.successBg10 }}>
                 Tout est en ordre !
               </div>
             ) : (
               <>
-                {alerts.quittancesNonEnvoyeesMois > 0 ? (
-                  <Link href="/quittances" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
-                  </Link>
-                ) : null}
-                {alerts.bauxUrgents.map((bail) => (
-                  <Link key={bail.id} href="/baux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }} onClick={() => setOpen(false)}>
-                    <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
-                  </Link>
-                ))}
-                {alerts.dossiersCandidatureATraiter > 0 ? (
-                  <Link href="/dossiers" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }} onClick={() => setOpen(false)}>
-                    <FolderOpen size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.dossiersCandidatureATraiter} dossier(s) de candidature à traiter</span>
-                  </Link>
-                ) : null}
-                {alerts.logementsVacants > 0 ? (
-                  <Link href="/logements" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.muted, backgroundColor: PC.primaryBg15 }} onClick={() => setOpen(false)}>
-                    <HomeIcon size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.logementsVacants} logement(s) vacant(s)</span>
-                  </Link>
-                ) : null}
-                {alerts.locatairesSansLogement > 0 ? (
-                  <Link href="/locataires" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <UserX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.locatairesSansLogement} locataire(s) sans logement affecté</span>
-                  </Link>
-                ) : null}
-                {alerts.edlEntreeManquants > 0 ? (
-                  <Link href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.warning, backgroundColor: PC.warningBg15 }} onClick={() => setOpen(false)}>
-                    <ClipboardList size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.edlEntreeManquants} bail(aux) sans état des lieux d&apos;entrée</span>
-                  </Link>
-                ) : null}
-                {alerts.edlSortieManquants > 0 ? (
-                  <Link href="/etats-des-lieux" className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }} onClick={() => setOpen(false)}>
-                    <ClipboardX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.edlSortieManquants} bail(aux) avec EDL de sortie manquant</span>
-                  </Link>
-                ) : null}
-                {alerts.revisionsIrlDisponibles.map((item) => (
-                  <Link
-                    key={item.bailId}
-                    href="/revisions-irl"
-                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                    onClick={() => setOpen(false)}
-                  >
-                    <TrendingUp size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>Révision de loyer disponible pour {item.logementNom}</span>
-                  </Link>
-                ))}
-                {alerts.parrainagesConvertisRecents > 0 ? (
-                  <Link
-                    href="/parametres"
-                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                    onClick={() => setOpen(false)}
-                  >
-                    <Gift size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>
-                      🎉 {alerts.parrainagesConvertisRecents} filleul(s) ont rejoint Locavio —{" "}
-                      {alerts.parrainagesConvertisRecents} mois offert(s) ajouté(s) à votre abonnement !
-                    </span>
-                  </Link>
-                ) : null}
-                {alerts.reservationsSaisonnierEnAttente > 0 ? (
-                  <Link
-                    href="/saisonnier/reservations"
-                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
-                    onClick={() => setOpen(false)}
-                  >
-                    <CalendarClock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>
-                      {alerts.reservationsSaisonnierEnAttente} réservation(s) en attente de confirmation
-                    </span>
-                  </Link>
-                ) : null}
-                {alerts.checkinsSaisonnier7Jours > 0 ? (
-                  <Link
-                    href="/saisonnier/reservations"
-                    className="mb-1 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                    onClick={() => setOpen(false)}
-                  >
-                    <LogIn size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                    <span>{alerts.checkinsSaisonnier7Jours} arrivée(s) prévue(s) dans les 7 prochains jours</span>
-                  </Link>
-                ) : null}
-                {alerts.rappelsAcompteSaisonnier.map((item) => (
-                  <div
-                    key={`acompte-${item.reservationId}`}
-                    className="mb-1 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <Landmark size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>
-                        Acompte attendu de{" "}
-                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
-                        {item.voyageur} · {item.logement} · {item.dates}
-                      </span>
-                    </div>
-                    <BtnEmail
-                      size="small"
-                      className="mt-2 w-full"
-                      onClick={() => {
-                        void (async () => {
-                          const res = await fetch("/api/saisonnier/send-rappel-acompte", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ reservation_id: item.reservationId }),
-                          });
-                          if (res.ok) {
-                            const fresh = await refreshHeaderAlerts();
-                            setAlerts(fresh);
-                            toast.success("Rappel d'acompte envoyé.");
-                          }
-                        })();
-                      }}
+                {alerts.quittancesNonEnvoyeesMois > 0 && isUnread(`quittances-${alerts.quittancesNonEnvoyeesMois}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/quittances"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                      onClick={() => setOpen(false)}
                     >
-                      Renvoyer
-                    </BtnEmail>
+                      <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`quittances-${alerts.quittancesNonEnvoyeesMois}`}
+                      onMarkRead={markAsRead}
+                    />
                   </div>
-                ))}
-                {alerts.rappelsSoldeSaisonnier.map((item) => (
-                  <div
-                    key={`solde-${item.reservationId}`}
-                    className="mb-1 rounded-lg px-3 py-2 text-sm"
-                    style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <CreditCard size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>
-                        Solde attendu de{" "}
-                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
-                        {item.voyageur} · {item.logement} · {item.dates}
-                      </span>
+                ) : null}
+                {alerts.bauxUrgents.map((bail) =>
+                  isUnread(`bail-${bail.id}`) ? (
+                    <div key={bail.id} className="mb-1 flex items-start gap-1">
+                      <Link
+                        href="/baux"
+                        className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                        style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
+                        onClick={() => setOpen(false)}
+                      >
+                        <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                        <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
+                      </Link>
+                      <AlertMarkReadButton alertId={`bail-${bail.id}`} onMarkRead={markAsRead} />
                     </div>
-                    <BtnEmail
-                      size="small"
-                      className="mt-2 w-full"
-                      onClick={() => {
-                        void (async () => {
-                          const res = await fetch("/api/saisonnier/send-rappel-solde", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ reservation_id: item.reservationId }),
-                          });
-                          if (res.ok) {
-                            const fresh = await refreshHeaderAlerts();
-                            setAlerts(fresh);
-                            toast.success("Rappel de solde envoyé.");
-                          }
-                        })();
-                      }}
+                  ) : null,
+                )}
+                {alerts.dossiersCandidatureATraiter > 0 &&
+                isUnread(`dossiers-${alerts.dossiersCandidatureATraiter}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/dossiers"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                      onClick={() => setOpen(false)}
                     >
-                      Renvoyer
-                    </BtnEmail>
+                      <FolderOpen size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.dossiersCandidatureATraiter} dossier(s) de candidature à traiter</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`dossiers-${alerts.dossiersCandidatureATraiter}`}
+                      onMarkRead={markAsRead}
+                    />
                   </div>
-                ))}
+                ) : null}
+                {alerts.logementsVacants > 0 && isUnread(`logements-vacants-${alerts.logementsVacants}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/logements"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.muted, backgroundColor: PC.primaryBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <HomeIcon size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.logementsVacants} logement(s) vacant(s)</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`logements-vacants-${alerts.logementsVacants}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.locatairesSansLogement > 0 &&
+                isUnread(`locataires-sans-logement-${alerts.locatairesSansLogement}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/locataires"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <UserX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.locatairesSansLogement} locataire(s) sans logement affecté</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`locataires-sans-logement-${alerts.locatairesSansLogement}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.edlEntreeManquants > 0 && isUnread(`edl-entree-${alerts.edlEntreeManquants}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/etats-des-lieux"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <ClipboardList size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.edlEntreeManquants} bail(aux) sans état des lieux d&apos;entrée</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`edl-entree-${alerts.edlEntreeManquants}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.edlSortieManquants > 0 && isUnread(`edl-sortie-${alerts.edlSortieManquants}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/etats-des-lieux"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <ClipboardX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.edlSortieManquants} bail(aux) avec EDL de sortie manquant</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`edl-sortie-${alerts.edlSortieManquants}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.revisionsIrlDisponibles.map((item) =>
+                  isUnread(`revision-irl-${item.bailId}`) ? (
+                    <div key={item.bailId} className="mb-1 flex items-start gap-1">
+                      <Link
+                        href="/revisions-irl"
+                        className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                        style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                        onClick={() => setOpen(false)}
+                      >
+                        <TrendingUp size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                        <span>Révision de loyer disponible pour {item.logementNom}</span>
+                      </Link>
+                      <AlertMarkReadButton alertId={`revision-irl-${item.bailId}`} onMarkRead={markAsRead} />
+                    </div>
+                  ) : null,
+                )}
+                {alerts.parrainagesConvertisRecents > 0 &&
+                isUnread(`parrainage-${alerts.parrainagesConvertisRecents}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/parametres"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <Gift size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>
+                        🎉 {alerts.parrainagesConvertisRecents} filleul(s) ont rejoint Locavio —{" "}
+                        {alerts.parrainagesConvertisRecents} mois offert(s) ajouté(s) à votre abonnement !
+                      </span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`parrainage-${alerts.parrainagesConvertisRecents}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.reservationsSaisonnierEnAttente > 0 &&
+                isUnread(`resa-en-attente-${alerts.reservationsSaisonnierEnAttente}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/saisonnier/reservations"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <CalendarClock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>
+                        {alerts.reservationsSaisonnierEnAttente} réservation(s) en attente de confirmation
+                      </span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`resa-en-attente-${alerts.reservationsSaisonnierEnAttente}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.checkinsSaisonnier7Jours > 0 && isUnread(`checkins-7j-${alerts.checkinsSaisonnier7Jours}`) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href="/saisonnier/reservations"
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <LogIn size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.checkinsSaisonnier7Jours} arrivée(s) prévue(s) dans les 7 prochains jours</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={`checkins-7j-${alerts.checkinsSaisonnier7Jours}`}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
+                {alerts.rappelsAcompteSaisonnier.map((item) =>
+                  isUnread(`acompte-${item.reservationId}`) ? (
+                    <div key={`acompte-${item.reservationId}`} className="mb-1 flex items-start gap-1">
+                      <div
+                        className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm"
+                        style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <Landmark size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>
+                            Acompte attendu de{" "}
+                            {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
+                            {item.voyageur} · {item.logement} · {item.dates}
+                          </span>
+                        </div>
+                        <BtnEmail
+                          size="small"
+                          className="mt-2 w-full"
+                          onClick={() => {
+                            void (async () => {
+                              const res = await fetch("/api/saisonnier/send-rappel-acompte", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ reservation_id: item.reservationId }),
+                              });
+                              if (res.ok) {
+                                const fresh = await refreshHeaderAlerts();
+                                setAlerts(fresh);
+                                toast.success("Rappel d'acompte envoyé.");
+                              }
+                            })();
+                          }}
+                        >
+                          Renvoyer
+                        </BtnEmail>
+                      </div>
+                      <AlertMarkReadButton alertId={`acompte-${item.reservationId}`} onMarkRead={markAsRead} />
+                    </div>
+                  ) : null,
+                )}
+                {alerts.rappelsSoldeSaisonnier.map((item) =>
+                  isUnread(`solde-${item.reservationId}`) ? (
+                    <div key={`solde-${item.reservationId}`} className="mb-1 flex items-start gap-1">
+                      <div
+                        className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm"
+                        style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <CreditCard size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>
+                            Solde attendu de{" "}
+                            {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(item.montant)}€ —{" "}
+                            {item.voyageur} · {item.logement} · {item.dates}
+                          </span>
+                        </div>
+                        <BtnEmail
+                          size="small"
+                          className="mt-2 w-full"
+                          onClick={() => {
+                            void (async () => {
+                              const res = await fetch("/api/saisonnier/send-rappel-solde", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ reservation_id: item.reservationId }),
+                              });
+                              if (res.ok) {
+                                const fresh = await refreshHeaderAlerts();
+                                setAlerts(fresh);
+                                toast.success("Rappel de solde envoyé.");
+                              }
+                            })();
+                          }}
+                        >
+                          Renvoyer
+                        </BtnEmail>
+                      </div>
+                      <AlertMarkReadButton alertId={`solde-${item.reservationId}`} onMarkRead={markAsRead} />
+                    </div>
+                  ) : null,
+                )}
               </>
             )}
           </div>
+          {hasAnyUnread ? (
+            <div className="px-2 pb-2 pt-1" style={{ borderTop: `1px solid ${PC.border}` }}>
+              <button
+                type="button"
+                className="w-full rounded-lg px-3 py-2 text-center text-xs font-medium transition hover:opacity-90"
+                style={{ color: PC.muted, backgroundColor: PC.primaryBg10 }}
+                onClick={() => markAllAsRead()}
+              >
+                Tout marquer comme lu
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
