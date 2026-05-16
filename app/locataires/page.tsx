@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Lock } from "lucide-react";
 import { IconBuilding, IconPlus } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
@@ -71,6 +72,9 @@ const defaultValues = {
 
 export default function LocatairesPage() {
   const toast = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const logementFilter = searchParams.get("logement_id") ?? "";
   const [rows, setRows] = useState<Locataire[]>([]);
   const [logements, setLogements] = useState<LogementRow[]>([]);
   const [values, setValues] = useState<Record<string, string>>(defaultValues);
@@ -149,11 +153,16 @@ export default function LocatairesPage() {
     );
   }, []);
 
+  const filteredRows = useMemo(
+    () => (logementFilter ? rows.filter((row) => row.logement_id === logementFilter) : rows),
+    [rows, logementFilter],
+  );
+
   const groupedLocataires = useMemo(() => {
     const groups: Array<{ key: string; title: string; subtitle: string; rows: Locataire[] }> = [];
     const byLogement = new Map<string, Locataire[]>();
     const without: Locataire[] = [];
-    for (const row of rows) {
+    for (const row of filteredRows) {
       if (!row.logement_id) {
         without.push(row);
         continue;
@@ -181,7 +190,7 @@ export default function LocatairesPage() {
       });
     }
     return groups;
-  }, [logements, rows]);
+  }, [logements, filteredRows]);
 
   const loadLogements = useCallback(async (ownerId: string) => {
     const { data, error: fetchError } = await supabase
@@ -625,14 +634,32 @@ export default function LocatairesPage() {
           <h1 className="locavio-page-title">Locataires</h1>
           <p className="locavio-page-subtitle max-w-xl">Liste, création et gestion des profils locataires.</p>
         </div>
-        <BtnPrimary
-          icon={<IconPlus className="h-4 w-4" />}
-          onClick={() => void openCreateModal()}
-          disabled={isPlanLimitReached}
-          style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
-        >
-          Nouveau locataire
-        </BtnPrimary>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={logementFilter}
+            onChange={(event) => {
+              const next = event.target.value;
+              router.push(next ? `/locataires?logement_id=${encodeURIComponent(next)}` : "/locataires");
+            }}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          >
+            <option value="">Tous les logements</option>
+            {logements.map((logement) => (
+              <option key={logement.id} value={logement.id}>
+                {logement.nom || logement.adresse || "Logement"}
+              </option>
+            ))}
+          </select>
+          <BtnPrimary
+            icon={<IconPlus className="h-4 w-4" />}
+            onClick={() => void openCreateModal()}
+            disabled={isPlanLimitReached}
+            style={{ opacity: isPlanLimitReached ? 0.55 : 1, cursor: isPlanLimitReached ? "not-allowed" : "pointer" }}
+          >
+            Nouveau locataire
+          </BtnPrimary>
+        </div>
       </div>
 
       {error ? (
