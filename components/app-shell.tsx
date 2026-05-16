@@ -15,6 +15,7 @@ const publicPages = [
   "/landing",
   "/login",
   "/register",
+  "/rejoindre",
   "/forgot-password",
   "/reset-password",
   "/mentions-legales",
