@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { BtnNeutral } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -21,7 +22,13 @@ type TaxRow = {
   reversee: boolean | null;
   date_reversement: string | null;
   reservation_id: string | null;
+  logement_id: string | null;
   logements: { nom: string } | null;
+};
+
+type LogementOption = {
+  id: string;
+  nom: string;
 };
 
 type LogementTaxGroup = {
@@ -45,9 +52,13 @@ function formatEuros(n: number): string {
 
 export default function TaxesSejourPage() {
   const toast = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const logementFilter = searchParams.get("logement_id") ?? "";
   const [plan, setPlan] = useState<LocavioPlan>("free");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<TaxRow[]>([]);
+  const [logements, setLogements] = useState<LogementOption[]>([]);
   const [error, setError] = useState("");
   const [toggleBusyKey, setToggleBusyKey] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
@@ -65,13 +76,32 @@ export default function TaxesSejourPage() {
       setLoading(false);
       return;
     }
-    const { data, error: qErr } = await supabase
-      .from("taxes_sejour")
-      .select("*, logements(nom)")
-      .eq("proprietaire_id", proprietaireId)
-      .order("annee", { ascending: false })
-      .order("mois", { ascending: false });
+    const [{ data, error: qErr }, { data: logementsData, error: logementsErr }] = await Promise.all([
+      supabase
+        .from("taxes_sejour")
+        .select("*, logements(nom)")
+        .eq("proprietaire_id", proprietaireId)
+        .order("annee", { ascending: false })
+        .order("mois", { ascending: false }),
+      supabase
+        .from("logements")
+        .select("id, nom, type_location")
+        .eq("proprietaire_id", proprietaireId)
+        .order("nom", { ascending: true }),
+    ]);
     if (qErr) setError(formatSubmitError(qErr));
+    if (logementsErr) setError((prev) => prev || formatSubmitError(logementsErr));
+    setLogements(
+      ((logementsData ?? []) as Array<{ id?: string; nom?: string; type_location?: string | null }>)
+        .filter((row) => {
+          const t = row.type_location ?? "classique";
+          return t === "saisonnier" || t === "les_deux";
+        })
+        .map((row) => ({
+          id: String(row.id ?? ""),
+          nom: String(row.nom ?? "").trim() || "Logement",
+        })),
+    );
     const raw = (data ?? []) as Record<string, unknown>[];
     setRows(
       raw.map((r) => {
@@ -88,6 +118,7 @@ export default function TaxesSejourPage() {
           reversee: (r.reversee as boolean | null) ?? null,
           date_reversement: (r.date_reversement as string | null) ?? null,
           reservation_id: (r.reservation_id as string | null) ?? null,
+          logement_id: (r.logement_id as string | null) ?? null,
           logements: logements ? { nom: String(logements.nom ?? "") } : null,
         };
       }),
@@ -114,7 +145,13 @@ export default function TaxesSejourPage() {
   const canGoPreviousYear = yearIndex >= 0 && yearIndex < anneesDisponibles.length - 1;
   const canGoNextYear = yearIndex > 0;
 
-  const yearlyRows = useMemo(() => rows.filter((r) => r.annee === annee), [rows, annee]);
+  const yearlyRows = useMemo(() => {
+    let list = rows.filter((r) => r.annee === annee);
+    if (logementFilter) {
+      list = list.filter((r) => r.logement_id === logementFilter);
+    }
+    return list;
+  }, [rows, annee, logementFilter]);
 
   const groupedByLogement = useMemo((): LogementTaxGroup[] => {
     const map = new Map<string, LogementTaxGroup>();
@@ -226,6 +263,23 @@ export default function TaxesSejourPage() {
           <p className="locavio-page-subtitle">Récapitulatif et reversement par logement.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={logementFilter}
+            onChange={(event) => {
+              const next = event.target.value;
+              const base = "/saisonnier/taxes-sejour";
+              router.push(next ? `${base}?logement_id=${encodeURIComponent(next)}` : base);
+            }}
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card, color: PC.text }}
+          >
+            <option value="">Tous les logements</option>
+            {logements.map((logement) => (
+              <option key={logement.id} value={logement.id}>
+                {logement.nom}
+              </option>
+            ))}
+          </select>
           <BtnNeutral
             type="button"
             size="small"
