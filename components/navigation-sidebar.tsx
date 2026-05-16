@@ -10,6 +10,7 @@ import {
   CreditCard,
   FolderOpen,
   Gift,
+  HelpCircle,
   Home as HomeIcon,
   Landmark,
   Lock,
@@ -104,7 +105,10 @@ const navigationModeSaisonnier = [
   { href: "/saisonnier/taxes-sejour", label: "Taxe de séjour", icon: IconBank },
 ] as const;
 
-const navigationSettings = [{ href: "/parametres", label: "Paramètres", icon: IconCog }] as const;
+const navigationSettings = [
+  { href: "/support", label: "Support", icon: HelpCircle },
+  { href: "/parametres", label: "Paramètres", icon: IconCog },
+] as const;
 
 type NavModeItem = (typeof navigationModeClassique)[number] | (typeof navigationModeSaisonnier)[number];
 type NavSettingsItem = (typeof navigationSettings)[number];

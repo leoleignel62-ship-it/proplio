@@ -70,3 +70,91 @@ export function emailSummaryTable(rows: { label: string; value: string }[]): str
     `<table style="width:100%;border-collapse:collapse;font-size:14px;">${trs}</table>`,
   );
 }
+
+const PRIORITE_LABEL: Record<string, string> = {
+  normale: "Normale",
+  urgente: "Urgente",
+};
+
+export function emailNouveauTicketAdmin(params: {
+  sujet: string;
+  description: string;
+  priorite: string;
+  proprietaireNom: string;
+  proprietaireEmail: string;
+}): string {
+  const prioriteLabel = PRIORITE_LABEL[params.priorite] ?? escapeHtml(params.priorite);
+  return wrapLocavioEmail(
+    [
+      emailParagraph("Un nouveau ticket de support a été ouvert sur Locavio."),
+      emailSummaryTable([
+        { label: "Propriétaire", value: escapeHtml(params.proprietaireNom) },
+        { label: "E-mail", value: escapeHtml(params.proprietaireEmail) },
+        { label: "Sujet", value: escapeHtml(params.sujet) },
+        {
+          label: "Priorité",
+          value: `<strong style="color:${params.priorite === "urgente" ? "#dc2626" : "#1a0533"};">${prioriteLabel}</strong>`,
+        },
+      ]),
+      emailRecapBox(escapeHtml(params.description).replace(/\n/g, "<br/>")),
+      emailSignoff("Locavio Support"),
+    ].join(""),
+  );
+}
+
+export function emailConfirmationTicket(params: {
+  prenom: string;
+  sujet: string;
+  supportUrl: string;
+}): string {
+  return wrapLocavioEmail(
+    [
+      emailGreeting(params.prenom),
+      emailParagraph(
+        `Nous avons bien reçu votre demande concernant : <strong style="color:#1a0533;">${escapeHtml(params.sujet)}</strong>.`,
+      ),
+      emailParagraph("Notre équipe vous répondra dans les meilleurs délais par e-mail ou directement depuis votre espace Support."),
+      emailButton("Voir mes tickets →", params.supportUrl),
+      emailSignoff("L'équipe Locavio"),
+    ].join(""),
+  );
+}
+
+export function emailReponseAdmin(params: {
+  prenom: string;
+  sujet: string;
+  contenu: string;
+  supportUrl: string;
+}): string {
+  return wrapLocavioEmail(
+    [
+      emailGreeting(params.prenom),
+      emailParagraph(
+        `Une réponse a été ajoutée à votre ticket : <strong style="color:#1a0533;">${escapeHtml(params.sujet)}</strong>.`,
+      ),
+      emailRecapBox(escapeHtml(params.contenu).replace(/\n/g, "<br/>")),
+      emailButton("Voir la conversation →", params.supportUrl),
+      emailSignoff("L'équipe Locavio"),
+    ].join(""),
+  );
+}
+
+export function emailMessageProprietaireAdmin(params: {
+  sujet: string;
+  contenu: string;
+  proprietaireNom: string;
+  proprietaireEmail: string;
+}): string {
+  return wrapLocavioEmail(
+    [
+      emailParagraph("Nouveau message sur un ticket de support."),
+      emailSummaryTable([
+        { label: "Propriétaire", value: escapeHtml(params.proprietaireNom) },
+        { label: "E-mail", value: escapeHtml(params.proprietaireEmail) },
+        { label: "Sujet", value: escapeHtml(params.sujet) },
+      ]),
+      emailRecapBox(escapeHtml(params.contenu).replace(/\n/g, "<br/>")),
+      emailSignoff("Locavio Support"),
+    ].join(""),
+  );
+}

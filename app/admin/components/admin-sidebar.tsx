@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Flag, LayoutDashboard, Users } from "lucide-react";
+import { FileText, Flag, LayoutDashboard, MessageCircle, Users } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/utilisateurs", label: "Utilisateurs", icon: Users, exact: false },
+  { href: "/admin/support", label: "Support", icon: MessageCircle, exact: false },
   { href: "/admin/blog", label: "Blog", icon: FileText, exact: false },
   { href: "/admin/flags", label: "Feature Flags", icon: Flag, exact: false },
 ] as const;
