@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Download, Eye, Mail } from "lucide-react";
+import { AlertTriangle, Download, Eye } from "lucide-react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import {
   IconBuilding,
@@ -379,26 +379,6 @@ export default function EtatsDesLieuxPage() {
     setModal(false);
     toast.success("État des lieux créé.");
     router.push(`/etats-des-lieux/${inserted.id}`);
-  }
-
-  async function onSendEmail(id: string) {
-    setError("");
-    try {
-      if (currentPlan === "free") {
-        setError(PLAN_FREE_EDL_BANNER);
-        return;
-      }
-      const res = await fetch(`/api/etats-des-lieux/${id}/send`, { method: "POST" });
-      const j = (await res.json()) as { error?: string; to?: string[] };
-      if (!res.ok) setError(j.error ?? "Envoi impossible.");
-      else {
-        toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
-      }
-    } catch (e) {
-      setError(formatSubmitError(e));
-    } finally {
-      // no-op
-    }
   }
 
   async function handleManualConfirmEdl(edl: EdlRow) {
@@ -790,15 +770,6 @@ export default function EtatsDesLieuxPage() {
                                 onClick={() => window.open(`/api/etats-des-lieux/${r.id}/pdf`, "_blank", "noopener,noreferrer")}
                               >
                                 PDF
-                              </BtnSecondary>
-                              <BtnSecondary
-                                size="small"
-                                icon={<Mail className="h-4 w-4" aria-hidden />}
-                                disabled={edlFreeBlocked}
-                                style={btnDisabledStyle}
-                                onClick={() => void onSendEmail(r.id)}
-                              >
-                                Envoyer
                               </BtnSecondary>
                               <SignatureDocumentActions
                                 documentId={r.id}

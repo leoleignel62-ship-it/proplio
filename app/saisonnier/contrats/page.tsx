@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { Download, Mail } from "lucide-react";
+import { Download } from "lucide-react";
 import { IconArrowPath, IconPencil } from "@/components/locavio-icons";
 import { BtnNeutral, BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -599,14 +599,6 @@ export default function ContratsSejourPage() {
                     </div>
                     <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
                       <div className="flex flex-wrap gap-2">
-                        <BtnSecondary
-                          size="small"
-                          icon={<Mail className="h-4 w-4" aria-hidden />}
-                          disabled={!String(row.voyageurs?.email ?? "").trim()}
-                          onClick={() => void sendContrat(row.id)}
-                        >
-                          Envoyer
-                        </BtnSecondary>
                         <BtnSecondary
                           size="small"
                           icon={<Download className="h-4 w-4" aria-hidden />}

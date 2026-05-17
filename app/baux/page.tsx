@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Download, Mail } from "lucide-react";
+import { AlertTriangle, Download } from "lucide-react";
 import { IconBuilding, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -1012,34 +1012,6 @@ export default function BauxPage() {
     }
   }
 
-  async function onSendBailEmail(id: string) {
-    setError("");
-
-    try {
-      if (currentPlan === "free") {
-        setError(PLAN_FREE_BAUX_BANNER);
-        return;
-      }
-      const response = await fetch(`/api/baux/${id}/send`, { method: "POST" });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; to?: string[] };
-
-      if (!response.ok) {
-        let msg = `Envoi e-mail impossible (${response.status}). Vérifiez Resend et l'e-mail du propriétaire.`;
-        if (payload.error?.trim()) msg = payload.error.trim();
-        setError(msg);
-        return;
-      }
-
-      const { proprietaireId: ownerId } = await getCurrentProprietaireId();
-      if (ownerId) await loadRows(ownerId);
-      const dest = payload.to?.join(", ") || "destinataire";
-      toast.success(`Email envoyé à ${dest}.`);
-    } catch (e) {
-      setError(`Erreur d'envoi de l'e-mail : ${formatSubmitError(e)}`);
-    } finally {
-    }
-  }
-
   function openSignatureModalForBail(bail: Bail) {
     const loc = locataires.find((l) => l.id === bail.locataire_id);
     setSignatureModalBail({
@@ -1335,15 +1307,6 @@ export default function BauxPage() {
                                 onClick={() => void onGeneratePdf(row.id)}
                               >
                                 PDF
-                              </BtnSecondary>
-                              <BtnSecondary
-                                size="small"
-                                icon={<Mail className="h-4 w-4" aria-hidden />}
-                                disabled={freeBauxBlock}
-                                style={btnDisabledStyle}
-                                onClick={() => void onSendBailEmail(row.id)}
-                              >
-                                Envoyer
                               </BtnSecondary>
                               <BtnSecondary
                                 size="small"

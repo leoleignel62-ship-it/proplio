@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
-import { Download, Eye, Mail } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import { IconBuilding, IconCalendar, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -256,16 +256,6 @@ export default function EtatsDesLieuxSaisonnierPage() {
     setDeleteTarget(null);
     void load();
     toast.success("État des lieux supprimé.");
-  }
-
-  async function onSendEmail(id: string) {
-    setError("");
-    const res = await fetch(`/api/etats-des-lieux/${id}/send`, { method: "POST" });
-    const j = (await res.json()) as { error?: string; to?: string[] };
-    if (!res.ok) setError(j.error ?? "Envoi impossible.");
-    else {
-      toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
-    }
   }
 
   async function handleManualConfirmEdl(edl: EdlRow) {
@@ -524,14 +514,6 @@ export default function EtatsDesLieuxSaisonnierPage() {
                           onClick={() => window.open(`/api/etats-des-lieux/${row.id}/pdf`, "_blank", "noopener,noreferrer")}
                         >
                           PDF
-                        </BtnSecondary>
-                        <BtnSecondary
-                          size="small"
-                          icon={<Mail className="h-4 w-4" aria-hidden />}
-                          disabled={!isFinalise}
-                          onClick={() => void onSendEmail(row.id)}
-                        >
-                          Envoyer
                         </BtnSecondary>
                         <SignatureDocumentActions
                           documentId={row.id}
