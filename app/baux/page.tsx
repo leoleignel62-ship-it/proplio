@@ -2,9 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
-import { IconBuilding, IconPlus } from "@/components/locavio-icons";
-import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { AlertTriangle, Download, Mail } from "lucide-react";
+import { IconBuilding, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { montantsPourQuittanceLocataire } from "@/lib/colocation";
 import { getIrlPourDate } from "@/lib/irl-historique";
@@ -29,7 +29,11 @@ const BAIL_MODAL_CARD: CSSProperties = {
   padding: 24,
   boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
 };
-const BAIL_GROUP_CARD: CSSProperties = { ...panelCard, padding: 16 };
+function getBailCardAccentColor(statut: Bail["statut"], isLocked: boolean): string {
+  if (isLocked) return "#d1d5db";
+  if (statut === "actif") return "#10b981";
+  return "#9ca3af";
+}
 
 type Bail = {
   id: string;
@@ -67,6 +71,7 @@ type Bail = {
   travaux_realises: string;
   dernier_loyer_precedent: number;
   statut: "actif" | "termine";
+  verrouille?: boolean | null;
   email_envoye?: boolean | null;
   date_envoi_email?: string | null;
   clauses_particulieres?: string | null;
@@ -248,6 +253,7 @@ export default function BauxPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
+  const [hoveredBailId, setHoveredBailId] = useState<string | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("logement_id") ?? "";
@@ -1109,7 +1115,7 @@ export default function BauxPage() {
               Aucun bail enregistré.
             </div>
           ) : (
-            groupedBaux.map(({ logement, rows: groupRows }) => (
+            groupedBaux.map(({ logement, rows: groupRows }, groupIndex) => (
               <section key={logement.id} className="space-y-4">
                 <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
                   <div className="flex items-center gap-2">
@@ -1120,81 +1126,149 @@ export default function BauxPage() {
                     </span>
                   </div>
                 </header>
+                {groupIndex === 0 ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+                      <span>Actif</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#9ca3af" }} aria-hidden />
+                      <span>Terminé</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {groupRows.map((row) => (
-                    <article key={row.id} className="rounded-xl" style={BAIL_GROUP_CARD}>
-                      <h3 className="font-semibold tracking-tight">{locatairesMap.get(row.locataire_id) ?? row.locataire_id}</h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
-                          {row.type_bail === "meuble" ? "Meublé" : "Vide"}
-                        </span>
-                        {row.colocation_chambre_index ? (
-                          <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: PC.warningBg15, color: PC.warning }}>
-                            Colocation · Ch. {row.colocation_chambre_index}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 text-sm" style={{ color: PC.muted }}>
-                        {new Date(row.date_debut).toLocaleDateString("fr-FR")} → {new Date(row.date_fin).toLocaleDateString("fr-FR")}
-                      </p>
-                      <p className="text-base font-semibold">{Number(row.loyer).toFixed(2)} € / mois</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <StatusBadge
-                          status={row.statut === "actif" ? "actif" : "termine"}
-                          label={row.statut === "actif" ? "Actif" : "Terminé"}
+                  {groupRows.map((row) => {
+                    const isLocked = Boolean(row.verrouille);
+                    const accentColor = getBailCardAccentColor(row.statut, isLocked);
+                    const isHovered = hoveredBailId === row.id;
+                    const locataireLabel = locatairesMap.get(row.locataire_id) ?? row.locataire_id;
+                    const dateDebut = new Date(row.date_debut).toLocaleDateString("fr-FR");
+                    const dateFin = new Date(row.date_fin).toLocaleDateString("fr-FR");
+                    const btnDisabledStyle = freeBauxBlock
+                      ? { opacity: 0.5, cursor: "not-allowed" as const }
+                      : undefined;
+                    return (
+                      <article
+                        key={row.id}
+                        className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                        style={{
+                          backgroundColor: PC.card,
+                          border: `1px solid ${isHovered && !isLocked ? PC.primary : PC.border}`,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                          opacity: isLocked ? 0.6 : 1,
+                        }}
+                        onMouseEnter={() => setHoveredBailId(row.id)}
+                        onMouseLeave={() => setHoveredBailId(null)}
+                      >
+                        <div
+                          className="shrink-0 self-stretch"
+                          style={{ width: 3, backgroundColor: accentColor }}
+                          aria-hidden
                         />
-                        {row.email_envoye ? (
-                          <StatusBadge status="envoye" label="Bail envoyé" />
-                        ) : null}
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <BtnPdf
-                          size="small"
-                          disabled={freeBauxBlock}
-                          style={{
-                            opacity: freeBauxBlock ? 0.5 : 1,
-                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => void onGeneratePdf(row.id)}
-                        >
-                          Télécharger PDF
-                        </BtnPdf>
-                        <BtnEmail
-                          size="small"
-                          disabled={freeBauxBlock}
-                          style={{
-                            opacity: freeBauxBlock ? 0.5 : 1,
-                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => void onSendBailEmail(row.id)}
-                        >
-                          Envoyer par email
-                        </BtnEmail>
-                        <BtnSecondary
-                          size="small"
-                          disabled={freeBauxBlock}
-                          style={{
-                            opacity: freeBauxBlock ? 0.5 : 1,
-                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => openEditModal(row)}
-                        >
-                          Modifier
-                        </BtnSecondary>
-                        <BtnDanger
-                          size="small"
-                          disabled={freeBauxBlock}
-                          style={{
-                            opacity: freeBauxBlock ? 0.5 : 1,
-                            cursor: freeBauxBlock ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => setDeleteConfirmId(row.id)}
-                        >
-                          Supprimer
-                        </BtnDanger>
-                      </div>
-                    </article>
-                  ))}
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="p-4 pb-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{locataireLabel}</h3>
+                              {row.statut === "actif" ? (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  Actif
+                                </span>
+                              ) : (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                                >
+                                  Terminé
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              <span
+                                className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                              >
+                                {row.type_bail === "meuble" ? "Meublé" : "Vide"}
+                              </span>
+                              {row.colocation_chambre_index ? (
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                                >
+                                  Colocation · Ch. {row.colocation_chambre_index}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <p className="flex flex-wrap items-baseline gap-1">
+                              <span className="text-lg font-bold" style={{ color: PC.primary }}>
+                                {Number(row.loyer).toFixed(2)} €
+                              </span>
+                              <span className="text-xs" style={{ color: PC.muted }}>
+                                /mois
+                              </span>
+                            </p>
+                            <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                              Du {dateDebut} au {dateFin}
+                            </p>
+                            {row.email_envoye ? (
+                              <span
+                                className="mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                              >
+                                Bail envoyé
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <div className="flex flex-wrap gap-2">
+                              <BtnSecondary
+                                size="small"
+                                icon={<Download className="h-4 w-4" aria-hidden />}
+                                disabled={freeBauxBlock}
+                                style={btnDisabledStyle}
+                                onClick={() => void onGeneratePdf(row.id)}
+                              >
+                                PDF
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<Mail className="h-4 w-4" aria-hidden />}
+                                disabled={freeBauxBlock}
+                                style={btnDisabledStyle}
+                                onClick={() => void onSendBailEmail(row.id)}
+                              >
+                                Envoyer
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<IconPencil className="h-4 w-4" />}
+                                disabled={freeBauxBlock}
+                                style={btnDisabledStyle}
+                                onClick={() => openEditModal(row)}
+                              >
+                                Modifier
+                              </BtnSecondary>
+                              <BtnDanger
+                                size="small"
+                                icon={<IconTrash className="h-4 w-4" />}
+                                disabled={freeBauxBlock}
+                                style={btnDisabledStyle}
+                                onClick={() => setDeleteConfirmId(row.id)}
+                              >
+                                Supprimer
+                              </BtnDanger>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             ))

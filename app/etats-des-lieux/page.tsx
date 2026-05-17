@@ -1,10 +1,16 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Download, Eye, Mail } from "lucide-react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { IconBuilding, IconPlus } from "@/components/locavio-icons";
-import { BtnDanger, BtnEmail, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import {
+  IconBuilding,
+  IconCalendar,
+  IconDeviceCamera,
+  IconPlus,
+  IconTrash,
+} from "@/components/locavio-icons";
+import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { createInitialPiecesData } from "@/lib/etat-des-lieux/defaults";
 import { getEdlTypeEtatFromRow, normalizeEdlTypeEtatInput } from "@/lib/etat-des-lieux/edl-type-etat";
@@ -23,8 +29,11 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PC } from "@/lib/locavio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
-import type { CSSProperties } from "react";
-const EDL_GROUP_CARD: CSSProperties = { ...panelCard, padding: 16 };
+function getEdlCardAccentColor(statut: string, isLocked: boolean): string {
+  if (isLocked) return "#d1d5db";
+  if (statut === "termine") return "#10b981";
+  return "#f59e0b";
+}
 
 type EdlRow = {
   id: string;
@@ -37,6 +46,7 @@ type EdlRow = {
   type?: string | null;
   date_etat: string | null;
   statut: string;
+  verrouille?: boolean | null;
   created_at?: string;
 };
 
@@ -93,6 +103,8 @@ export default function EtatsDesLieuxPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
+  const [photoCountByEdlId, setPhotoCountByEdlId] = useState<Record<string, number>>({});
+  const [hoveredEdlId, setHoveredEdlId] = useState<string | null>(null);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -114,6 +126,7 @@ export default function EtatsDesLieuxPage() {
       setRows([]);
       setLabels({});
       setBauxOptions([]);
+      setPhotoCountByEdlId({});
       setLoading(false);
       return;
     }
@@ -133,6 +146,22 @@ export default function EtatsDesLieuxPage() {
 
     const list = (edlList ?? []) as EdlRow[];
     setRows(list);
+
+    const edlIds = list.map((r) => r.id);
+    if (edlIds.length > 0) {
+      const { data: photoRows } = await supabase
+        .from("photos_etat_des_lieux")
+        .select("etat_des_lieux_id")
+        .in("etat_des_lieux_id", edlIds);
+      const counts: Record<string, number> = {};
+      for (const p of photoRows ?? []) {
+        const id = (p as { etat_des_lieux_id: string }).etat_des_lieux_id;
+        if (id) counts[id] = (counts[id] ?? 0) + 1;
+      }
+      setPhotoCountByEdlId(counts);
+    } else {
+      setPhotoCountByEdlId({});
+    }
 
     const logIds = [...new Set(list.map((r) => r.logement_id).filter(Boolean))] as string[];
     const locIds = [...new Set(list.map((r) => r.locataire_id).filter(Boolean))] as string[];
@@ -523,7 +552,7 @@ export default function EtatsDesLieuxPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {Array.from(new Set(filteredRows.map((r) => r.logement_id).filter(Boolean))).map((logementId) => {
+          {Array.from(new Set(filteredRows.map((r) => r.logement_id).filter(Boolean))).map((logementId, groupIndex) => {
             const groupRows = filteredRows.filter((r) => r.logement_id === logementId);
             if (!groupRows.length) return null;
             const first = groupRows[0]!;
@@ -541,76 +570,148 @@ export default function EtatsDesLieuxPage() {
                     {first.logement_id ? labels[`log:${first.logement_id}`] : ""}
                   </p>
                 </header>
+                {groupIndex === 0 ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+                      <span>Finalisé</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#f59e0b" }} aria-hidden />
+                      <span>En cours</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#d1d5db" }} aria-hidden />
+                      <span>Verrouillé</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {groupRows.map((r) => (
-                    <article key={r.id} className="rounded-xl" style={EDL_GROUP_CARD}>
-                      <span
-                        className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={
-                          getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree"
-                            ? { backgroundColor: PC.successBg20, color: PC.success }
-                            : { backgroundColor: PC.warningBg15, color: PC.warning }
-                        }
+                  {groupRows.map((r) => {
+                    const isLocked = Boolean(r.verrouille);
+                    const accentColor = getEdlCardAccentColor(r.statut, isLocked);
+                    const isHovered = hoveredEdlId === r.id;
+                    const typeEtat = getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>);
+                    const isEntree = typeEtat === "entree";
+                    const isFinalise = r.statut === "termine";
+                    const locataireLabel = r.locataire_id ? labels[`loc:${r.locataire_id}`] : "—";
+                    const dateLabel = r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—";
+                    const photoCount = photoCountByEdlId[r.id] ?? 0;
+                    const btnDisabledStyle = edlFreeBlocked
+                      ? { opacity: 0.5, cursor: "not-allowed" as const }
+                      : undefined;
+                    return (
+                      <article
+                        key={r.id}
+                        className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                        style={{
+                          backgroundColor: PC.card,
+                          border: `1px solid ${isHovered && !isLocked ? PC.primary : PC.border}`,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                          opacity: isLocked ? 0.6 : 1,
+                        }}
+                        onMouseEnter={() => setHoveredEdlId(r.id)}
+                        onMouseLeave={() => setHoveredEdlId(null)}
                       >
-                        {getEdlTypeEtatFromRow(r as EdlRow & Record<string, unknown>) === "entree" ? "Entrée" : "Sortie"}
-                      </span>
-                      <p className="mt-2 font-medium tracking-tight">{r.locataire_id ? labels[`loc:${r.locataire_id}`] : "—"}</p>
-                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-                        {r.date_etat ? new Date(r.date_etat).toLocaleDateString("fr-FR") : "—"}
-                      </p>
-                      <div className="mt-2">
-                        <StatusBadge
-                          status={r.statut === "termine" ? "finalise" : "en_cours"}
-                          label={r.statut === "termine" ? "Finalisé" : "En cours"}
+                        <div
+                          className="shrink-0 self-stretch"
+                          style={{ width: 3, backgroundColor: accentColor }}
+                          aria-hidden
                         />
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {edlFreeBlocked ? (
-                          <BtnNeutral size="small" disabled style={{ opacity: 0.5 }}>
-                            Ouvrir
-                          </BtnNeutral>
-                        ) : (
-                          <BtnSecondary size="small" onClick={() => router.push(`/etats-des-lieux/${r.id}`)}>
-                            Ouvrir
-                          </BtnSecondary>
-                        )}
-                        {edlFreeBlocked ? (
-                          <BtnPdf size="small" disabled style={{ opacity: 0.5 }}>
-                            Télécharger PDF
-                          </BtnPdf>
-                        ) : (
-                          <BtnPdf
-                            size="small"
-                            onClick={() => window.open(`/api/etats-des-lieux/${r.id}/pdf`, "_blank", "noopener,noreferrer")}
-                          >
-                            Télécharger PDF
-                          </BtnPdf>
-                        )}
-                        <BtnEmail
-                          size="small"
-                          disabled={edlFreeBlocked}
-                          style={{
-                            opacity: edlFreeBlocked ? 0.5 : 1,
-                            cursor: edlFreeBlocked ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => void onSendEmail(r.id)}
-                        >
-                          Envoyer par email
-                        </BtnEmail>
-                        <BtnDanger
-                          size="small"
-                          disabled={edlFreeBlocked}
-                          style={{
-                            opacity: edlFreeBlocked ? 0.5 : 1,
-                            cursor: edlFreeBlocked ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
-                        >
-                          Supprimer
-                        </BtnDanger>
-                      </div>
-                    </article>
-                  ))}
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="p-4 pb-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{locataireLabel}</h3>
+                              <span
+                                className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={
+                                  isEntree
+                                    ? { backgroundColor: PC.successBg20, color: PC.success }
+                                    : { backgroundColor: PC.warningBg15, color: PC.warning }
+                                }
+                              >
+                                {isEntree ? "Entrée" : "Sortie"}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {isFinalise ? (
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  Finalisé
+                                </span>
+                              ) : (
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
+                                >
+                                  En cours
+                                </span>
+                              )}
+                              <span className="text-sm" style={{ color: PC.muted }}>
+                                {dateLabel}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <p className="flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                              <IconCalendar className="h-4 w-4 shrink-0" aria-hidden />
+                              <span>{dateLabel}</span>
+                            </p>
+                            {photoCount > 0 ? (
+                              <p className="mt-1.5 flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                                <IconDeviceCamera className="h-4 w-4 shrink-0" aria-hidden />
+                                <span>
+                                  {photoCount} photo{photoCount > 1 ? "s" : ""}
+                                </span>
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <div className="flex flex-wrap gap-2">
+                              <BtnSecondary
+                                size="small"
+                                icon={<Eye className="h-4 w-4" aria-hidden />}
+                                disabled={edlFreeBlocked}
+                                style={btnDisabledStyle}
+                                onClick={() => router.push(`/etats-des-lieux/${r.id}`)}
+                              >
+                                Ouvrir
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<Download className="h-4 w-4" aria-hidden />}
+                                disabled={edlFreeBlocked}
+                                style={btnDisabledStyle}
+                                onClick={() => window.open(`/api/etats-des-lieux/${r.id}/pdf`, "_blank", "noopener,noreferrer")}
+                              >
+                                PDF
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<Mail className="h-4 w-4" aria-hidden />}
+                                disabled={edlFreeBlocked}
+                                style={btnDisabledStyle}
+                                onClick={() => void onSendEmail(r.id)}
+                              >
+                                Envoyer
+                              </BtnSecondary>
+                              <BtnDanger
+                                size="small"
+                                icon={<IconTrash className="h-4 w-4" />}
+                                disabled={edlFreeBlocked}
+                                style={btnDisabledStyle}
+                                onClick={() => setDeleteTarget({ id: r.id, statut: r.statut })}
+                              >
+                                Supprimer
+                              </BtnDanger>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             );
