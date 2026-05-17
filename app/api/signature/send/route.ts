@@ -13,6 +13,7 @@ import {
   emailSignatureOtpInviteSubject,
   humanizeDocumentType,
 } from "@/lib/signature-email";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -299,17 +300,85 @@ async function loadSignatureEmailContext(
   return { proprietaireNomComplet, documentTypeHuman, documentContext };
 }
 
+async function verifyDocumentOwnership(
+  document_type: string,
+  document_id: string,
+  proprietaire_id: string,
+): Promise<boolean> {
+  switch (document_type) {
+    case "bail": {
+      const { data } = await supabaseAdmin
+        .from("baux")
+        .select("id")
+        .eq("id", document_id)
+        .eq("proprietaire_id", proprietaire_id)
+        .maybeSingle();
+      return !!data;
+    }
+    case "edl": {
+      const { data } = await supabaseAdmin
+        .from("etats_des_lieux")
+        .select("id")
+        .eq("id", document_id)
+        .eq("proprietaire_id", proprietaire_id)
+        .maybeSingle();
+      return !!data;
+    }
+    case "contrat_sejour": {
+      const { data } = await supabaseAdmin
+        .from("reservations")
+        .select("id")
+        .eq("id", document_id)
+        .eq("proprietaire_id", proprietaire_id)
+        .maybeSingle();
+      return !!data;
+    }
+    default:
+      return false;
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+    }
+
+    const { data: proprietaireSession } = await supabaseAdmin
+      .from("proprietaires")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!proprietaireSession?.id) {
+      return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 403 });
+    }
+
+    const proprietaire_id = proprietaireSession.id;
+
     const body = (await request.json()) as SendBody;
     const document_type = String(body.document_type ?? "").trim();
     const document_id = String(body.document_id ?? "").trim();
     const signer_name = String(body.signer_name ?? "").trim();
     const signer_email = String(body.signer_email ?? "").trim();
-    const proprietaire_id = String(body.proprietaire_id ?? "").trim();
 
-    if (!document_type || !document_id || !signer_name || !signer_email || !proprietaire_id) {
+    if (!document_type || !document_id || !signer_name || !signer_email) {
       return NextResponse.json({ error: "Champs requis manquants." }, { status: 400 });
+    }
+
+    const isOwner = await verifyDocumentOwnership(document_type, document_id, proprietaire_id);
+
+    if (!isOwner) {
+      return NextResponse.json(
+        { error: "Document introuvable ou accès refusé." },
+        { status: 403 },
+      );
     }
 
     if (!resend) {
