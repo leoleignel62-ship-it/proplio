@@ -743,7 +743,14 @@ type HeaderAlertMetrics = {
   reservationsSaisonnierEnAttente: number;
   checkinsSaisonnier7Jours: number;
   locatairesSansLogement: number;
-  signatureRecentAlert: { id: string; title: string; href: string } | null;
+  signaturesRecentes: Array<{
+    id: string;
+    signerName: string;
+    documentType: string;
+    logementNom: string | null;
+    signedAt: string;
+    href: string;
+  }>;
 };
 
 const EMPTY_HEADER_ALERTS: HeaderAlertMetrics = {
@@ -760,7 +767,7 @@ const EMPTY_HEADER_ALERTS: HeaderAlertMetrics = {
   reservationsSaisonnierEnAttente: 0,
   checkinsSaisonnier7Jours: 0,
   locatairesSansLogement: 0,
-  signatureRecentAlert: null,
+  signaturesRecentes: [],
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
@@ -1021,25 +1028,80 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentSigs } = await supabase
     .from("document_signatures")
-    .select("id, document_type, signer_name, signed_at")
+    .select("id, document_type, signer_name, signed_at, document_id")
     .eq("proprietaire_id", ownerId)
     .not("signed_at", "is", null)
     .gte("signed_at", sevenDaysAgo)
     .order("signed_at", { ascending: false });
 
-  let signatureRecentAlert: HeaderAlertMetrics["signatureRecentAlert"] = null;
-  if (recentSigs && recentSigs.length > 0) {
-    const first = recentSigs[0];
-    const docType = String(first.document_type ?? "");
-    signatureRecentAlert = {
-      id: `signatures-${recentSigs.length}`,
-      title:
-        recentSigs.length === 1
-          ? `${String(first.signer_name ?? "Un signataire")} a signé son document`
-          : `${recentSigs.length} documents signés récemment`,
-      href: docType === "bail" ? "/baux" : "/saisonnier/contrats",
-    };
-  }
+  const humanType: Record<string, string> = {
+    bail: "Bail",
+    edl: "État des lieux",
+    contrat_sejour: "Contrat de séjour",
+  };
+
+  const signaturesRecentes = await Promise.all(
+    (recentSigs ?? []).map(async (sig) => {
+      let logementNom: string | null = null;
+
+      if (sig.document_type === "bail") {
+        const { data: bail } = await supabase
+          .from("baux")
+          .select("logement_id")
+          .eq("id", sig.document_id)
+          .maybeSingle();
+        if (bail?.logement_id) {
+          const { data: logement } = await supabase
+            .from("logements")
+            .select("nom")
+            .eq("id", bail.logement_id)
+            .maybeSingle();
+          logementNom = logement?.nom != null ? String(logement.nom) : null;
+        }
+      } else if (sig.document_type === "edl") {
+        const { data: edl } = await supabase
+          .from("etats_des_lieux")
+          .select("logement_id")
+          .eq("id", sig.document_id)
+          .maybeSingle();
+        if (edl?.logement_id) {
+          const { data: logement } = await supabase
+            .from("logements")
+            .select("nom")
+            .eq("id", edl.logement_id)
+            .maybeSingle();
+          logementNom = logement?.nom != null ? String(logement.nom) : null;
+        }
+      } else if (sig.document_type === "contrat_sejour") {
+        const { data: reservation } = await supabase
+          .from("reservations")
+          .select("logement_id")
+          .eq("id", sig.document_id)
+          .maybeSingle();
+        if (reservation?.logement_id) {
+          const { data: logement } = await supabase
+            .from("logements")
+            .select("nom")
+            .eq("id", reservation.logement_id)
+            .maybeSingle();
+          logementNom = logement?.nom != null ? String(logement.nom) : null;
+        }
+      }
+
+      const docType = String(sig.document_type ?? "");
+      const href =
+        docType === "bail" ? "/baux" : docType === "contrat_sejour" ? "/saisonnier/contrats" : "/etats-des-lieux";
+
+      return {
+        id: `signature-${sig.id}`,
+        signerName: String(sig.signer_name ?? ""),
+        documentType: humanType[docType] ?? docType,
+        logementNom,
+        signedAt: String(sig.signed_at ?? ""),
+        href,
+      };
+    }),
+  );
 
   return {
     quittancesNonEnvoyeesMois,
@@ -1055,7 +1117,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     reservationsSaisonnierEnAttente,
     checkinsSaisonnier7Jours,
     locatairesSansLogement,
-    signatureRecentAlert,
+    signaturesRecentes,
   };
 }
 
@@ -1135,31 +1197,27 @@ function persistReadAlerts(ids: Set<string>): void {
   localStorage.setItem(READ_ALERTS_STORAGE_KEY, JSON.stringify(payload));
 }
 
-function getAllAlertIds(alerts: HeaderAlertMetrics): string[] {
+function countPermanentAlerts(alerts: HeaderAlertMetrics): number {
+  let count = 0;
+  if (alerts.quittancesNonEnvoyeesMois > 0) count += 1;
+  count += alerts.bauxUrgents.length;
+  if (alerts.edlEntreeManquants > 0) count += 1;
+  if (alerts.edlSortieManquants > 0) count += 1;
+  count += alerts.revisionsIrlDisponibles.length;
+  if (alerts.dossiersCandidatureATraiter > 0) count += 1;
+  if (alerts.logementsVacants > 0) count += 1;
+  if (alerts.locatairesSansLogement > 0) count += 1;
+  return count;
+}
+
+function hasPermanentAlerts(alerts: HeaderAlertMetrics): boolean {
+  return countPermanentAlerts(alerts) > 0;
+}
+
+function getDismissibleAlertIds(alerts: HeaderAlertMetrics): string[] {
   const ids: string[] = [];
-  if (alerts.quittancesNonEnvoyeesMois > 0) {
-    ids.push(`quittances-${alerts.quittancesNonEnvoyeesMois}`);
-  }
-  for (const bail of alerts.bauxUrgents) {
-    ids.push(`bail-${bail.id}`);
-  }
-  if (alerts.dossiersCandidatureATraiter > 0) {
-    ids.push(`dossiers-${alerts.dossiersCandidatureATraiter}`);
-  }
-  if (alerts.logementsVacants > 0) {
-    ids.push(`logements-vacants-${alerts.logementsVacants}`);
-  }
-  if (alerts.locatairesSansLogement > 0) {
-    ids.push(`locataires-sans-logement-${alerts.locatairesSansLogement}`);
-  }
-  if (alerts.edlEntreeManquants > 0) {
-    ids.push(`edl-entree-${alerts.edlEntreeManquants}`);
-  }
-  if (alerts.edlSortieManquants > 0) {
-    ids.push(`edl-sortie-${alerts.edlSortieManquants}`);
-  }
-  for (const item of alerts.revisionsIrlDisponibles) {
-    ids.push(`revision-irl-${item.bailId}`);
+  for (const sig of alerts.signaturesRecentes) {
+    ids.push(sig.id);
   }
   if (alerts.parrainagesConvertisRecents > 0) {
     ids.push(`parrainage-${alerts.parrainagesConvertisRecents}`);
@@ -1176,10 +1234,11 @@ function getAllAlertIds(alerts: HeaderAlertMetrics): string[] {
   for (const item of alerts.rappelsSoldeSaisonnier) {
     ids.push(`solde-${item.reservationId}`);
   }
-  if (alerts.signatureRecentAlert) {
-    ids.push(alerts.signatureRecentAlert.id);
-  }
   return ids;
+}
+
+function hasDismissibleAlerts(alerts: HeaderAlertMetrics): boolean {
+  return getDismissibleAlertIds(alerts).length > 0;
 }
 
 function AlertMarkReadButton({ alertId, onMarkRead }: { alertId: string; onMarkRead: (id: string) => void }) {
@@ -1233,24 +1292,29 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
     });
   }, []);
 
-  const allAlertIds = useMemo(() => getAllAlertIds(alerts), [alerts]);
+  const dismissibleAlertIds = useMemo(() => getDismissibleAlertIds(alerts), [alerts]);
 
   const markAllAsRead = useCallback(() => {
     setReadAlerts((prev) => {
       const next = new Set(prev);
-      for (const id of allAlertIds) next.add(id);
+      for (const id of dismissibleAlertIds) next.add(id);
       persistReadAlerts(next);
       return next;
     });
-  }, [allAlertIds]);
+  }, [dismissibleAlertIds]);
 
   const isUnread = useCallback((alertId: string) => !readAlerts.has(alertId), [readAlerts]);
 
-  const badgeCount = useMemo(
-    () => allAlertIds.filter((id) => !readAlerts.has(id)).length,
-    [allAlertIds, readAlerts],
+  const permanentCount = useMemo(() => countPermanentAlerts(alerts), [alerts]);
+  const unreadDismissibleCount = useMemo(
+    () => dismissibleAlertIds.filter((id) => !readAlerts.has(id)).length,
+    [dismissibleAlertIds, readAlerts],
   );
-  const hasAnyUnread = badgeCount > 0;
+  const badgeCount = permanentCount + unreadDismissibleCount;
+  const showPermanent = hasPermanentAlerts(alerts);
+  const showDismissibleSection = hasDismissibleAlerts(alerts);
+  const hasUnreadDismissible = unreadDismissibleCount > 0;
+  const showEmptyState = !showPermanent && !showDismissibleSection;
 
   return (
     <div ref={wrapRef} className="relative">
@@ -1287,165 +1351,164 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
             <p className="text-sm font-semibold" style={{ color: PC.text }}>Notifications</p>
           </div>
           <div className="max-h-[min(420px,70vh)] overflow-y-auto p-2">
-            {!hasAnyUnread ? (
-              <div className="rounded-lg px-3 py-2 text-sm" style={{ color: PC.success, backgroundColor: PC.successBg10 }}>
-                Tout est en ordre !
+            {showEmptyState ? (
+              <div className="px-4 py-6 text-center text-sm" style={{ color: PC.muted }}>
+                ✅ Tout est en ordre !
               </div>
             ) : (
               <>
-                {alerts.quittancesNonEnvoyeesMois > 0 && isUnread(`quittances-${alerts.quittancesNonEnvoyeesMois}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/quittances"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`quittances-${alerts.quittancesNonEnvoyeesMois}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
-                {alerts.bauxUrgents.map((bail) =>
-                  isUnread(`bail-${bail.id}`) ? (
-                    <div key={bail.id} className="mb-1 flex items-start gap-1">
-                      <Link
-                        href="/baux"
-                        className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                        style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
-                        onClick={() => setOpen(false)}
+                {showPermanent ? (
+                  <>
+                    <div className="px-3 py-1.5">
+                      <p
+                        className="text-xs font-semibold uppercase tracking-wide"
+                        style={{ color: PC.muted }}
                       >
-                        <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                        <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
-                      </Link>
-                      <AlertMarkReadButton alertId={`bail-${bail.id}`} onMarkRead={markAsRead} />
+                        Actions requises
+                      </p>
                     </div>
-                  ) : null,
-                )}
-                {alerts.dossiersCandidatureATraiter > 0 &&
-                isUnread(`dossiers-${alerts.dossiersCandidatureATraiter}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/dossiers"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <FolderOpen size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.dossiersCandidatureATraiter} dossier(s) de candidature à traiter</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`dossiers-${alerts.dossiersCandidatureATraiter}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
+                    {alerts.quittancesNonEnvoyeesMois > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/quittances"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <AlertTriangle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.quittancesNonEnvoyeesMois} quittance(s) à envoyer ce mois</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                    {alerts.bauxUrgents.map((bail) => (
+                      <div key={bail.id} className="mb-1">
+                        <Link
+                          href="/baux"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>Le bail de {bail.locataireNom} expire le {bail.dateFin}</span>
+                        </Link>
+                      </div>
+                    ))}
+                    {alerts.edlEntreeManquants > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/etats-des-lieux"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <ClipboardList size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.edlEntreeManquants} bail(aux) sans état des lieux d&apos;entrée</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                    {alerts.edlSortieManquants > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/etats-des-lieux"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <ClipboardX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.edlSortieManquants} bail(aux) avec EDL de sortie manquant</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                    {alerts.revisionsIrlDisponibles.map((item) => (
+                      <div key={item.bailId} className="mb-1">
+                        <Link
+                          href="/revisions-irl"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <TrendingUp size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>Révision de loyer disponible pour {item.logementNom}</span>
+                        </Link>
+                      </div>
+                    ))}
+                    {alerts.dossiersCandidatureATraiter > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/dossiers"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <FolderOpen size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.dossiersCandidatureATraiter} dossier(s) de candidature à traiter</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                    {alerts.logementsVacants > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/logements"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.muted, backgroundColor: PC.primaryBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <HomeIcon size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.logementsVacants} logement(s) vacant(s)</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                    {alerts.locatairesSansLogement > 0 ? (
+                      <div className="mb-1">
+                        <Link
+                          href="/locataires"
+                          className="flex min-w-0 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                          style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
+                          onClick={() => setOpen(false)}
+                        >
+                          <UserX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                          <span>{alerts.locatairesSansLogement} locataire(s) sans logement affecté</span>
+                        </Link>
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
-                {alerts.logementsVacants > 0 && isUnread(`logements-vacants-${alerts.logementsVacants}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/logements"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.muted, backgroundColor: PC.primaryBg15 }}
-                      onClick={() => setOpen(false)}
+                {showDismissibleSection ? (
+                  <>
+                    <div
+                      className={`px-3 py-1.5 ${showPermanent ? "mt-2" : ""}`}
+                      style={showPermanent ? { borderTop: `1px solid ${PC.border}` } : undefined}
                     >
-                      <HomeIcon size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.logementsVacants} logement(s) vacant(s)</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`logements-vacants-${alerts.logementsVacants}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
-                {alerts.locatairesSansLogement > 0 &&
-                isUnread(`locataires-sans-logement-${alerts.locatairesSansLogement}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/locataires"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <UserX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.locatairesSansLogement} locataire(s) sans logement affecté</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`locataires-sans-logement-${alerts.locatairesSansLogement}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
-                {alerts.edlEntreeManquants > 0 && isUnread(`edl-entree-${alerts.edlEntreeManquants}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/etats-des-lieux"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.warning, backgroundColor: PC.warningBg15 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <ClipboardList size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.edlEntreeManquants} bail(aux) sans état des lieux d&apos;entrée</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`edl-entree-${alerts.edlEntreeManquants}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
-                {alerts.edlSortieManquants > 0 && isUnread(`edl-sortie-${alerts.edlSortieManquants}`) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href="/etats-des-lieux"
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.danger, backgroundColor: PC.dangerBg15 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <ClipboardX size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.edlSortieManquants} bail(aux) avec EDL de sortie manquant</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={`edl-sortie-${alerts.edlSortieManquants}`}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
-                {alerts.revisionsIrlDisponibles.map((item) =>
-                  isUnread(`revision-irl-${item.bailId}`) ? (
-                    <div key={item.bailId} className="mb-1 flex items-start gap-1">
-                      <Link
-                        href="/revisions-irl"
-                        className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                        style={{ color: PC.primaryLight, backgroundColor: PC.primaryBg15 }}
-                        onClick={() => setOpen(false)}
+                      <p
+                        className="text-xs font-semibold uppercase tracking-wide"
+                        style={{ color: PC.muted }}
                       >
-                        <TrendingUp size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                        <span>Révision de loyer disponible pour {item.logementNom}</span>
-                      </Link>
-                      <AlertMarkReadButton alertId={`revision-irl-${item.bailId}`} onMarkRead={markAsRead} />
+                        Informations
+                      </p>
                     </div>
-                  ) : null,
-                )}
-                {alerts.signatureRecentAlert && isUnread(alerts.signatureRecentAlert.id) ? (
-                  <div className="mb-1 flex items-start gap-1">
-                    <Link
-                      href={alerts.signatureRecentAlert.href}
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
-                      style={{ color: PC.success, backgroundColor: PC.successBg20 }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <PenLine size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
-                      <span>{alerts.signatureRecentAlert.title}</span>
-                    </Link>
-                    <AlertMarkReadButton
-                      alertId={alerts.signatureRecentAlert.id}
-                      onMarkRead={markAsRead}
-                    />
-                  </div>
-                ) : null}
+                    {alerts.signaturesRecentes.map((sig) =>
+                      isUnread(sig.id) ? (
+                        <div key={sig.id} className="mb-1 flex items-start gap-1">
+                          <Link
+                            href={sig.href}
+                            className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                            style={{ color: PC.success, backgroundColor: PC.successBg20 }}
+                            onClick={() => setOpen(false)}
+                          >
+                            <PenLine size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                            <div className="flex min-w-0 flex-col">
+                              <span className="font-medium">
+                                {sig.signerName} a signé son {sig.documentType}
+                              </span>
+                              {sig.logementNom ? (
+                                <span className="text-xs opacity-75">{sig.logementNom}</span>
+                              ) : null}
+                            </div>
+                          </Link>
+                          <AlertMarkReadButton alertId={sig.id} onMarkRead={markAsRead} />
+                        </div>
+                      ) : null,
+                    )}
                 {alerts.parrainagesConvertisRecents > 0 &&
                 isUnread(`parrainage-${alerts.parrainagesConvertisRecents}`) ? (
                   <div className="mb-1 flex items-start gap-1">
@@ -1584,10 +1647,12 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     </div>
                   ) : null,
                 )}
+                  </>
+                ) : null}
               </>
             )}
           </div>
-          {hasAnyUnread ? (
+          {hasUnreadDismissible ? (
             <div className="px-2 pb-2 pt-1" style={{ borderTop: `1px solid ${PC.border}` }}>
               <button
                 type="button"
