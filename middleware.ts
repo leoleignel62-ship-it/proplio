@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
   "/tarifs",
   "/securite",
   "/blog",
+  "/signer",
 ] as const;
 const PUBLIC_API_PATHS = [
   "/api/stripe/webhook",
@@ -28,17 +29,23 @@ const PUBLIC_API_PATHS = [
   "/api/candidature/get-token",
   "/api/candidature/upload-document",
   "/api/candidature/soumettre",
+  "/api/signature/verify-otp",
+  "/api/signature/complete",
 ] as const;
 const AUTH_PUBLIC_PREFIX = "/auth/";
 const AUTH_PAGES = ["/login", "/register"] as const;
 
 function isPublicPath(pathname: string): boolean {
   return (
-    PUBLIC_PATHS.some((path) => pathname === path) ||
+    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ||
     pathname.startsWith("/blog/") ||
     pathname.startsWith("/candidature/") ||
     pathname.startsWith(AUTH_PUBLIC_PREFIX)
   );
+}
+
+function isPublicApiPath(pathname: string): boolean {
+  return PUBLIC_API_PATHS.some((path) => pathname === path) || pathname.startsWith("/api/signature/info/");
 }
 
 function isAuthPage(pathname: string): boolean {
@@ -47,7 +54,7 @@ function isAuthPage(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (PUBLIC_API_PATHS.some((path) => pathname === path)) {
+  if (isPublicApiPath(pathname)) {
     return NextResponse.next({ request });
   }
 

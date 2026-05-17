@@ -45,7 +45,10 @@ const PLAN_LEVEL: Record<LocavioPlan, number> = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicPage =
-    publicPages.includes(pathname) || pathname.startsWith("/blog/") || pathname.startsWith("/candidature/");
+    publicPages.includes(pathname) ||
+    pathname.startsWith("/blog/") ||
+    pathname.startsWith("/candidature/") ||
+    pathname.startsWith("/signer/");
   const [plan, setPlan] = useState<LocavioPlan>("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
