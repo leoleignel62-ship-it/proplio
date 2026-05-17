@@ -1,4 +1,15 @@
-import { DashboardContent } from "@/components/dashboard-content";
+"use client";
+
+import dynamic from "next/dynamic";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
+
+const DashboardContent = dynamic(
+  () => import("@/components/dashboard-content").then((mod) => ({ default: mod.DashboardContent })),
+  {
+    ssr: false,
+    loading: () => <PageSkeleton />,
+  },
+);
 
 export default function Home() {
   return (

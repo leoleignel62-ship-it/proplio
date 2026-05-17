@@ -13,6 +13,7 @@ import {
   emailSignatureOtpInviteSubject,
   humanizeDocumentType,
 } from "@/lib/signature-email";
+import { assertStarterPlan } from "@/lib/api-plan-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -380,6 +381,9 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+
+    const planError = await assertStarterPlan(proprietaire_id);
+    if (planError) return planError;
 
     if (!resend) {
       return NextResponse.json({ error: "RESEND_API_KEY manquant." }, { status: 500 });

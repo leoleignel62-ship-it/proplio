@@ -101,6 +101,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user && !isPublic) {
+    if (pathname.startsWith("/api/")) {
+      return new NextResponse(JSON.stringify({ error: "Non authentifié." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     const redirectResponse = NextResponse.redirect(url);
