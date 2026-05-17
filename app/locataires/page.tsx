@@ -9,8 +9,10 @@ import { useToast } from "@/components/ui/toast";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
 import {
   canCreateLocataire,
+  getLocatairesCumulCount,
   getOwnedCount,
   getOwnerPlan,
+  incrementLocatairesCumul,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
 } from "@/lib/plan-limits";
@@ -135,12 +137,13 @@ export default function LocatairesPage() {
   }
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const [plan, existingCount] = await Promise.all([
+    const [plan, existingCount, cumulCount] = await Promise.all([
       getOwnerPlan(ownerId),
       getOwnedCount("locataires", ownerId),
+      getLocatairesCumulCount(ownerId),
     ]);
     setCurrentPlan(plan);
-    if (!canCreateLocataire(plan, existingCount, existingCount)) {
+    if (!canCreateLocataire(plan, cumulCount, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de locataires.");
       setPlanWarningMessage("");
       return;
@@ -314,11 +317,12 @@ export default function LocatairesPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const [plan, existingCount] = await Promise.all([
+      const [plan, existingCount, cumulCount] = await Promise.all([
         getOwnerPlan(ownerId),
         getOwnedCount("locataires", ownerId),
+        getLocatairesCumulCount(ownerId),
       ]);
-      if (!canCreateLocataire(plan, existingCount, existingCount)) {
+      if (!canCreateLocataire(plan, cumulCount, existingCount)) {
         setError(
           "Limite atteinte. Passez au plan supérieur pour créer plus de locataires.",
         );
@@ -415,9 +419,12 @@ export default function LocatairesPage() {
       }
       setProprietaireId(ownerId);
       if (!isEditing) {
-        const existingCount = await getOwnedCount("locataires", ownerId);
-        const plan = await getOwnerPlan(ownerId);
-        if (!canCreateLocataire(plan, existingCount, existingCount)) {
+        const [existingCount, cumulCount, plan] = await Promise.all([
+          getOwnedCount("locataires", ownerId),
+          getLocatairesCumulCount(ownerId),
+          getOwnerPlan(ownerId),
+        ]);
+        if (!canCreateLocataire(plan, cumulCount, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -497,6 +504,13 @@ export default function LocatairesPage() {
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (!isEditing) {
+        try {
+          await incrementLocatairesCumul(ownerId);
+        } catch {
+          /* ne pas bloquer la création */
+        }
       }
       if (isEditing && currentPlan === "free") {
         const quotas = await getFreeLocataireQuotas(ownerId);

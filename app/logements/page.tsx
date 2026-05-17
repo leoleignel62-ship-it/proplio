@@ -16,8 +16,10 @@ import {
 import {
   canAccessSaisonnier,
   canCreateLogement,
+  getLogementsCumulCount,
   getOwnedCount,
   getOwnerPlan,
+  incrementLogementsCumul,
   PLAN_LIMIT_ERROR_MESSAGE,
   PLAN_UPGRADE_PATH,
   UPSELL_MESSAGES,
@@ -255,12 +257,13 @@ export default function LogementsPage() {
   }
 
   const refreshPlanLimit = useCallback(async (ownerId: string) => {
-    const [plan, existingCount] = await Promise.all([
+    const [plan, existingCount, cumulCount] = await Promise.all([
       getOwnerPlan(ownerId),
       getOwnedCount("logements", ownerId),
+      getLogementsCumulCount(ownerId),
     ]);
     setCurrentPlan(plan);
-    if (!canCreateLogement(plan, existingCount, existingCount)) {
+    if (!canCreateLogement(plan, cumulCount, existingCount)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de logements.");
       setPlanWarningMessage("");
       return;
@@ -437,11 +440,12 @@ export default function LogementsPage() {
     const { proprietaireId: ownerId } = await getCurrentProprietaireId();
     if (ownerId) {
       await refreshPlanLimit(ownerId);
-      const [plan, existingCount] = await Promise.all([
+      const [plan, existingCount, cumulCount] = await Promise.all([
         getOwnerPlan(ownerId),
         getOwnedCount("logements", ownerId),
+        getLogementsCumulCount(ownerId),
       ]);
-      if (!canCreateLogement(plan, existingCount, existingCount)) {
+      if (!canCreateLogement(plan, cumulCount, existingCount)) {
         setError(
           "Limite atteinte. Passez au plan supérieur pour créer plus de logements.",
         );
@@ -619,9 +623,12 @@ export default function LogementsPage() {
       }
       setProprietaireId(ownerId);
       if (!isEditing) {
-        const existingCount = await getOwnedCount("logements", ownerId);
-        const plan = await getOwnerPlan(ownerId);
-        if (!canCreateLogement(plan, existingCount, existingCount)) {
+        const [existingCount, cumulCount, plan] = await Promise.all([
+          getOwnedCount("logements", ownerId),
+          getLogementsCumulCount(ownerId),
+          getOwnerPlan(ownerId),
+        ]);
+        if (!canCreateLogement(plan, cumulCount, existingCount)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;
         }
@@ -772,6 +779,13 @@ export default function LogementsPage() {
       if (submitError) {
         setError(`Erreur d'enregistrement : ${formatSubmitError(submitError)}`);
         return;
+      }
+      if (!isEditing) {
+        try {
+          await incrementLogementsCumul(ownerId);
+        } catch {
+          /* ne pas bloquer la création */
+        }
       }
       if (isEditing && currentPlan === "free") {
         const quotas = await getFreeLogementQuotas(ownerId);

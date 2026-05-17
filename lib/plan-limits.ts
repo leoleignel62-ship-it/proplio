@@ -114,10 +114,11 @@ export function canCreateLogement(
   existingLogementsCount = 0,
 ): boolean {
   const max = PLAN_LIMITS[plan].maxLogements;
-  const referenceCount = Number.isFinite(existingLogementsCount)
-    ? existingLogementsCount
-    : totalCreeCount;
-  return max == null || referenceCount < max;
+  if (max == null) return true;
+  const cumul = Number.isFinite(totalCreeCount) ? totalCreeCount : 0;
+  const existing = Number.isFinite(existingLogementsCount) ? existingLogementsCount : 0;
+  const referenceCount = Math.max(cumul, existing);
+  return referenceCount < max;
 }
 
 export function canCreateLocataire(
@@ -126,8 +127,11 @@ export function canCreateLocataire(
   existingCount = 0,
 ): boolean {
   const max = PLAN_LIMITS[plan].maxLocataires;
-  const referenceCount = Number.isFinite(existingCount) ? existingCount : totalCreeCount;
-  return max == null || referenceCount < max;
+  if (max == null) return true;
+  const cumul = Number.isFinite(totalCreeCount) ? totalCreeCount : 0;
+  const existing = Number.isFinite(existingCount) ? existingCount : 0;
+  const referenceCount = Math.max(cumul, existing);
+  return referenceCount < max;
 }
 
 export function canCreateQuittance(plan: LocavioPlan, totalCount: number): boolean {
