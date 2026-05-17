@@ -1,5 +1,9 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { normalizePlan, type LocavioPlan } from "@/lib/plan-limits";
+import {
+  applySoftLockForPlanTransition,
+} from "@/lib/soft-lock";
 import { getStripeServerClient } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { STRIPE_PRICE_IDS } from "@/lib/stripe-checkout";
@@ -7,13 +11,48 @@ import { STRIPE_PRICE_IDS } from "@/lib/stripe-checkout";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+async function resolveProprietaireId(
+  ownerId: string | null,
+  userId: string | null,
+): Promise<string | null> {
+  if (ownerId) return ownerId;
+  if (!userId) return null;
+  const { data } = await supabaseAdmin
+    .from("proprietaires")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 async function applyPlanUpdate(ownerId: string | null, userId: string | null, plan: string) {
+  const proprietaireId = await resolveProprietaireId(ownerId, userId);
+  const newPlan = normalizePlan(plan) as LocavioPlan;
+
+  if (proprietaireId) {
+    const { data: currentProprio } = await supabaseAdmin
+      .from("proprietaires")
+      .select("plan")
+      .eq("id", proprietaireId)
+      .maybeSingle();
+    const oldPlan = currentProprio?.plan ?? "free";
+
+    await supabaseAdmin.from("proprietaires").update({ plan: newPlan }).eq("id", proprietaireId);
+
+    try {
+      await applySoftLockForPlanTransition(proprietaireId, oldPlan, newPlan);
+    } catch (error) {
+      console.warn("Soft-lock plan transition:", error);
+    }
+    return;
+  }
+
   if (ownerId) {
-    await supabaseAdmin.from("proprietaires").update({ plan }).eq("id", ownerId);
+    await supabaseAdmin.from("proprietaires").update({ plan: newPlan }).eq("id", ownerId);
     return;
   }
   if (userId) {
-    await supabaseAdmin.from("proprietaires").update({ plan }).eq("user_id", userId);
+    await supabaseAdmin.from("proprietaires").update({ plan: newPlan }).eq("user_id", userId);
   }
 }
 
@@ -26,7 +65,26 @@ function mapPriceIdToPlan(priceId: string | null | undefined): "starter" | "pro"
 }
 
 async function applyPlanUpdateByEmail(email: string, plan: "starter" | "pro" | "expert") {
-  await supabaseAdmin.from("proprietaires").update({ plan }).eq("email", email);
+  const newPlan = normalizePlan(plan) as LocavioPlan;
+  const { data: currentProprio } = await supabaseAdmin
+    .from("proprietaires")
+    .select("id, plan")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (!currentProprio?.id) {
+    await supabaseAdmin.from("proprietaires").update({ plan: newPlan }).eq("email", email);
+    return;
+  }
+
+  const oldPlan = currentProprio.plan ?? "free";
+  await supabaseAdmin.from("proprietaires").update({ plan: newPlan }).eq("id", currentProprio.id);
+
+  try {
+    await applySoftLockForPlanTransition(currentProprio.id, oldPlan, newPlan);
+  } catch (error) {
+    console.warn("Soft-lock plan transition:", error);
+  }
 }
 
 function resolveStripeCustomerId(
