@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getLocataireIdsOrderedForBailPdf } from "@/lib/bail-pdf-locataires";
 import { generateBailPdfBuffer, type BailPdfLocataire } from "@/lib/pdf/generate-bail-pdf";
+import { applyElectronicSignatureToPdfBytes } from "@/lib/pdf/pdf-utils";
 
 export async function GET(
   _request: Request,
@@ -88,13 +89,41 @@ export async function GET(
       }
     }
 
-    const pdfBytes = await generateBailPdfBuffer({
+    let pdfBytes = await generateBailPdfBuffer({
       bail: bail as Record<string, unknown>,
       proprietaire: proprietaire as Record<string, unknown>,
       logement: (logement ?? null) as Record<string, unknown> | null,
       locatairesOrdered,
       signatureImage,
     });
+
+    const { data: sigDoc } = await supabaseAdmin
+      .from("document_signatures")
+      .select("*")
+      .eq("document_type", "bail")
+      .eq("document_id", id)
+      .not("signed_at", "is", null)
+      .maybeSingle();
+
+    if (sigDoc?.signed_at && sigDoc.signature_data) {
+      pdfBytes = await applyElectronicSignatureToPdfBytes(pdfBytes, {
+        sigDoc: {
+          signature_data: String(sigDoc.signature_data),
+          signer_name: String(sigDoc.signer_name ?? ""),
+          signer_email: String(sigDoc.signer_email ?? ""),
+          signer_ip: sigDoc.signer_ip as string | null,
+          signer_user_agent: sigDoc.signer_user_agent as string | null,
+          signed_at: String(sigDoc.signed_at),
+          otp_verified_at: sigDoc.otp_verified_at as string | null,
+          document_id: String(sigDoc.document_id ?? id),
+        },
+        documentTypeLabel: "Bail de location",
+        proprietaire: proprietaire as Record<string, unknown>,
+        logement: (logement ?? null) as Record<string, unknown> | null,
+        proprietaireSignatureImage: signatureImage,
+        marginX: 48,
+      });
+    }
 
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
