@@ -252,6 +252,9 @@ export default function BauxPage() {
   }, [values.logement_id, locataires]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [signatureStatuses, setSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [sendingSignature, setSendingSignature] = useState<string | null>(null);
+  const [signatureModalBail, setSignatureModalBail] = useState<{ bail: Bail; email: string } | null>(null);
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [hoveredBailId, setHoveredBailId] = useState<string | null>(null);
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -355,8 +358,21 @@ export default function BauxPage() {
     if (fetchError) {
       setError(`Erreur de chargement : ${formatSubmitError(fetchError)}`);
       setRows([]);
+      setSignatureStatuses({});
     } else {
       setRows((data as Bail[]) ?? []);
+      const { data: sigs } = await supabase
+        .from("document_signatures")
+        .select("document_id, signed_at")
+        .eq("document_type", "bail")
+        .eq("proprietaire_id", activeOwnerId);
+      setSignatureStatuses(
+        Object.fromEntries(
+          (sigs ?? [])
+            .filter((s) => s.signed_at)
+            .map((s) => [String(s.document_id), true]),
+        ),
+      );
     }
 
     await refreshPlanLimit(activeOwnerId);
@@ -1028,6 +1044,63 @@ export default function BauxPage() {
     }
   }
 
+  function openSignatureModalForBail(bail: Bail) {
+    const loc = locataires.find((l) => l.id === bail.locataire_id);
+    setSignatureModalBail({
+      bail,
+      email: loc?.email?.trim() ?? "",
+    });
+  }
+
+  async function handleSendForSignature() {
+    if (!signatureModalBail || !proprietaireId) return;
+    const { bail } = signatureModalBail;
+    const signerEmail = signatureModalBail.email.trim();
+    if (!signerEmail) {
+      toast.error("Indiquez une adresse e-mail.");
+      return;
+    }
+
+    setSendingSignature(bail.id);
+    try {
+      const { data: locataire, error: locErr } = await supabase
+        .from("locataires")
+        .select("nom, prenom, email")
+        .eq("id", bail.locataire_id)
+        .maybeSingle();
+
+      if (locErr || !locataire) {
+        toast.error("Locataire introuvable.");
+        return;
+      }
+
+      const signerName = `${String(locataire.prenom ?? "").trim()} ${String(locataire.nom ?? "").trim()}`.trim();
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "bail",
+          document_id: bail.id,
+          signer_name: signerName || (locatairesMap.get(bail.locataire_id) ?? "Locataire"),
+          signer_email: signerEmail,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Email de signature envoyé à ${signerEmail}`);
+        setSignatureModalBail(null);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    } finally {
+      setSendingSignature(null);
+    }
+  }
+
   if (!isLoading && currentPlan === "free") {
     return <PlanFreeModuleUpsell variant="baux" />;
   }
@@ -1263,6 +1336,25 @@ export default function BauxPage() {
                               >
                                 Supprimer
                               </BtnDanger>
+                              {signatureStatuses[row.id] ? (
+                                <span
+                                  className="rounded-full px-2 py-1 text-xs font-semibold"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  ✓ Signé électroniquement
+                                </span>
+                              ) : row.statut !== "termine" ? (
+                                <BtnPrimary
+                                  size="small"
+                                  icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                                  disabled={freeBauxBlock || sendingSignature === row.id}
+                                  loading={sendingSignature === row.id}
+                                  style={btnDisabledStyle}
+                                  onClick={() => openSignatureModalForBail(row)}
+                                >
+                                  Envoyer pour signature
+                                </BtnPrimary>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -1971,6 +2063,58 @@ export default function BauxPage() {
               </BtnPrimary>
             </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {signatureModalBail ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSignatureModalBail(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl p-6 shadow-2xl"
+            style={{ ...panelCard, backgroundColor: PC.card }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold" style={{ color: PC.text }}>
+              Envoyer pour signature électronique
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Le locataire{" "}
+              <strong style={{ color: PC.text }}>
+                {locatairesMap.get(signatureModalBail.bail.locataire_id) ?? "—"}
+              </strong>{" "}
+              recevra un email avec un lien pour signer le bail en ligne.
+            </p>
+            <label className="mt-4 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+              <span className="font-medium">E-mail du signataire</span>
+              <input
+                type="email"
+                required
+                value={signatureModalBail.email}
+                onChange={(e) =>
+                  setSignatureModalBail((prev) => (prev ? { ...prev, email: e.target.value } : null))
+                }
+                className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                style={fieldInputMd}
+              />
+            </label>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <BtnNeutral type="button" onClick={() => setSignatureModalBail(null)}>
+                Annuler
+              </BtnNeutral>
+              <BtnPrimary
+                type="button"
+                loading={sendingSignature === signatureModalBail.bail.id}
+                disabled={sendingSignature === signatureModalBail.bail.id}
+                onClick={() => void handleSendForSignature()}
+              >
+                Envoyer
+              </BtnPrimary>
+            </div>
           </div>
         </div>
       ) : null}

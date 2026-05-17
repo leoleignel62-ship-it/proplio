@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { Download, Mail } from "lucide-react";
-import { IconArrowPath } from "@/components/locavio-icons";
-import { BtnSecondary } from "@/components/ui";
+import { IconArrowPath, IconPencil } from "@/components/locavio-icons";
+import { BtnNeutral, BtnPrimary, BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
-import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
+import { fieldInputMd, fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
 
 type ContratStatut = "Généré" | "Envoyé" | "Signé";
 
@@ -87,13 +87,19 @@ export default function ContratsSejourPage() {
   const [lierTel, setLierTel] = useState("");
   const [lierLoading, setLierLoading] = useState(false);
   const [hoveredContratId, setHoveredContratId] = useState<string | null>(null);
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [signatureStatuses, setSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [sendingSignature, setSendingSignature] = useState<string | null>(null);
+  const [signatureModalRow, setSignatureModalRow] = useState<{ row: Row; email: string; voyageurLabel: string } | null>(null);
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
     if (e || !proprietaireId) {
+      setProprietaireId(null);
       setLoading(false);
       return;
     }
+    setProprietaireId(proprietaireId);
     const p = await getOwnerPlan(proprietaireId);
     setPlan(p);
     if (!canAccessSaisonnier(p)) {
@@ -153,6 +159,18 @@ export default function ContratsSejourPage() {
             : null,
         };
       }),
+    );
+    const { data: sigs } = await supabase
+      .from("document_signatures")
+      .select("document_id, signed_at")
+      .eq("document_type", "contrat_sejour")
+      .eq("proprietaire_id", proprietaireId);
+    setSignatureStatuses(
+      Object.fromEntries(
+        (sigs ?? [])
+          .filter((s) => s.signed_at)
+          .map((s) => [String(s.document_id), true]),
+      ),
     );
     setLoading(false);
   }, []);
@@ -219,6 +237,77 @@ export default function ContratsSejourPage() {
       URL.revokeObjectURL(url);
     } catch {
       setError("Erreur réseau lors du téléchargement du PDF.");
+    }
+  }
+
+  function openSignatureModalForContrat(row: Row) {
+    const voyageurLabel = row.voyageurs
+      ? `${row.voyageurs.prenom} ${row.voyageurs.nom}`.trim()
+      : extractVoyageurFromNotes(row.notes) ?? "Voyageur";
+    setSignatureModalRow({
+      row,
+      email: row.voyageurs?.email?.trim() ?? "",
+      voyageurLabel,
+    });
+  }
+
+  async function handleSendForSignature() {
+    if (!signatureModalRow || !proprietaireId) return;
+    const { row } = signatureModalRow;
+    const signerEmail = signatureModalRow.email.trim();
+    if (!signerEmail) {
+      toast.error("Indiquez une adresse e-mail.");
+      return;
+    }
+
+    setSendingSignature(row.id);
+    try {
+      const { data: reservation, error: resaErr } = await supabase
+        .from("reservations")
+        .select("voyageur_id")
+        .eq("id", row.id)
+        .maybeSingle();
+
+      if (resaErr || !reservation?.voyageur_id) {
+        toast.error("Réservation ou voyageur introuvable.");
+        return;
+      }
+
+      const { data: voyageur, error: voyErr } = await supabase
+        .from("voyageurs")
+        .select("nom, prenom, email")
+        .eq("id", reservation.voyageur_id)
+        .maybeSingle();
+
+      if (voyErr || !voyageur) {
+        toast.error("Voyageur introuvable.");
+        return;
+      }
+
+      const signerName = `${String(voyageur.prenom ?? "").trim()} ${String(voyageur.nom ?? "").trim()}`.trim();
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "contrat_sejour",
+          document_id: row.id,
+          signer_name: signerName || signatureModalRow.voyageurLabel,
+          signer_email: signerEmail,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Email de signature envoyé à ${signerEmail}`);
+        setSignatureModalRow(null);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
+      }
+    } catch (err) {
+      toast.error(formatSubmitError(err));
+    } finally {
+      setSendingSignature(null);
     }
   }
 
@@ -509,6 +598,24 @@ export default function ContratsSejourPage() {
                           <input type="checkbox" checked={Boolean(row.contrat_signe)} onChange={(e) => void toggleSigne(row.id, e.target.checked)} />
                           Marquer comme signé
                         </label>
+                        {signatureStatuses[row.id] ? (
+                          <span
+                            className="rounded-full px-2 py-1 text-xs font-semibold"
+                            style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                          >
+                            ✓ Signé électroniquement
+                          </span>
+                        ) : statut !== "Signé" ? (
+                          <BtnPrimary
+                            size="small"
+                            icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                            disabled={!String(row.voyageurs?.email ?? "").trim() || sendingSignature === row.id}
+                            loading={sendingSignature === row.id}
+                            onClick={() => openSignatureModalForContrat(row)}
+                          >
+                            Envoyer pour signature
+                          </BtnPrimary>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -677,6 +784,56 @@ export default function ContratsSejourPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {signatureModalRow ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSignatureModalRow(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl p-6 shadow-2xl"
+            style={{ ...panelCard, backgroundColor: PC.card }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold" style={{ color: PC.text }}>
+              Envoyer pour signature électronique
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: PC.muted }}>
+              Le voyageur{" "}
+              <strong style={{ color: PC.text }}>{signatureModalRow.voyageurLabel}</strong> recevra un email avec un
+              lien pour signer le contrat de séjour en ligne.
+            </p>
+            <label className="mt-4 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+              <span className="font-medium">E-mail du signataire</span>
+              <input
+                type="email"
+                required
+                value={signatureModalRow.email}
+                onChange={(e) =>
+                  setSignatureModalRow((prev) => (prev ? { ...prev, email: e.target.value } : null))
+                }
+                className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                style={fieldInputMd}
+              />
+            </label>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <BtnNeutral type="button" onClick={() => setSignatureModalRow(null)}>
+                Annuler
+              </BtnNeutral>
+              <BtnPrimary
+                type="button"
+                loading={sendingSignature === signatureModalRow.row.id}
+                disabled={sendingSignature === signatureModalRow.row.id}
+                onClick={() => void handleSendForSignature()}
+              >
+                Envoyer
+              </BtnPrimary>
+            </div>
           </div>
         </div>
       ) : null}
