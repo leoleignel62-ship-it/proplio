@@ -469,6 +469,71 @@ export function formatSignatureDateFr(isoDate: string): string {
   }).format(d);
 }
 
+/** Injecte uniquement la signature locataire dans le rectangle gauche existant (sans redessiner le bloc). */
+function injectLocataireSignatureOnLastPage(
+  page: PDFPage,
+  props: {
+    font: PDFFont;
+    fontBold: PDFFont;
+    locataireSignatureImage: PDFImage | null;
+    locataireNom: string;
+    locataireSignedAt: string;
+    marginX?: number;
+    pageWidth?: number;
+    blockBottomY?: number;
+    blockHeight?: number;
+  },
+): void {
+  const margin = props.marginX ?? 48;
+  const pw = props.pageWidth ?? page.getWidth();
+  const bb = props.blockBottomY ?? PDF_FOOTER_HEIGHT;
+  const h = props.blockHeight ?? PDF_SIGNATURE_BLOCK_HEIGHT;
+  const top = bb + h;
+  const lineY = top - 18;
+  const labelY = lineY - 33;
+  const colGap = 16;
+  const colW = (pw - 2 * margin - colGap) / 2;
+  const zoneTop = labelY - 10;
+  const zoneH = 60;
+  const zoneBottom = zoneTop - zoneH;
+  const leftColX = margin + 4;
+  const zoneW = colW - 8;
+
+  if (props.locataireSignatureImage) {
+    const img = props.locataireSignatureImage;
+    const maxW = 100;
+    const maxH = 50;
+    const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+    const dw = img.width * ratio;
+    const dh = img.height * ratio;
+    const imgX = leftColX + (zoneW - dw) / 2;
+    const imgY = zoneBottom + (zoneH - dh) / 2;
+    page.drawImage(img, { x: imgX, y: imgY, width: dw, height: dh });
+  }
+
+  const nameBaseline = zoneBottom - 16;
+  const locataireNom = props.locataireNom.trim();
+  if (locataireNom) {
+    page.drawText(sanitizePdfText(locataireNom), {
+      x: leftColX,
+      y: nameBaseline - 12,
+      size: 11,
+      font: props.fontBold,
+      color: TEXT_OWNER,
+    });
+  }
+
+  if (props.locataireSignedAt) {
+    page.drawText(sanitizePdfText(`Signe le ${props.locataireSignedAt}`), {
+      x: leftColX,
+      y: nameBaseline - 26,
+      size: 8,
+      font: props.font,
+      color: TEXT_SECONDARY,
+    });
+  }
+}
+
 /**
  * Injecte la signature locataire sur la dernière page et ajoute le certificat d’audit.
  */
@@ -499,39 +564,20 @@ export async function applyElectronicSignatureToPdfBytes(
     }
   }
 
-  let proprietaireImg: PDFImage | null = null;
-  if (options.proprietaireSignatureImage?.bytes?.length) {
-    try {
-      proprietaireImg = options.proprietaireSignatureImage.isPng
-        ? await pdfDoc.embedPng(options.proprietaireSignatureImage.bytes)
-        : await pdfDoc.embedJpg(options.proprietaireSignatureImage.bytes);
-    } catch {
-      proprietaireImg = null;
-    }
-  }
-
   const pages = pdfDoc.getPages();
   const lastPage = pages[pages.length - 1];
   if (!lastPage) {
     return pdfBytes;
   }
 
-  const ville =
-    String(options.logement?.ville ?? options.proprietaire.ville ?? "").trim() || "—";
   const signedAtFr = formatSignatureDateFr(String(options.sigDoc.signed_at));
-  const proprietaireNom =
-    [options.proprietaire.prenom, options.proprietaire.nom].filter(Boolean).join(" ").trim() || "—";
   const marginX = options.marginX ?? 48;
 
-  drawSignatureBlock(lastPage, {
+  injectLocataireSignatureOnLastPage(lastPage, {
     font,
     fontBold,
-    ville,
-    dateStr: signedAtFr,
-    proprietaireNom,
-    signatureImage: proprietaireImg,
-    locataireNom: String(options.sigDoc.signer_name ?? ""),
     locataireSignatureImage,
+    locataireNom: String(options.sigDoc.signer_name ?? ""),
     locataireSignedAt: signedAtFr,
     marginX,
     pageWidth: lastPage.getWidth(),
