@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { executeRappelSolde } from "@/lib/saisonnier-rappels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

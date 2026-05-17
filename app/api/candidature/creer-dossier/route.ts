@@ -7,7 +7,7 @@ import {
   emailParagraph,
   wrapLocavioEmail,
 } from "@/lib/email-templates";
-import { canAccessDocuments, normalizePlan } from "@/lib/plan-limits";
+import { canAccessDocuments } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";

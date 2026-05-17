@@ -59,7 +59,6 @@ import {
   canAccessDocuments,
   canAccessSaisonnier,
   canAccessStarterFeatures,
-  normalizePlan,
   PLAN_UPGRADE_PATH,
   UPSELL_MESSAGES,
   type LocavioPlan,
@@ -925,8 +924,8 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     logementNom: logementsMap.get(String(b.logement_id ?? "")) ?? "Logement",
   }));
 
-  let rappelsAcompteSaisonnier: HeaderAlertMetrics["rappelsAcompteSaisonnier"] = [];
-  let rappelsSoldeSaisonnier: HeaderAlertMetrics["rappelsSoldeSaisonnier"] = [];
+  const rappelsAcompteSaisonnier: HeaderAlertMetrics["rappelsAcompteSaisonnier"] = [];
+  const rappelsSoldeSaisonnier: HeaderAlertMetrics["rappelsSoldeSaisonnier"] = [];
   let reservationsSaisonnierEnAttente = 0;
   let checkinsSaisonnier7Jours = 0;
 

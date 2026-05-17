@@ -11,7 +11,6 @@ import { getIrlPourDate } from "@/lib/irl-historique";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import {
   canCreateBail,
-  getMonthlyCreatedCount,
   getOwnerPlan,
   PLAN_FREE_BAUX_BANNER,
   PLAN_LIMIT_ERROR_MESSAGE,
@@ -286,7 +285,6 @@ export default function BauxPage() {
       setPlanLimitMessage(PLAN_FREE_BAUX_BANNER);
       return;
     }
-    const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
     if (!canCreateBail(plan)) {
       setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
       return;
@@ -483,7 +481,6 @@ export default function BauxPage() {
         setPlanLimitMessage(PLAN_FREE_BAUX_BANNER);
         return;
       }
-      const monthlyCount = await getMonthlyCreatedCount("baux", proprietaireId);
       if (!canCreateBail(plan)) {
         setPlanLimitMessage("Limite atteinte. Passez au plan supérieur pour créer plus de baux.");
         return;
@@ -793,7 +790,6 @@ export default function BauxPage() {
         return;
       }
       if (!isEditing) {
-        const monthlyCount = await getMonthlyCreatedCount("baux", ownerId);
         if (!canCreateBail(plan)) {
           setError(PLAN_LIMIT_ERROR_MESSAGE);
           return;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Euro, Gift, Loader2, UserPlus, Users } from "lucide-react";
-import { normalizePlan, type LocavioPlan } from "@/lib/plan-limits";
+import type { LocavioPlan } from "@/lib/plan-limits";
 
 const ACCENT = "#7c3aed";
 const TEXT = "#1a0533";

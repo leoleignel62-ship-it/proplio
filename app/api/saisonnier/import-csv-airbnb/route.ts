@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 
 export const runtime = "nodejs";

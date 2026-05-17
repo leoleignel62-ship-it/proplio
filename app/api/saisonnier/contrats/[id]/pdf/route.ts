@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
 import { applyElectronicSignatureToPdfBytes } from "@/lib/pdf/pdf-utils";
 import { PDF_MARGIN_X } from "@/lib/pdf/locavio-pdf-theme";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";

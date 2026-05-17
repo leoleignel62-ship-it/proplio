@@ -5,7 +5,7 @@ import {
   formatDateIsoLocal,
   getDerniereDateAnniversaireBail,
 } from "@/lib/irl-revision";
-import { canAccessStarterFeatures, normalizePlan } from "@/lib/plan-limits";
+import { canAccessStarterFeatures } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 

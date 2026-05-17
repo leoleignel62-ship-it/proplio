@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateTaxeSejourPdfBuffer } from "@/lib/pdf/generate-taxe-sejour-pdf";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 

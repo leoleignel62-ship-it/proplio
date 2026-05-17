@@ -4,7 +4,7 @@ import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@
 import { fetchLatestIrlFromInsee } from "@/lib/irl-insee";
 import { formatDateIsoLocal, getDerniereDateAnniversaireBail } from "@/lib/irl-revision";
 import { generateRevisionIrlLetterPdfBuffer } from "@/lib/pdf/generate-revision-irl-letter-pdf";
-import { canAccessStarterFeatures, normalizePlan } from "@/lib/plan-limits";
+import { canAccessStarterFeatures } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";

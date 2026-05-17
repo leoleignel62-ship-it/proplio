@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";

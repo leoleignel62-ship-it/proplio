@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseVeventsFromIcs } from "@/lib/ical-saisonnier";
-import { canAccessSaisonnier, normalizePlan } from "@/lib/plan-limits";
+import { canAccessSaisonnier } from "@/lib/plan-limits";
 import { getEffectivePlan } from "@/lib/proprietaire-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
