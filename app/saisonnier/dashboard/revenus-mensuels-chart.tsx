@@ -28,7 +28,7 @@ function TooltipContent({ active, payload }: { active?: boolean; payload?: Array
 
 export function RevenusMensuelsChart({ data }: { data: Row[] }) {
   return (
-    <div className="h-80 w-full">
+    <div style={{ width: "100%", height: 320, minHeight: 320 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={PC.border} />

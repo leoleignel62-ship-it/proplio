@@ -570,7 +570,7 @@ export function DashboardContent() {
           Revenus {new Date().getFullYear()}
         </h2>
         <div>
-          <div className="min-h-[300px] w-full min-w-0" style={{ position: "relative", height: 300 }}>
+          <div style={{ width: "100%", height: 280, minHeight: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={annualChartRows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(144, 144, 168, 0.12)" vertical={false} />

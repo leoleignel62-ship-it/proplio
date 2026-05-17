@@ -38,26 +38,19 @@ export async function GET() {
     }
 
     if (!customerId) {
-      console.log("[subscription-status] Aucun stripe_customer_id pour user:", user.id);
       return NextResponse.json({ cancelAtPeriodEnd: false, currentPeriodEnd: null });
     }
-
-    console.log("[subscription-status] customerId:", customerId);
 
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       limit: 1,
     });
 
-    console.log("[subscription-status] subscriptions count:", subscriptions.data.length);
-
     if (!subscriptions.data.length) {
       return NextResponse.json({ cancelAtPeriodEnd: false, currentPeriodEnd: null });
     }
 
     const sub = subscriptions.data[0];
-
-    console.log("subscription data:", JSON.stringify(sub, null, 2));
 
     const cancelAt = sub.cancel_at;
     const cancelAtPeriodEnd = sub.cancel_at_period_end;
@@ -70,10 +63,9 @@ export async function GET() {
       currentPeriodEnd: endDate,
     };
 
-    console.log("[subscription-status] response:", JSON.stringify(payload, null, 2));
-
     return NextResponse.json(payload);
   } catch (error) {
+    console.error("Erreur inattendue lors de la lecture du statut d'abonnement.");
     return NextResponse.json(
       {
         cancelAtPeriodEnd: false,
