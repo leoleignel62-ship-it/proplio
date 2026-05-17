@@ -1405,13 +1405,7 @@ export default function ReservationsSaisonnierPage() {
                           
                             return (
                           
-                              <div className="contents">
-                          
-                                <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
-                          
-                                  Détail
-                          
-                                </BtnSecondary>
+                              <>
                           
                                 {isOta &&
                           
@@ -1426,8 +1420,6 @@ export default function ReservationsSaisonnierPage() {
                                   </ResaActionPill>
                           
                                 ) : null}
-                          
-                                <div className="flex flex-wrap gap-2">
                           
                                   {canDirectActions && row.statut === "en_attente" ? (
                           
@@ -1445,7 +1437,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                       size="small"
                           
-                                      className="!w-full justify-center"
+                                      icon={<IconTrash className="h-4 w-4" aria-hidden />}
                           
                                       onClick={() => {
                           
@@ -1471,7 +1463,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                       size="small"
                           
-                                      className="!w-full justify-center"
+                                      icon={<IconTrash className="h-4 w-4" aria-hidden />}
                           
                                       onClick={() => {
                           
@@ -1495,7 +1487,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                     <div className="flex gap-1">
                           
-                                      <BtnPdf size="small" className="!flex-1 justify-center" onClick={() => requestSendConfirm("contrat", row)}>
+                                      <BtnPdf size="small" onClick={() => requestSendConfirm("contrat", row)}>
                           
                                         Envoyer contrat
                           
@@ -1504,8 +1496,6 @@ export default function ReservationsSaisonnierPage() {
                                       <BtnSecondary
                           
                                         size="small"
-                          
-                                        className="!flex-1 justify-center"
                           
                                         onClick={() => void downloadContratPdf(row.id)}
                           
@@ -1585,7 +1575,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                       size="small"
                           
-                                      className="!w-full justify-center"
+                                      icon={<IconTrash className="h-4 w-4" aria-hidden />}
                           
                                       onClick={() => {
                           
@@ -1607,7 +1597,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                   {!isBlocage ? (
                           
-                                    <BtnNeutral size="small" className="!w-full justify-center" onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                                    <BtnNeutral size="small" onClick={() => void markMenageDone(row.id, row.logement_id)}>
                           
                                       Ménage ✓
                           
@@ -1615,9 +1605,7 @@ export default function ReservationsSaisonnierPage() {
                           
                                   ) : null}
                           
-                                </div>
-                          
-                              </div>
+                              </>
                           
                             );
                           
