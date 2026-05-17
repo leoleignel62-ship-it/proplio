@@ -26,10 +26,13 @@ import {
   getOwnerPlan,
   UPSELL_MESSAGES,
 } from "@/lib/plan-limits";
+import { EdlSignatureActions, type EdlSignatureStatus } from "@/components/edl-signature-actions";
+import { useToast } from "@/components/ui/toast";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
 import { fieldInputStyle, fieldSelectStyle, panelCard } from "@/lib/locavio-field-styles";
+import { signatureStatusFromRow } from "@/lib/signature-status";
 
 export type SaisonnierReservationOption = {
   id: string;
@@ -85,8 +88,9 @@ export function SaisonnierEdlWizard({
   const [ownerSigUrl, setOwnerSigUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
-  const [sendBusy, setSendBusy] = useState(false);
-  const [sendToast, setSendToast] = useState("");
+  const [sendingSignature, setSendingSignature] = useState(false);
+  const [signatureStatus, setSignatureStatus] = useState<EdlSignatureStatus>("none");
+  const toast = useToast();
 
   const payloadRef = useRef(payload);
   payloadRef.current = payload;
@@ -174,6 +178,13 @@ export function SaisonnierEdlWizard({
       }
       await refreshPhotoUrls(paths);
 
+      const { data: sig } = await supabase
+        .from("document_signatures")
+        .select("signed_at, signed_manually")
+        .eq("document_type", "edl")
+        .eq("document_id", id)
+        .maybeSingle();
+      setSignatureStatus(signatureStatusFromRow(sig));
     },
     [refreshPhotoUrls],
   );
@@ -247,23 +258,91 @@ export function SaisonnierEdlWizard({
     setDateEtat(reservationDateToInputValue(raw));
   }, [initialEdlId, isReadOnly, reservationId, typeEtat, reservations]);
 
-  async function onSendPdfEmail() {
+  async function handleSendForSignature() {
     if (!edlId || !isReadOnly) return;
-    setSendBusy(true);
+    setSendingSignature(true);
     setError("");
-    setSendToast("");
     try {
-      const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
-      const j = (await res.json()) as { error?: string; to?: string[] };
-      if (!res.ok) setError(j.error ?? "Envoi impossible.");
-      else {
-        setSendToast(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}`);
-        window.setTimeout(() => setSendToast(""), 4000);
+      const { data: edl } = await supabase
+        .from("etats_des_lieux")
+        .select("proprietaire_id, reservation_id")
+        .eq("id", edlId)
+        .maybeSingle();
+
+      const { data: reservation } = edl?.reservation_id
+        ? await supabase.from("reservations").select("voyageur_id").eq("id", edl.reservation_id).maybeSingle()
+        : { data: null };
+
+      const { data: voyageur } = reservation?.voyageur_id
+        ? await supabase
+            .from("voyageurs")
+            .select("nom, prenom, email")
+            .eq("id", reservation.voyageur_id)
+            .maybeSingle()
+        : { data: null };
+
+      if (!voyageur?.email) {
+        toast.error("Aucun email voyageur trouvé.");
+        return;
+      }
+
+      if (!edl?.proprietaire_id) {
+        toast.error("Propriétaire introuvable.");
+        return;
+      }
+
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edlId,
+          signer_name: `${String(voyageur.prenom ?? "").trim()} ${String(voyageur.nom ?? "").trim()}`.trim(),
+          signer_email: voyageur.email,
+          proprietaire_id: edl.proprietaire_id,
+        }),
+      });
+
+      if (res.ok) {
+        setSignatureStatus("pending");
+        toast.success(`Email de signature envoyé à ${voyageur.email}`);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
       }
     } catch (e) {
-      setError(formatSubmitError(e));
+      toast.error(formatSubmitError(e));
     } finally {
-      setSendBusy(false);
+      setSendingSignature(false);
+    }
+  }
+
+  async function handleManualConfirm() {
+    if (!edlId) return;
+    const { proprietaireId, error: pe } = await getCurrentProprietaireId();
+    if (pe || !proprietaireId) {
+      toast.error(pe ? formatSubmitError(pe) : "Session invalide.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/signature/manual-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edlId,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+      if (res.ok) {
+        setSignatureStatus("signed_manual");
+        toast.success("Document marqué comme signé.");
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de la confirmation.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
     }
   }
 
@@ -493,24 +572,23 @@ export function SaisonnierEdlWizard({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isReadOnly && edlId ? (
-              <>
-                <a
-                  href={`/api/etats-des-lieux/${edlId}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg px-3 py-1.5 text-sm pc-outline-primary"
-                >
-                  PDF
-                </a>
-                <button
-                  type="button"
-                  className="rounded-lg px-3 py-1.5 text-sm pc-outline-success"
-                  disabled={sendBusy}
-                  onClick={() => void onSendPdfEmail()}
-                >
-                  {sendBusy ? "…" : "Envoyer"}
-                </button>
-              </>
+              <a
+                href={`/api/etats-des-lieux/${edlId}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg px-3 py-1.5 text-sm pc-outline-primary"
+              >
+                PDF
+              </a>
+            ) : null}
+            {edlId ? (
+              <EdlSignatureActions
+                isActive={isReadOnly}
+                signatureStatus={signatureStatus}
+                sendingSignature={sendingSignature}
+                onSend={() => void handleSendForSignature()}
+                onManualConfirm={() => void handleManualConfirm()}
+              />
             ) : null}
             <button
               type="button"
@@ -543,15 +621,6 @@ export function SaisonnierEdlWizard({
             {error}
           </p>
         ) : null}
-        {sendToast ? (
-          <p
-            className="mb-4 rounded-lg px-3 py-2 text-sm"
-            style={{ border: `1px solid rgba(16, 185, 129, 0.3)`, backgroundColor: PC.successBg10, color: PC.success }}
-          >
-            {sendToast}
-          </p>
-        ) : null}
-
         {step === 0 ? (
           <div className="space-y-4">
             <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
@@ -925,7 +994,7 @@ export function SaisonnierEdlWizard({
             </label>
             {isReadOnly ? (
               <p className="text-sm" style={{ color: PC.muted }}>
-                Utilisez les boutons <strong>PDF</strong> et <strong>Envoyer</strong> ci-dessus pour partager le document.
+                Utilisez les boutons <strong>PDF</strong> et <strong>Envoyer pour signature</strong> ci-dessus pour partager le document.
               </p>
             ) : (
               <button

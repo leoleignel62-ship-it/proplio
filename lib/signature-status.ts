@@ -12,6 +12,14 @@ export function getSignatureStatus(sig: SignatureRow | undefined): SignatureStat
   return "signed_electronic";
 }
 
+export function signatureStatusFromRow(
+  sig: { signed_at: string | null; signed_manually?: boolean | null } | null | undefined,
+): SignatureStatus {
+  if (!sig) return "none";
+  if (sig.signed_at) return sig.signed_manually ? "signed_manual" : "signed_electronic";
+  return "pending";
+}
+
 export function signatureStatusesFromRows(
   rows: Array<{ document_id: string; signed_at: string | null; signed_manually?: boolean | null }>,
 ): Record<string, SignatureRow> {

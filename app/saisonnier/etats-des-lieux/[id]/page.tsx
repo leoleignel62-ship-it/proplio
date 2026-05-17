@@ -130,7 +130,7 @@ export default function SaisonnierEdlDetailPage() {
           }}
         >
           ⚠️ Cet état des lieux est finalisé et ne peut plus être modifié. Vous pouvez uniquement le consulter,
-          générer le PDF ou l&apos;envoyer.
+          générer le PDF ou l&apos;envoyer pour signature.
         </div>
       ) : null}
       <SaisonnierEdlWizard

@@ -24,8 +24,10 @@ import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
 import { PC } from "@/lib/locavio-colors";
-import { BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
+import { EdlSignatureActions, type EdlSignatureStatus } from "@/components/edl-signature-actions";
+import { BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { signatureStatusFromRow } from "@/lib/signature-status";
 
 type EdlRow = Record<string, unknown>;
 
@@ -192,6 +194,8 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const [sendingSignature, setSendingSignature] = useState(false);
+  const [signatureStatus, setSignatureStatus] = useState<EdlSignatureStatus>("none");
 
   useEffect(() => {
     piecesRef.current = pieces;
@@ -283,6 +287,15 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       }
       if (signal?.aborted) return;
       await refreshSignedUrls(Array.from(paths));
+
+      const { data: sig } = await supabase
+        .from("document_signatures")
+        .select("signed_at, signed_manually")
+        .eq("document_type", "edl")
+        .eq("document_id", edlId)
+        .maybeSingle();
+      if (signal?.aborted) return;
+      setSignatureStatus(signatureStatusFromRow(sig));
     },
     [edlId, refreshSignedUrls],
   );
@@ -293,6 +306,88 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     void load(ac.signal);
     return () => ac.abort();
   }, [load]);
+
+  async function handleSendForSignature() {
+    setSendingSignature(true);
+    setError("");
+    try {
+      const { data: edl } = await supabase
+        .from("etats_des_lieux")
+        .select("proprietaire_id, bail_id")
+        .eq("id", edlId)
+        .maybeSingle();
+
+      const { data: bail } = edl?.bail_id
+        ? await supabase.from("baux").select("locataire_id").eq("id", edl.bail_id).maybeSingle()
+        : { data: null };
+
+      const { data: locataire } = bail?.locataire_id
+        ? await supabase
+            .from("locataires")
+            .select("nom, prenom, email")
+            .eq("id", bail.locataire_id)
+            .maybeSingle()
+        : { data: null };
+
+      if (!locataire?.email) {
+        toast.error("Aucun email locataire trouvé.");
+        return;
+      }
+
+      if (!edl?.proprietaire_id) {
+        toast.error("Propriétaire introuvable.");
+        return;
+      }
+
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edlId,
+          signer_name: `${String(locataire.prenom ?? "").trim()} ${String(locataire.nom ?? "").trim()}`.trim(),
+          signer_email: locataire.email,
+          proprietaire_id: edl.proprietaire_id,
+        }),
+      });
+
+      if (res.ok) {
+        setSignatureStatus("pending");
+        toast.success(`Email de signature envoyé à ${locataire.email}`);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    } finally {
+      setSendingSignature(false);
+    }
+  }
+
+  async function handleManualConfirm() {
+    if (!proprietaireId) return;
+    try {
+      const res = await fetch("/api/signature/manual-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edlId,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+      if (res.ok) {
+        setSignatureStatus("signed_manual");
+        toast.success("Document marqué comme signé.");
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de la confirmation.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    }
+  }
 
   const persist = useCallback(async () => {
     if (statutRef.current === "termine") return;
@@ -508,29 +603,13 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               Télécharger PDF
             </BtnPdf>
           )}
-          {isFinalise ? (
-            <BtnEmail
-              onClick={async () => {
-                const res = await fetch(`/api/etats-des-lieux/${edlId}/send`, { method: "POST" });
-                const j = (await res.json()) as { error?: string; to?: string[] };
-                if (!res.ok) setError(j.error ?? "Envoi impossible");
-                else {
-                  setError("");
-                  toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
-                }
-              }}
-            >
-              Envoyer par email
-            </BtnEmail>
-          ) : (
-            <BtnEmail
-              disabled
-              style={{ opacity: 0.7, cursor: "not-allowed" }}
-              title="Finalisez l'état des lieux pour envoyer par e-mail."
-            >
-              Envoyer par email
-            </BtnEmail>
-          )}
+          <EdlSignatureActions
+            isActive={isFinalise}
+            signatureStatus={signatureStatus}
+            sendingSignature={sendingSignature}
+            onSend={() => void handleSendForSignature()}
+            onManualConfirm={() => void handleManualConfirm()}
+          />
         </div>
       </div>
 
@@ -555,7 +634,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
             color: PC.red800,
           }}
         >
-          Document finalisé — lecture seule. Vous pouvez générer le PDF ou l&apos;envoyer par e-mail.
+          Document finalisé — lecture seule. Vous pouvez générer le PDF ou l&apos;envoyer pour signature.
         </p>
       ) : null}
 
