@@ -987,7 +987,26 @@ export default function LogementsPage() {
           Aucun logement enregistré.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+              <span>Loué</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#f59e0b" }} aria-hidden />
+              <span>Vacant</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#7c3aed" }} aria-hidden />
+              <span>Saisonnier</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#d1d5db" }} aria-hidden />
+              <span>Verrouillé</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => {
             const isLocked = Boolean(row.verrouille);
             const activeLocataires = locatairesByLogement[row.id] ?? 0;
@@ -1141,7 +1160,8 @@ export default function LogementsPage() {
               </article>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {isModalOpen ? (
