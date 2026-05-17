@@ -2,8 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Lock } from "lucide-react";
-import { IconBuilding, IconPlus } from "@/components/locavio-icons";
+import { AlertTriangle, Lock, Mail, Phone } from "lucide-react";
+import { IconBuilding, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getChambreAt, parseChambresDetails } from "@/lib/colocation";
@@ -32,8 +32,9 @@ const DROIT_A_L_ERREUR_MODAL_TITLE = (
     Droit à l&apos;erreur — Plan Découverte
   </span>
 );
-const GROUP_TITLE_STYLE: CSSProperties = { color: PC.text, fontWeight: 600, letterSpacing: "-0.01em" };
-const CARD_STYLE: CSSProperties = { ...panelCard, padding: 16 };
+function getLocataireCardAccentColor(isLocked: boolean): string {
+  return isLocked ? "#d1d5db" : "#10b981";
+}
 const FREE_LOCATAIRE_MODIF_LIMIT_MESSAGE =
   "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
 const FREE_LOCATAIRE_DELETE_LIMIT_MESSAGE =
@@ -91,6 +92,7 @@ export default function LocatairesPage() {
   const [planWarningMessage, setPlanWarningMessage] = useState("");
   const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [hoveredLocataireId, setHoveredLocataireId] = useState<string | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const logementsById = useMemo(() => new Map(logements.map((l) => [l.id, l])), [logements]);
@@ -707,7 +709,7 @@ export default function LocatairesPage() {
               Aucun locataire enregistré.
             </div>
           ) : (
-            groupedLocataires.map((group) => (
+            groupedLocataires.map((group, groupIndex) => (
               <section key={group.key} className="space-y-4">
                 <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
                   <div className="flex items-center gap-2">
@@ -721,80 +723,132 @@ export default function LocatairesPage() {
                     {group.subtitle}
                   </p>
                 </header>
+                {groupIndex === 0 ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+                      <span>Actif</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#d1d5db" }} aria-hidden />
+                      <span>Verrouillé</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {group.rows.map((row) => {
                     const isLocked = Boolean(row.verrouille);
                     const initiales = `${row.prenom?.[0] ?? ""}${row.nom?.[0] ?? ""}`.toUpperCase();
                     const log = row.logement_id ? logementsById.get(row.logement_id) : null;
+                    const accentColor = getLocataireCardAccentColor(isLocked);
+                    const email = row.email?.trim() ?? "";
+                    const telephone = row.telephone?.trim() ?? "";
+                    const isHovered = hoveredLocataireId === row.id;
+                    const logementLabel = log
+                      ? `${log.nom || log.adresse || "Logement"}${log.est_colocation && row.colocation_chambre_index ? ` · Chambre ${row.colocation_chambre_index}` : ""}`
+                      : null;
                     return (
-                      <article key={row.id} className="rounded-xl" style={{ ...CARD_STYLE, opacity: isLocked ? 0.75 : 1 }}>
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold"
-                            style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
-                          >
-                            {initiales || "?"}
-                          </span>
-                          <div>
-                            <h3 className="font-semibold tracking-tight" style={GROUP_TITLE_STYLE}>
-                              {row.prenom} {row.nom}
-                            </h3>
-                            <span
-                              className="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                              style={{ backgroundColor: PC.successBg20, color: PC.success }}
-                            >
-                              Actif
-                            </span>
-                            {isLocked ? (
+                      <article
+                        key={row.id}
+                        className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                        style={{
+                          backgroundColor: PC.card,
+                          border: `1px solid ${isHovered && !isLocked ? PC.primary : PC.border}`,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                          opacity: isLocked ? 0.6 : 1,
+                        }}
+                        onMouseEnter={() => setHoveredLocataireId(row.id)}
+                        onMouseLeave={() => setHoveredLocataireId(null)}
+                      >
+                        <div
+                          className="shrink-0 self-stretch"
+                          style={{ width: 3, backgroundColor: accentColor }}
+                          aria-hidden
+                        />
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="p-4 pb-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                <span
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                                  style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                                >
+                                  {initiales || "?"}
+                                </span>
+                                <h3 className="min-w-0 text-base font-semibold leading-snug">
+                                  {row.prenom} {row.nom}
+                                </h3>
+                              </div>
+                              {isLocked ? (
+                                <span
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                                >
+                                  <Lock size={12} strokeWidth={1.75} className="shrink-0" aria-hidden />
+                                  Verrouillé
+                                </span>
+                              ) : (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  Actif
+                                </span>
+                              )}
+                            </div>
+                            {logementLabel ? (
                               <span
-                                className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                                style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}
+                                className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}
                               >
-                                <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
-                                Verrouillé - Plan insuffisant
+                                {logementLabel}
                               </span>
                             ) : null}
                           </div>
-                        </div>
-                        <p className="mt-3 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
-                          @ {row.email || "—"}
-                        </p>
-                        <p className="mt-1 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
-                          ☎ {row.telephone || "—"}
-                        </p>
-                        {log ? (
-                          <span
-                            className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                            style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
-                          >
-                            {log.nom || log.adresse || "Logement"}
-                            {log.est_colocation && row.colocation_chambre_index
-                              ? ` · Chambre ${row.colocation_chambre_index}`
-                              : ""}
-                          </span>
-                        ) : null}
-                        <div className="mt-4 flex gap-2">
-                          {isLocked ? (
-                            <p className="text-xs" style={{ color: PC.warning }}>
-                              Passez à un plan supérieur pour accéder à ce locataire
-                            </p>
-                          ) : (
-                            <>
-                              <BtnSecondary
-                                size="small"
-                                onClick={() => void handleEditClick(row)}
-                              >
-                                Modifier
-                              </BtnSecondary>
-                              <BtnDanger
-                                size="small"
-                                disabled={isDeleting}
-                                onClick={() => void handleDeleteClick(row)}
-                              >
-                                Supprimer
-                              </BtnDanger>
-                            </>
-                          )}
+                          {email || telephone ? (
+                            <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                              {email ? (
+                                <p className="flex items-center gap-2 text-sm" style={{ color: PC.text }}>
+                                  <Mail size={14} strokeWidth={1.75} className="shrink-0" style={{ color: PC.muted }} aria-hidden />
+                                  <span className="min-w-0 truncate">{email}</span>
+                                </p>
+                              ) : null}
+                              {telephone ? (
+                                <p
+                                  className={`flex items-center gap-2 text-sm${email ? " mt-1.5" : ""}`}
+                                  style={{ color: PC.text }}
+                                >
+                                  <Phone size={14} strokeWidth={1.75} className="shrink-0" style={{ color: PC.muted }} aria-hidden />
+                                  <span>{telephone}</span>
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            {isLocked ? (
+                              <p className="text-xs" style={{ color: PC.warning }}>
+                                Passez à un plan supérieur pour accéder à ce locataire
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                <BtnSecondary
+                                  size="small"
+                                  icon={<IconPencil className="h-4 w-4" />}
+                                  onClick={() => void handleEditClick(row)}
+                                >
+                                  Modifier
+                                </BtnSecondary>
+                                <BtnDanger
+                                  size="small"
+                                  icon={<IconTrash className="h-4 w-4" />}
+                                  disabled={isDeleting}
+                                  onClick={() => void handleDeleteClick(row)}
+                                >
+                                  Supprimer
+                                </BtnDanger>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </article>
                     );

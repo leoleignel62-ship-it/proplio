@@ -3,10 +3,10 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Download, Mail } from "lucide-react";
 import { EntityFormModal, type EntityField } from "@/components/crud/entity-form-modal";
-import { IconBuilding, IconPlus } from "@/components/locavio-icons";
-import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { IconBuilding, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
   canCreateQuittance,
@@ -93,7 +93,9 @@ const defaultValues = {
   charges: "",
   total: "",
 };
-const GROUP_CARD_STYLE = { ...panelCard, padding: 16 } as const;
+function getQuittanceCardAccentColor(envoyee: boolean): string {
+  return envoyee ? "#10b981" : "#9ca3af";
+}
 const FREE_QUITTANCE_MODIF_LIMIT_MESSAGE =
   "Vous avez atteint la limite de modification du plan Découverte. Passez au plan Starter pour des modifications illimitées.";
 const FREE_QUITTANCE_DELETE_LIMIT_MESSAGE =
@@ -124,6 +126,7 @@ export default function QuittancesPage() {
   const [proprietaireProfile, setProprietaireProfile] = useState<ProprietaireProfile | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [currentPlan, setCurrentPlan] = useState<"free" | "starter" | "pro" | "expert">("free");
+  const [hoveredQuittanceId, setHoveredQuittanceId] = useState<string | null>(null);
 
   const isEditing = useMemo(() => editingRow !== null, [editingRow]);
   const logementsDetailsMap = useMemo(() => new Map(logements.map((item) => [item.id, item])), [logements]);
@@ -781,7 +784,7 @@ export default function QuittancesPage() {
               Aucune quittance enregistrée.
             </div>
           ) : (
-            groupedQuittances.map(({ logement, rows: groupRows, sent }) => (
+            groupedQuittances.map(({ logement, rows: groupRows, sent }, groupIndex) => (
               <section key={logement.id} className="space-y-4">
                 <header className="pb-3" style={{ borderBottom: `1px solid ${PC.border}` }}>
                   <div className="flex items-center gap-2">
@@ -792,53 +795,111 @@ export default function QuittancesPage() {
                     </span>
                   </div>
                 </header>
+                {groupIndex === 0 ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+                      <span>Envoyée</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#9ca3af" }} aria-hidden />
+                      <span>Non envoyée</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {groupRows.map((row) => (
-                    <article key={row.id} className="rounded-xl" style={GROUP_CARD_STYLE}>
-                      <h3 className="font-semibold tracking-tight">
-                        {moisMap.get(String(row.mois))} {row.annee}
-                      </h3>
-                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-                        {locatairesMap.get(row.locataire_id) ?? row.locataire_id}
-                      </p>
-                      <p className="mt-3 text-sm" style={{ color: PC.muted, lineHeight: 1.35 }}>
-                        Loyer {row.loyer.toFixed(2)} € · Charges {row.charges.toFixed(2)} €
-                      </p>
-                      <p className="text-base font-semibold">Total {row.total.toFixed(2)} €</p>
-                      <div className="mt-2">
-                        <StatusBadge
-                          status={row.envoyee ? "envoye" : "en_attente"}
-                          label={
-                            row.envoyee
-                              ? `Envoyée le ${row.date_envoi ? new Date(row.date_envoi).toLocaleDateString("fr-FR") : "—"}`
-                              : "Non envoyée"
-                          }
+                  {groupRows.map((row) => {
+                    const accentColor = getQuittanceCardAccentColor(row.envoyee);
+                    const isHovered = hoveredQuittanceId === row.id;
+                    const moisLabel = moisMap.get(String(row.mois)) ?? String(row.mois);
+                    return (
+                      <article
+                        key={row.id}
+                        className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                        style={{
+                          backgroundColor: PC.card,
+                          border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                        }}
+                        onMouseEnter={() => setHoveredQuittanceId(row.id)}
+                        onMouseLeave={() => setHoveredQuittanceId(null)}
+                      >
+                        <div
+                          className="shrink-0 self-stretch"
+                          style={{ width: 3, backgroundColor: accentColor }}
+                          aria-hidden
                         />
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <BtnEmail
-                          size="small"
-                          loading={sendingId === row.id}
-                          onClick={() => void onSendQuittance(row)}
-                        >
-                          Envoyer par email
-                        </BtnEmail>
-                        <BtnPdf size="small" onClick={() => void onGeneratePdf(row)}>
-                          Télécharger PDF
-                        </BtnPdf>
-                        <BtnSecondary
-                          size="small"
-                          title="Modifier"
-                          onClick={() => void handleEditClick(row)}
-                        >
-                          Modifier
-                        </BtnSecondary>
-                        <BtnDanger size="small" onClick={() => void handleDeleteClick(row.id)}>
-                          Supprimer
-                        </BtnDanger>
-                      </div>
-                    </article>
-                  ))}
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="p-4 pb-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">
+                                {moisLabel} {row.annee}
+                              </h3>
+                              {row.envoyee ? (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  Envoyée
+                                </span>
+                              ) : (
+                                <span
+                                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
+                                >
+                                  En attente
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                              {locatairesMap.get(row.locataire_id) ?? row.locataire_id}
+                            </p>
+                          </div>
+                          <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <p className="text-lg font-bold" style={{ color: PC.primary }}>
+                              {row.total.toFixed(2)} €
+                            </p>
+                            <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                              Loyer {row.loyer.toFixed(2)} € · Charges {row.charges.toFixed(2)} €
+                            </p>
+                          </div>
+                          <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                            <div className="flex flex-wrap gap-2">
+                              <BtnSecondary
+                                size="small"
+                                icon={<Mail className="h-4 w-4" aria-hidden />}
+                                loading={sendingId === row.id}
+                                onClick={() => void onSendQuittance(row)}
+                              >
+                                Envoyer par email
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<Download className="h-4 w-4" aria-hidden />}
+                                onClick={() => void onGeneratePdf(row)}
+                              >
+                                PDF
+                              </BtnSecondary>
+                              <BtnSecondary
+                                size="small"
+                                icon={<IconPencil className="h-4 w-4" />}
+                                onClick={() => void handleEditClick(row)}
+                              >
+                                Modifier
+                              </BtnSecondary>
+                              <BtnDanger
+                                size="small"
+                                icon={<IconTrash className="h-4 w-4" />}
+                                onClick={() => void handleDeleteClick(row.id)}
+                              >
+                                Supprimer
+                              </BtnDanger>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             ))
