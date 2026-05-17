@@ -297,6 +297,21 @@ export default function ParametresPage() {
     setIsUploadingSignature(false);
   }
 
+  async function handleDeleteSignature() {
+    const { proprietaireId } = await getCurrentProprietaireId();
+    if (!proprietaireId) return;
+
+    if (profile.signature_path) {
+      await supabase.storage.from("signatures").remove([profile.signature_path]);
+    }
+
+    await supabase.from("proprietaires").update({ signature_path: null }).eq("id", proprietaireId);
+
+    setSignatureUrl(null);
+    setProfile((prev) => ({ ...prev, signature_path: "" }));
+    toast.success("Signature supprimée.");
+  }
+
   async function handleSaveDrawnSignature() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -701,6 +716,14 @@ export default function ParametresPage() {
                       unoptimized
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteSignature()}
+                    className="mt-2 text-xs"
+                    style={{ color: PC.danger }}
+                  >
+                    Supprimer la signature
+                  </button>
                 </div>
               ) : null}
             </div>
