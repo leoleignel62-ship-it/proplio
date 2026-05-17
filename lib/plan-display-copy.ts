@@ -31,7 +31,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
   },
   starter: {
     positives: [
-      "Jusqu'à 3 logements et 3 locataires",
+      "Jusqu'à 3 logements · 3 locataires",
       "Quittances illimitées",
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
@@ -42,14 +42,14 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
   },
   pro: {
     positives: [
-      "Jusqu'à 5 logements et 5 locataires",
+      "Jusqu'à 5 logements · 5 locataires",
       "Quittances illimitées",
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
       "Signature électronique incluse",
-      "Mode saisonnier complet",
-      "Dossiers de candidature",
+      "Mode saisonnier inclus (5 logements max, classique + saisonnier confondus)",
+      "Dossiers de candidature illimités",
     ],
   },
   expert: {
@@ -62,6 +62,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "Signature électronique incluse",
       "Mode saisonnier illimité",
       "Dossiers de candidature illimités",
+      "Support prioritaire",
     ],
   },
 };
@@ -82,7 +83,7 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
       ];
     case "starter":
       return [
-        { text: "Jusqu'à 3 logements et 3 locataires", included: true, variant: "banner" },
+        { text: "Jusqu'à 3 logements · 3 locataires", included: true, variant: "banner" },
         { text: "Quittances illimitées", included: true },
         { text: "Baux conformes loi ALUR", included: true },
         { text: "États des lieux avec photos", included: true },
@@ -93,25 +94,30 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
       ];
     case "pro":
       return [
-        { text: "Jusqu'à 5 logements et 5 locataires", included: true, variant: "banner" },
+        { text: "Jusqu'à 5 logements · 5 locataires", included: true, variant: "banner" },
         { text: "Quittances illimitées", included: true },
         { text: "Baux conformes loi ALUR", included: true },
         { text: "États des lieux avec photos", included: true },
         { text: "Révision IRL automatique", included: true },
         { text: "Signature électronique incluse", included: true },
-        { text: "Mode saisonnier complet", included: true, variant: "differentiator" },
-        { text: "Dossiers de candidature", included: true, variant: "differentiator" },
+        {
+          text: "Mode saisonnier inclus (5 logements max, classique + saisonnier confondus)",
+          included: true,
+          variant: "differentiator",
+        },
+        { text: "Dossiers de candidature illimités", included: true, variant: "differentiator" },
       ];
     case "expert":
       return [
-        { text: "Logements et locataires illimités", included: true, variant: "banner" },
+        { text: "Logements et locataires illimités", included: true, variant: "differentiator" },
         { text: "Quittances illimitées", included: true },
         { text: "Baux illimités", included: true },
         { text: "États des lieux illimités", included: true },
         { text: "Révision IRL automatique", included: true },
         { text: "Signature électronique incluse", included: true },
         { text: "Mode saisonnier illimité", included: true, variant: "differentiator" },
-        { text: "Dossiers de candidature illimités", included: true, variant: "differentiator" },
+        { text: "Dossiers de candidature illimités", included: true },
+        { text: "Support prioritaire", included: true },
       ];
   }
 }
