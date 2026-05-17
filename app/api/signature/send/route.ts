@@ -230,6 +230,30 @@ async function loadSignatureEmailContext(
     }
   }
 
+  if (document_type === "edl") {
+    const { data: edl } = await supabaseAdmin
+      .from("etats_des_lieux")
+      .select("type, type_etat, logement_id, date_etat")
+      .eq("id", document_id)
+      .eq("proprietaire_id", proprietaire_id)
+      .maybeSingle();
+
+    const { data: logement } = edl?.logement_id
+      ? await supabaseAdmin.from("logements").select("nom, adresse").eq("id", edl.logement_id).maybeSingle()
+      : { data: null };
+
+    const typeRaw = String(edl?.type ?? edl?.type_etat ?? "").toLowerCase();
+    const typeLabel = typeRaw === "entree" ? "Entrée" : "Sortie";
+
+    documentContext = [
+      logement?.nom ? String(logement.nom) : null,
+      `État des lieux ${typeLabel}`,
+      edl?.date_etat ? new Date(String(edl.date_etat)).toLocaleDateString("fr-FR") : null,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+  }
+
   return { proprietaireNomComplet, documentTypeHuman, documentContext };
 }
 

@@ -7,6 +7,7 @@ import {
   IconBuilding,
   IconCalendar,
   IconDeviceCamera,
+  IconPencil,
   IconPlus,
   IconTrash,
 } from "@/components/locavio-icons";
@@ -105,6 +106,9 @@ export default function EtatsDesLieuxPage() {
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
   const [photoCountByEdlId, setPhotoCountByEdlId] = useState<Record<string, number>>({});
   const [hoveredEdlId, setHoveredEdlId] = useState<string | null>(null);
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [edlSignatureStatuses, setEdlSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [sendingEdlSignature, setSendingEdlSignature] = useState<string | null>(null);
   const logementFilter = searchParams.get("logement_id") ?? "";
   const prefillLogementId = searchParams.get("bail_logement_id") ?? "";
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -114,10 +118,12 @@ export default function EtatsDesLieuxPage() {
     setError("");
     const { proprietaireId, error: pe } = await getCurrentProprietaireId();
     if (pe || !proprietaireId) {
+      setProprietaireId(null);
       setError(pe ? formatSubmitError(pe) : "Session invalide.");
       setLoading(false);
       return;
     }
+    setProprietaireId(proprietaireId);
 
     const planEarly = await getOwnerPlan(proprietaireId);
     setCurrentPlan(planEarly);
@@ -140,12 +146,26 @@ export default function EtatsDesLieuxPage() {
     if (e1) {
       setError(formatSubmitError(e1));
       setRows([]);
+      setEdlSignatureStatuses({});
       setLoading(false);
       return;
     }
 
     const list = (edlList ?? []) as EdlRow[];
     setRows(list);
+
+    const { data: sigs } = await supabase
+      .from("document_signatures")
+      .select("document_id, signed_at")
+      .eq("document_type", "edl")
+      .eq("proprietaire_id", proprietaireId);
+    setEdlSignatureStatuses(
+      Object.fromEntries(
+        (sigs ?? [])
+          .filter((s) => s.signed_at)
+          .map((s) => [String(s.document_id), true]),
+      ),
+    );
 
     const edlIds = list.map((r) => r.id);
     if (edlIds.length > 0) {
@@ -382,6 +402,62 @@ export default function EtatsDesLieuxPage() {
       setError(formatSubmitError(e));
     } finally {
       // no-op
+    }
+  }
+
+  async function handleSendEdlForSignature(edl: EdlRow) {
+    if (!proprietaireId) return;
+    setSendingEdlSignature(edl.id);
+    try {
+      if (!edl.bail_id) {
+        toast.error("Aucun bail lié à cet état des lieux.");
+        return;
+      }
+
+      const { data: bail } = await supabase
+        .from("baux")
+        .select("locataire_id")
+        .eq("id", edl.bail_id)
+        .maybeSingle();
+
+      if (!bail?.locataire_id) {
+        toast.error("Aucun locataire lié au bail.");
+        return;
+      }
+
+      const { data: locataire } = await supabase
+        .from("locataires")
+        .select("nom, prenom, email")
+        .eq("id", bail.locataire_id)
+        .maybeSingle();
+
+      if (!locataire?.email) {
+        toast.error("Aucun email locataire trouvé.");
+        return;
+      }
+
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edl.id,
+          signer_name: `${String(locataire.prenom ?? "").trim()} ${String(locataire.nom ?? "").trim()}`.trim(),
+          signer_email: locataire.email,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Email de signature envoyé à ${locataire.email}`);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    } finally {
+      setSendingEdlSignature(null);
     }
   }
 
@@ -697,6 +773,25 @@ export default function EtatsDesLieuxPage() {
                               >
                                 Envoyer
                               </BtnSecondary>
+                              {edlSignatureStatuses[r.id] ? (
+                                <span
+                                  className="rounded-full px-2 py-1 text-xs font-semibold"
+                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                                >
+                                  ✓ Signé électroniquement
+                                </span>
+                              ) : isFinalise ? (
+                                <BtnPrimary
+                                  size="small"
+                                  icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                                  disabled={edlFreeBlocked || sendingEdlSignature === r.id}
+                                  loading={sendingEdlSignature === r.id}
+                                  style={btnDisabledStyle}
+                                  onClick={() => void handleSendEdlForSignature(r)}
+                                >
+                                  Envoyer pour signature
+                                </BtnPrimary>
+                              ) : null}
                               <BtnDanger
                                 size="small"
                                 icon={<IconTrash className="h-4 w-4" />}

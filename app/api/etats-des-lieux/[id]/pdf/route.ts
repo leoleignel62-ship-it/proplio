@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
 import { buildSaisonnierEdlPdfBufferFromDb, rowUsesSaisonnierPdf } from "@/lib/etat-des-lieux/saisonnier-edl-pdf-build";
+import { applyElectronicSignatureToPdfBytes } from "@/lib/pdf/pdf-utils";
+import { PDF_MARGIN_X } from "@/lib/pdf/locavio-pdf-theme";
 
 export async function GET(
   _request: Request,
@@ -23,7 +25,7 @@ export async function GET(
 
     const { data: proprietaire, error: proprietaireError } = await supabase
       .from("proprietaires")
-      .select("id, prenom, nom, email, telephone, adresse, code_postal, ville, signature_path")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -65,7 +67,7 @@ export async function GET(
     }
 
     const edlRec = edl as Record<string, unknown>;
-    const pdfBytes = rowUsesSaisonnierPdf(edlRec)
+    let pdfBytes = rowUsesSaisonnierPdf(edlRec)
       ? await buildSaisonnierEdlPdfBufferFromDb(
           supabase,
           supabaseAdmin,
@@ -80,6 +82,39 @@ export async function GET(
           proprietaire as Record<string, unknown>,
           signatureImage,
         );
+
+    const logementId = edl.logement_id as string | null | undefined;
+    const { data: logement } = logementId
+      ? await supabase.from("logements").select("*").eq("id", logementId).maybeSingle()
+      : { data: null };
+
+    const { data: sigDoc } = await supabaseAdmin
+      .from("document_signatures")
+      .select("*")
+      .eq("document_type", "edl")
+      .eq("document_id", id)
+      .not("signed_at", "is", null)
+      .maybeSingle();
+
+    if (sigDoc?.signed_at && sigDoc.signature_data) {
+      pdfBytes = await applyElectronicSignatureToPdfBytes(pdfBytes, {
+        sigDoc: {
+          signature_data: String(sigDoc.signature_data),
+          signer_name: String(sigDoc.signer_name ?? ""),
+          signer_email: String(sigDoc.signer_email ?? ""),
+          signer_ip: sigDoc.signer_ip as string | null,
+          signer_user_agent: sigDoc.signer_user_agent as string | null,
+          signed_at: String(sigDoc.signed_at),
+          otp_verified_at: sigDoc.otp_verified_at as string | null,
+          document_id: String(sigDoc.document_id ?? id),
+        },
+        documentTypeLabel: "État des lieux",
+        proprietaire: proprietaire as Record<string, unknown>,
+        logement: (logement ?? null) as Record<string, unknown> | null,
+        proprietaireSignatureImage: signatureImage,
+        marginX: PDF_MARGIN_X,
+      });
+    }
 
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {

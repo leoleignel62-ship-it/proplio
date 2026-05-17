@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
 import { Download, Eye, Mail } from "lucide-react";
-import { IconBuilding, IconCalendar, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { IconBuilding, IconCalendar, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
@@ -76,6 +76,9 @@ export default function EtatsDesLieuxSaisonnierPage() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [hoveredEdlId, setHoveredEdlId] = useState<string | null>(null);
+  const [proprietaireId, setProprietaireId] = useState<string | null>(null);
+  const [edlSignatureStatuses, setEdlSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [sendingEdlSignature, setSendingEdlSignature] = useState<string | null>(null);
 
   const isPlanLimitReached = Boolean(planLimitMessage);
 
@@ -84,10 +87,12 @@ export default function EtatsDesLieuxSaisonnierPage() {
     setError("");
     const { proprietaireId, error: pe } = await getCurrentProprietaireId();
     if (pe || !proprietaireId) {
+      setProprietaireId(null);
       setError(pe ? formatSubmitError(pe) : "Session invalide.");
       setLoading(false);
       return;
     }
+    setProprietaireId(proprietaireId);
 
     const plan = await getOwnerPlan(proprietaireId);
     setCurrentPlan(plan);
@@ -144,16 +149,28 @@ export default function EtatsDesLieuxSaisonnierPage() {
       return;
     }
 
-    setRows(
-      ((edlRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-        id: String(r.id),
-        reservation_id: r.reservation_id ? String(r.reservation_id) : null,
-        logement_id: r.logement_id ? String(r.logement_id) : null,
-        type_etat: (r.type_etat as string | null | undefined) ?? null,
-        type: (r.type as string | null | undefined) ?? null,
-        date_etat: (r.date_etat as string | null) ?? null,
-        statut: String(r.statut ?? ""),
-      })),
+    const edlRows = ((edlRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r.id),
+      reservation_id: r.reservation_id ? String(r.reservation_id) : null,
+      logement_id: r.logement_id ? String(r.logement_id) : null,
+      type_etat: (r.type_etat as string | null | undefined) ?? null,
+      type: (r.type as string | null | undefined) ?? null,
+      date_etat: (r.date_etat as string | null) ?? null,
+      statut: String(r.statut ?? ""),
+    }));
+    setRows(edlRows);
+
+    const { data: sigs } = await supabase
+      .from("document_signatures")
+      .select("document_id, signed_at")
+      .eq("document_type", "edl")
+      .eq("proprietaire_id", proprietaireId);
+    setEdlSignatureStatuses(
+      Object.fromEntries(
+        (sigs ?? [])
+          .filter((s) => s.signed_at)
+          .map((s) => [String(s.document_id), true]),
+      ),
     );
     setLogements(
       ((logementsRes.data ?? []) as Array<{ id?: string; nom?: string }>).map((row) => ({
@@ -252,6 +269,62 @@ export default function EtatsDesLieuxSaisonnierPage() {
     if (!res.ok) setError(j.error ?? "Envoi impossible.");
     else {
       toast.success(`Email envoyé à ${(j.to ?? []).join(", ") || "destinataire"}.`);
+    }
+  }
+
+  async function handleSendEdlForSignature(edl: EdlRow) {
+    if (!proprietaireId) return;
+    setSendingEdlSignature(edl.id);
+    try {
+      if (!edl.reservation_id) {
+        toast.error("Aucune réservation liée à cet état des lieux.");
+        return;
+      }
+
+      const { data: reservation } = await supabase
+        .from("reservations")
+        .select("voyageur_id")
+        .eq("id", edl.reservation_id)
+        .maybeSingle();
+
+      if (!reservation?.voyageur_id) {
+        toast.error("Aucun voyageur lié à la réservation.");
+        return;
+      }
+
+      const { data: voyageur } = await supabase
+        .from("voyageurs")
+        .select("nom, prenom, email")
+        .eq("id", reservation.voyageur_id)
+        .maybeSingle();
+
+      if (!voyageur?.email) {
+        toast.error("Aucun email voyageur trouvé.");
+        return;
+      }
+
+      const res = await fetch("/api/signature/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edl.id,
+          signer_name: `${String(voyageur.prenom ?? "").trim()} ${String(voyageur.nom ?? "").trim()}`.trim(),
+          signer_email: voyageur.email,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Email de signature envoyé à ${voyageur.email}`);
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    } finally {
+      setSendingEdlSignature(null);
     }
   }
 
@@ -433,6 +506,24 @@ export default function EtatsDesLieuxSaisonnierPage() {
                         >
                           Envoyer
                         </BtnSecondary>
+                        {edlSignatureStatuses[row.id] ? (
+                          <span
+                            className="rounded-full px-2 py-1 text-xs font-semibold"
+                            style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                          >
+                            ✓ Signé électroniquement
+                          </span>
+                        ) : isFinalise ? (
+                          <BtnPrimary
+                            size="small"
+                            icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                            disabled={sendingEdlSignature === row.id}
+                            loading={sendingEdlSignature === row.id}
+                            onClick={() => void handleSendEdlForSignature(row)}
+                          >
+                            Envoyer pour signature
+                          </BtnPrimary>
+                        ) : null}
                         <BtnDanger size="small" icon={<IconTrash className="h-4 w-4" />} onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
                           Supprimer
                         </BtnDanger>
