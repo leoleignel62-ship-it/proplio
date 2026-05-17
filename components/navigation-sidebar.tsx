@@ -15,6 +15,7 @@ import {
   Landmark,
   Lock,
   LogIn,
+  PenLine,
   TrendingUp,
   UserX,
 } from "lucide-react";
@@ -742,6 +743,7 @@ type HeaderAlertMetrics = {
   reservationsSaisonnierEnAttente: number;
   checkinsSaisonnier7Jours: number;
   locatairesSansLogement: number;
+  signatureRecentAlert: { id: string; title: string; href: string } | null;
 };
 
 const EMPTY_HEADER_ALERTS: HeaderAlertMetrics = {
@@ -758,6 +760,7 @@ const EMPTY_HEADER_ALERTS: HeaderAlertMetrics = {
   reservationsSaisonnierEnAttente: 0,
   checkinsSaisonnier7Jours: 0,
   locatairesSansLogement: 0,
+  signatureRecentAlert: null,
 };
 
 async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
@@ -1015,6 +1018,29 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     }
   }
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentSigs } = await supabase
+    .from("document_signatures")
+    .select("id, document_type, signer_name, signed_at")
+    .eq("proprietaire_id", ownerId)
+    .not("signed_at", "is", null)
+    .gte("signed_at", sevenDaysAgo)
+    .order("signed_at", { ascending: false });
+
+  let signatureRecentAlert: HeaderAlertMetrics["signatureRecentAlert"] = null;
+  if (recentSigs && recentSigs.length > 0) {
+    const first = recentSigs[0];
+    const docType = String(first.document_type ?? "");
+    signatureRecentAlert = {
+      id: `signatures-${recentSigs.length}`,
+      title:
+        recentSigs.length === 1
+          ? `${String(first.signer_name ?? "Un signataire")} a signé son document`
+          : `${recentSigs.length} documents signés récemment`,
+      href: docType === "bail" ? "/baux" : "/saisonnier/contrats",
+    };
+  }
+
   return {
     quittancesNonEnvoyeesMois,
     bauxUrgents,
@@ -1029,6 +1055,7 @@ async function loadHeaderAlerts(): Promise<HeaderAlertMetrics> {
     reservationsSaisonnierEnAttente,
     checkinsSaisonnier7Jours,
     locatairesSansLogement,
+    signatureRecentAlert,
   };
 }
 
@@ -1148,6 +1175,9 @@ function getAllAlertIds(alerts: HeaderAlertMetrics): string[] {
   }
   for (const item of alerts.rappelsSoldeSaisonnier) {
     ids.push(`solde-${item.reservationId}`);
+  }
+  if (alerts.signatureRecentAlert) {
+    ids.push(alerts.signatureRecentAlert.id);
   }
   return ids;
 }
@@ -1399,6 +1429,23 @@ function NotificationBellDropdown({ panelZClass }: { panelZClass?: string }) {
                     </div>
                   ) : null,
                 )}
+                {alerts.signatureRecentAlert && isUnread(alerts.signatureRecentAlert.id) ? (
+                  <div className="mb-1 flex items-start gap-1">
+                    <Link
+                      href={alerts.signatureRecentAlert.href}
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-3 py-2 text-sm"
+                      style={{ color: PC.success, backgroundColor: PC.successBg20 }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <PenLine size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+                      <span>{alerts.signatureRecentAlert.title}</span>
+                    </Link>
+                    <AlertMarkReadButton
+                      alertId={alerts.signatureRecentAlert.id}
+                      onMarkRead={markAsRead}
+                    />
+                  </div>
+                ) : null}
                 {alerts.parrainagesConvertisRecents > 0 &&
                 isUnread(`parrainage-${alerts.parrainagesConvertisRecents}`) ? (
                   <div className="mb-1 flex items-start gap-1">
