@@ -50,6 +50,43 @@ function emptyMensuelRows(): Array<{ mois: string; revenus: number; nuits: numbe
   return MOIS_FR.map((mois) => ({ mois, revenus: 0, nuits: 0, nbReservations: 0 }));
 }
 
+const CARD_SECTION_STYLE = {
+  background: PC.card,
+  border: `1px solid ${PC.border}`,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+} as const;
+
+function StatCard({
+  titre,
+  valeur,
+  description,
+  couleur,
+}: {
+  titre: string;
+  valeur: string;
+  description?: string;
+  couleur: string;
+}) {
+  return (
+    <article
+      className="locavio-glow-card relative overflow-hidden rounded-xl p-6"
+      style={{ background: PC.card, border: `1px solid ${PC.border}` }}
+    >
+      <p className="mb-1 text-sm font-medium" style={{ color: PC.muted }}>
+        {titre}
+      </p>
+      <p className="mb-1 text-3xl font-extrabold" style={{ color: couleur }}>
+        {valeur}
+      </p>
+      {description ? (
+        <p className="text-xs" style={{ color: PC.muted }}>
+          {description}
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 export default function SaisonnierDashboardPage() {
   const toast = useToast();
   const currentYear = new Date().getFullYear();
@@ -211,11 +248,21 @@ export default function SaisonnierDashboardPage() {
     return <PlanFreeModuleUpsell variant="saisonnier" requiredPlan="pro" />;
   }
 
+  const dateLong = new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+  const fmtEuro = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+
   return (
     <section className="locavio-page-wrap space-y-6" style={{ color: PC.text }}>
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="locavio-page-title">Dashboard Saisonnier</h1>
+          <p className="locavio-page-subtitle capitalize">{dateLong}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -265,65 +312,98 @@ export default function SaisonnierDashboardPage() {
         </p>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-          <p className="text-sm" style={{ color: PC.muted }}>Revenus encaisses</p>
-          <p className="mt-2 text-2xl font-bold text-green-500">{revenus.revenusEncaisses.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €</p>
-          <p className="mt-1 text-xs" style={{ color: PC.muted }}>Variation vs annee precedente: {revenus.variationVsAnneePrec.toFixed(1)}%</p>
-        </article>
-        <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-          <p className="text-sm" style={{ color: PC.muted }}>Revenus a venir</p>
-          <p className="mt-2 text-2xl font-bold" style={{ color: "#8b5cf6" }}>{revenus.revenusAVenir.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €</p>
-        </article>
-        <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-          <p className="text-sm" style={{ color: PC.muted }}>Total annuel</p>
-          <p className="mt-2 text-2xl font-bold">{revenus.totalAnnuel.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €</p>
-          <p className="mt-1 text-xs" style={{ color: PC.muted }}>
-            RevPAN: {revenus.revpan.toFixed(1)}€/nuit · Moy. par reservation: {revenus.moyParReservation.toFixed(0)}€
-          </p>
-        </article>
-      </section>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          titre="Revenus encaissés"
+          valeur={`${fmtEuro(revenus.revenusEncaisses)} €`}
+          couleur={PC.success}
+          description={`Variation vs année précédente : ${revenus.variationVsAnneePrec.toFixed(1)}%`}
+        />
+        <StatCard
+          titre="Revenus à venir"
+          valeur={`${fmtEuro(revenus.revenusAVenir)} €`}
+          couleur={PC.primary}
+          description="Réservations confirmées non encore encaissées"
+        />
+        <StatCard
+          titre="Total annuel"
+          valeur={`${fmtEuro(revenus.totalAnnuel)} €`}
+          couleur={PC.text}
+          description={`RevPAN : ${revenus.revpan.toFixed(1)} €/nuit · Moy. par réservation : ${revenus.moyParReservation.toFixed(0)} €`}
+        />
+      </div>
 
       {revenus.sansPrixRevenusCount > 0 ? (
-        <p className="text-sm" style={{ color: "#fb923c" }}>
+        <p
+          className="rounded-xl p-4 text-sm"
+          style={{ background: PC.warningBg15, border: `1px solid ${PC.warning}`, color: PC.warning }}
+        >
           {revenus.sansPrixRevenusCount === 1
             ? "1 réservation sans prix non incluse dans les revenus"
             : `${revenus.sansPrixRevenusCount} réservations sans prix non incluses dans les revenus`}
         </p>
       ) : null}
 
-      <section className="flex flex-wrap gap-2 text-sm">
+      <section>
+        <h2 className="mb-3 text-base font-semibold" style={{ color: PC.text }}>
+          Réservations
+        </h2>
+        <div className="flex flex-wrap gap-2 text-sm">
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: PC.border }}>Total: {stats.total}</span>
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: "rgba(34,197,94,0.2)", color: "#22c55e" }}>Terminees: {stats.terminees}</span>
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: "rgba(59,130,246,0.2)", color: "#3b82f6" }}>En cours: {stats.enCours}</span>
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: "rgba(139,92,246,0.2)", color: "#8b5cf6" }}>A venir: {stats.aVenir}</span>
         <span className="rounded-full px-3 py-1" style={{ backgroundColor: "rgba(239,68,68,0.2)", color: "#ef4444" }}>Annulees: {stats.annulees}</span>
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-          <h2 className="text-base font-semibold">Taux d&apos;occupation</h2>
-          <p className="mt-2 text-2xl font-bold">{occupation.tauxOccupation.toFixed(1)}%</p>
-          <div className="mt-2 h-2 rounded-full" style={{ backgroundColor: PC.border }}>
-            <div className="h-2 rounded-full" style={{ width: `${Math.min(100, occupation.tauxOccupation)}%`, backgroundColor: "#7c3aed" }} />
+      <section className="space-y-4 rounded-xl p-5 sm:p-6" style={CARD_SECTION_STYLE}>
+        <h2 className="text-base font-semibold" style={{ color: PC.text }}>
+          Performances
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: PC.text }}>
+              Taux d&apos;occupation
+            </h3>
+            <p className="mt-2 text-2xl font-bold">{occupation.tauxOccupation.toFixed(1)}%</p>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: PC.border }}>
+              <div
+                className="h-2 rounded-full"
+                style={{
+                  width: `${Math.max(0, Math.min(100, occupation.tauxOccupation))}%`,
+                  background: `linear-gradient(90deg, ${PC.primary} 0%, ${PC.success} 100%)`,
+                }}
+              />
+            </div>
+            <p className="mt-2 text-xs" style={{ color: PC.muted }}>
+              {occupation.nuitsOccupees} nuits occupées sur {occupation.nuitsDisponibles} disponibles
+            </p>
           </div>
-          <p className="mt-2 text-xs" style={{ color: PC.muted }}>{occupation.nuitsOccupees} nuits occupees sur {occupation.nuitsDisponibles} disponibles</p>
-        </article>
-        <article className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-          <h2 className="text-base font-semibold">Periodes cles</h2>
-          <p className="mt-2 text-sm">📈 Mois le plus rentable: {occupation.moisLePlusRentable.mois} ({occupation.moisLePlusRentable.revenus.toFixed(0)}€)</p>
-          <p className="mt-1 text-sm">📉 Mois le moins rentable: {occupation.moisLeMoinsRentable.mois} ({occupation.moisLeMoinsRentable.revenus.toFixed(0)}€)</p>
-        </article>
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: PC.text }}>
+              Périodes clés
+            </h3>
+            <p className="mt-2 text-sm">
+              📈 Mois le plus rentable : {occupation.moisLePlusRentable.mois} ({occupation.moisLePlusRentable.revenus.toFixed(0)} €)
+            </p>
+            <p className="mt-1 text-sm">
+              📉 Mois le moins rentable : {occupation.moisLeMoinsRentable.mois} ({occupation.moisLeMoinsRentable.revenus.toFixed(0)} €)
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-        <h2 className="text-base font-semibold">Repartition par source</h2>
-        <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full">
+      <section className="space-y-4 rounded-xl p-5 sm:p-6" style={CARD_SECTION_STYLE}>
+        <h2 className="text-base font-semibold" style={{ color: PC.text }}>
+          Répartition par source
+        </h2>
+        <div className="flex h-3 w-full overflow-hidden rounded-full">
           {sourceSegments.map((segment) => (
             <div key={segment.label} style={{ width: `${segment.value}%`, backgroundColor: segment.color }} />
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap gap-3 text-xs">
+        <div className="flex flex-wrap gap-3 text-xs" style={{ color: PC.muted }}>
           {sourceSegments.map((segment) => (
             <span key={segment.label}>{segment.label}: {segment.value.toFixed(1)}%</span>
           ))}
@@ -331,10 +411,12 @@ export default function SaisonnierDashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-xl p-4" style={{ backgroundColor: PC.card, border: `1px solid ${PC.border}` }}>
-        <h2 className="text-base font-semibold">Graphique mensuel</h2>
+      <section className="space-y-4 rounded-xl p-5 sm:p-6" style={CARD_SECTION_STYLE}>
+        <h2 className="text-base font-semibold" style={{ color: PC.text }}>
+          Graphique mensuel
+        </h2>
         <RevenusMensuelsChart data={mensuel} />
-        <div className="mt-4 overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr style={{ color: PC.muted }}>
@@ -353,7 +435,7 @@ export default function SaisonnierDashboardPage() {
                   <td className="px-2 py-2 text-right">{row.revenus.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €</td>
                 </tr>
               ))}
-              <tr className="font-semibold" style={{ borderTop: `1px solid ${PC.primary}`, color: "#7c3aed" }}>
+              <tr className="font-semibold" style={{ borderTop: `1px solid ${PC.primary}`, color: PC.primary }}>
                 <td className="px-2 py-2">Total</td>
                 <td className="px-2 py-2 text-right">{totalMensuel.nbReservations}</td>
                 <td className="px-2 py-2 text-right">{totalMensuel.nuits}</td>
