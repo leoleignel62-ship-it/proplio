@@ -32,6 +32,14 @@ export function sanitizePdfText(text: string): string {
     .replace(/\u2014/g, "-");
 }
 
+/** WinAnsi-safe text for audit certificate (ASCII printable only). */
+function sanitizePdfTextAscii(text: string): string {
+  return sanitizePdfText(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, "");
+}
+
 export type DrawFooterProps = {
   pageIndex: number;
   totalPages: number;
@@ -277,7 +285,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     color: VIOLET,
   });
 
-  const title = sanitizePdfText("Certificat de signature électronique");
+  const title = sanitizePdfTextAscii("Certificat de signature electronique");
   const titleW = props.fontBold.widthOfTextAtSize(title, 16);
   page.drawText(title, {
     x: (pw - titleW) / 2,
@@ -287,7 +295,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     color: rgb(1, 1, 1),
   });
 
-  const subtitle = sanitizePdfText("Document généré par Locavio — locavio.fr");
+  const subtitle = sanitizePdfTextAscii("Document genere par Locavio - locavio.fr");
   const subtitleW = props.font.widthOfTextAtSize(subtitle, 9);
   page.drawText(subtitle, {
     x: (pw - subtitleW) / 2,
@@ -309,7 +317,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     borderWidth: 0.8,
   });
 
-  const docTypeLabel = sanitizePdfText("Document signé");
+  const docTypeLabel = sanitizePdfTextAscii("Document signe");
   page.drawText(docTypeLabel, {
     x: margin + 20,
     y: blockY - 28,
@@ -317,7 +325,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     font: props.font,
     color: TEXT_SECONDARY,
   });
-  const docTypeVal = sanitizePdfText(props.documentType);
+  const docTypeVal = sanitizePdfTextAscii(props.documentType);
   page.drawText(docTypeVal, {
     x: margin + 20,
     y: blockY - 44,
@@ -337,13 +345,13 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     ["Signataire", props.signerName],
     ["Email", props.signerEmail],
     ["Date de signature", props.signedAt],
-    ["OTP vérifié", props.otpVerified ? "Oui ✓" : "Non"],
-    ["Adresse IP", props.signerIp || "—"],
+    ["OTP verifie", props.otpVerified ? "Oui" : "Non"],
+    ["Adresse IP", props.signerIp || "-"],
     [
       "Navigateur",
-      props.signerUserAgent ? `${props.signerUserAgent.substring(0, 60)}...` : "—",
+      props.signerUserAgent ? `${props.signerUserAgent.substring(0, 60)}...` : "-",
     ],
-    ["Référence document", `${props.documentId.substring(0, 16)}...`],
+    ["Reference document", `${props.documentId.substring(0, 16)}...`],
   ];
 
   if (props.documentHash) {
@@ -367,7 +375,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
       });
     }
 
-    page.drawText(sanitizePdfText(label), {
+    page.drawText(sanitizePdfTextAscii(label), {
       x: labelX,
       y: rowY - 6,
       size: 9,
@@ -375,7 +383,7 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
       color: TEXT_SECONDARY,
     });
 
-    page.drawText(sanitizePdfText(value), {
+    page.drawText(sanitizePdfTextAscii(value), {
       x: valueX,
       y: rowY - 6,
       size: 9,
@@ -386,11 +394,13 @@ export function drawAuditCertificatePage(doc: PDFDocument, props: AuditCertifica
     rowY -= rowH;
   }
 
-  const legal1 = sanitizePdfText("Ce certificat atteste de la signature électronique du document ci-dessus.");
-  const legal2 = sanitizePdfText(
-    "Conforme au règlement eIDAS (UE) n°910/2014 — Signature électronique simple avec audit trail.",
+  const legal1 = sanitizePdfTextAscii(
+    "Ce certificat atteste de la signature electronique du document ci-dessus.",
   );
-  const legal3 = sanitizePdfText("Locavio — locavio.fr — contact@locavio.fr");
+  const legal2 = sanitizePdfTextAscii(
+    "Conforme au reglement eIDAS (UE) n.910/2014 - Signature electronique simple avec audit trail.",
+  );
+  const legal3 = sanitizePdfTextAscii("Locavio - locavio.fr - contact@locavio.fr");
 
   const l1W = props.font.widthOfTextAtSize(legal1, 8);
   const l2W = props.font.widthOfTextAtSize(legal2, 8);
