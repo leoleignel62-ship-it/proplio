@@ -8,6 +8,7 @@ import {
   FileCheck,
   FileText,
   Lock,
+  PenLine,
   Plus,
   RefreshCw,
   Shield,
@@ -55,6 +56,7 @@ const avantItems = [
   "Baux rédigés depuis zéro à chaque locataire",
   "États des lieux sur papier, sans photos",
   "Révision de loyer calculée manuellement",
+  "Impression et signature manuscrite",
   "Agence à 7-10% de vos loyers chaque année",
 ] as const;
 
@@ -63,6 +65,7 @@ const avecItems = [
   "Bail conforme ALUR en quelques minutes",
   "État des lieux avec photos depuis votre smartphone",
   "Révision IRL calculée et envoyée automatiquement",
+  "Signature électronique sécurisée (eIDAS)",
   "Locavio à partir de 6,90€/mois — jusqu'à 10× moins cher qu'une agence",
 ] as const;
 
@@ -91,6 +94,11 @@ const featureCards = [
     Icon: Users,
     title: "Candidatures",
     text: "Dossiers en ligne avec scoring de solvabilité automatique.",
+  },
+  {
+    Icon: PenLine,
+    title: "Signature électronique",
+    text: "Signez vos baux et contrats en ligne. Vos locataires reçoivent un lien sécurisé pour signer depuis leur smartphone. Certificat eIDAS inclus.",
   },
 ] as const;
 
@@ -229,7 +237,7 @@ export default function LandingBelowFold() {
         </section>
       </RevealOnView>
 
-      {/* Section 4 — 5 fonctionnalités clés */}
+      {/* Section 4 — fonctionnalités clés */}
       <RevealOnView className="mt-12">
         <section className="landing-section py-8">
           <h2 className="text-center text-3xl font-bold text-[#1a0533]">Tout ce dont vous avez besoin</h2>
@@ -259,8 +267,8 @@ export default function LandingBelowFold() {
                 </div>
               ))}
             </div>
-            <div className="col-span-2 flex flex-col justify-center gap-6 sm:flex-row lg:col-span-3">
-              {featureCards.slice(3, 5).map(({ Icon, title, text }) => (
+            <div className="col-span-2 flex flex-col justify-center gap-6 sm:flex-row sm:flex-wrap lg:col-span-3">
+              {featureCards.slice(3, 6).map(({ Icon, title, text }) => (
                 <div
                   key={title}
                   className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:border-violet-100 hover:shadow-md"
@@ -344,6 +352,7 @@ export default function LandingBelowFold() {
                   ["Baux", "~150-200€", "✓ Inclus"],
                   ["États des lieux", "~150-300€", "✓ Inclus + photos"],
                   ["Révision IRL", "Manuel", "✓ Automatique"],
+                  ["Signature électronique", "Impression et signature manuscrite", "✓ Sécurisée (eIDAS)"],
                   ["Disponibilité", "Horaires agence", "✓ 24h/24"],
                   ["Contrôle total", "✗", "✓ Vous décidez"],
                 ].map(([a, b, c]) => (

@@ -24,6 +24,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "Baux non inclus",
       "États des lieux non inclus",
       "Révision IRL non incluse",
+      "Signature électronique non incluse",
       "Mode saisonnier non inclus",
       "Dossiers de candidature non inclus",
     ],
@@ -35,6 +36,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
+      "Signature électronique incluse",
     ],
     negatives: ["Mode saisonnier non inclus", "Dossiers de candidature non inclus"],
   },
@@ -45,6 +47,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "Baux conformes loi ALUR",
       "États des lieux avec photos",
       "Révision IRL automatique",
+      "Signature électronique incluse",
       "Mode saisonnier complet",
       "Dossiers de candidature",
     ],
@@ -56,6 +59,7 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
       "Baux illimités",
       "États des lieux illimités",
       "Révision IRL automatique",
+      "Signature électronique incluse",
       "Mode saisonnier illimité",
       "Dossiers de candidature illimités",
     ],
@@ -72,6 +76,7 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
         { text: "Baux non inclus", included: false },
         { text: "États des lieux non inclus", included: false },
         { text: "Révision IRL non incluse", included: false },
+        { text: "Signature électronique non incluse", included: false },
         { text: "Mode saisonnier non inclus", included: false },
         { text: "Dossiers de candidature non inclus", included: false },
       ];
@@ -82,6 +87,7 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
         { text: "Baux conformes loi ALUR", included: true },
         { text: "États des lieux avec photos", included: true },
         { text: "Révision IRL automatique", included: true },
+        { text: "Signature électronique incluse", included: true },
         { text: "Mode saisonnier non inclus", included: false, variant: "muted" },
         { text: "Dossiers de candidature non inclus", included: false, variant: "muted" },
       ];
@@ -92,6 +98,7 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
         { text: "Baux conformes loi ALUR", included: true },
         { text: "États des lieux avec photos", included: true },
         { text: "Révision IRL automatique", included: true },
+        { text: "Signature électronique incluse", included: true },
         { text: "Mode saisonnier complet", included: true, variant: "differentiator" },
         { text: "Dossiers de candidature", included: true, variant: "differentiator" },
       ];
@@ -102,6 +109,7 @@ export function planDisplayRows(id: PlanDisplayId): PlanDisplayRow[] {
         { text: "Baux illimités", included: true },
         { text: "États des lieux illimités", included: true },
         { text: "Révision IRL automatique", included: true },
+        { text: "Signature électronique incluse", included: true },
         { text: "Mode saisonnier illimité", included: true, variant: "differentiator" },
         { text: "Dossiers de candidature illimités", included: true, variant: "differentiator" },
       ];

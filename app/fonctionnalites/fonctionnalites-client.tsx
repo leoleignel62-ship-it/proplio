@@ -10,6 +10,7 @@ import {
   Home,
   Mail,
   MapPin,
+  PenLine,
   TrendingUp,
   User,
   Users,
@@ -245,6 +246,55 @@ export function FonctionnalitesClient() {
                       <span className="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-300">PDF généré ✓</span>
                       <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">Envoyé par email ✓</span>
                     </div>
+                  </div>
+                ),
+              },
+              {
+                badge: "Plan Starter et plus",
+                badgeTone: "starter" as const,
+                title: "Signature électronique intégrée",
+                desc: "Conforme eIDAS — légalement valable en France. Propriétaire et locataire signent en ligne via un lien sécurisé avec OTP. Document PDF joint pour lecture avant signature. Signature dessinée depuis smartphone ou ordinateur. Certificat d'audit horodaté (IP, date, identité). Option signature papier avec confirmation manuelle.",
+                visual: (
+                  <div className={visualCard}>
+                    <p className="text-sm font-bold text-violet-400">SIGNATURE ÉLECTRONIQUE</p>
+                    <p className="mt-1 text-xs text-[#9ca3af]">Conforme eIDAS — légalement valable en France</p>
+                    <hr className="my-4 border-gray-100" />
+                    <ul className="space-y-2 text-sm text-[#6b7280]">
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Propriétaire et locataire signent en ligne
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Lien sécurisé envoyé par email avec OTP
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Document PDF joint pour lecture avant signature
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Signature dessinée depuis smartphone ou ordinateur
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Certificat d&apos;audit horodaté (IP, date, identité)
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" aria-hidden />
+                        Option signature papier avec confirmation manuelle
+                      </li>
+                    </ul>
+                    <hr className="my-4 border-gray-100" />
+                    <p className="flex items-center gap-2 text-sm text-[#6b7280]">
+                      <span className="inline-flex shrink-0 rounded-full bg-violet-50 p-3 text-[#7c3aed]" aria-hidden>
+                        <PenLine size={24} strokeWidth={2} />
+                      </span>
+                      Baux · Contrats de séjour · États des lieux
+                    </p>
+                    <span className="mt-3 inline-block rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">
+                      Certificat eIDAS inclus ✓
+                    </span>
                   </div>
                 ),
               },
