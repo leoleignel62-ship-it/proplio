@@ -94,6 +94,11 @@ export default function ParametresPage() {
   const [stripeSubscriptionLoading, setStripeSubscriptionLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const signatureFileRef = useRef<HTMLInputElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [signatureTab, setSignatureTab] = useState<"draw" | "upload">("draw");
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [isSavingDrawnSignature, setIsSavingDrawnSignature] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState("");
   const [convertedReferralsCount, setConvertedReferralsCount] = useState(0);
@@ -292,6 +297,109 @@ export default function ParametresPage() {
     setIsUploadingSignature(false);
   }
 
+  async function handleSaveDrawnSignature() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setIsSavingDrawnSignature(true);
+
+    const { proprietaireId, error: ownerError } = await getCurrentProprietaireId();
+    if (ownerError || !proprietaireId) {
+      toast.error("Impossible de récupérer le propriétaire connecté.");
+      setIsSavingDrawnSignature(false);
+      return;
+    }
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        toast.error("Erreur lors de la conversion de la signature.");
+        setIsSavingDrawnSignature(false);
+        return;
+      }
+      const file = new File([blob], "signature.png", { type: "image/png" });
+      await onUploadSignature(file);
+      setIsSavingDrawnSignature(false);
+    }, "image/png");
+  }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+  }
+
+  function getPos(canvas: HTMLCanvasElement, e: { clientX: number; clientY: number }) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }
+
+  function startDraw(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pos = getPos(canvas, e.nativeEvent);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
+    setHasDrawn(true);
+  }
+
+  function draw(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pos = getPos(canvas, e.nativeEvent);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = PC.text;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
+  function stopDraw() {
+    setIsDrawing(false);
+  }
+
+  function startDrawTouch(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const touch = e.touches[0];
+    const pos = getPos(canvas, touch);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
+    setHasDrawn(true);
+  }
+
+  function drawTouch(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const touch = e.touches[0];
+    const pos = getPos(canvas, touch);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = PC.text;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -471,48 +579,130 @@ export default function ParametresPage() {
 
             <div className="sm:col-span-2 rounded-lg p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}>
               <h3 className="text-base font-semibold" style={{ color: PC.text }}>
-                Signature
+                Signature électronique
               </h3>
               <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-                Ajoutez votre signature pour l&apos;intégrer automatiquement aux quittances PDF.
+                Intégrée automatiquement dans vos baux, quittances et contrats de séjour.
               </p>
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <input
-                  ref={signatureFileRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void onUploadSignature(file);
-                  }}
-                />
-                <BtnSecondary
-                  disabled={isUploadingSignature}
-                  onClick={() => signatureFileRef.current?.click()}
-                >
-                  {isUploadingSignature ? "Upload en cours..." : "Uploader une signature"}
-                </BtnSecondary>
 
-                {signatureUrl ? (
+              <div className="mt-4 flex w-fit gap-1 rounded-lg p-1" style={{ backgroundColor: PC.bg }}>
+                {(["draw", "upload"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setSignatureTab(tab)}
+                    className="rounded-md px-4 py-1.5 text-sm font-medium transition-all"
+                    style={{
+                      backgroundColor: signatureTab === tab ? PC.primary : "transparent",
+                      color: signatureTab === tab ? PC.white : PC.muted,
+                    }}
+                  >
+                    {tab === "draw" ? "✏️ Dessiner" : "⬆️ Uploader"}
+                  </button>
+                ))}
+              </div>
+
+              {signatureTab === "draw" ? (
+                <div className="mt-4 space-y-3">
+                  <p className="text-xs" style={{ color: PC.muted }}>
+                    Dessinez votre signature ci-dessous avec la souris ou le doigt.
+                  </p>
+                  <canvas
+                    ref={canvasRef}
+                    width={500}
+                    height={160}
+                    className="w-full rounded-xl"
+                    style={{
+                      border: `1px solid ${PC.border}`,
+                      backgroundColor: PC.white,
+                      cursor: "crosshair",
+                      maxWidth: 500,
+                      touchAction: "none",
+                    }}
+                    onMouseDown={startDraw}
+                    onMouseMove={draw}
+                    onMouseUp={stopDraw}
+                    onMouseLeave={stopDraw}
+                    onTouchStart={startDrawTouch}
+                    onTouchMove={drawTouch}
+                    onTouchEnd={stopDraw}
+                  />
+                  <div className="flex gap-2">
+                    <BtnSecondary type="button" size="small" onClick={clearCanvas}>
+                      Effacer
+                    </BtnSecondary>
+                    <BtnPrimary
+                      type="button"
+                      size="small"
+                      disabled={!hasDrawn || isSavingDrawnSignature || isUploadingSignature}
+                      onClick={() => void handleSaveDrawnSignature()}
+                    >
+                      {isSavingDrawnSignature || isUploadingSignature ? "Sauvegarde..." : "Sauvegarder la signature"}
+                    </BtnPrimary>
+                  </div>
+                </div>
+              ) : null}
+
+              {signatureTab === "upload" ? (
+                <div className="mt-4 space-y-3">
+                  <p className="text-xs" style={{ color: PC.muted }}>
+                    Uploadez une image de votre signature (PNG ou JPG, fond blanc recommandé).
+                  </p>
+                  <input
+                    ref={signatureFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void onUploadSignature(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => signatureFileRef.current?.click()}
+                    disabled={isUploadingSignature}
+                    className="w-full rounded-xl py-8 text-center transition-colors"
+                    style={{
+                      border: `2px dashed ${PC.border}`,
+                      backgroundColor: PC.bg,
+                      color: PC.muted,
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-2xl">⬆️</span>
+                      <span className="text-sm font-medium">
+                        {isUploadingSignature ? "Upload en cours..." : "Cliquez pour choisir un fichier"}
+                      </span>
+                      <span className="text-xs">PNG, JPG</span>
+                    </div>
+                  </button>
+                </div>
+              ) : null}
+
+              {signatureUrl ? (
+                <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${PC.border}` }}>
+                  <p className="mb-2 text-sm font-medium" style={{ color: PC.muted }}>
+                    Signature enregistrée
+                  </p>
                   <div
-                    className="rounded-lg p-2"
-                    style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}
+                    className="inline-block rounded-xl p-4"
+                    style={{
+                      border: `1px solid ${PC.border}`,
+                      backgroundColor: PC.white,
+                    }}
                   >
                     <Image
                       src={signatureUrl}
-                      alt="Signature du propriétaire"
-                      width={224}
-                      height={96}
-                      className="max-h-24 max-w-56 object-contain"
+                      alt="Ma signature"
+                      width={200}
+                      height={80}
+                      className="max-h-20 object-contain"
+                      unoptimized
                     />
                   </div>
-                ) : (
-                  <p className="text-sm" style={{ color: PC.muted }}>
-                    Aucune signature enregistrée.
-                  </p>
-                )}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             {error ? (
