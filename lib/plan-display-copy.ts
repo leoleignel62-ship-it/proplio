@@ -10,6 +10,14 @@ export type PlanDisplayRow = {
   variant?: PlanDisplayRowVariant;
 };
 
+export type PlanDisplayFeatures = {
+  positives: string[];
+  negatives?: string[];
+  baseLabel?: string;
+  extras?: string[];
+  commonFeatures?: string[];
+};
+
 export const PLAN_DISPLAY_LABELS: Record<PlanDisplayId, string> = {
   free: "Découverte",
   starter: "Starter",
@@ -17,7 +25,7 @@ export const PLAN_DISPLAY_LABELS: Record<PlanDisplayId, string> = {
   expert: "Expert",
 };
 
-export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[]; negatives?: string[] }> = {
+export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, PlanDisplayFeatures> = {
   free: {
     positives: ["1 logement · 1 locataire", "1 quittance à vie", "Dashboard financier"],
     negatives: [
@@ -41,6 +49,19 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
     negatives: ["Mode saisonnier non inclus", "Dossiers de candidature non inclus"],
   },
   pro: {
+    baseLabel: "Tout Starter, plus :",
+    extras: [
+      "Mode saisonnier (5 logements max, classique + saisonnier confondus)",
+      "Dossiers de candidature illimités",
+      "Jusqu'à 5 logements · 5 locataires",
+    ],
+    commonFeatures: [
+      "Quittances illimitées",
+      "Baux conformes loi ALUR",
+      "États des lieux avec photos",
+      "Révision IRL automatique",
+      "Signature électronique incluse",
+    ],
     positives: [
       "Jusqu'à 5 logements · 5 locataires",
       "Quittances illimitées",
@@ -53,6 +74,16 @@ export const PLAN_DISPLAY_FEATURES: Record<PlanDisplayId, { positives: string[];
     ],
   },
   expert: {
+    baseLabel: "Tout Pro, plus :",
+    extras: ["Logements et locataires illimités", "Mode saisonnier illimité", "Support prioritaire"],
+    commonFeatures: [
+      "Quittances illimitées",
+      "Baux illimités",
+      "États des lieux illimités",
+      "Révision IRL automatique",
+      "Signature électronique incluse",
+      "Dossiers de candidature illimités",
+    ],
     positives: [
       "Logements et locataires illimités",
       "Quittances illimitées",

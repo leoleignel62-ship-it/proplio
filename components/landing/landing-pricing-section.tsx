@@ -4,13 +4,60 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LANDING_PRICING_META, PLAN_ORDER } from "@/lib/landing-pricing-meta";
-import { PLAN_DISPLAY_LABELS, planDisplayRows, type PlanDisplayRow } from "@/lib/plan-display-copy";
+import {
+  PLAN_DISPLAY_FEATURES,
+  PLAN_DISPLAY_LABELS,
+  planDisplayRows,
+  type PlanDisplayId,
+  type PlanDisplayRow,
+} from "@/lib/plan-display-copy";
 import { RevealOnView } from "@/components/landing/reveal-on-view";
 import { PC } from "@/lib/locavio-colors";
 
 type BillingMode = "mensuel" | "annuel";
 
 const ease = "200ms ease-out";
+
+function PricingTieredFeatures({ planId }: { planId: PlanDisplayId }) {
+  const copy = PLAN_DISPLAY_FEATURES[planId];
+  const baseLabel = copy.baseLabel;
+  const extras = copy.extras ?? [];
+  const commonFeatures = copy.commonFeatures ?? [];
+
+  if (!baseLabel || extras.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <div style={{ color: PC.muted, fontSize: 13 }}>
+        <span>✓ {baseLabel}</span>
+      </div>
+      <hr style={{ borderColor: PC.border, margin: "8px 0" }} />
+      {extras.map((extra) => (
+        <div key={extra} className="flex items-start gap-2" style={{ color: PC.primary }}>
+          <span className="shrink-0 leading-snug" style={{ color: PC.primary }} aria-hidden>
+            ✦
+          </span>
+          <span className="text-sm font-semibold leading-snug">{extra}</span>
+        </div>
+      ))}
+      {commonFeatures.length > 0 ? (
+        <>
+          <hr style={{ borderColor: PC.border, margin: "8px 0" }} />
+          {commonFeatures.map((feature) => (
+            <div key={feature} className="flex items-center gap-2" style={{ color: PC.text }}>
+              <span style={{ color: PC.success }} aria-hidden>
+                ✓
+              </span>
+              <span className="text-sm">{feature}</span>
+            </div>
+          ))}
+        </>
+      ) : null}
+    </div>
+  );
+}
 
 function PricingFeatureRow({ row }: { row: PlanDisplayRow }) {
   if (row.variant === "banner") {
@@ -260,11 +307,17 @@ export function LandingPricingSection({
               >
                 {price}
               </p>
-              <ul className="mt-6 flex-1 space-y-2.5 text-sm leading-snug" style={{ color: PC.muted }}>
-                {plan.featureRows.map((row) => (
-                  <PricingFeatureRow key={row.text} row={row} />
-                ))}
-              </ul>
+              <div className="mt-6 flex-1 text-sm leading-snug" style={{ color: PC.muted }}>
+                {PLAN_DISPLAY_FEATURES[plan.id].baseLabel ? (
+                  <PricingTieredFeatures planId={plan.id} />
+                ) : (
+                  <ul className="space-y-2.5">
+                    {plan.featureRows.map((row) => (
+                      <PricingFeatureRow key={row.text} row={row} />
+                    ))}
+                  </ul>
+                )}
+              </div>
               <Link
                 href={plan.ctaHref}
                 className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-center text-sm font-semibold transition ${plan.id === "pro" ? "min-h-[52px] text-base" : "min-h-[48px]"}`}
