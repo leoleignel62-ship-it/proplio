@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertStarterPlan } from "@/lib/api-plan-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
@@ -32,6 +33,9 @@ export async function GET(
     if (proprietaireError || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
+
+    const planError = await assertStarterPlan(proprietaire.id);
+    if (planError) return planError;
 
     const { data: edl, error: edlError } = await supabase
       .from("etats_des_lieux")

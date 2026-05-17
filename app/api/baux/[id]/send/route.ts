@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
+import { assertStarterPlan } from "@/lib/api-plan-guard";
 import { emailGreeting, emailParagraph, emailSignoff, wrapLocavioEmail } from "@/lib/email-templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -34,6 +35,9 @@ export async function POST(
     if (proprietaireError || !proprietaire) {
       return NextResponse.json({ error: "Profil propriétaire introuvable." }, { status: 400 });
     }
+
+    const planError = await assertStarterPlan(proprietaire.id);
+    if (planError) return planError;
 
     const ownerEmail = String(proprietaire.email ?? "").trim();
     if (!ownerEmail) {
