@@ -3,6 +3,11 @@ import { Resend } from "resend";
 import { getLocataireIdsOrderedForBailPdf } from "@/lib/bail-pdf-locataires";
 import { generateBailPdfBuffer, type BailPdfLocataire } from "@/lib/pdf/generate-bail-pdf";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
+import { buildEdlPdfBufferFromDb } from "@/lib/etat-des-lieux/pdf-server";
+import {
+  buildSaisonnierEdlPdfBufferFromDb,
+  rowUsesSaisonnierPdf,
+} from "@/lib/etat-des-lieux/saisonnier-edl-pdf-build";
 import {
   emailSignatureOtpInvite,
   emailSignatureOtpInviteSubject,
@@ -170,6 +175,43 @@ async function generateSignatureInvitePdfAttachment(
         filename: "contrat-sejour-locavio.pdf",
         content: Buffer.from(pdfBytes),
       };
+    }
+
+    if (document_type === "edl") {
+      const { data: edl } = await supabaseAdmin
+        .from("etats_des_lieux")
+        .select("*")
+        .eq("id", document_id)
+        .eq("proprietaire_id", proprietaire_id)
+        .maybeSingle();
+
+      if (!edl) return null;
+
+      try {
+        const edlRec = edl as Record<string, unknown>;
+        const pdfBytes = rowUsesSaisonnierPdf(edlRec)
+          ? await buildSaisonnierEdlPdfBufferFromDb(
+              supabaseAdmin,
+              supabaseAdmin,
+              edlRec,
+              proprio as Record<string, unknown>,
+              signatureImage,
+            )
+          : await buildEdlPdfBufferFromDb(
+              supabaseAdmin,
+              supabaseAdmin,
+              edlRec,
+              proprio as Record<string, unknown>,
+              signatureImage,
+            );
+
+        return {
+          filename: "etat-des-lieux-locavio.pdf",
+          content: Buffer.from(pdfBytes),
+        };
+      } catch {
+        return null;
+      }
     }
 
     return null;
