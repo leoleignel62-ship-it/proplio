@@ -999,7 +999,7 @@ export default function LogementsPage() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#7c3aed" }} aria-hidden />
-              <span>Saisonnier</span>
+              <span>Saisonnier / Les deux</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#d1d5db" }} aria-hidden />
