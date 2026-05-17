@@ -63,7 +63,7 @@ const avecItems = [
   "Bail conforme ALUR en quelques minutes",
   "État des lieux avec photos depuis votre smartphone",
   "Révision IRL calculée et envoyée automatiquement",
-  "Locavio à partir de 6,90€/mois — économisez jusqu'à 891€/an",
+  "Locavio à partir de 6,90€/mois — jusqu'à 10× moins cher qu'une agence",
 ] as const;
 
 const featureCards = [
