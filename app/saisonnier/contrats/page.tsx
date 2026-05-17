@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
+import { Download, Mail } from "lucide-react";
 import { IconArrowPath } from "@/components/locavio-icons";
-import { BtnEmail, BtnSecondary, StatusBadge } from "@/components/ui";
+import { BtnSecondary } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { canAccessSaisonnier, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
@@ -29,6 +30,7 @@ type Row = {
   date_depart: string;
   contrat_envoye: boolean | null;
   contrat_signe: boolean | null;
+  tarif_total: number | null;
   source: string | null;
   logements: { nom: string } | null;
   voyageurs: { prenom: string; nom: string; email: string | null } | null;
@@ -52,6 +54,18 @@ function rowContratStatut(row: Row): ContratStatut {
   return "Généré";
 }
 
+function getContratAccentColor(statut: ContratStatut): string {
+  if (statut === "Signé") return "#10b981";
+  if (statut === "Envoyé") return "#7c3aed";
+  return "#9ca3af";
+}
+
+function getContratStatutBadgeStyle(statut: ContratStatut): { bg: string; color: string } {
+  if (statut === "Signé") return { bg: PC.successBg20, color: PC.success };
+  if (statut === "Envoyé") return { bg: PC.primaryBg15, color: PC.primaryLight };
+  return { bg: "#f3f4f6", color: "#6b7280" };
+}
+
 type StatutFiltre = "tous" | "genere" | "envoye" | "signe";
 
 export default function ContratsSejourPage() {
@@ -72,6 +86,7 @@ export default function ContratsSejourPage() {
   const [lierEmail, setLierEmail] = useState("");
   const [lierTel, setLierTel] = useState("");
   const [lierLoading, setLierLoading] = useState(false);
+  const [hoveredContratId, setHoveredContratId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { proprietaireId, error: e } = await getCurrentProprietaireId();
@@ -99,7 +114,7 @@ export default function ContratsSejourPage() {
         : supabase
             .from("reservations")
             .select(
-              "id, logement_id, voyageur_id, notes, date_arrivee, date_depart, contrat_envoye, contrat_signe, source, logements(nom), voyageurs(prenom, nom, email)",
+              "id, logement_id, voyageur_id, notes, date_arrivee, date_depart, contrat_envoye, contrat_signe, tarif_total, source, logements(nom), voyageurs(prenom, nom, email)",
             )
             .eq("proprietaire_id", proprietaireId)
             .in("logement_id", saisonnierIds)
@@ -130,6 +145,7 @@ export default function ContratsSejourPage() {
           date_depart: String(r.date_depart),
           contrat_envoye: (r.contrat_envoye as boolean | null) ?? null,
           contrat_signe: (r.contrat_signe as boolean | null) ?? null,
+          tarif_total: r.tarif_total != null ? Number(r.tarif_total) : null,
           source: r.source != null ? String(r.source) : null,
           logements: logements ? { nom: String(logements.nom ?? "") } : null,
           voyageurs: voyageurs
@@ -361,117 +377,147 @@ export default function ContratsSejourPage() {
         </p>
       ) : null}
 
-      <div className="space-y-3">
-        {rows.length === 0 ? (
-          <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
-            Aucune réservation à afficher.
+      {rows.length === 0 ? (
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Aucune réservation à afficher.
+        </div>
+      ) : filteredRows.length === 0 ? (
+        <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
+          Aucun résultat pour ces filtres.
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+              <span>Signé</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#7c3aed" }} aria-hidden />
+              <span>Envoyé</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#9ca3af" }} aria-hidden />
+              <span>Brouillon</span>
+            </div>
           </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="rounded-xl p-6 text-sm" style={{ ...panelCard, color: PC.muted }}>
-            Aucun résultat pour ces filtres.
-          </div>
-        ) : (
-          filteredRows.map((row) => {
-            const statut = rowContratStatut(row);
-            const datesAffichees = `${formatDateFR(row.date_arrivee)} → ${formatDateFR(row.date_depart)}`;
-            const hasNomFromNotes = !!extractVoyageurFromNotes(row.notes);
-            return (
-              <article key={row.id} className="rounded-xl p-4" style={{ ...panelCard, border: `1px solid ${PC.border}` }}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{row.logements?.nom ?? "Logement"}</p>
-                    <p className="text-sm" style={{ color: PC.muted }}>
-                      {row.voyageurs
-                        ? `${row.voyageurs.prenom} ${row.voyageurs.nom}`
-                        : extractVoyageurFromNotes(row.notes) ?? "Sans voyageur"}{" "}
-                      · {datesAffichees}
-                    </p>
-                    <p className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: PC.secondary }}>
-                      <span>Statut :</span>
-                      <StatusBadge
-                        status={statut === "Généré" ? "brouillon" : statut === "Envoyé" ? "envoye" : "signe"}
-                        label={statut}
-                      />
-                    </p>
-                    {!row.voyageurs && !hasNomFromNotes ? (
-                      <p
-                        className="mt-2 rounded-lg px-3 py-2 text-xs"
-                        style={{
-                          backgroundColor: "rgba(234,88,12,0.1)",
-                          color: "#fb923c",
-                          border: "1px solid rgba(234,88,12,0.3)",
-                        }}
-                      >
-                        ⚠ Aucun voyageur lié à cette réservation.{" "}
-                        <button
-                          type="button"
-                          onClick={() => openLierVoyageurModal(row.id)}
-                          className="font-medium underline"
-                          style={{ color: "#fb923c" }}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredRows.map((row) => {
+              const statut = rowContratStatut(row);
+              const accentColor = getContratAccentColor(statut);
+              const statutStyle = getContratStatutBadgeStyle(statut);
+              const isHovered = hoveredContratId === row.id;
+              const datesAffichees = `${formatDateFR(row.date_arrivee)} → ${formatDateFR(row.date_depart)}`;
+              const hasNomFromNotes = !!extractVoyageurFromNotes(row.notes);
+              const voyageurLabel = row.voyageurs
+                ? `${row.voyageurs.prenom} ${row.voyageurs.nom}`.trim()
+                : extractVoyageurFromNotes(row.notes) ?? "Sans voyageur";
+              const montant = Number(row.tarif_total ?? 0);
+              const alertStyle = {
+                backgroundColor: "rgba(234,88,12,0.1)",
+                color: "#fb923c",
+                border: "1px solid rgba(234,88,12,0.3)",
+              } as const;
+              return (
+                <article
+                  key={row.id}
+                  className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  }}
+                  onMouseEnter={() => setHoveredContratId(row.id)}
+                  onMouseLeave={() => setHoveredContratId(null)}
+                >
+                  <div className="shrink-0 self-stretch" style={{ width: 3, backgroundColor: accentColor }} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="p-4 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{voyageurLabel}</h3>
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ backgroundColor: statutStyle.bg, color: statutStyle.color }}
                         >
-                          Lier un voyageur
-                        </button>{" "}
-                        pour pouvoir envoyer le contrat.
+                          {statut}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm" style={{ color: PC.muted }}>
+                        {row.logements?.nom ?? "Logement"} · {datesAffichees}
                       </p>
-                    ) : null}
-                    {row.voyageurs && !row.voyageurs.email ? (
-                      <p
-                        className="mt-2 rounded-lg px-3 py-2 text-xs"
-                        style={{
-                          backgroundColor: "rgba(234,88,12,0.1)",
-                          color: "#fb923c",
-                          border: "1px solid rgba(234,88,12,0.3)",
-                        }}
-                      >
-                        ⚠ {row.voyageurs.prenom} {row.voyageurs.nom} n&apos;a pas d&apos;email renseigné. Ajoutez son email depuis la page
-                        Voyageurs pour pouvoir envoyer le contrat.{" "}
-                        <button
-                          type="button"
-                          onClick={() => openLierVoyageurModal(row.id)}
-                          className="font-medium underline"
-                          style={{ color: "#fb923c" }}
-                        >
-                          Changer de voyageur
-                        </button>
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <BtnEmail
-                        size="small"
-                        className="!flex-1 justify-center"
-                        disabled={!String(row.voyageurs?.email ?? "").trim()}
-                        onClick={() => void sendContrat(row.id)}
-                      >
-                        Envoyer
-                      </BtnEmail>
-                      <BtnSecondary
-                        size="small"
-                        className="!flex-1 justify-center"
-                        onClick={() => void downloadContratPdf(row.id)}
-                      >
-                        Télécharger PDF
-                      </BtnSecondary>
                     </div>
-                    <BtnSecondary
-                      size="small"
-                      icon={<IconArrowPath className="h-3 w-3" />}
-                      onClick={() => void sendContrat(row.id)}
-                    >
-                      Renvoyer
-                    </BtnSecondary>
-                    <label className="flex items-center gap-2 text-xs" style={{ color: PC.muted }}>
-                      <input type="checkbox" checked={Boolean(row.contrat_signe)} onChange={(e) => void toggleSigne(row.id, e.target.checked)} />
-                      Marquer comme signé
-                    </label>
+                    <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      {montant > 0 ? (
+                        <p className="text-lg font-bold" style={{ color: PC.primary }}>
+                          {montant.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                        </p>
+                      ) : null}
+                      {!row.voyageurs && !hasNomFromNotes ? (
+                        <p className={`${montant > 0 ? "mt-2 " : ""}rounded-lg px-3 py-2 text-xs`} style={alertStyle}>
+                          ⚠ Aucun voyageur lié à cette réservation.{" "}
+                          <button
+                            type="button"
+                            onClick={() => openLierVoyageurModal(row.id)}
+                            className="font-medium underline"
+                            style={{ color: "#fb923c" }}
+                          >
+                            Lier un voyageur
+                          </button>{" "}
+                          pour pouvoir envoyer le contrat.
+                        </p>
+                      ) : null}
+                      {row.voyageurs && !row.voyageurs.email ? (
+                        <p className={`${montant > 0 || (!row.voyageurs && !hasNomFromNotes) ? "mt-2 " : ""}rounded-lg px-3 py-2 text-xs`} style={alertStyle}>
+                          ⚠ {row.voyageurs.prenom} {row.voyageurs.nom} n&apos;a pas d&apos;email renseigné. Ajoutez son email depuis la page
+                          Voyageurs pour pouvoir envoyer le contrat.{" "}
+                          <button
+                            type="button"
+                            onClick={() => openLierVoyageurModal(row.id)}
+                            className="font-medium underline"
+                            style={{ color: "#fb923c" }}
+                          >
+                            Changer de voyageur
+                          </button>
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <div className="flex flex-wrap gap-2">
+                        <BtnSecondary
+                          size="small"
+                          icon={<Mail className="h-4 w-4" aria-hidden />}
+                          disabled={!String(row.voyageurs?.email ?? "").trim()}
+                          onClick={() => void sendContrat(row.id)}
+                        >
+                          Envoyer
+                        </BtnSecondary>
+                        <BtnSecondary
+                          size="small"
+                          icon={<Download className="h-4 w-4" aria-hidden />}
+                          onClick={() => void downloadContratPdf(row.id)}
+                        >
+                          PDF
+                        </BtnSecondary>
+                        <BtnSecondary
+                          size="small"
+                          icon={<IconArrowPath className="h-4 w-4" />}
+                          onClick={() => void sendContrat(row.id)}
+                        >
+                          Renvoyer
+                        </BtnSecondary>
+                        <label className="flex w-full items-center gap-2 text-xs" style={{ color: PC.muted }}>
+                          <input type="checkbox" checked={Boolean(row.contrat_signe)} onChange={(e) => void toggleSigne(row.id, e.target.checked)} />
+                          Marquer comme signé
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })
-        )}
-      </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {lierModalId ? (
         <div

@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import type { SaisonnierReservationOption } from "@/components/etat-des-lieux-saisonnier/saisonnier-edl-wizard";
-import { IconPlus } from "@/components/locavio-icons";
-import { BtnDanger, BtnEmail, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal, StatusBadge } from "@/components/ui";
+import { Download, Eye, Mail } from "lucide-react";
+import { IconBuilding, IconCalendar, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { getEdlTypeEtatFromRow } from "@/lib/etat-des-lieux/edl-type-etat";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
@@ -55,6 +56,10 @@ type LogementOption = {
   nom: string;
 };
 
+function getSaisonnierEdlAccentColor(statut: string): string {
+  return statut === "termine" ? "#10b981" : "#f59e0b";
+}
+
 export default function EtatsDesLieuxSaisonnierPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,6 +75,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; statut: string } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
+  const [hoveredEdlId, setHoveredEdlId] = useState<string | null>(null);
 
   const isPlanLimitReached = Boolean(planLimitMessage);
 
@@ -326,71 +332,118 @@ export default function EtatsDesLieuxSaisonnierPage() {
           Aucun état des lieux saisonnier.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
-          <table className="w-full min-w-[860px] text-left text-sm">
-            <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
-              <tr>
-                <th className="px-3 py-2">Réservation</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Statut</th>
-                <th className="px-3 py-2">Date EDL</th>
-                <th className="px-3 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rowsWithReservation.map(({ row, reservation }) => (
-                <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{reservation?.voyageurLabel ?? "Voyageur"}</p>
-                    <p className="text-xs" style={{ color: PC.muted }}>
-                      {reservation
-                        ? `${reservation.date_arrivee} → ${reservation.date_depart} · ${reservation.logementLabel}`
-                        : "Séjour non trouvé"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2">
-                    {getEdlTypeEtatFromRow(row as Record<string, unknown>) === "entree" ? "Entrée" : "Sortie"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={row.statut === "termine" ? "finalise" : "brouillon"} />
-                  </td>
-                  <td className="px-3 py-2">
-                    {row.date_etat ? new Date(row.date_etat).toLocaleDateString("fr-FR") : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-2">
-                      <BtnSecondary size="small" onClick={() => router.push(`/saisonnier/etats-des-lieux/${row.id}`)}>
-                        Ouvrir
-                      </BtnSecondary>
-                      {row.statut === "termine" ? (
-                        <BtnPdf
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+              <span>Finalisé</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#f59e0b" }} aria-hidden />
+              <span>En cours</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {rowsWithReservation.map(({ row, reservation }) => {
+              const isFinalise = row.statut === "termine";
+              const accentColor = getSaisonnierEdlAccentColor(row.statut);
+              const isHovered = hoveredEdlId === row.id;
+              const typeEtat = getEdlTypeEtatFromRow(row as Record<string, unknown>);
+              const isEntree = typeEtat === "entree";
+              const dateLabel = row.date_etat ? new Date(row.date_etat).toLocaleDateString("fr-FR") : "—";
+              return (
+                <article
+                  key={row.id}
+                  className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  }}
+                  onMouseEnter={() => setHoveredEdlId(row.id)}
+                  onMouseLeave={() => setHoveredEdlId(null)}
+                >
+                  <div className="shrink-0 self-stretch" style={{ width: 3, backgroundColor: accentColor }} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="p-4 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">
+                          {reservation?.voyageurLabel ?? "Voyageur"}
+                        </h3>
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={
+                            isEntree
+                              ? { backgroundColor: PC.successBg20, color: PC.success }
+                              : { backgroundColor: PC.warningBg15, color: PC.warning }
+                          }
+                        >
+                          {isEntree ? "Entrée" : "Sortie"}
+                        </span>
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <IconBuilding className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">
+                          {reservation?.logementLabel ?? "Logement"}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isFinalise ? (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                          >
+                            Finalisé
+                          </span>
+                        ) : (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: PC.warningBg15, color: PC.warning }}
+                          >
+                            Brouillon
+                          </span>
+                        )}
+                        <p className="flex items-center gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <IconCalendar className="h-4 w-4 shrink-0" aria-hidden />
+                          <span>{dateLabel}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <div className="flex flex-wrap gap-2">
+                        <BtnSecondary size="small" icon={<Eye className="h-4 w-4" aria-hidden />} onClick={() => router.push(`/saisonnier/etats-des-lieux/${row.id}`)}>
+                          Ouvrir
+                        </BtnSecondary>
+                        <BtnSecondary
                           size="small"
+                          icon={<Download className="h-4 w-4" aria-hidden />}
+                          disabled={!isFinalise}
+                          title={isFinalise ? undefined : "Finalisez l'EDL pour générer le PDF."}
                           onClick={() => window.open(`/api/etats-des-lieux/${row.id}/pdf`, "_blank", "noopener,noreferrer")}
                         >
-                          Télécharger PDF
-                        </BtnPdf>
-                      ) : (
-                        <BtnPdf
+                          PDF
+                        </BtnSecondary>
+                        <BtnSecondary
                           size="small"
-                          disabled
-                          title="Finalisez l'EDL pour générer le PDF."
+                          icon={<Mail className="h-4 w-4" aria-hidden />}
+                          disabled={!isFinalise}
+                          onClick={() => void onSendEmail(row.id)}
                         >
-                          Télécharger PDF
-                        </BtnPdf>
-                      )}
-                      <BtnEmail size="small" disabled={row.statut !== "termine"} onClick={() => void onSendEmail(row.id)}>
-                        Envoyer par email
-                      </BtnEmail>
-                      <BtnDanger size="small" onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
-                        Supprimer
-                      </BtnDanger>
+                          Envoyer
+                        </BtnSecondary>
+                        <BtnDanger size="small" icon={<IconTrash className="h-4 w-4" />} onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
+                          Supprimer
+                        </BtnDanger>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {wizardOpen ? (

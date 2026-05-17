@@ -36,10 +36,15 @@ type LogementTaxGroup = {
   total: number;
   pendingTotal: number;
   count: number;
+  totalNuits: number;
   allReversee: boolean;
   idsNotReversee: string[];
   idsReversee: string[];
 };
+
+function getTaxeAccentColor(reversed: boolean): string {
+  return reversed ? "#10b981" : "#7c3aed";
+}
 
 const CARD_BG = "#ffffff";
 const BORDER_VIOLET = "rgba(124, 58, 237, 0.65)";
@@ -61,6 +66,7 @@ export default function TaxesSejourPage() {
   const [logements, setLogements] = useState<LogementOption[]>([]);
   const [error, setError] = useState("");
   const [toggleBusyKey, setToggleBusyKey] = useState<string | null>(null);
+  const [hoveredTaxeLogement, setHoveredTaxeLogement] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
   const [annee, setAnnee] = useState(currentYear);
 
@@ -164,6 +170,7 @@ export default function TaxesSejourPage() {
           total: 0,
           pendingTotal: 0,
           count: 0,
+          totalNuits: 0,
           allReversee: true,
           idsNotReversee: [],
           idsReversee: [],
@@ -172,6 +179,7 @@ export default function TaxesSejourPage() {
       const bucket = map.get(key)!;
       bucket.total += row.montant;
       bucket.count += 1;
+      bucket.totalNuits += row.nb_nuits;
       if (row.reversee) {
         bucket.idsReversee.push(row.id);
       } else {
@@ -357,83 +365,99 @@ export default function TaxesSejourPage() {
         )
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {groupedByLogement.map((group) => {
-          const reversed = group.allReversee;
-          const busy = toggleBusyKey === group.logementNom;
-          return (
-            <article
-              key={group.logementNom}
-              className="flex flex-col rounded-xl border-2 p-4 shadow-sm transition-[border-color] duration-200"
-              style={{
-                backgroundColor: CARD_BG,
-                borderColor: reversed ? BORDER_GREEN : BORDER_VIOLET,
-              }}
-            >
-              <h2 className="text-base font-semibold leading-snug" style={{ color: PC.text }}>
-                {group.logementNom}
-              </h2>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: PC.muted }}>
-                    Montant collecté
-                  </dt>
-                  <dd className="mt-0.5 text-lg font-semibold tabular-nums" style={{ color: PC.text }}>
-                    {formatEuros(group.total)} €
-                  </dd>
-                  {!reversed && group.pendingTotal > 0 && group.pendingTotal < group.total ? (
-                    <dd className="mt-1 text-xs" style={{ color: PC.warning }}>
-                      Dont {formatEuros(group.pendingTotal)} € à reverser
-                    </dd>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: PC.muted }}>
-                      Réservations
-                    </dt>
-                    <dd className="mt-0.5 font-medium tabular-nums" style={{ color: PC.text }}>
-                      {group.count}
-                    </dd>
+      {groupedByLogement.length > 0 ? (
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+              <span>Reversée</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#7c3aed" }} aria-hidden />
+              <span>À reverser</span>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {groupedByLogement.map((group) => {
+              const reversed = group.allReversee;
+              const busy = toggleBusyKey === group.logementNom;
+              const accentColor = getTaxeAccentColor(reversed);
+              const isHovered = hoveredTaxeLogement === group.logementNom;
+              return (
+                <article
+                  key={group.logementNom}
+                  className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  }}
+                  onMouseEnter={() => setHoveredTaxeLogement(group.logementNom)}
+                  onMouseLeave={() => setHoveredTaxeLogement(null)}
+                >
+                  <div className="shrink-0 self-stretch" style={{ width: 3, backgroundColor: accentColor }} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="p-4 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug">{group.logementNom}</h2>
+                        {reversed ? (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: PC.successBg20, color: PC.success }}
+                          >
+                            Reversée ✓
+                          </span>
+                        ) : (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
+                          >
+                            À reverser
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <p className="text-lg font-bold tabular-nums" style={{ color: PC.primary }}>
+                        {formatEuros(group.total)} €
+                      </p>
+                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                        {group.totalNuits} nuit{group.totalNuits > 1 ? "s" : ""} taxable{group.totalNuits > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void toggleLogement(group)}
+                        className="w-full rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        style={
+                          reversed
+                            ? {
+                                backgroundColor: "rgba(22, 163, 74, 0.2)",
+                                color: GREEN_TEXT,
+                                border: `1px solid ${BORDER_GREEN}`,
+                              }
+                            : {
+                                backgroundColor: "rgba(124, 58, 237, 0.12)",
+                                color: PC.secondary,
+                                border: `1px solid ${BORDER_VIOLET}`,
+                              }
+                        }
+                      >
+                        {busy ? "…" : reversed ? "Reversée ✓" : "À reverser"}
+                      </button>
+                      <p className="mt-2 text-center text-[11px] leading-relaxed" style={{ color: PC.muted }}>
+                        {reversed ? "Cliquer pour remettre en attente de reversement" : "Cliquer pour marquer comme reversée"}
+                      </p>
+                                        </div>
                   </div>
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: PC.muted }}>
-                      Année
-                    </dt>
-                    <dd className="mt-0.5 font-medium tabular-nums" style={{ color: PC.text }}>
-                      {annee}
-                    </dd>
-                  </div>
-                </div>
-              </dl>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void toggleLogement(group)}
-                className="mt-5 w-full rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-                style={
-                  reversed
-                    ? {
-                        backgroundColor: "rgba(22, 163, 74, 0.2)",
-                        color: GREEN_TEXT,
-                        border: `1px solid ${BORDER_GREEN}`,
-                      }
-                    : {
-                        backgroundColor: "rgba(124, 58, 237, 0.12)",
-                        color: PC.secondary,
-                        border: `1px solid ${BORDER_VIOLET}`,
-                      }
-                }
-              >
-                {busy ? "…" : reversed ? "Reversée ✓" : "À reverser"}
-              </button>
-              <p className="mt-2 text-center text-[11px] leading-relaxed" style={{ color: PC.muted }}>
-                {reversed ? "Cliquer pour remettre en attente de reversement" : "Cliquer pour marquer comme reversée"}
-              </p>
-            </article>
-          );
-        })}
-      </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
 
       {!hasYearlyTaxes ? (
         <p className="rounded-xl border px-4 py-8 text-center text-sm" style={{ borderColor: PC.border, color: PC.muted }}>

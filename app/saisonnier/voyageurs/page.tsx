@@ -3,7 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconPlus, IconTrash } from "@/components/locavio-icons";
+import { Mail, Phone } from "lucide-react";
+import { IconCalendar, IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
@@ -51,6 +52,7 @@ export default function VoyageursSaisonnierPage() {
   const [editing, setEditing] = useState<Voyageur | null>(null);
   const [sejoursByVoy, setSejoursByVoy] = useState<Record<string, number>>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [hoveredVoyageurId, setHoveredVoyageurId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     prenom: "",
@@ -264,60 +266,95 @@ export default function VoyageursSaisonnierPage() {
           Aucun voyageur. Créez-en un pour lier des réservations.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
-              <tr>
-                <th className="px-4 py-3 font-medium">Nom</th>
-                <th className="px-4 py-3 font-medium">Contact</th>
-                <th className="px-4 py-3 font-medium">Pièce d&apos;identité</th>
-                <th className="px-4 py-3 font-medium">Séjours</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((row) => (
-                <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}`, backgroundColor: PC.bg }}>
-                  <td className="px-4 py-3">
-                    {row.prenom} {row.nom}
-                  </td>
-                  <td className="px-4 py-3" style={{ color: PC.muted }}>
-                    {row.email ?? "—"}
-                    <br />
-                    {row.telephone ?? ""}
-                  </td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="max-w-[200px] text-xs"
-                      onChange={(e) => void onUploadPi(row.id, e.target.files?.[0] ?? null)}
-                    />
-                    {row.document_identite_path ? (
-                      <span className="ml-2 text-xs" style={{ color: PC.success }}>
-                        OK
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredRows.map((row) => {
+            const isHovered = hoveredVoyageurId === row.id;
+            const initiales = `${row.prenom?.[0] ?? ""}${row.nom?.[0] ?? ""}`.toUpperCase() || "?";
+            const sejours = sejoursByVoy[row.id] ?? 0;
+            const hasDoc = Boolean(row.document_identite_path);
+            return (
+              <article
+                key={row.id}
+                className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                style={{
+                  backgroundColor: PC.card,
+                  border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                }}
+                onMouseEnter={() => setHoveredVoyageurId(row.id)}
+                onMouseLeave={() => setHoveredVoyageurId(null)}
+              >
+                <div className="shrink-0 self-stretch" style={{ width: 3, backgroundColor: "#7c3aed" }} aria-hidden />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <div className="p-4 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                        style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                      >
+                        {initiales}
                       </span>
+                      <h3 className="min-w-0 text-base font-semibold leading-snug">
+                        {row.prenom} {row.nom}
+                      </h3>
+                    </div>
+                    {row.email ? (
+                      <p className="mt-2 flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                        <Mail size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">{row.email}</span>
+                      </p>
                     ) : null}
-                  </td>
-                  <td className="px-4 py-3">{sejoursByVoy[row.id] ?? 0}</td>
-                  <td className="px-4 py-3">
+                    {row.telephone ? (
+                      <p className={`flex items-center gap-2 text-sm${row.email ? " mt-1.5" : " mt-2"}`} style={{ color: PC.muted }}>
+                        <Phone size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+                        <span>{row.telephone}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                    <p className="flex items-center gap-2 text-sm" style={{ color: PC.muted }}>
+                      <IconCalendar className="h-4 w-4 shrink-0" aria-hidden />
+                      <span>
+                        {sejours} séjour{sejours > 1 ? "s" : ""}
+                      </span>
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={
+                          hasDoc
+                            ? { backgroundColor: PC.successBg20, color: PC.success }
+                            : { backgroundColor: "#f3f4f6", color: "#6b7280" }
+                        }
+                      >
+                        {hasDoc ? "Vérifiée" : "Non fournie"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="max-w-full text-xs"
+                        onChange={(e) => void onUploadPi(row.id, e.target.files?.[0] ?? null)}
+                      />
+                    </div>
+                  </div>
+                  <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
                     <div className="flex flex-wrap gap-2">
-                      <BtnSecondary size="small" onClick={() => openEdit(row)}>
+                      <BtnSecondary size="small" icon={<IconPencil className="h-4 w-4" />} onClick={() => openEdit(row)}>
                         Modifier
                       </BtnSecondary>
                       <BtnDanger
                         size="small"
-                        icon={<IconTrash className="h-3 w-3" />}
+                        icon={<IconTrash className="h-4 w-4" />}
                         onClick={() => setDeleteConfirmId(row.id)}
                       >
                         Supprimer
                       </BtnDanger>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 

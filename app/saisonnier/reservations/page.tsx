@@ -12,7 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { IconPencil } from "@/components/locavio-icons";
+import { Download, Eye } from "lucide-react";
+import { IconBuilding, IconPencil, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPdf, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
@@ -94,6 +95,38 @@ const STATUT_COLOR: Record<string, string> = {
   terminee: PC.muted,
   annulee: PC.danger,
 };
+
+function getReservationAccentColor(statut: string): string {
+  if (statut === "annulee") return "#9ca3af";
+  if (statut === "en_attente") return "#f59e0b";
+  return "#10b981";
+}
+
+function getReservationStatutBadge(statut: string): { label: string; bg: string; color: string } {
+  if (statut === "annulee") return { label: "Annulée", bg: "#f3f4f6", color: "#6b7280" };
+  if (statut === "en_attente") return { label: "En attente", bg: PC.warningBg15, color: PC.warning };
+  if (statut === "confirmee") return { label: "Confirmée", bg: PC.successBg20, color: PC.success };
+  if (statut === "terminee") return { label: "Terminée", bg: PC.successBg20, color: PC.success };
+  if (statut === "en_cours") return { label: "En cours", bg: PC.successBg20, color: PC.success };
+  return { label: statut, bg: PC.primaryBg15, color: PC.secondary };
+}
+
+function formatSourceLabel(source: string): string {
+  if (source === "airbnb") return "Airbnb";
+  if (source === "booking") return "Booking";
+  if (source === "direct") return "Direct";
+  if (source === "blocage") return "Blocage personnel";
+  if (source === "autre") return "Autre";
+  return source;
+}
+
+function formatDateShort(dateStr: string): string {
+  if (!dateStr) return "";
+  const base = dateStr.trim().split("T")[0] ?? "";
+  const date = new Date(`${base}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("fr-FR");
+}
 
 function formatDateFR(dateStr: string): string {
   if (!dateStr) return "";
@@ -230,6 +263,7 @@ export default function ReservationsSaisonnierPage() {
   });
   const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
   const [viewMode, setViewMode] = useState<"liste" | "calendrier">("liste");
+  const [hoveredReservationId, setHoveredReservationId] = useState<string | null>(null);
   const [proprietaireIdForCalendar, setProprietaireIdForCalendar] = useState<string | null>(null);
   const [reservationRevision, setReservationRevision] = useState(0);
   const hasAutoSyncedIcalRef = useRef(false);
@@ -1057,315 +1091,549 @@ export default function ReservationsSaisonnierPage() {
       ) : null}
 
       {viewMode === "liste" ? (
-      <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
-        <table className="w-full min-w-[1000px] text-left text-sm">
-          <thead style={{ backgroundColor: PC.card, color: PC.muted }}>
-            <tr>
-              <th className="px-3 py-2">Logement</th>
-              <th className="px-3 py-2">Voyageur</th>
-              <th className="px-3 py-2">Arrivée</th>
-              <th className="px-3 py-2">Départ</th>
-              <th className="px-3 py-2">Nuits</th>
-              <th className="px-3 py-2">Montant</th>
-              <th className="px-3 py-2">Statut</th>
-              <th className="px-3 py-2">Source</th>
-              <th className="px-3 py-2 text-left">Contrat</th>
-              <th className="px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-3 py-10 text-center text-sm" style={{ color: PC.muted }}>
-                  {rows.length === 0
-                    ? "Aucune réservation."
-                    : "Aucune réservation ne correspond à vos filtres."}
-                </td>
-              </tr>
-            ) : null}
-            {filteredRows.map((row) => (
-              <tr key={row.id} style={{ borderTop: `1px solid ${PC.border}` }}>
-                <td className="px-3 py-2">{row.logements?.nom}</td>
-                <td className="px-3 py-2" style={{ color: PC.muted }}>
-                  {row.voyageurs ? (
-                    `${row.voyageurs.prenom} ${row.voyageurs.nom}`
-                  ) : extractVoyageurFromNotes(row.notes) ? (
-                    <em>{extractVoyageurFromNotes(row.notes)}</em>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-3 py-2">{formatDateFR(row.date_arrivee)}</td>
-                <td className="px-3 py-2">{formatDateFR(row.date_depart)}</td>
-                <td className="px-3 py-2">{row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart)}</td>
-                <td className="px-3 py-2 align-top">
-                  {row.source === "blocage" ? (
-                    <span style={{ color: PC.muted }}>—</span>
-                  ) : row.source === "airbnb" || row.source === "booking" ? (
-                    <div className="flex flex-col gap-0.5">
-                      {editingMontantId === row.id ? (
-                        <input
-                          ref={montantInputRef}
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          className="w-28 rounded px-2 py-1 text-sm"
-                          style={{ ...fieldInputStyle, width: "7rem" }}
-                          value={editingMontantValue}
-                          onChange={(e) => setEditingMontantValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void saveTarifTotalReservation(row.id, editingMontantValue);
-                          }}
-                          onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
-                        />
-                      ) : Number(row.tarif_total) <= 0 ? (
-                        <div className="flex min-w-[10rem] flex-col gap-2">
-                          <span className="font-medium" style={{ color: "#fb923c" }}>
-                            Prix non renseigné
+        filteredRows.length === 0 ? (
+          <div className="rounded-xl p-6 text-center text-sm" style={{ ...panelCard, color: PC.muted }}>
+            {rows.length === 0
+              ? "Aucune réservation."
+              : "Aucune réservation ne correspond à vos filtres."}
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+                <span>Confirmée</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#f59e0b" }} aria-hidden />
+                <span>En attente</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#9ca3af" }} aria-hidden />
+                <span>Annulée</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredRows.map((row) => {
+                const accentColor = getReservationAccentColor(row.statut);
+                const statutBadge = getReservationStatutBadge(row.statut);
+                const isHovered = hoveredReservationId === row.id;
+                const voyageurLabel = row.voyageurs
+                  ? `${row.voyageurs.prenom} ${row.voyageurs.nom}`.trim()
+                  : extractVoyageurFromNotes(row.notes)
+                    ? extractVoyageurFromNotes(row.notes)!
+                    : "—";
+                const nuits = row.nb_nuits ?? daysBetween(row.date_arrivee, row.date_depart);
+                const isOta = row.source === "airbnb" || row.source === "booking";
+                const isBlocage = row.source === "blocage";
+                const canSendContratPdf =
+                  !isBlocage &&
+                  (((row.source === "direct" || row.source === "autre") && !!String(row.voyageurs?.email ?? "").trim()) ||
+                    (isOta && !!row.voyageurs?.email));
+                return (
+                  <article
+                    key={row.id}
+                    className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                    style={{
+                      backgroundColor: PC.card,
+                      border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                    }}
+                    onMouseEnter={() => setHoveredReservationId(row.id)}
+                    onMouseLeave={() => setHoveredReservationId(null)}
+                  >
+                    <div className="shrink-0 self-stretch" style={{ width: 3, backgroundColor: accentColor }} aria-hidden />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="p-4 pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{voyageurLabel}</h3>
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: statutBadge.bg, color: statutBadge.color }}
+                          >
+                            {statutBadge.label}
                           </span>
-                          <BtnPrimary
-                            type="button"
-                            size="small"
-                            className="!w-full justify-center"
-                            icon={<IconPencil className="h-4 w-4" aria-hidden />}
-                            style={{
-                              backgroundColor: OTA_PRIX_BTN_ORANGE,
-                              color: "#fff",
-                              border: `1px solid ${OTA_PRIX_BTN_ORANGE}`,
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!e.currentTarget.disabled) {
-                                e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE_HOVER;
-                                e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE_HOVER;
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE;
-                              e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE;
-                            }}
-                            onClick={() => {
-                              setEditingMontantId(row.id);
-                              setEditingMontantValue("");
-                            }}
-                          >
-                            Saisir le prix
-                          </BtnPrimary>
                         </div>
-                      ) : (
-                        <>
-                          <span>{row.tarif_total.toFixed(0)} €</span>
-                          <button
-                            type="button"
-                            className="w-fit p-0 text-left text-[12px] font-normal underline"
-                            style={{ color: PC.primary, background: "none", border: "none", cursor: "pointer" }}
-                            onClick={() => {
-                              setEditingMontantId(row.id);
-                              setEditingMontantValue(String(row.tarif_total));
-                            }}
+                        <p className="mt-2 flex items-center gap-1.5 text-sm" style={{ color: PC.muted }}>
+                          <IconBuilding className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="min-w-0 truncate">{row.logements?.nom ?? "Logement"}</span>
+                        </p>
+                        {row.source !== "blocage" ? (
+                          <span
+                            className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}
                           >
-                            Modifier le prix
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : row.source === "direct" ? (
-                    <div className="flex flex-col gap-1">
-                      <span>{row.tarif_total.toFixed(0)} €</span>
-                      <div className="flex flex-wrap gap-1">
-                        <span
-                          className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                          style={{
-                            backgroundColor: row.acompte_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
-                            color: row.acompte_recu ? "#16a34a" : "#ea580c",
-                          }}
-                        >
-                          {row.acompte_recu ? "Acompte ✓" : "Acompte ⏳"}
-                        </span>
-                        <span
-                          className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                          style={{
-                            backgroundColor: row.solde_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
-                            color: row.solde_recu ? "#16a34a" : "#ea580c",
-                          }}
-                        >
-                          {row.solde_recu ? "Solde ✓" : "Solde ⏳"}
-                        </span>
+                            {formatSourceLabel(row.source)}
+                          </span>
+                        ) : (
+                          <span
+                            className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: "rgba(148, 163, 184, 0.12)", color: PC.muted }}
+                          >
+                            Blocage personnel
+                          </span>
+                        )}
+                      </div>
+                      <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                        <div className="space-y-2">
+                        {row.source === "blocage" ? (
+                        
+                          <span style={{ color: PC.muted }}>—</span>
+                        
+                        ) : row.source === "airbnb" || row.source === "booking" ? (
+                        
+                          <div className="flex flex-col gap-0.5">
+                        
+                            {editingMontantId === row.id ? (
+                        
+                              <input
+                        
+                                ref={montantInputRef}
+                        
+                                type="number"
+                        
+                                step="0.01"
+                        
+                                min={0}
+                        
+                                className="w-28 rounded px-2 py-1 text-sm"
+                        
+                                style={{ ...fieldInputStyle, width: "7rem" }}
+                        
+                                value={editingMontantValue}
+                        
+                                onChange={(e) => setEditingMontantValue(e.target.value)}
+                        
+                                onKeyDown={(e) => {
+                        
+                                  if (e.key === "Enter") void saveTarifTotalReservation(row.id, editingMontantValue);
+                        
+                                }}
+                        
+                                onBlur={() => void saveTarifTotalReservation(row.id, editingMontantValue)}
+                        
+                              />
+                        
+                            ) : Number(row.tarif_total) <= 0 ? (
+                        
+                              <div className="flex min-w-[10rem] flex-col gap-2">
+                        
+                                <span className="font-medium" style={{ color: "#fb923c" }}>
+                        
+                                  Prix non renseigné
+                        
+                                </span>
+                        
+                                <BtnPrimary
+                        
+                                  type="button"
+                        
+                                  size="small"
+                        
+                                  className="!w-full justify-center"
+                        
+                                  icon={<IconPencil className="h-4 w-4" aria-hidden />}
+                        
+                                  style={{
+                        
+                                    backgroundColor: OTA_PRIX_BTN_ORANGE,
+                        
+                                    color: "#fff",
+                        
+                                    border: `1px solid ${OTA_PRIX_BTN_ORANGE}`,
+                        
+                                  }}
+                        
+                                  onMouseEnter={(e) => {
+                        
+                                    if (!e.currentTarget.disabled) {
+                        
+                                      e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE_HOVER;
+                        
+                                      e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE_HOVER;
+                        
+                                    }
+                        
+                                  }}
+                        
+                                  onMouseLeave={(e) => {
+                        
+                                    e.currentTarget.style.backgroundColor = OTA_PRIX_BTN_ORANGE;
+                        
+                                    e.currentTarget.style.borderColor = OTA_PRIX_BTN_ORANGE;
+                        
+                                  }}
+                        
+                                  onClick={() => {
+                        
+                                    setEditingMontantId(row.id);
+                        
+                                    setEditingMontantValue("");
+                        
+                                  }}
+                        
+                                >
+                        
+                                  Saisir le prix
+                        
+                                </BtnPrimary>
+                        
+                              </div>
+                        
+                            ) : (
+                        
+                              <>
+                        
+                                <span>{row.tarif_total.toFixed(0)} €</span>
+                        
+                                <button
+                        
+                                  type="button"
+                        
+                                  className="w-fit p-0 text-left text-[12px] font-normal underline"
+                        
+                                  style={{ color: PC.primary, background: "none", border: "none", cursor: "pointer" }}
+                        
+                                  onClick={() => {
+                        
+                                    setEditingMontantId(row.id);
+                        
+                                    setEditingMontantValue(String(row.tarif_total));
+                        
+                                  }}
+                        
+                                >
+                        
+                                  Modifier le prix
+                        
+                                </button>
+                        
+                              </>
+                        
+                            )}
+                        
+                          </div>
+                        
+                        ) : row.source === "direct" ? (
+                        
+                          <div className="flex flex-col gap-1">
+                        
+                            <span>{row.tarif_total.toFixed(0)} €</span>
+                        
+                            <div className="flex flex-wrap gap-1">
+                        
+                              <span
+                        
+                                className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        
+                                style={{
+                        
+                                  backgroundColor: row.acompte_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
+                        
+                                  color: row.acompte_recu ? "#16a34a" : "#ea580c",
+                        
+                                }}
+                        
+                              >
+                        
+                                {row.acompte_recu ? "Acompte ✓" : "Acompte ⏳"}
+                        
+                              </span>
+                        
+                              <span
+                        
+                                className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        
+                                style={{
+                        
+                                  backgroundColor: row.solde_recu ? "rgba(22, 163, 74, 0.2)" : "rgba(234, 88, 12, 0.2)",
+                        
+                                  color: row.solde_recu ? "#16a34a" : "#ea580c",
+                        
+                                }}
+                        
+                              >
+                        
+                                {row.solde_recu ? "Solde ✓" : "Solde ⏳"}
+                        
+                              </span>
+                        
+                            </div>
+                        
+                          </div>
+                        
+                        ) : (
+                        
+                          `${row.tarif_total.toFixed(0)} €`
+                        
+                        )}
+                        
+                        </div>
+                        <p className="text-sm" style={{ color: PC.muted }}>
+                          Du {formatDateShort(row.date_arrivee)} → {formatDateShort(row.date_depart)} · {nuits} nuit{nuits > 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                        <div className="flex flex-wrap gap-2">
+                          <BtnSecondary size="small" icon={<Eye className="h-4 w-4" aria-hidden />} onClick={() => setDetailId(row.id)}>
+                            Détail
+                          </BtnSecondary>
+                          {canSendContratPdf ? (
+                            <BtnSecondary
+                              size="small"
+                              icon={<Download className="h-4 w-4" aria-hidden />}
+                              onClick={() => void downloadContratPdf(row.id)}
+                            >
+                              PDF
+                            </BtnSecondary>
+                          ) : null}
+                          {(() => {
+                          
+                            const isOta = row.source === "airbnb" || row.source === "booking";
+                          
+                            const isBlocage = row.source === "blocage";
+                          
+                            const canDirectActions = !isOta && !isBlocage;
+                          
+                            const canDeletePermanently = row.source === "direct" || row.source === "autre";
+                          
+                            const canSendContrat =
+                          
+                              (row.source === "direct" || row.source === "autre") ||
+                          
+                              ((row.source === "airbnb" || row.source === "booking") && !!row.voyageurs?.email);
+                          
+                            return (
+                          
+                              <div className="contents">
+                          
+                                <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
+                          
+                                  Détail
+                          
+                                </BtnSecondary>
+                          
+                                {isOta &&
+                          
+                                row.voyageur_id == null &&
+                          
+                                !extractVoyageurFromNotes(row.notes)?.trim() ? (
+                          
+                                  <ResaActionPill variant="violetOutline" onClick={() => openLinkVoyageurModal(row.id)}>
+                          
+                                    👤 Lier un voyageur
+                          
+                                  </ResaActionPill>
+                          
+                                ) : null}
+                          
+                                <div className="flex flex-wrap gap-2">
+                          
+                                  {canDirectActions && row.statut === "en_attente" ? (
+                          
+                                    <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
+                          
+                                      Confirmer
+                          
+                                    </ResaActionPill>
+                          
+                                  ) : null}
+                          
+                                  {canDirectActions && canDeletePermanently ? (
+                          
+                                    <BtnDanger
+                          
+                                      size="small"
+                          
+                                      className="!w-full justify-center"
+                          
+                                      onClick={() => {
+                          
+                                        setDeleteOtaConfirmId(null);
+                          
+                                        setDeleteBlocageConfirmId(null);
+                          
+                                        setDeleteConfirmId(row.id);
+                          
+                                      }}
+                          
+                                    >
+                          
+                                      Supprimer
+                          
+                                    </BtnDanger>
+                          
+                                  ) : null}
+                          
+                                  {isBlocage ? (
+                          
+                                    <BtnDanger
+                          
+                                      size="small"
+                          
+                                      className="!w-full justify-center"
+                          
+                                      onClick={() => {
+                          
+                                        setDeleteConfirmId(null);
+                          
+                                        setDeleteOtaConfirmId(null);
+                          
+                                        setDeleteBlocageConfirmId(row.id);
+                          
+                                      }}
+                          
+                                    >
+                          
+                                      Supprimer
+                          
+                                    </BtnDanger>
+                          
+                                  ) : null}
+                          
+                                  {canSendContrat && !!String(row.voyageurs?.email ?? "").trim() ? (
+                          
+                                    <div className="flex gap-1">
+                          
+                                      <BtnPdf size="small" className="!flex-1 justify-center" onClick={() => requestSendConfirm("contrat", row)}>
+                          
+                                        Envoyer contrat
+                          
+                                      </BtnPdf>
+                          
+                                      <BtnSecondary
+                          
+                                        size="small"
+                          
+                                        className="!flex-1 justify-center"
+                          
+                                        onClick={() => void downloadContratPdf(row.id)}
+                          
+                                      >
+                          
+                                        Contrat PDF
+                          
+                                      </BtnSecondary>
+                          
+                                    </div>
+                          
+                                  ) : null}
+                          
+                                  {canDirectActions && row.voyageurs && row.source === "direct" ? (
+                          
+                                    <div className="flex flex-wrap gap-2">
+                          
+                                      <button
+                          
+                                        type="button"
+                          
+                                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
+                          
+                                        style={{
+                          
+                                          backgroundColor: row.acompte_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
+                          
+                                          color: row.acompte_recu ? "#fff" : PC.muted,
+                          
+                                          border: "none",
+                          
+                                          cursor: "pointer",
+                          
+                                        }}
+                          
+                                        onClick={() => void toggleAcompteSoldeRecu("acompte_recu", row.id, !row.acompte_recu)}
+                          
+                                      >
+                          
+                                        Acompte reçu ✓
+                          
+                                      </button>
+                          
+                                      <button
+                          
+                                        type="button"
+                          
+                                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
+                          
+                                        style={{
+                          
+                                          backgroundColor: row.solde_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
+                          
+                                          color: row.solde_recu ? "#fff" : PC.muted,
+                          
+                                          border: "none",
+                          
+                                          cursor: "pointer",
+                          
+                                        }}
+                          
+                                        onClick={() => void toggleAcompteSoldeRecu("solde_recu", row.id, !row.solde_recu)}
+                          
+                                      >
+                          
+                                        Solde reçu ✓
+                          
+                                      </button>
+                          
+                                    </div>
+                          
+                                  ) : null}
+                          
+                                  {isOta ? (
+                          
+                                    <BtnDanger
+                          
+                                      size="small"
+                          
+                                      className="!w-full justify-center"
+                          
+                                      onClick={() => {
+                          
+                                        setDeleteConfirmId(null);
+                          
+                                        setDeleteBlocageConfirmId(null);
+                          
+                                        setDeleteOtaConfirmId(row.id);
+                          
+                                      }}
+                          
+                                    >
+                          
+                                      Supprimer
+                          
+                                    </BtnDanger>
+                          
+                                  ) : null}
+                          
+                                  {!isBlocage ? (
+                          
+                                    <BtnNeutral size="small" className="!w-full justify-center" onClick={() => void markMenageDone(row.id, row.logement_id)}>
+                          
+                                      Ménage ✓
+                          
+                                    </BtnNeutral>
+                          
+                                  ) : null}
+                          
+                                </div>
+                          
+                              </div>
+                          
+                            );
+                          
+                          })()}
+                          
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    `${row.tarif_total.toFixed(0)} €`
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${STATUT_COLOR[row.statut] ?? PC.muted}22`, color: STATUT_COLOR[row.statut] }}>
-                    {row.statut}
-                  </span>
-                </td>
-                <td className="px-3 py-2">
-                  {row.source === "blocage" ? (
-                    <span
-                      className="rounded px-2 py-0.5 text-xs"
-                      style={{ backgroundColor: "rgba(148, 163, 184, 0.12)", color: PC.muted }}
-                    >
-                      Blocage personnel
-                    </span>
-                  ) : (
-                    row.source
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  {row.source === "blocage" ? (
-                    <span style={{ color: PC.muted }}>—</span>
-                  ) : row.contrat_envoye ? (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: PC.successBg10,
-                        color: PC.success,
-                        border: `1px solid ${PC.borderSuccess40}`,
-                      }}
-                    >
-                      ✓ Envoyé
-                    </span>
-                  ) : (
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: "rgba(234,88,12,0.1)",
-                        color: "#fb923c",
-                        border: "1px solid rgba(234,88,12,0.3)",
-                      }}
-                    >
-                      Non envoyé
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2 align-top">
-                  {(() => {
-                    const isOta = row.source === "airbnb" || row.source === "booking";
-                    const isBlocage = row.source === "blocage";
-                    const canDirectActions = !isOta && !isBlocage;
-                    const canDeletePermanently = row.source === "direct" || row.source === "autre";
-                    const canSendContrat =
-                      (row.source === "direct" || row.source === "autre") ||
-                      ((row.source === "airbnb" || row.source === "booking") && !!row.voyageurs?.email);
-                    return (
-                      <div className="flex max-w-[220px] flex-col gap-1.5">
-                        <BtnSecondary size="small" className="!w-full justify-center" onClick={() => setDetailId(row.id)}>
-                          Détail
-                        </BtnSecondary>
-                        {isOta &&
-                        row.voyageur_id == null &&
-                        !extractVoyageurFromNotes(row.notes)?.trim() ? (
-                          <ResaActionPill variant="violetOutline" onClick={() => openLinkVoyageurModal(row.id)}>
-                            👤 Lier un voyageur
-                          </ResaActionPill>
-                        ) : null}
-                        <div className="flex flex-col gap-1">
-                          {canDirectActions && row.statut === "en_attente" ? (
-                            <ResaActionPill variant="green" onClick={() => void setStatut(row.id, "confirmee")}>
-                              Confirmer
-                            </ResaActionPill>
-                          ) : null}
-                          {canDirectActions && canDeletePermanently ? (
-                            <BtnDanger
-                              size="small"
-                              className="!w-full justify-center"
-                              onClick={() => {
-                                setDeleteOtaConfirmId(null);
-                                setDeleteBlocageConfirmId(null);
-                                setDeleteConfirmId(row.id);
-                              }}
-                            >
-                              Supprimer
-                            </BtnDanger>
-                          ) : null}
-                          {isBlocage ? (
-                            <BtnDanger
-                              size="small"
-                              className="!w-full justify-center"
-                              onClick={() => {
-                                setDeleteConfirmId(null);
-                                setDeleteOtaConfirmId(null);
-                                setDeleteBlocageConfirmId(row.id);
-                              }}
-                            >
-                              Supprimer
-                            </BtnDanger>
-                          ) : null}
-                          {canSendContrat && !!String(row.voyageurs?.email ?? "").trim() ? (
-                            <div className="flex gap-1">
-                              <BtnPdf size="small" className="!flex-1 justify-center" onClick={() => requestSendConfirm("contrat", row)}>
-                                Envoyer contrat
-                              </BtnPdf>
-                              <BtnSecondary
-                                size="small"
-                                className="!flex-1 justify-center"
-                                onClick={() => void downloadContratPdf(row.id)}
-                              >
-                                Contrat PDF
-                              </BtnSecondary>
-                            </div>
-                          ) : null}
-                          {canDirectActions && row.voyageurs && row.source === "direct" ? (
-                            <div className="flex flex-col gap-1">
-                              <button
-                                type="button"
-                                className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
-                                style={{
-                                  backgroundColor: row.acompte_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
-                                  color: row.acompte_recu ? "#fff" : PC.muted,
-                                  border: "none",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => void toggleAcompteSoldeRecu("acompte_recu", row.id, !row.acompte_recu)}
-                              >
-                                Acompte reçu ✓
-                              </button>
-                              <button
-                                type="button"
-                                className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight transition hover:opacity-90"
-                                style={{
-                                  backgroundColor: row.solde_recu ? "#16a34a" : "rgba(148, 163, 184, 0.25)",
-                                  color: row.solde_recu ? "#fff" : PC.muted,
-                                  border: "none",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => void toggleAcompteSoldeRecu("solde_recu", row.id, !row.solde_recu)}
-                              >
-                                Solde reçu ✓
-                              </button>
-                            </div>
-                          ) : null}
-                          {isOta ? (
-                            <BtnDanger
-                              size="small"
-                              className="!w-full justify-center"
-                              onClick={() => {
-                                setDeleteConfirmId(null);
-                                setDeleteBlocageConfirmId(null);
-                                setDeleteOtaConfirmId(row.id);
-                              }}
-                            >
-                              Supprimer
-                            </BtnDanger>
-                          ) : null}
-                          {!isBlocage ? (
-                            <BtnNeutral size="small" className="!w-full justify-center" onClick={() => void markMenageDone(row.id, row.logement_id)}>
-                              Ménage ✓
-                            </BtnNeutral>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )
       ) : null}
+
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-4">
