@@ -2,9 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
-import { AlertTriangle, Building2, Lock, Palmtree, RefreshCw } from "lucide-react";
+import { AlertTriangle, Building2, Eye, Lock, Palmtree, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { IconPlus } from "@/components/locavio-icons";
+import { IconPencil, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { BtnDanger, BtnNeutral, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -156,6 +156,18 @@ function getExploitationBadge(typeLoc: string | null | undefined): { label: stri
     return { label: "Les deux", bg: PC.primaryBg15, color: PC.secondary };
   }
   return { label: "Classique", bg: "rgba(148, 163, 184, 0.22)", color: "#94a3b8" };
+}
+
+function getLogementCardAccentColor(
+  isLocked: boolean,
+  typeLocation: string | null | undefined,
+  activeLocataires: number,
+): string {
+  if (isLocked) return "#d1d5db";
+  const t = typeLocation ?? "classique";
+  if (t === "saisonnier" || t === "les_deux") return "#7c3aed";
+  if (activeLocataires === 0) return "#f59e0b";
+  return "#10b981";
 }
 
 export default function LogementsPage() {
@@ -993,90 +1005,138 @@ export default function LogementsPage() {
                   : { label: `${available} chambre(s) disponible(s)`, bg: PC.warningBg15, color: PC.warning };
             const exploitationBadge = getExploitationBadge(row.type_location);
             const isHovered = hoveredLogementId === row.id;
+            const accentColor = getLogementCardAccentColor(isLocked, row.type_location, activeLocataires);
+            const adresseLine = [row.adresse, row.code_postal, row.ville].filter(Boolean).join(", ").trim();
+            const hasLoyer = Number.isFinite(loyerMensuelAffiche) && loyerMensuelAffiche > 0;
+            const metaParts: string[] = [];
+            if (row.surface > 0) metaParts.push(`${row.surface} m²`);
+            if (row.est_colocation && Number(row.nombre_chambres) > 0) {
+              metaParts.push(`${row.nombre_chambres} chambre(s)`);
+            } else if (row.type?.trim()) {
+              metaParts.push(row.type.trim());
+            }
             return (
               <article
                 key={row.id}
-                className="relative overflow-hidden rounded-xl transition-[box-shadow,border-color] duration-200"
+                className="relative flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
                 style={{
-                  ...panelCard,
-                  opacity: isLocked ? 0.75 : 1,
-                  cursor: isLocked ? "default" : "pointer",
-                  borderColor: isHovered ? "rgba(124, 58, 237, 0.25)" : undefined,
-                  boxShadow: isHovered ? "0 10px 40px -12px rgba(124, 58, 237, 0.22)" : panelCard.boxShadow,
+                  backgroundColor: PC.card,
+                  border: `1px solid ${isHovered && !isLocked ? PC.primary : PC.border}`,
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  opacity: isLocked ? 0.6 : 1,
                 }}
                 onMouseEnter={() => setHoveredLogementId(row.id)}
                 onMouseLeave={() => setHoveredLogementId(null)}
               >
-                {!isLocked ? (
-                  <Link
-                    href={`/logements/${row.id}`}
-                    className="absolute inset-0 z-[1] block rounded-xl"
-                    aria-label={`Ouvrir le logement ${row.nom}`}
-                    tabIndex={-1}
-                  />
-                ) : null}
-                <div className="relative z-[2] space-y-3 p-5 pointer-events-none">
-                  <h3 className="text-lg font-semibold">{row.nom}</h3>
-                  <p className="mt-1 text-sm" style={{ color: PC.muted }}>
-                    {row.adresse}, {row.code_postal} {row.ville}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: exploitationBadge.bg, color: exploitationBadge.color }}>
-                      {exploitationBadge.label}
-                    </span>
-                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}>
-                      {row.type}
-                    </span>
-                    <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: status.bg, color: status.color }}>
-                      {status.label}
-                    </span>
-                    {isLocked ? (
-                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}>
-                        <Lock size={16} strokeWidth={1.75} className="shrink-0 text-[#9ca3af]" aria-hidden />
-                        Verrouillé - Plan insuffisant
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-4 space-y-1 text-sm" style={{ color: PC.muted }}>
-                    <p>
-                      Locataires: <strong style={{ color: PC.text }}>{activeLocataires} / {capacity}</strong>
-                    </p>
-                    <p>
-                      Loyer mensuel: <strong style={{ color: PC.text }}>{loyerMensuelAffiche.toFixed(2)} €/mois</strong>{" "}
-                      (charges comprises)
-                    </p>
-                  </div>
-                </div>
-                <div className="relative z-[3] flex flex-wrap items-center gap-2 p-5 pt-0 pointer-events-auto">
+                <div
+                  className="shrink-0 self-stretch"
+                  style={{ width: 3, backgroundColor: accentColor }}
+                  aria-hidden
+                />
+                <div className="relative flex min-w-0 flex-1 flex-col">
                   {isLocked ? (
-                    <p className="text-xs" style={{ color: PC.warning }}>
-                      Passez à un plan supérieur pour accéder à ce logement
+                    <span
+                      className="absolute right-3 top-3 z-[1] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: PC.dangerBg15, color: PC.danger }}
+                    >
+                      <Lock size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+                      Verrouillé
+                    </span>
+                  ) : null}
+                  <div className="p-4 pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{row.nom}</h3>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ backgroundColor: status.bg, color: status.color }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                    </div>
+                    {adresseLine ? (
+                      <p className="mt-1 text-sm leading-snug" style={{ color: PC.muted }}>
+                        {adresseLine}
+                      </p>
+                    ) : null}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={{ backgroundColor: exploitationBadge.bg, color: exploitationBadge.color }}
+                      >
+                        {exploitationBadge.label}
+                      </span>
+                      {row.type ? (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ backgroundColor: PC.primaryBg25, color: PC.secondary }}
+                        >
+                          {row.type}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                    {hasLoyer ? (
+                      <p className="flex flex-wrap items-baseline gap-1">
+                        <span className="text-lg font-bold" style={{ color: PC.primary }}>
+                          {loyerMensuelAffiche.toFixed(2)} €
+                        </span>
+                        <span className="text-xs" style={{ color: PC.muted }}>
+                          /mois
+                        </span>
+                        <span className="text-xs" style={{ color: PC.muted }}>
+                          (charges comprises)
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm italic" style={{ color: PC.muted }}>
+                        Loyer non renseigné
+                      </p>
+                    )}
+                    {metaParts.length > 0 ? (
+                      <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                        {metaParts.join(" · ")}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-sm" style={{ color: PC.muted }}>
+                      Locataires :{" "}
+                      <strong style={{ color: PC.text }}>
+                        {activeLocataires} / {capacity}
+                      </strong>
                     </p>
-                  ) : (
-                    <>
-                      <BtnSecondary
-                        size="small"
-                        className="w-full sm:w-auto"
-                        onClick={async (event) => {
-                          event.stopPropagation();
-                          await handleEditClick(row);
-                        }}
-                      >
-                        Modifier
-                      </BtnSecondary>
-                      <BtnDanger
-                        size="small"
-                        className="w-full sm:w-auto"
-                        disabled={isDeleting}
-                        onClick={async (event) => {
-                          event.stopPropagation();
-                          await handleDeleteClick(row.id);
-                        }}
-                      >
-                        Supprimer
-                      </BtnDanger>
-                    </>
-                  )}
+                  </div>
+                  <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                    {isLocked ? (
+                      <p className="text-xs" style={{ color: PC.warning }}>
+                        Passez à un plan supérieur pour accéder à ce logement
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/logements/${row.id}`} className="inline-flex">
+                          <BtnSecondary size="small" icon={<Eye className="h-4 w-4" aria-hidden />}>
+                            Voir
+                          </BtnSecondary>
+                        </Link>
+                        <BtnSecondary
+                          size="small"
+                          icon={<IconPencil className="h-4 w-4" />}
+                          onClick={() => void handleEditClick(row)}
+                        >
+                          Modifier
+                        </BtnSecondary>
+                        <BtnDanger
+                          size="small"
+                          icon={<IconTrash className="h-4 w-4" />}
+                          disabled={isDeleting}
+                          onClick={() => void handleDeleteClick(row.id)}
+                        >
+                          Supprimer
+                        </BtnDanger>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </article>
             );
