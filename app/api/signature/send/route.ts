@@ -3,7 +3,11 @@ import { Resend } from "resend";
 import { getLocataireIdsOrderedForBailPdf } from "@/lib/bail-pdf-locataires";
 import { generateBailPdfBuffer, type BailPdfLocataire } from "@/lib/pdf/generate-bail-pdf";
 import { generateContratSejourPdfBuffer } from "@/lib/pdf/generate-contrat-sejour-pdf";
-import { emailSignatureOtpInvite } from "@/lib/signature-email";
+import {
+  emailSignatureOtpInvite,
+  emailSignatureOtpInviteSubject,
+  humanizeDocumentType,
+} from "@/lib/signature-email";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -174,29 +178,59 @@ async function generateSignatureInvitePdfAttachment(
   }
 }
 
-function buildInviteEmailHtml(params: {
-  signerName: string;
-  proprietaireName: string;
-  otp: string;
-  signUrl: string;
-  hasPdfAttachment: boolean;
-}): string {
-  let html = emailSignatureOtpInvite({
-    signerName: params.signerName,
-    proprietaireName: params.proprietaireName,
-    otp: params.otp,
-    signUrl: params.signUrl,
-  });
+async function loadSignatureEmailContext(
+  document_type: string,
+  document_id: string,
+  proprietaire_id: string,
+  proprietaire: { prenom?: string | null; nom?: string | null } | null,
+): Promise<{
+  proprietaireNomComplet: string;
+  documentTypeHuman: string;
+  documentContext: string;
+}> {
+  const proprietaireNomComplet = proprietaire
+    ? `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "Le propriétaire"
+    : "Le propriétaire";
+  const documentTypeHuman = humanizeDocumentType(document_type);
+  let documentContext = "";
 
-  if (params.hasPdfAttachment) {
-    const attachmentNote = `<p style="margin:0 0 16px 0;color:#9ca3af;line-height:1.6;font-size:15px;">Le document à signer est joint à cet email en pièce jointe pour que vous puissiez en prendre connaissance avant de signer.</p>`;
-    html = html.replace(
-      "</strong> vous invite à signer un document.\n    </p>",
-      `</strong> vous invite à signer un document.</p>\n    ${attachmentNote}`,
-    );
+  if (document_type === "bail") {
+    const { data: bail } = await supabaseAdmin
+      .from("baux")
+      .select("logement_id")
+      .eq("id", document_id)
+      .eq("proprietaire_id", proprietaire_id)
+      .maybeSingle();
+
+    if (bail?.logement_id) {
+      const { data: logement } = await supabaseAdmin
+        .from("logements")
+        .select("nom, adresse")
+        .eq("id", bail.logement_id)
+        .maybeSingle();
+
+      if (logement) {
+        const parts = [logement.nom, logement.adresse].filter(Boolean).map((v) => String(v).trim());
+        documentContext = parts.join(" — ");
+      }
+    }
   }
 
-  return html;
+  if (document_type === "contrat_sejour") {
+    const { data: reservation } = await supabaseAdmin
+      .from("reservations")
+      .select("date_arrivee, date_depart")
+      .eq("id", document_id)
+      .eq("proprietaire_id", proprietaire_id)
+      .maybeSingle();
+
+    if (reservation) {
+      const fmt = (d: string) => new Date(d).toLocaleDateString("fr-FR");
+      documentContext = `Du ${fmt(String(reservation.date_arrivee))} au ${fmt(String(reservation.date_depart))}`;
+    }
+  }
+
+  return { proprietaireNomComplet, documentTypeHuman, documentContext };
 }
 
 export async function POST(request: Request) {
@@ -226,11 +260,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: propError.message }, { status: 500 });
     }
 
-    const proprietaireName = [proprietaire?.prenom, proprietaire?.nom].filter(Boolean).join(" ").trim() || "Un propriétaire";
-
     const token = crypto.randomUUID();
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
-    const otp_expires_at = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const otp_expires_at = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
 
     const { error: insertError } = await supabaseAdmin.from("document_signatures").insert({
       document_type,
@@ -253,19 +285,23 @@ export async function POST(request: Request) {
       proprietaire_id,
     );
 
+    const { proprietaireNomComplet, documentTypeHuman, documentContext } =
+      await loadSignatureEmailContext(document_type, document_id, proprietaire_id, proprietaire);
+
     const signUrl = `${siteBaseUrl()}/signer/${token}`;
-    const html = buildInviteEmailHtml({
+    const html = emailSignatureOtpInvite({
       signerName: signer_name,
-      proprietaireName,
-      otp: otp_code,
-      signUrl,
-      hasPdfAttachment: pdfAttachment != null,
+      otpCode: otp_code,
+      signLink: signUrl,
+      documentType: documentTypeHuman,
+      proprietaireNom: proprietaireNomComplet,
+      documentContext: documentContext || undefined,
     });
 
     const emailResult = await resend.emails.send({
       from: FROM,
       to: [signer_email],
-      subject: "Vous avez un document à signer — Locavio",
+      subject: emailSignatureOtpInviteSubject(documentTypeHuman),
       html,
       attachments: pdfAttachment
         ? [
