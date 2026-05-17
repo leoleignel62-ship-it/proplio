@@ -2,14 +2,44 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { IconFolder, IconPlus, IconTrash } from "@/components/locavio-icons";
+import { Eye } from "lucide-react";
+import { IconBuilding, IconFolder, IconPlus, IconTrash } from "@/components/locavio-icons";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
-import { BtnPrimary, ConfirmModal } from "@/components/ui";
+import { BtnDanger, BtnPrimary, BtnSecondary, ConfirmModal } from "@/components/ui";
 import { PC } from "@/lib/locavio-colors";
 import { canAccessDocuments, getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { supabase } from "@/lib/supabase";
-import { NOTE_COLORS } from "@/lib/candidature";
+
+function getDossierScoreAccentColor(score: number | null): string {
+  if (score == null || Number.isNaN(score)) return "#9ca3af";
+  if (score >= 70) return "#10b981";
+  if (score >= 40) return "#f59e0b";
+  return "#ef4444";
+}
+
+function getDossierScoreDisplayColor(score: number): string {
+  if (score >= 70) return "#10b981";
+  if (score >= 40) return "#f59e0b";
+  return "#ef4444";
+}
+
+function getDossierStatutBadge(statut: string): { label: string; bg: string; color: string } {
+  switch (statut) {
+    case "en_attente":
+      return { label: "En attente", bg: PC.primaryBg15, color: PC.secondary };
+    case "recu":
+      return { label: "Reçu", bg: PC.primaryBg15, color: PC.secondary };
+    case "analyse":
+      return { label: "Analysé", bg: PC.primaryBg15, color: PC.secondary };
+    case "accepte":
+      return { label: "Accepté", bg: PC.successBg20, color: PC.success };
+    case "refuse":
+      return { label: "Refusé", bg: PC.dangerBg15, color: PC.danger };
+    default:
+      return { label: "Analysé", bg: PC.primaryBg15, color: PC.secondary };
+  }
+}
 
 type DossierRow = {
   id: string;
@@ -31,6 +61,7 @@ export default function DossiersPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [hoveredDossierId, setHoveredDossierId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,82 +230,122 @@ export default function DossiersPage() {
           <p style={{ color: PC.muted }}>Aucun dossier créé. Envoyez votre premier questionnaire.</p>
         </div>
       ) : null}
-      <div className="space-y-3">
-        {filteredRows.map((row) => {
-          const token = row.candidature_tokens?.[0];
-          const form = row.candidature_formulaires?.[0];
-          const expired = token?.expire_at ? new Date(token.expire_at).getTime() < Date.now() : false;
-          const note = form?.note ?? "";
-          const scoreValue = Number(form?.score ?? 0);
-          const noteColor = NOTE_COLORS[note] ?? { bg: PC.cardHover, color: PC.text };
-          const labelStatut = row.statut === "en_attente" ? "En attente" : row.statut === "recu" ? "Reçu" : "Analysé";
-          return (
-            <div key={row.id} className="locavio-card rounded-xl p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
-                    style={{
-                      backgroundColor: noteColor.bg,
-                      color: noteColor.color,
-                      minWidth: 48,
-                    }}
-                    aria-label={`Note ${note || "N/A"}`}
-                    title={`Note ${note || "N/A"}`}
-                  >
-                    {note || "-"}
-                  </div>
-                  <Link href={`/dossiers/${row.id}`} className="min-w-0 flex-1">
-                    <p className="font-semibold">{token?.prenom_candidat} {token?.nom_candidat}</p>
-                    <p className="text-sm" style={{ color: PC.muted }}>{row.logement_concerne}</p>
-                    <p className="mt-2 text-xs" style={{ color: PC.tertiary }}>
-                      Créé le {new Date(row.created_at).toLocaleDateString("fr-FR")}
-                    </p>
-                  </Link>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: PC.primaryBg15, color: PC.secondary }}>{labelStatut}</span>
-                    {form ? (
-                      <div className="flex items-baseline gap-0.5">
-                        <span className={`text-2xl font-bold ${
-                          scoreValue >= 85 ? "text-emerald-400" :
-                          scoreValue >= 70 ? "text-green-400" :
-                          scoreValue >= 41 ? "text-orange-400" :
-                          "text-red-400"
-                        }`}>
-                          {scoreValue}
-                        </span>
-                        <span className="text-sm opacity-60 text-[#9ca3af]">/100</span>
-                      </div>
-                    ) : null}
-                    <span className="rounded-full px-2 py-1" style={{ backgroundColor: expired ? PC.dangerBg10 : PC.successBg10, color: expired ? PC.danger : PC.success }}>
-                      {expired ? "Lien expiré" : "Lien valide"}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Supprimer le dossier"
-                    onClick={() => setDeleteTargetId(row.id)}
-                    className="rounded-lg p-2 transition-colors"
-                    style={{ color: PC.muted }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = PC.danger;
-                      e.currentTarget.style.backgroundColor = PC.dangerBg10;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = PC.muted;
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <IconTrash className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+      {filteredRows.length > 0 ? (
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs" style={{ color: PC.muted }}>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#10b981" }} aria-hidden />
+              <span>Score ≥ 70</span>
             </div>
-          );
-        })}
-      </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#f59e0b" }} aria-hidden />
+              <span>Score 40-70</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#ef4444" }} aria-hidden />
+              <span>Score &lt; 40</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#9ca3af" }} aria-hidden />
+              <span>En attente</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredRows.map((row) => {
+              const token = row.candidature_tokens?.[0];
+              const form = row.candidature_formulaires?.[0];
+              const expired = token?.expire_at ? new Date(token.expire_at).getTime() < Date.now() : false;
+              const hasScore = form != null && form.score != null && form.score !== undefined;
+              const scoreNumber = hasScore ? Number(form.score) : null;
+              const accentColor = getDossierScoreAccentColor(scoreNumber);
+              const statutBadge = getDossierStatutBadge(row.statut);
+              const isHovered = hoveredDossierId === row.id;
+              const candidatNom = [token?.prenom_candidat, token?.nom_candidat].filter(Boolean).join(" ").trim() || "Candidat";
+              return (
+                <article
+                  key={row.id}
+                  className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  }}
+                  onMouseEnter={() => setHoveredDossierId(row.id)}
+                  onMouseLeave={() => setHoveredDossierId(null)}
+                >
+                  <div
+                    className="shrink-0 self-stretch"
+                    style={{ width: 3, backgroundColor: accentColor }}
+                    aria-hidden
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="p-4 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{candidatNom}</h3>
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ backgroundColor: statutBadge.bg, color: statutBadge.color }}
+                        >
+                          {statutBadge.label}
+                        </span>
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <IconBuilding className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">{row.logement_concerne}</span>
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: PC.muted }}>
+                        Créé le {new Date(row.created_at).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                    <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      {hasScore && scoreNumber != null && !Number.isNaN(scoreNumber) ? (
+                        <p className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold" style={{ color: getDossierScoreDisplayColor(scoreNumber) }}>
+                            {scoreNumber}
+                          </span>
+                          <span className="text-sm" style={{ color: PC.muted }}>
+                            /100
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm italic" style={{ color: PC.muted }}>
+                          En attente de complétion
+                        </p>
+                      )}
+                      <span
+                        className="mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={
+                          expired
+                            ? { backgroundColor: "#f3f4f6", color: "#6b7280" }
+                            : { backgroundColor: PC.successBg20, color: PC.success }
+                        }
+                      >
+                        {expired ? "Lien expiré" : "Lien valide"}
+                      </span>
+                    </div>
+                    <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/dossiers/${row.id}`} className="inline-flex">
+                          <BtnSecondary size="small" icon={<Eye className="h-4 w-4" aria-hidden />}>
+                            Voir le dossier
+                          </BtnSecondary>
+                        </Link>
+                        <BtnDanger
+                          size="small"
+                          icon={<IconTrash className="h-4 w-4" />}
+                          onClick={() => setDeleteTargetId(row.id)}
+                        >
+                          Supprimer
+                        </BtnDanger>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
       <ConfirmModal
         open={deleteTargetId != null}
         title="Supprimer ce dossier ?"

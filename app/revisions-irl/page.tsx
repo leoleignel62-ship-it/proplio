@@ -2,15 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 import { PlanFreeModuleUpsell } from "@/components/plan-free-module-upsell";
 import { invalidateHeaderAlertsCache } from "@/components/navigation-sidebar";
-import { IconArrowPath, IconBuilding } from "@/components/locavio-icons";
-import {
-  calculerNouveauLoyer,
-  detecterBauxEligibles,
-  formatDateIsoLocal,
-  getDerniereDateAnniversaireBail,
-} from "@/lib/irl-revision";
+import { IconArrowPath, IconBuilding, IconUsers } from "@/components/locavio-icons";
+import { calculerNouveauLoyer, detecterBauxEligibles } from "@/lib/irl-revision";
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { getOwnerPlan, type LocavioPlan } from "@/lib/plan-limits";
@@ -86,6 +82,7 @@ export default function RevisionsIrlPage() {
   );
   const [missingIrlDraft, setMissingIrlDraft] = useState<Record<string, string>>({});
   const [resendConfirm, setResendConfirm] = useState<{ revisionId: string; tenantEmail: string } | null>(null);
+  const [hoveredRevisionBailId, setHoveredRevisionBailId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setError("");
@@ -422,78 +419,92 @@ export default function RevisionsIrlPage() {
             {eligibles.map((bail) => {
               const irlRef = Number(bail.irl_reference ?? 0);
               const calc = calculerNouveauLoyer(Number(bail.loyer ?? 0), irlRef, irl.valeur);
-              const chargesBail = Number(bail.charges ?? 0);
-              const chargesOk = Number.isFinite(chargesBail) && chargesBail >= 0 ? chargesBail : 0;
-              const totalAvecCharges = calc.nouveauLoyer + chargesOk;
-              const anniv = getDerniereDateAnniversaireBail(String(bail.date_debut ?? ""));
               const logementNom = logementsMap.get(String(bail.logement_id ?? "")) ?? "Logement";
               const locNom = locatairesMap.get(String(bail.locataire_id ?? "")) ?? "Locataire";
               const busyV = actionKey === `v-${bail.id}`;
               const busyI = actionKey === `i-${bail.id}`;
+              const isHovered = hoveredRevisionBailId === bail.id;
+              const loyerActuel = Number(bail.loyer ?? 0);
               return (
-                <div key={bail.id} className="rounded-xl" style={CARD}>
-                  <p className="font-medium" style={{ color: PC.text }}>
-                    {logementNom}
-                    <span className="font-normal" style={{ color: PC.muted }}>
-                      {" "}
-                      — {locNom}
-                    </span>
-                  </p>
-                  <div className="mt-3 grid gap-2 text-sm" style={{ color: PC.muted }}>
-                    <div>
-                      Loyer actuel : <span style={{ color: PC.text }}>{formatMoney(Number(bail.loyer))}</span>
+                <article
+                  key={bail.id}
+                  className="flex flex-row overflow-hidden rounded-xl border transition-colors duration-200"
+                  style={{
+                    backgroundColor: PC.card,
+                    border: `1px solid ${isHovered ? PC.primary : PC.border}`,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                  }}
+                  onMouseEnter={() => setHoveredRevisionBailId(bail.id)}
+                  onMouseLeave={() => setHoveredRevisionBailId(null)}
+                >
+                  <div
+                    className="shrink-0 self-stretch"
+                    style={{ width: 3, backgroundColor: "#7c3aed" }}
+                    aria-hidden
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="p-4 pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="min-w-0 flex-1 text-base font-semibold leading-snug">{logementNom}</h3>
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ backgroundColor: PC.primaryBg15, color: PC.primaryLight }}
+                        >
+                          Révision disponible
+                        </span>
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-sm" style={{ color: PC.muted }}>
+                        <IconUsers className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="min-w-0 truncate">{locNom}</span>
+                      </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span>
-                        Nouveau loyer calculé :{" "}
-                        <span style={{ color: PC.text }}>{formatMoney(calc.nouveauLoyer)}</span>
-                      </span>
+                    <div className="px-4 py-2" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <p className="text-sm line-through" style={{ color: PC.muted }}>
+                        {formatMoney(loyerActuel)}
+                      </p>
+                      <p className="mt-1 flex flex-wrap items-baseline gap-1">
+                        <span className="text-lg font-bold" style={{ color: PC.primary }}>
+                          {formatMoney(calc.nouveauLoyer)}
+                        </span>
+                        <span className="text-xs" style={{ color: PC.muted }}>
+                          /mois
+                        </span>
+                      </p>
                       <span
-                        className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                        style={{
-                          backgroundColor: PC.successBg10,
-                          color: PC.success,
-                        }}
+                        className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-sm font-semibold"
+                        style={{ backgroundColor: PC.successBg20, color: PC.success }}
                       >
                         {calc.variationEuro >= 0 ? "+" : ""}
                         {formatMoney(calc.variationEuro)} / {formatPct(calc.variationPct)}
                       </span>
+                      <p className="mt-2 text-xs" style={{ color: PC.muted }}>
+                        IRL en vigueur : {irl.valeur.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({irl.trimestre})
+                      </p>
                     </div>
-                    <div>
-                      Total avec charges :{" "}
-                      <span style={{ color: PC.text }}>{formatMoney(totalAvecCharges)}</span>
-                      {chargesOk > 0 ? (
-                        <span>
-                          {" "}
-                          (dont {formatMoney(chargesOk)} de charges)
-                        </span>
-                      ) : null}
-                    </div>
-                    <div>
-                      IRL référence → IRL actuel : {irlRef.toFixed(2)} → {irl.valeur.toFixed(2)}
-                    </div>
-                    <div>
-                      Date anniversaire du bail :{" "}
-                      {anniv ? (
-                        <span style={{ color: PC.text }}>{formatDateFr(formatDateIsoLocal(anniv))}</span>
-                      ) : (
-                        "—"
-                      )}
+                    <div className="px-4 py-3" style={{ borderTop: `1px solid ${PC.border}` }}>
+                      <div className="flex flex-wrap gap-2">
+                        <BtnPrimary
+                          size="small"
+                          icon={<Check className="h-4 w-4" aria-hidden />}
+                          disabled={busyV || busyI}
+                          loading={busyV}
+                          onClick={() => void onValider(bail)}
+                        >
+                          Valider
+                        </BtnPrimary>
+                        <BtnSecondary
+                          size="small"
+                          icon={<X className="h-4 w-4" aria-hidden />}
+                          disabled={busyV || busyI}
+                          loading={busyI}
+                          onClick={() => void onIgnorer(bail)}
+                        >
+                          Ignorer
+                        </BtnSecondary>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <BtnPrimary
-                      disabled={busyV || busyI}
-                      loading={busyV}
-                      onClick={() => void onValider(bail)}
-                    >
-                      Valider la révision
-                    </BtnPrimary>
-                    <BtnSecondary disabled={busyV || busyI} loading={busyI} onClick={() => void onIgnorer(bail)}>
-                      Ignorer
-                    </BtnSecondary>
-                  </div>
-                </div>
+                </article>
               );
             })}
           </div>
