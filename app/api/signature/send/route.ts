@@ -318,7 +318,7 @@ export async function POST(request: Request) {
 
     const { data: proprietaire, error: propError } = await supabaseAdmin
       .from("proprietaires")
-      .select("prenom, nom")
+      .select("prenom, nom, email")
       .eq("id", proprietaire_id)
       .maybeSingle();
 
@@ -361,6 +361,7 @@ export async function POST(request: Request) {
       signLink: signUrl,
       documentType: documentTypeHuman,
       proprietaireNom: proprietaireNomComplet,
+      proprietaireEmail: String(proprietaire?.email ?? "").trim(),
       documentContext: documentContext || undefined,
     });
 

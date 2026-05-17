@@ -21,7 +21,9 @@ import {
 import { getCurrentProprietaireId } from "@/lib/proprietaire-profile";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { SignatureDocumentActions } from "@/components/signature-document-actions";
 import { PC } from "@/lib/locavio-colors";
+import { signatureStatusesFromRows, type SignatureRow } from "@/lib/signature-status";
 import { fieldInputLg, fieldInputMd, fieldSelectLg, panelCard } from "@/lib/locavio-field-styles";
 
 const BAIL_MODAL_CARD: CSSProperties = {
@@ -252,7 +254,7 @@ export default function BauxPage() {
   }, [values.logement_id, locataires]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [signatureStatuses, setSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [signatureStatuses, setSignatureStatuses] = useState<Record<string, SignatureRow>>({});
   const [sendingSignature, setSendingSignature] = useState<string | null>(null);
   const [signatureModalBail, setSignatureModalBail] = useState<{ bail: Bail; email: string } | null>(null);
   const [currentPlan, setCurrentPlan] = useState<LocavioPlan | null>(null);
@@ -363,16 +365,10 @@ export default function BauxPage() {
       setRows((data as Bail[]) ?? []);
       const { data: sigs } = await supabase
         .from("document_signatures")
-        .select("document_id, signed_at")
+        .select("document_id, signed_at, signed_manually")
         .eq("document_type", "bail")
         .eq("proprietaire_id", activeOwnerId);
-      setSignatureStatuses(
-        Object.fromEntries(
-          (sigs ?? [])
-            .filter((s) => s.signed_at)
-            .map((s) => [String(s.document_id), true]),
-        ),
-      );
+      setSignatureStatuses(signatureStatusesFromRows(sigs ?? []));
     }
 
     await refreshPlanLimit(activeOwnerId);
@@ -1052,6 +1048,33 @@ export default function BauxPage() {
     });
   }
 
+  async function handleManualConfirmBail(bail: Bail) {
+    if (!proprietaireId) return;
+    try {
+      const res = await fetch("/api/signature/manual-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "bail",
+          document_id: bail.id,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Document marqué comme signé.");
+        setSignatureStatuses((prev) => ({
+          ...prev,
+          [bail.id]: { signed_at: new Date().toISOString(), signed_manually: true },
+        }));
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de la confirmation.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    }
+  }
+
   async function handleSendForSignature() {
     if (!signatureModalBail || !proprietaireId) return;
     const { bail } = signatureModalBail;
@@ -1090,6 +1113,10 @@ export default function BauxPage() {
       if (res.ok) {
         toast.success(`Email de signature envoyé à ${signerEmail}`);
         setSignatureModalBail(null);
+        setSignatureStatuses((prev) => ({
+          ...prev,
+          [bail.id]: { signed_at: null, signed_manually: false },
+        }));
       } else {
         const payload = (await res.json().catch(() => ({}))) as { error?: string };
         toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
@@ -1336,25 +1363,15 @@ export default function BauxPage() {
                               >
                                 Supprimer
                               </BtnDanger>
-                              {signatureStatuses[row.id] ? (
-                                <span
-                                  className="rounded-full px-2 py-1 text-xs font-semibold"
-                                  style={{ backgroundColor: PC.successBg20, color: PC.success }}
-                                >
-                                  ✓ Signé électroniquement
-                                </span>
-                              ) : row.statut !== "termine" ? (
-                                <BtnPrimary
-                                  size="small"
-                                  icon={<IconPencil className="h-4 w-4" aria-hidden />}
-                                  disabled={freeBauxBlock || sendingSignature === row.id}
-                                  loading={sendingSignature === row.id}
-                                  style={btnDisabledStyle}
-                                  onClick={() => openSignatureModalForBail(row)}
-                                >
-                                  Envoyer pour signature
-                                </BtnPrimary>
-                              ) : null}
+                              <SignatureDocumentActions
+                                documentId={row.id}
+                                signatureStatuses={signatureStatuses}
+                                sending={sendingSignature === row.id}
+                                sendDisabled={freeBauxBlock}
+                                canSend
+                                onSend={() => openSignatureModalForBail(row)}
+                                onManualConfirm={() => void handleManualConfirmBail(row)}
+                              />
                             </div>
                           </div>
                         </div>

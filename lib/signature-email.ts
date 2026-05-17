@@ -67,12 +67,22 @@ export function emailSignatureOtpInviteSubject(documentType: string): string {
   return `Signature requise : ${documentType} — Locavio`;
 }
 
+export function emailSignatureManualConfirmOwner(params: { signerName: string }): string {
+  const signer = escapeHtml(params.signerName.trim() || "le signataire");
+  const body = `<p style="margin:0 0 14px 0;color:#9ca3af;line-height:1.6;font-size:15px;">
+      Vous avez confirmé la réception du document signé par <strong style="color:#ffffff;">${signer}</strong>.
+      Ce document est maintenant considéré comme signé.
+    </p>`;
+  return signatureEmailShell("Document marqué comme signé", body);
+}
+
 export function emailSignatureOtpInvite(params: {
   signerName: string;
   otpCode: string;
   signLink: string;
   documentType: string;
   proprietaireNom: string;
+  proprietaireEmail: string;
   documentContext?: string;
 }): string {
   const name = escapeHtml(params.signerName.trim() || "Bonjour");
@@ -100,6 +110,7 @@ export function emailSignatureOtpInvite(params: {
       <p style="color:#888;font-size:12px;margin-top:10px;">Code valable 72 heures</p>
     </div>`;
 
+  const ownerEmail = escapeHtml(params.proprietaireEmail.trim());
   const cta = `<div style="text-align:center;margin:24px 0;">
       <a href="${signLink}" style="background:linear-gradient(135deg,#7c3aed 0%,#5b21b6 100%);color:#ffffff;text-decoration:none;border-radius:10px;padding:14px 28px;font-weight:600;display:inline-block;font-size:15px;box-shadow:0 4px 20px rgba(124,58,237,0.35);">Signer le document →</a>
     </div>
@@ -107,7 +118,32 @@ export function emailSignatureOtpInvite(params: {
       Ce lien est valable 72 heures. Après expiration, demandez un nouveau lien au propriétaire.
     </p>`;
 
-  return signatureEmailShell(`Vous êtes invité(e) à signer votre ${docType}`, body, cta);
+  const dualChoice = `<div style="margin:32px 0;padding:20px;background:#1a1a2e;border-radius:12px;border:1px solid #2d2d4e;">
+    <p style="color:#a78bfa;font-size:13px;font-weight:700;margin:0 0 16px 0;text-transform:uppercase;letter-spacing:1px;">
+      Comment souhaitez-vous signer ?
+    </p>
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-start;">
+      <div style="width:32px;height:32px;background:#7c3aed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">✍️</div>
+      <div>
+        <p style="color:#fff;font-size:13px;font-weight:700;margin:0 0 4px 0;">Option 1 — Signature électronique</p>
+        <p style="color:#888;font-size:12px;margin:0;">
+          Cliquez sur le bouton ci-dessus, entrez votre code et signez directement en ligne. Rapide et légalement valable.
+        </p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="width:32px;height:32px;background:#374151;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">📄</div>
+      <div>
+        <p style="color:#fff;font-size:13px;font-weight:700;margin:0 0 4px 0;">Option 2 — Signature papier</p>
+        <p style="color:#888;font-size:12px;margin:0;">
+          Imprimez le document joint, signez-le et retournez-le par email à votre propriétaire :
+          <a href="mailto:${ownerEmail}" style="color:#a78bfa;">${ownerEmail}</a>
+        </p>
+      </div>
+    </div>
+  </div>`;
+
+  return signatureEmailShell(`Vous êtes invité(e) à signer votre ${docType}`, body, cta + dualChoice);
 }
 
 export function emailSignatureSignerConfirmation(params: {

@@ -21,7 +21,9 @@ import {
 } from "@/lib/plan-limits";
 import { formatSubmitError } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
+import { SignatureDocumentActions } from "@/components/signature-document-actions";
 import { PC } from "@/lib/locavio-colors";
+import { signatureStatusesFromRows, type SignatureRow } from "@/lib/signature-status";
 import { panelCard } from "@/lib/locavio-field-styles";
 
 const SaisonnierEdlWizard = dynamic(
@@ -77,7 +79,7 @@ export default function EtatsDesLieuxSaisonnierPage() {
   const [planLimitMessage, setPlanLimitMessage] = useState("");
   const [hoveredEdlId, setHoveredEdlId] = useState<string | null>(null);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
-  const [edlSignatureStatuses, setEdlSignatureStatuses] = useState<Record<string, boolean>>({});
+  const [edlSignatureStatuses, setEdlSignatureStatuses] = useState<Record<string, SignatureRow>>({});
   const [sendingEdlSignature, setSendingEdlSignature] = useState<string | null>(null);
 
   const isPlanLimitReached = Boolean(planLimitMessage);
@@ -162,16 +164,10 @@ export default function EtatsDesLieuxSaisonnierPage() {
 
     const { data: sigs } = await supabase
       .from("document_signatures")
-      .select("document_id, signed_at")
+      .select("document_id, signed_at, signed_manually")
       .eq("document_type", "edl")
       .eq("proprietaire_id", proprietaireId);
-    setEdlSignatureStatuses(
-      Object.fromEntries(
-        (sigs ?? [])
-          .filter((s) => s.signed_at)
-          .map((s) => [String(s.document_id), true]),
-      ),
-    );
+    setEdlSignatureStatuses(signatureStatusesFromRows(sigs ?? []));
     setLogements(
       ((logementsRes.data ?? []) as Array<{ id?: string; nom?: string }>).map((row) => ({
         id: String(row.id ?? ""),
@@ -272,6 +268,33 @@ export default function EtatsDesLieuxSaisonnierPage() {
     }
   }
 
+  async function handleManualConfirmEdl(edl: EdlRow) {
+    if (!proprietaireId) return;
+    try {
+      const res = await fetch("/api/signature/manual-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: "edl",
+          document_id: edl.id,
+          proprietaire_id: proprietaireId,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Document marqué comme signé.");
+        setEdlSignatureStatuses((prev) => ({
+          ...prev,
+          [edl.id]: { signed_at: new Date().toISOString(), signed_manually: true },
+        }));
+      } else {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error?.trim() || "Erreur lors de la confirmation.");
+      }
+    } catch (e) {
+      toast.error(formatSubmitError(e));
+    }
+  }
+
   async function handleSendEdlForSignature(edl: EdlRow) {
     if (!proprietaireId) return;
     setSendingEdlSignature(edl.id);
@@ -317,6 +340,10 @@ export default function EtatsDesLieuxSaisonnierPage() {
 
       if (res.ok) {
         toast.success(`Email de signature envoyé à ${voyageur.email}`);
+        setEdlSignatureStatuses((prev) => ({
+          ...prev,
+          [edl.id]: { signed_at: null, signed_manually: false },
+        }));
       } else {
         const payload = (await res.json().catch(() => ({}))) as { error?: string };
         toast.error(payload.error?.trim() || "Erreur lors de l'envoi.");
@@ -506,24 +533,14 @@ export default function EtatsDesLieuxSaisonnierPage() {
                         >
                           Envoyer
                         </BtnSecondary>
-                        {edlSignatureStatuses[row.id] ? (
-                          <span
-                            className="rounded-full px-2 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: PC.successBg20, color: PC.success }}
-                          >
-                            ✓ Signé électroniquement
-                          </span>
-                        ) : isFinalise ? (
-                          <BtnPrimary
-                            size="small"
-                            icon={<IconPencil className="h-4 w-4" aria-hidden />}
-                            disabled={sendingEdlSignature === row.id}
-                            loading={sendingEdlSignature === row.id}
-                            onClick={() => void handleSendEdlForSignature(row)}
-                          >
-                            Envoyer pour signature
-                          </BtnPrimary>
-                        ) : null}
+                        <SignatureDocumentActions
+                          documentId={row.id}
+                          signatureStatuses={edlSignatureStatuses}
+                          sending={sendingEdlSignature === row.id}
+                          canSend={isFinalise}
+                          onSend={() => void handleSendEdlForSignature(row)}
+                          onManualConfirm={() => void handleManualConfirmEdl(row)}
+                        />
                         <BtnDanger size="small" icon={<IconTrash className="h-4 w-4" />} onClick={() => setDeleteTarget({ id: row.id, statut: row.statut })}>
                           Supprimer
                         </BtnDanger>
