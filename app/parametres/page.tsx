@@ -11,7 +11,9 @@ import {
   getEffectivePlan,
   isProprietaireOnboardingIncomplete,
   saveProprietaireProfile,
+  STATUTS_BAILLEUR_VALIDES,
   type ProprietaireProfile,
+  type StatutBailleur,
 } from "@/lib/proprietaire-profile";
 import { formatSubmitError, isValidEmail } from "@/lib/supabase-submit-error";
 import { supabase } from "@/lib/supabase";
@@ -132,10 +134,13 @@ export default function ParametresPage() {
           ville: existingProfile.ville ?? "",
           code_postal: existingProfile.code_postal ?? "",
           siret: existingProfile.siret ?? "",
-          statut_bailleur:
-            existingProfile.statut_bailleur === "lmnp" || existingProfile.statut_bailleur === "lmp"
-              ? existingProfile.statut_bailleur
-              : "particulier",
+          statut_bailleur: STATUTS_BAILLEUR_VALIDES.includes(
+            existingProfile.statut_bailleur as StatutBailleur,
+          )
+            ? (existingProfile.statut_bailleur as StatutBailleur)
+            : "particulier_nu",
+          nom_societe: existingProfile.nom_societe ?? "",
+          siren_societe: existingProfile.siren_societe ?? "",
           signature_path: existingProfile.signature_path ?? null,
         });
         if (existingProfile.signature_path) {
@@ -604,13 +609,79 @@ export default function ParametresPage() {
                   onChange("statut_bailleur", event.target.value as ProprietaireProfile["statut_bailleur"])
                 }
               >
-                <option value="particulier">Particulier (location nue ou meublée)</option>
-                <option value="lmnp">Loueur Meublé Non Professionnel (LMNP)</option>
-                <option value="lmp">Loueur Meublé Professionnel (LMP)</option>
+                <optgroup label="Personne physique">
+                  <option value="particulier_nu">Particulier — Location nue (revenus fonciers)</option>
+                  <option value="particulier_meuble">Particulier — Location meublée (BIC)</option>
+                  <option value="lmnp_micro">LMNP — Micro-BIC (abattement 50% ou 71%)</option>
+                  <option value="lmnp_reel">LMNP — Régime réel simplifié</option>
+                  <option value="lmp">Loueur Meublé Professionnel (LMP)</option>
+                  <option value="indivision">Indivision (héritage, achat commun)</option>
+                  <option value="usufruitier">Usufruitier (démembrement de propriété)</option>
+                </optgroup>
+                <optgroup label="Personne morale">
+                  <option value="sci_ir">SCI à l&apos;IR (Impôt sur le Revenu)</option>
+                  <option value="sci_is">SCI à l&apos;IS (Impôt sur les Sociétés)</option>
+                  <option value="sci_attribution">SCI d&apos;attribution</option>
+                  <option value="sarl_famille">SARL de famille</option>
+                  <option value="sas_sasu">SAS / SASU</option>
+                </optgroup>
+                <optgroup label="Mandataire">
+                  <option value="mandataire">Gestionnaire / Mandataire (agence, syndic)</option>
+                </optgroup>
               </select>
-              {profile.statut_bailleur === "lmnp" || profile.statut_bailleur === "lmp" ? (
+              {profile.statut_bailleur === "lmnp_micro" ||
+              profile.statut_bailleur === "lmnp_reel" ||
+              profile.statut_bailleur === "lmp" ? (
                 <p className="text-xs" style={{ color: PC.muted }}>
                   Votre SIRET apparaîtra sur vos quittances de loyer.
+                </p>
+              ) : null}
+              {profile.statut_bailleur === "sci_ir" ||
+              profile.statut_bailleur === "sci_is" ||
+              profile.statut_bailleur === "sci_attribution" ||
+              profile.statut_bailleur === "sarl_famille" ||
+              profile.statut_bailleur === "sas_sasu" ? (
+                <div className="mt-2 space-y-3">
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Nom de la société</span>
+                    <input
+                      type="text"
+                      style={fieldInputStyle}
+                      placeholder="Ex: SCI Dupont Immobilier"
+                      value={profile.nom_societe}
+                      onChange={(event) => onChange("nom_societe", event.target.value)}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">SIREN de la société</span>
+                    <input
+                      type="text"
+                      style={fieldInputStyle}
+                      placeholder="Ex: 123 456 789"
+                      value={profile.siren_societe}
+                      onChange={(event) => onChange("siren_societe", event.target.value)}
+                    />
+                    <span className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      Le SIREN (9 chiffres) apparaîtra sur vos documents.
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+              {profile.statut_bailleur === "indivision" ? (
+                <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                  En indivision, tous les indivisaires ou leur mandataire doivent figurer sur les baux. Précisez leurs
+                  noms dans les clauses particulières du bail.
+                </p>
+              ) : null}
+              {profile.statut_bailleur === "usufruitier" ? (
+                <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                  L&apos;usufruitier perçoit les loyers et signe les baux. Mentionnez le démembrement dans les clauses
+                  particulières.
+                </p>
+              ) : null}
+              {profile.statut_bailleur === "mandataire" ? (
+                <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                  Précisez le nom du mandant (propriétaire) dans les clauses particulières du bail.
                 </p>
               ) : null}
             </label>

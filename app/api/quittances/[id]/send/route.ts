@@ -114,8 +114,10 @@ export async function POST(
         total: Number(quittance.total),
       },
       signatureImage,
-      statutBailleur: (proprietaire.statut_bailleur as string | undefined) ?? "particulier",
+      statutBailleur: (proprietaire.statut_bailleur as string | undefined) ?? "particulier_nu",
       siretBailleur: (proprietaire.siret as string | undefined) ?? undefined,
+      nomSociete: (proprietaire.nom_societe as string | undefined) ?? undefined,
+      sirenSociete: (proprietaire.siren_societe as string | undefined) ?? undefined,
     });
     const monthLabel = MONTHS_FR[Number(quittance.mois) - 1] ?? String(quittance.mois);
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");

@@ -17,7 +17,36 @@ export function getEffectivePlan(proprietaire: ProprietairePlanSource | null | u
   return normalizePlan(proprietaire?.plan);
 }
 
-export type StatutBailleur = "particulier" | "lmnp" | "lmp";
+export type StatutBailleur =
+  | "particulier_nu"
+  | "particulier_meuble"
+  | "lmnp_micro"
+  | "lmnp_reel"
+  | "lmp"
+  | "indivision"
+  | "usufruitier"
+  | "sci_ir"
+  | "sci_is"
+  | "sarl_famille"
+  | "sas_sasu"
+  | "sci_attribution"
+  | "mandataire";
+
+export const STATUTS_BAILLEUR_VALIDES: StatutBailleur[] = [
+  "particulier_nu",
+  "particulier_meuble",
+  "lmnp_micro",
+  "lmnp_reel",
+  "lmp",
+  "indivision",
+  "usufruitier",
+  "sci_ir",
+  "sci_is",
+  "sarl_famille",
+  "sas_sasu",
+  "sci_attribution",
+  "mandataire",
+];
 
 export type ProprietaireProfile = {
   id?: string;
@@ -32,6 +61,8 @@ export type ProprietaireProfile = {
   code_postal: string;
   siret: string;
   statut_bailleur: StatutBailleur;
+  nom_societe: string;
+  siren_societe: string;
 };
 
 export const emptyProprietaireProfile: ProprietaireProfile = {
@@ -43,7 +74,9 @@ export const emptyProprietaireProfile: ProprietaireProfile = {
   ville: "",
   code_postal: "",
   siret: "",
-  statut_bailleur: "particulier",
+  statut_bailleur: "particulier_nu",
+  nom_societe: "",
+  siren_societe: "",
 };
 
 /** Profil minimum pour quittances / baux : nom, prénom et adresse (rue). */
@@ -298,10 +331,13 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
     if (selectError) return { data: null, error: { ...selectError, message: formatSubmitError(selectError) } };
 
     const siretVal = profile.siret?.trim() ? profile.siret.trim() : null;
-    const statutBailleur: StatutBailleur =
-      profile.statut_bailleur === "lmnp" || profile.statut_bailleur === "lmp"
-        ? profile.statut_bailleur
-        : "particulier";
+    const nomSocieteVal = profile.nom_societe?.trim() ? profile.nom_societe.trim() : null;
+    const sirenSocieteVal = profile.siren_societe?.trim() ? profile.siren_societe.trim() : null;
+    const statutBailleur: StatutBailleur = STATUTS_BAILLEUR_VALIDES.includes(
+      profile.statut_bailleur as StatutBailleur,
+    )
+      ? (profile.statut_bailleur as StatutBailleur)
+      : "particulier_nu";
 
     if (!existing) {
       const { data, error } = await supabase
@@ -317,6 +353,8 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
           code_postal: profile.code_postal.trim(),
           siret: siretVal,
           statut_bailleur: statutBailleur,
+          nom_societe: nomSocieteVal,
+          siren_societe: sirenSocieteVal,
           signature_path: profile.signature_path ?? null,
         })
         .select()
@@ -337,6 +375,8 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
         code_postal: profile.code_postal.trim(),
         siret: siretVal,
         statut_bailleur: statutBailleur,
+        nom_societe: nomSocieteVal,
+        siren_societe: sirenSocieteVal,
         signature_path: profile.signature_path ?? null,
       })
       .eq("user_id", user.id)

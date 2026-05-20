@@ -65,7 +65,30 @@ export type QuittancePdfInput = {
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
   statutBailleur?: string;
   siretBailleur?: string;
+  nomSociete?: string;
+  sirenSociete?: string;
 };
+
+function statutBailleurLabel(value: string): string {
+  const labels: Record<string, string> = {
+    particulier_nu: "Particulier — Location nue (revenus fonciers)",
+    particulier_meuble: "Particulier — Location meublée (BIC)",
+    lmnp_micro: "LMNP — Micro-BIC (abattement 50% ou 71%)",
+    lmnp_reel: "LMNP — Régime réel simplifié",
+    lmp: "Loueur Meublé Professionnel (LMP)",
+    indivision: "Indivision (héritage, achat commun)",
+    usufruitier: "Usufruitier (démembrement de propriété)",
+    sci_ir: "SCI à l'IR (Impôt sur le Revenu)",
+    sci_is: "SCI à l'IS (Impôt sur les Sociétés)",
+    sci_attribution: "SCI d'attribution",
+    sarl_famille: "SARL de famille",
+    sas_sasu: "SAS / SASU",
+    mandataire: "Gestionnaire / Mandataire (agence, syndic)",
+  };
+  return labels[value] ?? value;
+}
+
+const STATUTS_SOCIETE = ["sci_ir", "sci_is", "sci_attribution", "sarl_famille", "sas_sasu"] as const;
 
 function wrapLegal(text: string, maxLen: number): string[] {
   const m = text.match(new RegExp(`.{1,${maxLen}}(\\s|$)`, "g"));
@@ -73,7 +96,17 @@ function wrapLegal(text: string, maxLen: number): string[] {
 }
 
 export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Promise<Uint8Array> {
-  const { proprietaire, locataire, logement, quittance, signatureImage, statutBailleur, siretBailleur } = input;
+  const {
+    proprietaire,
+    locataire,
+    logement,
+    quittance,
+    signatureImage,
+    statutBailleur,
+    siretBailleur,
+    nomSociete,
+    sirenSociete,
+  } = input;
 
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
@@ -173,11 +206,12 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     ly -= 13;
     page.drawText(`Tél: ${proprietaire.telephone || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     ly -= 13;
-    const statut = String(statutBailleur ?? "").trim().toUpperCase();
+    const statut = String(statutBailleur ?? "").trim().toLowerCase();
     const siret = String(siretBailleur ?? "").trim();
-    if ((statut === "LMNP" || statut === "LMP") && siret) {
-      const lmLabel = statut === "LMP" ? "Professionnel" : "Non Professionnel";
-      page.drawText(`SIRET : ${siret} — Loueur Meublé ${lmLabel}`, {
+    const nomSoc = String(nomSociete ?? "").trim();
+    const sirenSoc = String(sirenSociete ?? "").trim();
+    const drawStatutLine = (text: string) => {
+      page.drawText(text, {
         x: leftColX + 14,
         y: ly,
         size: 9,
@@ -185,6 +219,23 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
         color: PDF_TEXT_SECONDARY,
       });
       ly -= 13;
+    };
+    if ((STATUTS_SOCIETE as readonly string[]).includes(statut)) {
+      if (nomSoc) drawStatutLine(nomSoc);
+      if (sirenSoc) drawStatutLine(`SIREN : ${sirenSoc}`);
+      drawStatutLine(statutBailleurLabel(statut));
+    } else if (statut === "lmnp_micro" && siret) {
+      drawStatutLine(`SIRET : ${siret} — LMNP Micro-BIC`);
+    } else if (statut === "lmnp_reel" && siret) {
+      drawStatutLine(`SIRET : ${siret} — LMNP Régime réel`);
+    } else if (statut === "lmp" && siret) {
+      drawStatutLine(`SIRET : ${siret} — Loueur Meublé Professionnel`);
+    } else if (statut === "indivision") {
+      drawStatutLine("Bailleur en indivision");
+    } else if (statut === "usufruitier") {
+      drawStatutLine("Bailleur usufruitier");
+    } else if (statut === "mandataire") {
+      drawStatutLine("Gestionnaire mandataire");
     }
     return ly;
   });

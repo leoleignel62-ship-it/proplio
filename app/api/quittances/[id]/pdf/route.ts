@@ -63,8 +63,10 @@ export async function GET(
         total: Number(quittance.total),
       },
       signatureImage,
-      statutBailleur: (proprietaire.statut_bailleur as string | undefined) ?? "particulier",
+      statutBailleur: (proprietaire.statut_bailleur as string | undefined) ?? "particulier_nu",
       siretBailleur: (proprietaire.siret as string | undefined) ?? undefined,
+      nomSociete: (proprietaire.nom_societe as string | undefined) ?? undefined,
+      sirenSociete: (proprietaire.siren_societe as string | undefined) ?? undefined,
     });
 
     return new NextResponse(Buffer.from(pdfBytes), {
