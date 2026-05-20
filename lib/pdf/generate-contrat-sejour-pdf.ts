@@ -316,10 +316,14 @@ export type ContratSejourPdfInput = {
     montant_acompte: number;
   };
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
+  numeroEnregistrement?: string;
+  classementMeubleTourisme?: string;
+  preneurNom?: string;
 };
 
 export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInput): Promise<Uint8Array> {
-  const { proprietaire, voyageur, logement, reservation, signatureImage } = input;
+  const { proprietaire, voyageur, logement, reservation, signatureImage, numeroEnregistrement, classementMeubleTourisme, preneurNom } =
+    input;
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -418,6 +422,17 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
   await drawParagraph(ctx, `Capacité maximale : ${capMax} personne(s).`);
   await drawParagraph(ctx, `Équipements : ${equipementsStr}`);
 
+  const numEnreg = String(numeroEnregistrement ?? "").trim();
+  if (numEnreg) {
+    await drawParagraph(ctx, `Numéro d'enregistrement : ${numEnreg}`);
+  }
+  const classement = String(classementMeubleTourisme ?? "").trim();
+  if (classement && classement !== "non_classe") {
+    const starsMatch = classement.match(/(\d+)/);
+    const nStars = starsMatch ? starsMatch[1] : classement;
+    await drawParagraph(ctx, `Classement : ${nStars} étoile(s) — Meublé de tourisme`);
+  }
+
   await drawSectionTitle(ctx, "CONDITIONS DE LOCATION");
   await drawKeyValueRow(ctx, "Arrivée", `${dArr} à ${hArr}`);
   await drawKeyValueRow(ctx, "Départ", `${dDep} à ${hDep}`);
@@ -490,12 +505,24 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
       "RÉSILIATION",
       "En cas d'annulation par le preneur, l'acompte versé reste acquis au bailleur. En cas d'annulation par le bailleur, les sommes versées sont intégralement remboursées.",
     );
+    await drawArticle(
+      ctx,
+      7,
+      "MÉDIATION ET LITIGES",
+      "En cas de litige relatif au présent contrat, les parties s'engagent à rechercher une solution amiable avant tout recours judiciaire. À défaut d'accord amiable, le litige pourra être soumis à un médiateur de la consommation conformément aux articles L.611-1 et suivants du Code de la consommation. Le preneur peut saisir gratuitement le médiateur compétent via le site www.mediation-tourisme.fr. En cas d'échec de la médiation, les tribunaux français seront seuls compétents.",
+    );
   } else {
     await drawArticle(
       ctx,
       5,
       "RÉSILIATION",
       "En cas d'annulation par le preneur, l'acompte versé reste acquis au bailleur. En cas d'annulation par le bailleur, les sommes versées sont intégralement remboursées.",
+    );
+    await drawArticle(
+      ctx,
+      6,
+      "MÉDIATION ET LITIGES",
+      "En cas de litige relatif au présent contrat, les parties s'engagent à rechercher une solution amiable avant tout recours judiciaire. À défaut d'accord amiable, le litige pourra être soumis à un médiateur de la consommation conformément aux articles L.611-1 et suivants du Code de la consommation. Le preneur peut saisir gratuitement le médiateur compétent via le site www.mediation-tourisme.fr. En cas d'échec de la médiation, les tribunaux français seront seuls compétents.",
     );
   }
 
@@ -519,6 +546,7 @@ export async function generateContratSejourPdfBuffer(input: ContratSejourPdfInpu
     ville: villeBailleur,
     dateStr,
     proprietaireNom: pNom || "—",
+    locataireNom: preneurNom?.trim() || vNom || undefined,
     signatureImage: img,
     marginX: PDF_MARGIN_X,
     pageWidth: PDF_PAGE_W,

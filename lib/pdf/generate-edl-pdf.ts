@@ -56,6 +56,9 @@ const PHOTO_BORDER_COLOR = BORDER;
 /** Bandeau titre de pièce (léger violet) */
 const BAR_BG = PDF_VIOLET_LIGHT;
 
+const MENTION_LEGALE_EDL =
+  "Établi contradictoirement entre les parties en présence, conformément au décret n° 2016-382 du 30 mars 2016 fixant le modèle type d'état des lieux et les modalités d'établissement contradictoire. Le présent document a valeur probante en cas de litige sur l'état du logement et le dépôt de garantie (article 3-2 de la loi n° 89-462 du 6 juillet 1989).";
+
 function hexToRgb01(hex: string) {
   const h = hex.replace("#", "").slice(0, 6);
   return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255);
@@ -161,6 +164,8 @@ export type EdlPdfParams = {
   photoFiles: Map<string, Uint8Array>;
   documentTitle?: string;
   stayInfoLine?: string;
+  heureEtat?: string;
+  locataireNom?: string;
 };
 
 export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8Array> {
@@ -211,6 +216,13 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   y -= 6;
 
+  for (const ln of wrapLines(MENTION_LEGALE_EDL, fontItalic, 10, PAGE_W - 2 * MARGIN)) {
+    if (y < contentBreakFloor()) await newPage();
+    page.drawText(ln, { x: MARGIN, y, size: 10, font: fontItalic, color: MUTED });
+    y -= 12;
+  }
+  y -= 8;
+
   const line = async (label: string, value: string) => {
     const t = `${label} : ${value}`;
     const gap = reserveForSig && y < SIG_BLOCK_PEAK_Y + 100 ? 9 : 13;
@@ -222,6 +234,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
   };
 
   await line("Date", params.dateEtat || "—");
+  await line("Heure", params.heureEtat?.trim() || "—");
   await line("Type de logement", params.typeLogement === "meuble" ? "Meublé" : "Vide");
   await line("Bailleur", params.bailleurNom);
   await line("Preneur", params.preneurNom);
@@ -620,6 +633,7 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
     ville: villeEdl,
     dateStr: dateEtatFr,
     proprietaireNom: params.bailleurNom,
+    locataireNom: params.locataireNom?.trim() || params.preneurNom?.trim() || undefined,
     signatureImage: sigImg,
     marginX: MARGIN,
     pageWidth: PAGE_W,

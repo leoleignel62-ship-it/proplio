@@ -1,6 +1,7 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, type PDFImage } from "pdf-lib";
 import {
   PDF_BORDER,
+  PDF_FOOTER_HEIGHT,
   PDF_MARGIN_X,
   PDF_PAGE_H,
   PDF_PAGE_W,
@@ -13,7 +14,7 @@ import {
   pdfContentTopAfterHeader,
 } from "@/lib/pdf/locavio-pdf-theme";
 import { getLocavioLockupPngBytes } from "@/lib/pdf/load-locavio-lockup-png";
-import { sanitizePdfText } from "@/lib/pdf/pdf-utils";
+import { drawSignatureBlock, sanitizePdfText } from "@/lib/pdf/pdf-utils";
 
 export type TaxeSejourRowPdf = {
   dates: string;
@@ -29,10 +30,22 @@ export type TaxeSejourPdfInput = {
   rows: TaxeSejourRowPdf[];
   totalAReverser: number;
   commune?: string | null;
+  signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
 };
 
+const REFERENCE_LEGALE =
+  "Déclaration établie conformément aux articles L.2333-26 et suivants du Code général des collectivités territoriales (CGCT). La taxe de séjour est collectée par le loueur pour le compte de la commune et doit lui être reversée selon les modalités et échéances fixées par délibération municipale.";
+
+const NOTE_EXONERATIONS =
+  "Exonérations légales applicables (article L.2333-31 du CGCT) : mineurs de moins de 18 ans, personnes bénéficiant d'un hébergement d'urgence ou d'un relogement temporaire, titulaires d'un contrat de travail saisonnier dans la commune.";
+
+function wrapLegal(text: string, maxLen: number): string[] {
+  const m = text.match(new RegExp(`.{1,${maxLen}}(\\s|$)`, "g"));
+  return m ?? [text];
+}
+
 export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Promise<Uint8Array> {
-  const { periodeLabel, proprietaire, rows, totalAReverser, commune } = input;
+  const { periodeLabel, proprietaire, rows, totalAReverser, commune, signatureImage } = input;
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -44,6 +57,18 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
   const logoBytes = getLocavioLockupPngBytes();
   await drawLocavioPdfHeader(pdfDoc, page, font, fontBold, "RÉCAPITULATIF TAXE DE SÉJOUR", pageH, pageW, logoBytes);
   let y = pdfContentTopAfterHeader(pageH) - 8;
+
+  for (const ln of wrapLegal(REFERENCE_LEGALE, 105)) {
+    page.drawText(sanitizePdfText(ln.trim()), {
+      x: PDF_MARGIN_X,
+      y,
+      size: 10,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    y -= 13;
+  }
+  y -= 6;
 
   page.drawText(sanitizePdfText(`Période : ${periodeLabel}`), {
     x: PDF_MARGIN_X,
@@ -117,16 +142,65 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
       cx += colW[i]!;
     }
     y -= rowH;
-    if (y < 120) break;
+    if (y < 180) break;
   }
 
-  y -= 12;
+  y -= 10;
+  for (const ln of wrapLegal(NOTE_EXONERATIONS, 105)) {
+    page.drawText(sanitizePdfText(ln.trim()), {
+      x: PDF_MARGIN_X,
+      y,
+      size: 9,
+      font,
+      color: PDF_TEXT_SECONDARY,
+    });
+    y -= 12;
+  }
+
+  y -= 8;
   page.drawText(`Total à reverser à la mairie : ${totalAReverser.toFixed(2)} €`, {
     x: PDF_MARGIN_X,
     y,
     size: 12,
     font: fontBold,
     color: PDF_TEXT_MAIN,
+  });
+  y -= 28;
+
+  const declarantNom = `${proprietaire.prenom ?? ""} ${proprietaire.nom ?? ""}`.trim() || "—";
+  const declarationText = `Je soussigné(e) ${declarantNom}, déclare que les informations figurant dans le présent récapitulatif sont exactes et sincères.`;
+  for (const ln of wrapLegal(declarationText, 105)) {
+    page.drawText(sanitizePdfText(ln.trim()), {
+      x: PDF_MARGIN_X,
+      y,
+      size: 10,
+      font,
+      color: PDF_TEXT_MAIN,
+    });
+    y -= 13;
+  }
+  y -= 6;
+
+  let img: PDFImage | null = null;
+  if (signatureImage?.bytes?.length) {
+    try {
+      img = signatureImage.isPng ? await pdfDoc.embedPng(signatureImage.bytes) : await pdfDoc.embedJpg(signatureImage.bytes);
+    } catch {
+      img = null;
+    }
+  }
+
+  const ville = String(proprietaire.ville ?? "").trim() || "—";
+  drawSignatureBlock(page, {
+    font,
+    fontBold,
+    ville: sanitizePdfText(ville),
+    dateStr: sanitizePdfText(new Date().toLocaleDateString("fr-FR")),
+    proprietaireNom: sanitizePdfText(declarantNom),
+    signatureImage: img,
+    marginX: PDF_MARGIN_X,
+    pageWidth: pageW,
+    blockBottomY: PDF_FOOTER_HEIGHT,
   });
 
   drawLocavioPdfFooterOnAllPages(pdfDoc, font, fontBold);

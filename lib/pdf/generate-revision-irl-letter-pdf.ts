@@ -347,6 +347,16 @@ export async function generateRevisionIrlLetterPdfBuffer(
   y = drawTableRevision(page, y, font, fontBold, tableRows);
   y -= 4;
 
+  await drawParagraph(
+    `Calcul : ${input.loyerAvant} € × (${input.valeurIrl} / ${input.irlReferenceBail}) = ${input.loyerApres} €`,
+  );
+  y -= 2;
+
+  await drawParagraph(
+    "Conformément à l'article 17-1 de la loi du 6 juillet 1989, cette révision vous est notifiée au moins un mois avant sa date d'effet par lettre recommandée avec accusé de réception. Si cette notification intervient après la date anniversaire du bail, la révision ne sera applicable qu'à compter de sa réception et ne sera pas rétroactive.",
+  );
+  y -= 4;
+
   /** ~hauteur des 3 derniers paragraphes + marge avant le bandeau signature fixe (150 pt + marge basse). */
   const closingBlockApprox = 120;
   if (y < yMinAboveSignatureBand + closingBlockApprox) {

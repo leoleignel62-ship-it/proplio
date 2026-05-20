@@ -58,7 +58,7 @@ const USABLE_W = PAGE_W - 2 * MARGIN;
 const PHOTO_BOX = 52;
 const PHOTO_GAP = 4;
 const MENTION_LEGALE_DEF =
-  "Document établi dans le cadre d'une location saisonnière. Il ne relève pas du régime des baux d'habitation soumis à la loi du 6 juillet 1989 (loi ALUR). Les parties reconnaissent l'état des lieux conforme à la réalité au jour de sa signature.";
+  "Document établi contradictoirement entre les parties en présence, dans le cadre d'une location saisonnière. Il ne relève pas du régime des baux d'habitation soumis à la loi du 6 juillet 1989 (loi ALUR). Les parties reconnaissent l'état des lieux conforme à la réalité au jour de sa signature et s'engagent à en respecter les conclusions en cas de litige sur la restitution de la caution.";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -110,6 +110,24 @@ function etatIcon(e: SaisonnierEtatPiece): string {
   return "Mauvais état";
 }
 
+function etatSaisonnierRank(e: SaisonnierEtatPiece): number {
+  if (e === "bon") return 0;
+  if (e === "moyen") return 1;
+  return 2;
+}
+
+function inventaireRank(s: InventaireStatut): number {
+  if (s === "present") return 0;
+  if (s === "absent") return 1;
+  return 2;
+}
+
+function inventaireLabel(s: InventaireStatut): string {
+  if (s === "present") return "Présent";
+  if (s === "absent") return "Absent";
+  return "Endommagé";
+}
+
 export type SaisonnierEdlPdfParams = {
   typeEtat: "entree" | "sortie";
   dateEtatIso: string;
@@ -139,6 +157,11 @@ export type SaisonnierEdlPdfParams = {
   inventory: Array<{ zone: string; label: string; status: InventaireStatut }>;
   signatureImage: { bytes: Uint8Array; isPng: boolean } | null;
   mentionLegale?: string;
+  /** EDL d'entrée lié (comparatif sortie) */
+  entryRooms?: Array<{ label: string; etat: SaisonnierEtatPiece }> | null;
+  entryInventory?: Array<{ zone: string; label: string; status: InventaireStatut }> | null;
+  locataireNom?: string;
+  voyageurNom?: string;
 };
 
 export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfParams): Promise<Uint8Array> {
@@ -501,6 +524,45 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     y -= invRowH;
   }
 
+  if (params.typeEtat === "sortie" && params.entryRooms?.length) {
+    y -= 8;
+    if (y < sigFloor()) await newPage();
+    page.drawText(sanitizePdfText("Comparatif avec l'état d'entrée (éléments dégradés)"), {
+      x: MARGIN,
+      y,
+      size: 12,
+      font: fontBold,
+      color: rgb(0.9, 0.3, 0.3),
+    });
+    y -= 28;
+
+    for (const room of params.rooms) {
+      const er = params.entryRooms.find((r) => r.label === room.label);
+      if (!er) continue;
+      if (etatSaisonnierRank(room.etat) <= etatSaisonnierRank(er.etat)) continue;
+      const txt = `${room.label} — État général : entrée ${etatIcon(er.etat)} → sortie ${etatIcon(room.etat)}`;
+      for (const ln of wrapLines(sanitizePdfText(txt), font, 9, USABLE_W)) {
+        if (y < sigFloor()) await newPage();
+        page.drawText(sanitizePdfText(ln), { x: MARGIN, y, size: 9, font, color: rgb(0.95, 0.35, 0.35) });
+        y -= 11;
+      }
+    }
+
+    if (params.entryInventory?.length) {
+      for (const item of params.inventory) {
+        const ei = params.entryInventory.find((r) => r.label === item.label && r.zone === item.zone);
+        if (!ei) continue;
+        if (inventaireRank(item.status) <= inventaireRank(ei.status)) continue;
+        const txt = `${item.zone} — ${item.label} : entrée ${inventaireLabel(ei.status)} → sortie ${inventaireLabel(item.status)}`;
+        for (const ln of wrapLines(sanitizePdfText(txt), font, 9, USABLE_W)) {
+          if (y < sigFloor()) await newPage();
+          page.drawText(sanitizePdfText(ln), { x: MARGIN, y, size: 9, font, color: rgb(0.95, 0.35, 0.35) });
+          y -= 11;
+        }
+      }
+    }
+  }
+
   reserveSig.on = true;
   if (y < PDF_SIGNATURE_FOOTER_RESERVE + 40) await newPage();
 
@@ -517,6 +579,11 @@ export async function generateEdlSaisonnierPdfBuffer(params: SaisonnierEdlPdfPar
     ville: villeSig,
     dateStr: dateFr,
     proprietaireNom: params.bailleur.nom,
+    locataireNom:
+      params.locataireNom?.trim() ||
+      params.voyageurNom?.trim() ||
+      params.preneur.nom?.trim() ||
+      undefined,
     signatureImage: sigImg,
     marginX: MARGIN,
     pageWidth: PAGE_W,

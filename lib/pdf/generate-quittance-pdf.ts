@@ -63,6 +63,8 @@ export type QuittancePdfInput = {
     total: number;
   };
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
+  statutBailleur?: string;
+  siretBailleur?: string;
 };
 
 function wrapLegal(text: string, maxLen: number): string[] {
@@ -71,7 +73,7 @@ function wrapLegal(text: string, maxLen: number): string[] {
 }
 
 export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Promise<Uint8Array> {
-  const { proprietaire, locataire, logement, quittance, signatureImage } = input;
+  const { proprietaire, locataire, logement, quittance, signatureImage, statutBailleur, siretBailleur } = input;
 
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
@@ -170,6 +172,20 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     page.drawText(`Email: ${proprietaire.email || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_SECONDARY });
     ly -= 13;
     page.drawText(`Tél: ${proprietaire.telephone || "—"}`, { x: leftColX + 14, y: ly, size: 9.5, font, color: PDF_TEXT_SECONDARY });
+    ly -= 13;
+    const statut = String(statutBailleur ?? "").trim().toUpperCase();
+    const siret = String(siretBailleur ?? "").trim();
+    if ((statut === "LMNP" || statut === "LMP") && siret) {
+      const lmLabel = statut === "LMP" ? "Professionnel" : "Non Professionnel";
+      page.drawText(`SIRET : ${siret} — Loueur Meublé ${lmLabel}`, {
+        x: leftColX + 14,
+        y: ly,
+        size: 9,
+        font,
+        color: PDF_TEXT_SECONDARY,
+      });
+      ly -= 13;
+    }
     return ly;
   });
 
@@ -349,7 +365,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   });
   y -= 20;
 
-  const legalText = `Je soussigné ${`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim()}, bailleur, déclare avoir reçu de ${
+  const legalText = `Conformément à l'article 21 de la loi n° 89-462 du 6 juillet 1989, le bailleur est tenu de remettre gratuitement une quittance au locataire qui en fait la demande. Cette quittance couvre la période indiquée ci-dessus et ne vaut pas pour les loyers antérieurement dus. Je soussigné ${`${proprietaire.prenom || ""} ${proprietaire.nom || ""}`.trim()}, bailleur, déclare avoir reçu de ${
     `${locataire.prenom || ""} ${locataire.nom || ""}`.trim()
   }, locataire, la somme de ${Number(quittance.total).toFixed(
     2,
@@ -360,7 +376,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
   const legalLines = wrapLegal(legalText, 95);
   const legalBoxTop = y;
   const reserveForSigFooter = PDF_FOOTER_HEIGHT + PDF_SIGNATURE_BLOCK_HEIGHT + 20;
-  let legalBoxHeight = 86;
+  let legalBoxHeight = 100;
   if (y - legalBoxHeight < reserveForSigFooter) {
     legalBoxHeight = Math.max(52, y - reserveForSigFooter - 6);
   }
@@ -389,7 +405,7 @@ export async function generateQuittancePdfBuffer(input: QuittancePdfInput): Prom
     color: PDF_TEXT_MAIN,
   });
   let legalY = legalBoxTop - 32;
-  legalLines.slice(0, 4).forEach((line) => {
+  legalLines.slice(0, 6).forEach((line) => {
     page.drawText(line.trim(), {
       x: left + 10,
       y: legalY,
