@@ -17,6 +17,8 @@ export function getEffectivePlan(proprietaire: ProprietairePlanSource | null | u
   return normalizePlan(proprietaire?.plan);
 }
 
+export type StatutBailleur = "particulier" | "lmnp" | "lmp";
+
 export type ProprietaireProfile = {
   id?: string;
   user_id?: string;
@@ -29,6 +31,7 @@ export type ProprietaireProfile = {
   ville: string;
   code_postal: string;
   siret: string;
+  statut_bailleur: StatutBailleur;
 };
 
 export const emptyProprietaireProfile: ProprietaireProfile = {
@@ -40,6 +43,7 @@ export const emptyProprietaireProfile: ProprietaireProfile = {
   ville: "",
   code_postal: "",
   siret: "",
+  statut_bailleur: "particulier",
 };
 
 /** Profil minimum pour quittances / baux : nom, prénom et adresse (rue). */
@@ -294,6 +298,10 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
     if (selectError) return { data: null, error: { ...selectError, message: formatSubmitError(selectError) } };
 
     const siretVal = profile.siret?.trim() ? profile.siret.trim() : null;
+    const statutBailleur: StatutBailleur =
+      profile.statut_bailleur === "lmnp" || profile.statut_bailleur === "lmp"
+        ? profile.statut_bailleur
+        : "particulier";
 
     if (!existing) {
       const { data, error } = await supabase
@@ -308,6 +316,7 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
           ville: profile.ville.trim(),
           code_postal: profile.code_postal.trim(),
           siret: siretVal,
+          statut_bailleur: statutBailleur,
           signature_path: profile.signature_path ?? null,
         })
         .select()
@@ -327,6 +336,7 @@ export async function saveProprietaireProfile(profile: ProprietaireProfile) {
         ville: profile.ville.trim(),
         code_postal: profile.code_postal.trim(),
         siret: siretVal,
+        statut_bailleur: statutBailleur,
         signature_path: profile.signature_path ?? null,
       })
       .eq("user_id", user.id)

@@ -132,6 +132,10 @@ export default function ParametresPage() {
           ville: existingProfile.ville ?? "",
           code_postal: existingProfile.code_postal ?? "",
           siret: existingProfile.siret ?? "",
+          statut_bailleur:
+            existingProfile.statut_bailleur === "lmnp" || existingProfile.statut_bailleur === "lmp"
+              ? existingProfile.statut_bailleur
+              : "particulier",
           signature_path: existingProfile.signature_path ?? null,
         });
         if (existingProfile.signature_path) {
@@ -590,6 +594,25 @@ export default function ParametresPage() {
                 value={profile.siret}
                 onChange={(event) => onChange("siret", event.target.value)}
               />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+              <span className="font-medium">Statut fiscal</span>
+              <select
+                style={fieldInputStyle}
+                value={profile.statut_bailleur}
+                onChange={(event) =>
+                  onChange("statut_bailleur", event.target.value as ProprietaireProfile["statut_bailleur"])
+                }
+              >
+                <option value="particulier">Particulier (location nue ou meublée)</option>
+                <option value="lmnp">Loueur Meublé Non Professionnel (LMNP)</option>
+                <option value="lmp">Loueur Meublé Professionnel (LMP)</option>
+              </select>
+              {profile.statut_bailleur === "lmnp" || profile.statut_bailleur === "lmp" ? (
+                <p className="text-xs" style={{ color: PC.muted }}>
+                  Votre SIRET apparaîtra sur vos quittances de loyer.
+                </p>
+              ) : null}
             </label>
 
             <div className="sm:col-span-2 rounded-lg p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.card }}>
