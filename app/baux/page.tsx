@@ -80,6 +80,11 @@ type Bail = {
   colocation_parties_communes?: string | null;
   irl_reference?: number | null;
   loyer_initial?: number | null;
+  surface_loi_boutin?: number | null;
+  zone_tendue?: boolean | null;
+  loyer_reference?: number | null;
+  loyer_reference_majore?: number | null;
+  complement_loyer?: number | null;
 };
 
 type LogementEntity = {
@@ -202,6 +207,11 @@ const defaultValues = {
   diagnostics: buildDefaultDiagnostics(),
   travaux_realises: "",
   dernier_loyer_precedent: "",
+  zone_tendue: false,
+  loyer_reference: "",
+  loyer_reference_majore: "",
+  complement_loyer: "",
+  surface_loi_boutin: "",
   colocataires_ids: [] as string[],
   logement_etage: "",
   interphone_digicode_oui: false,
@@ -545,6 +555,12 @@ export default function BauxPage() {
       diagnostics: mergeDiagnosticsFromRow(row.diagnostics),
       travaux_realises: row.travaux_realises ?? "",
       dernier_loyer_precedent: String(row.dernier_loyer_precedent ?? ""),
+      zone_tendue: Boolean(row.zone_tendue),
+      loyer_reference: row.loyer_reference != null ? String(row.loyer_reference) : "",
+      loyer_reference_majore:
+        row.loyer_reference_majore != null ? String(row.loyer_reference_majore) : "",
+      complement_loyer: row.complement_loyer != null ? String(row.complement_loyer) : "",
+      surface_loi_boutin: row.surface_loi_boutin != null ? String(row.surface_loi_boutin) : "",
       colocataires_ids: colocatairesStored,
       logement_etage: row.logement_etage ?? "",
       interphone_digicode_oui: Boolean(row.interphone_digicode_oui),
@@ -910,6 +926,22 @@ export default function BauxPage() {
         diagnostics: { ...values.diagnostics, dpe: true, erp: true },
         travaux_realises: values.travaux_realises.trim(),
         dernier_loyer_precedent: Number(values.dernier_loyer_precedent || 0),
+        surface_loi_boutin: values.surface_loi_boutin.trim()
+          ? Number(values.surface_loi_boutin)
+          : null,
+        zone_tendue: values.zone_tendue,
+        loyer_reference:
+          values.zone_tendue && values.loyer_reference.trim()
+            ? Number(values.loyer_reference)
+            : null,
+        loyer_reference_majore:
+          values.zone_tendue && values.loyer_reference_majore.trim()
+            ? Number(values.loyer_reference_majore)
+            : null,
+        complement_loyer:
+          values.zone_tendue && values.complement_loyer.trim()
+            ? Number(values.complement_loyer)
+            : null,
         clauses_particulieres: values.clauses_particulieres.trim(),
         statut,
         irl_reference: irlRefNum,
@@ -1572,6 +1604,81 @@ export default function BauxPage() {
                   onChange={(event) => onChange("dernier_loyer_precedent", event.target.value)}
                 />
               </label>
+              <div className="sm:col-span-2 space-y-3 rounded-lg p-4" style={{ border: `1px solid ${PC.border}`, backgroundColor: PC.cardAlpha90 }}>
+                <label className="inline-flex items-start gap-2 text-sm font-medium" style={{ color: PC.muted }}>
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 rounded"
+                    style={{ borderColor: PC.border, borderWidth: 1, borderStyle: "solid" }}
+                    checked={values.zone_tendue}
+                    onChange={(event) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        zone_tendue: event.target.checked,
+                        ...(event.target.checked
+                          ? {}
+                          : {
+                              loyer_reference: "",
+                              loyer_reference_majore: "",
+                              complement_loyer: "",
+                            }),
+                      }))
+                    }
+                  />
+                  <span>
+                    Logement en zone soumise à l&apos;encadrement des loyers
+                    <span className="mt-1 block text-xs font-normal leading-relaxed" style={{ color: PC.muted }}>
+                      Applicable à Paris, Lille, Lyon, Bordeaux, Montpellier et autres communes ayant instauré
+                      l&apos;encadrement des loyers.
+                    </span>
+                  </span>
+                </label>
+                {values.zone_tendue ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Loyer de référence (€/m²/mois)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                        style={fieldInputLg}
+                        value={values.loyer_reference}
+                        onChange={(event) => onChange("loyer_reference", event.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                      <span className="font-medium">Loyer de référence majoré (€/m²/mois)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                        style={fieldInputLg}
+                        value={values.loyer_reference_majore}
+                        onChange={(event) => onChange("loyer_reference_majore", event.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm sm:col-span-2" style={{ color: PC.muted }}>
+                      <span className="font-medium">Complément de loyer (€/mois)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="w-full rounded-lg px-3 py-2 outline-none pc-field-focus"
+                        style={fieldInputLg}
+                        value={values.complement_loyer}
+                        onChange={(event) => onChange("complement_loyer", event.target.value)}
+                        placeholder="0 si pas de complément"
+                      />
+                      <span className="text-xs font-normal leading-relaxed" style={{ color: PC.muted }}>
+                        Le complément de loyer ne peut être appliqué que si le loyer est égal au loyer de référence
+                        majoré et que le logement présente des caractéristiques exceptionnelles.
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+              </div>
               <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span className="font-medium">Mode de paiement du loyer</span>
                 <select
@@ -1616,6 +1723,23 @@ export default function BauxPage() {
                   value={values.designation_logement}
                   onChange={(event) => onChange("designation_logement", event.target.value)}
                 />
+              </label>
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                <span className="font-medium">Surface habitable (loi Boutin) en m²</span>
+                <input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  className="w-full max-w-xs rounded-lg px-3 py-2 outline-none pc-field-focus"
+                  style={fieldInputLg}
+                  value={values.surface_loi_boutin}
+                  onChange={(event) => onChange("surface_loi_boutin", event.target.value)}
+                  placeholder="Ex: 42.5"
+                />
+                <span className="text-xs font-normal leading-relaxed" style={{ color: PC.muted }}>
+                  Surface définie à l&apos;article R.156-1 du CCH. Obligatoire sur le bail. Si différente de la surface
+                  du logement, indiquez la surface habitable réelle.
+                </span>
               </label>
               <div
                 className="sm:col-span-2 rounded-lg p-4"
