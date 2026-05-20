@@ -100,6 +100,8 @@ export default function EtatsDesLieuxPage() {
   const [typeEtat, setTypeEtat] = useState<"entree" | "sortie">("entree");
   const [entreeId, setEntreeId] = useState("");
   const [dateEtat, setDateEtat] = useState(() => new Date().toISOString().slice(0, 10));
+  const [heureEtat, setHeureEtat] = useState("09:00");
+  const [modeChauffage, setModeChauffage] = useState("");
   const [typeLogement, setTypeLogement] = useState<"meuble" | "vide">("vide");
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState("");
@@ -349,6 +351,8 @@ export default function EtatsDesLieuxPage() {
       type: typeNormalized,
       type_etat: typeNormalized,
       date_etat: dateEtat,
+      heure_etat: heureEtat || null,
+      mode_chauffage: modeChauffage || null,
       type_logement: typeLogementResolved,
       statut: "en_cours",
       pieces,
@@ -590,6 +594,8 @@ export default function EtatsDesLieuxPage() {
             setTypeEtat("entree");
             setEntreeId("");
             setDateEtat(new Date().toISOString().slice(0, 10));
+            setHeureEtat("09:00");
+            setModeChauffage("");
             setTypeLogement("vide");
             setError("");
             setModal(true);
@@ -887,6 +893,38 @@ export default function EtatsDesLieuxPage() {
                   value={dateEtat}
                   onChange={(e) => setDateEtat(e.target.value)}
                 />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                <span>Heure de l&apos;état des lieux</span>
+                <input
+                  type="time"
+                  style={fieldInputStyle}
+                  value={heureEtat}
+                  onChange={(e) => setHeureEtat(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                <span>Mode de chauffage</span>
+                <select
+                  style={fieldSelectStyle}
+                  value={modeChauffage}
+                  onChange={(e) => setModeChauffage(e.target.value)}
+                >
+                  <option value="">—</option>
+                  <option value="individuel_gaz">Individuel — Gaz</option>
+                  <option value="individuel_electrique">Individuel — Électrique</option>
+                  <option value="individuel_fioul">Individuel — Fioul</option>
+                  <option value="individuel_pompe_chaleur">Individuel — Pompe à chaleur</option>
+                  <option value="individuel_bois">Individuel — Bois/Granulés</option>
+                  <option value="collectif_gaz">Collectif — Gaz</option>
+                  <option value="collectif_electrique">Collectif — Électrique</option>
+                  <option value="collectif_fioul">Collectif — Fioul</option>
+                  <option value="collectif_pompe_chaleur">Collectif — Pompe à chaleur</option>
+                  <option value="autre">Autre</option>
+                </select>
+                <p className="text-xs" style={{ color: PC.muted }}>
+                  Requis par le décret n° 2016-382 du 30 mars 2016.
+                </p>
               </label>
               <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                 <span>Type de logement</span>

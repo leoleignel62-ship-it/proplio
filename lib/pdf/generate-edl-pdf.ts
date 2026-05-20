@@ -145,6 +145,22 @@ function parsePieces(raw: unknown): PiecesEdlData | null {
   return p;
 }
 
+function modeChauffageLabel(value: string): string {
+  const labels: Record<string, string> = {
+    individuel_gaz: "Individuel — Gaz",
+    individuel_electrique: "Individuel — Électrique",
+    individuel_fioul: "Individuel — Fioul",
+    individuel_pompe_chaleur: "Individuel — Pompe à chaleur",
+    individuel_bois: "Individuel — Bois/Granulés",
+    collectif_gaz: "Collectif — Gaz",
+    collectif_electrique: "Collectif — Électrique",
+    collectif_fioul: "Collectif — Fioul",
+    collectif_pompe_chaleur: "Collectif — Pompe à chaleur",
+    autre: "Autre",
+  };
+  return labels[value] ?? value;
+}
+
 export type EdlPdfParams = {
   typeEtat: "entree" | "sortie";
   dateEtat: string;
@@ -166,6 +182,8 @@ export type EdlPdfParams = {
   stayInfoLine?: string;
   heureEtat?: string;
   locataireNom?: string;
+  modeChauffage?: string;
+  clesDetail?: Array<{ type: string; label: string; quantite: number }>;
 };
 
 export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8Array> {
@@ -235,6 +253,9 @@ export async function generateEdlPdfBuffer(params: EdlPdfParams): Promise<Uint8A
 
   await line("Date", params.dateEtat || "—");
   await line("Heure", params.heureEtat?.trim() || "—");
+  if (params.modeChauffage?.trim()) {
+    await line("Mode de chauffage", modeChauffageLabel(params.modeChauffage.trim()));
+  }
   await line("Type de logement", params.typeLogement === "meuble" ? "Meublé" : "Vide");
   await line("Bailleur", params.bailleurNom);
   await line("Preneur", params.preneurNom);

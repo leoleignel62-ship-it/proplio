@@ -32,7 +32,55 @@ import { signatureStatusFromRow } from "@/lib/signature-status";
 type EdlRow = Record<string, unknown>;
 
 const EDL_ROW_SELECT =
-  "id, proprietaire_id, type_logement, pieces, compteurs, cles_remises, badges_remis, observations, statut, etat_entree_id, date_etat, type, type_etat";
+  "id, proprietaire_id, type_logement, pieces, compteurs, cles_remises, badges_remis, cles_detail, observations, statut, etat_entree_id, date_etat, type, type_etat";
+
+const CLES_DETAIL_TYPES = [
+  { type: "cle_entree", label: "Clé(s) entrée principale", category: "cles" as const },
+  { type: "cle_boite_lettres", label: "Clé(s) boîte aux lettres", category: "cles" as const },
+  { type: "cle_cave", label: "Clé(s) cave", category: "cles" as const },
+  { type: "cle_garage", label: "Clé(s) garage", category: "cles" as const },
+  { type: "cle_parking", label: "Clé(s) parking", category: "cles" as const },
+  { type: "badge_interphone", label: "Badge(s) interphone", category: "badges" as const },
+  { type: "badge_digicode", label: "Badge(s) / code digicode", category: "badges" as const },
+  { type: "telecommande", label: "Télécommande(s) portail/garage", category: "badges" as const },
+] as const;
+
+type CleDetailEntry = { type: string; label: string; quantite: number };
+
+function defaultClesDetailQty(): Record<string, number> {
+  return Object.fromEntries(CLES_DETAIL_TYPES.map((t) => [t.type, 0]));
+}
+
+function parseClesDetailQty(raw: unknown): Record<string, number> {
+  const qty = defaultClesDetailQty();
+  if (!Array.isArray(raw)) return qty;
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const type = String((item as { type?: unknown }).type ?? "");
+    if (!(type in qty)) continue;
+    qty[type] = Math.max(0, Number((item as { quantite?: unknown }).quantite) || 0);
+  }
+  return qty;
+}
+
+function buildClesDetailArray(qty: Record<string, number>): CleDetailEntry[] {
+  return CLES_DETAIL_TYPES.map((t) => ({
+    type: t.type,
+    label: t.label,
+    quantite: qty[t.type] ?? 0,
+  }));
+}
+
+function computeCleTotals(qty: Record<string, number>) {
+  let clesRemises = 0;
+  let badgesRemis = 0;
+  for (const t of CLES_DETAIL_TYPES) {
+    const n = qty[t.type] ?? 0;
+    if (t.category === "cles") clesRemises += n;
+    else badgesRemis += n;
+  }
+  return { clesRemises, badgesRemis };
+}
 
 const CARD: CSSProperties = {
   backgroundColor: PC.card,
@@ -180,6 +228,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const toast = useToast();
   const [row, setRow] = useState<EdlRow | null>(null);
   const [pieces, setPieces] = useState<PiecesEdlData | null>(null);
+  const [clesDetailQty, setClesDetailQty] = useState<Record<string, number>>(defaultClesDetailQty);
   const [entryPieces, setEntryPieces] = useState<PiecesEdlData | null>(null);
   const [activeTab, setActiveTab] = useState<string>("entree");
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
@@ -190,6 +239,7 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   const [saving, setSaving] = useState(false);
   const [proprietaireId, setProprietaireId] = useState<string | null>(null);
   const piecesRef = useRef<PiecesEdlData | null>(null);
+  const clesDetailRef = useRef<Record<string, number>>(defaultClesDetailQty());
   const statutRef = useRef<string | undefined>(undefined);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
@@ -200,6 +250,10 @@ export function EdlEditor({ edlId }: { edlId: string }) {
   useEffect(() => {
     piecesRef.current = pieces;
   }, [pieces]);
+
+  useEffect(() => {
+    clesDetailRef.current = clesDetailQty;
+  }, [clesDetailQty]);
 
   useEffect(() => {
     statutRef.current = row?.statut as string | undefined;
@@ -252,12 +306,15 @@ export function EdlEditor({ edlId }: { edlId: string }) {
       const r = edl as EdlRow;
       setRow(r);
       const meuble = r.type_logement === "meuble";
+      const clesQty = parseClesDetailQty(r.cles_detail);
+      setClesDetailQty(clesQty);
+      const { clesRemises, badgesRemis } = computeCleTotals(clesQty);
       let p = normalizePiecesData(r.pieces, meuble);
       p = {
         ...p,
         compteurs: { ...p.compteurs, ...(typeof r.compteurs === "object" && r.compteurs ? (r.compteurs as object) : {}) },
-        clesRemises: Number(r.cles_remises ?? p.clesRemises) || 0,
-        badgesRemis: Number(r.badges_remis ?? p.badgesRemis) || 0,
+        clesRemises: Number(r.cles_remises ?? clesRemises) || clesRemises,
+        badgesRemis: Number(r.badges_remis ?? badgesRemis) || badgesRemis,
         observationsGenerales: String(r.observations ?? p.observationsGenerales ?? ""),
       };
       setPieces(p);
@@ -393,15 +450,18 @@ export function EdlEditor({ edlId }: { edlId: string }) {
     if (statutRef.current === "termine") return;
     const p = piecesRef.current;
     if (!p || !proprietaireId) return;
+    const qty = clesDetailRef.current;
+    const { clesRemises, badgesRemis } = computeCleTotals(qty);
     setSaving(true);
     const { error: up } = await supabase
       .from("etats_des_lieux")
       .update({
-        pieces: p,
+        pieces: { ...p, clesRemises, badgesRemis },
         compteurs: p.compteurs,
         observations: p.observationsGenerales,
-        cles_remises: p.clesRemises,
-        badges_remis: p.badgesRemis,
+        cles_remises: clesRemises,
+        badges_remis: badgesRemis,
+        cles_detail: buildClesDetailArray(qty),
         updated_at: new Date().toISOString(),
       })
       .eq("id", edlId)
@@ -770,40 +830,75 @@ export function EdlEditor({ edlId }: { edlId: string }) {
               </div>
             );
           })}
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span style={{ color: PC.muted }}>Nombre de clés remises</span>
-            <input
-              type="number"
-              min={0}
-              className="max-w-xs"
-              style={INP}
-              readOnly={isFinalise}
-              disabled={isFinalise}
-              value={pieces.clesRemises}
-              onChange={(e) =>
-                setPieces((prev) =>
-                  prev ? { ...prev, clesRemises: Number(e.target.value) || 0 } : prev,
-                )
-              }
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span style={{ color: PC.muted }}>Badges / télécommandes</span>
-            <input
-              type="number"
-              min={0}
-              className="max-w-xs"
-              style={INP}
-              readOnly={isFinalise}
-              disabled={isFinalise}
-              value={pieces.badgesRemis}
-              onChange={(e) =>
-                setPieces((prev) =>
-                  prev ? { ...prev, badgesRemis: Number(e.target.value) || 0 } : prev,
-                )
-              }
-            />
-          </label>
+          <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${PC.border}` }}>
+            <table className="w-full min-w-[320px] text-sm">
+              <thead>
+                <tr style={{ backgroundColor: PC.primaryBg10, borderBottom: `1px solid ${PC.border}` }}>
+                  <th className="px-3 py-2 text-left font-medium" style={{ color: PC.text }}>
+                    Type
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium" style={{ color: PC.text, width: "7rem" }}>
+                    Quantité
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {CLES_DETAIL_TYPES.map((t) => (
+                  <tr key={t.type} style={{ borderBottom: `1px solid ${PC.border}` }}>
+                    <td className="px-3 py-2" style={{ color: PC.text }}>
+                      {t.label}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-20 text-right"
+                        style={INP}
+                        readOnly={isFinalise}
+                        disabled={isFinalise}
+                        value={clesDetailQty[t.type] ?? 0}
+                        onChange={(e) => {
+                          const nextQty = {
+                            ...clesDetailQty,
+                            [t.type]: Math.max(0, Number(e.target.value) || 0),
+                          };
+                          const totals = computeCleTotals(nextQty);
+                          setClesDetailQty(nextQty);
+                          setPieces((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  clesRemises: totals.clesRemises,
+                                  badgesRemis: totals.badgesRemis,
+                                }
+                              : prev,
+                          );
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ backgroundColor: PC.primaryBg10 }}>
+                  <td className="px-3 py-2 font-medium" style={{ color: PC.muted }}>
+                    Total clés remises
+                  </td>
+                  <td className="px-3 py-2 text-right font-medium" style={{ color: PC.text }}>
+                    {pieces.clesRemises}
+                  </td>
+                </tr>
+                <tr style={{ backgroundColor: PC.primaryBg10 }}>
+                  <td className="px-3 py-2 font-medium" style={{ color: PC.muted }}>
+                    Total badges / télécommandes
+                  </td>
+                  <td className="px-3 py-2 text-right font-medium" style={{ color: PC.text }}>
+                    {pieces.badgesRemis}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
           <label className="flex flex-col gap-1.5 text-sm">
             <span style={{ color: PC.muted }}>Observations générales</span>
             <textarea

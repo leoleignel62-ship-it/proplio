@@ -118,6 +118,12 @@ export async function buildEdlPdfBufferFromDb(
   const params: EdlPdfParams = {
     typeEtat,
     dateEtat,
+    heureEtat: edl.heure_etat ? String(edl.heure_etat) : undefined,
+    locataireNom: locataire
+      ? `${String((locataire as Record<string, unknown>).prenom ?? "")} ${String((locataire as Record<string, unknown>).nom ?? "")}`.trim()
+      : undefined,
+    modeChauffage: edl.mode_chauffage ? String(edl.mode_chauffage) : undefined,
+    clesDetail: Array.isArray(edl.cles_detail) ? edl.cles_detail : [],
     typeLogement,
     bailleurNom,
     preneurNom,
