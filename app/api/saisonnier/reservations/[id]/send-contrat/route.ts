@@ -93,6 +93,9 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
         montant_acompte: Number((reservation as { montant_acompte?: number }).montant_acompte ?? 0),
       },
       signatureImage,
+      numeroEnregistrement: (logement.numero_enregistrement as string | undefined) ?? undefined,
+      classementMeubleTourisme: (logement.classement_meuble_tourisme as string | undefined) ?? "non_classe",
+      preneurNom: voyageur ? `${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim() : undefined,
     });
 
     const pdfBase64 = Buffer.from(pdfBytes).toString("base64");

@@ -68,6 +68,8 @@ type Logement = {
   equipements_saisonnier?: string[] | null;
   reglement_interieur?: string | null;
   instructions_acces?: string | null;
+  numero_enregistrement?: string | null;
+  classement_meuble_tourisme?: string | null;
   ical_airbnb_url?: string | null;
   ical_booking_url?: string | null;
 };
@@ -131,6 +133,22 @@ const EQUIPEMENTS_SAISONNIER_OPTS = [
   "Barbecue",
   "TV",
 ] as const;
+
+const CLASSEMENT_MEUBLE_OPTS = [
+  { value: "non_classe", label: "Non classé" },
+  { value: "1_etoile", label: "1 étoile" },
+  { value: "2_etoiles", label: "2 étoiles" },
+  { value: "3_etoiles", label: "3 étoiles" },
+  { value: "4_etoiles", label: "4 étoiles" },
+  { value: "5_etoiles", label: "5 étoiles" },
+] as const;
+
+type ClassementMeubleValue = (typeof CLASSEMENT_MEUBLE_OPTS)[number]["value"];
+
+function normalizeClassementMeuble(raw: string | null | undefined): ClassementMeubleValue {
+  if (CLASSEMENT_MEUBLE_OPTS.some((o) => o.value === raw)) return raw as ClassementMeubleValue;
+  return "non_classe";
+}
 
 const baseDefaultValues = {
   nom: "",
@@ -212,6 +230,8 @@ export default function LogementsPage() {
   const [taxeSejourNuit, setTaxeSejourNuit] = useState("");
   const [equipementsSaisonnier, setEquipementsSaisonnier] = useState<string[]>([]);
   const [reglementInterieur, setReglementInterieur] = useState("");
+  const [numeroEnregistrement, setNumeroEnregistrement] = useState("");
+  const [classementMeubleTourisme, setClassementMeubleTourisme] = useState<ClassementMeubleValue>("non_classe");
   const [instructionsAcces, setInstructionsAcces] = useState("");
   const [icalAirbnbUrl, setIcalAirbnbUrl] = useState("");
   const [icalBookingUrl, setIcalBookingUrl] = useState("");
@@ -405,6 +425,8 @@ export default function LogementsPage() {
     setTaxeSejourNuit("");
     setEquipementsSaisonnier([]);
     setReglementInterieur("");
+    setNumeroEnregistrement("");
+    setClassementMeubleTourisme("non_classe");
     setInstructionsAcces("");
     setIcalAirbnbUrl("");
     setIcalBookingUrl("");
@@ -430,6 +452,8 @@ export default function LogementsPage() {
     setTaxeSejourNuit(row.taxe_sejour_nuit != null ? String(row.taxe_sejour_nuit) : "");
     setEquipementsSaisonnier(Array.isArray(row.equipements_saisonnier) ? [...row.equipements_saisonnier] : []);
     setReglementInterieur(row.reglement_interieur ?? "");
+    setNumeroEnregistrement(row.numero_enregistrement ?? "");
+    setClassementMeubleTourisme(normalizeClassementMeuble(row.classement_meuble_tourisme));
     setInstructionsAcces(row.instructions_acces ?? "");
     setIcalAirbnbUrl(row.ical_airbnb_url ?? "");
     setIcalBookingUrl(row.ical_booking_url ?? "");
@@ -677,6 +701,8 @@ export default function LogementsPage() {
       let taxe_sejour_nuit: number | null = null;
       let equipements: string[] | null = null;
       let reglement: string | null = null;
+      let numero_enregistrement: string | null = null;
+      let classement_meuble_tourisme: ClassementMeubleValue = "non_classe";
       let instructions: string | null = null;
       let icalA: string | null = null;
       let icalB: string | null = null;
@@ -709,6 +735,8 @@ export default function LogementsPage() {
         taxe_sejour_nuit = taxeSejourNuit.trim() ? Number(taxeSejourNuit) : null;
         equipements = equipementsSaisonnier;
         reglement = reglementInterieur.trim() || null;
+        numero_enregistrement = numeroEnregistrement.trim() || null;
+        classement_meuble_tourisme = classementMeubleTourisme;
         instructions = instructionsAcces.trim() || null;
         icalA = icalAirbnbUrl.trim() || null;
         icalB = icalBookingUrl.trim() || null;
@@ -739,6 +767,8 @@ export default function LogementsPage() {
         taxe_sejour_nuit,
         equipements_saisonnier: equipements,
         reglement_interieur: reglement,
+        numero_enregistrement,
+        classement_meuble_tourisme,
         instructions_acces: instructions,
         ical_airbnb_url: icalA,
         ical_booking_url: icalB,
@@ -756,6 +786,8 @@ export default function LogementsPage() {
         payload.taxe_sejour_nuit = null;
         payload.equipements_saisonnier = null;
         payload.reglement_interieur = null;
+        payload.numero_enregistrement = null;
+        payload.classement_meuble_tourisme = null;
         payload.instructions_acces = null;
         payload.ical_airbnb_url = null;
         payload.ical_booking_url = null;
@@ -1719,6 +1751,37 @@ export default function LogementsPage() {
                   <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                     <span className="font-medium">Règlement intérieur</span>
                     <textarea className="min-h-24 rounded-lg px-3 py-2 text-sm" style={fieldInputMd} value={reglementInterieur} onChange={(e) => setReglementInterieur(e.target.value)} />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Numéro d&apos;enregistrement mairie (optionnel)</span>
+                    <input
+                      style={fieldInputStyle}
+                      value={numeroEnregistrement}
+                      onChange={(e) => setNumeroEnregistrement(e.target.value)}
+                      placeholder="Ex: 75001-123456-789"
+                    />
+                    <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      Obligatoire dans certaines communes (Paris, Bordeaux, Nice...) pour les locations de courte durée.
+                      Apparaît sur le contrat de séjour.
+                    </p>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
+                    <span className="font-medium">Classement meublé de tourisme (optionnel)</span>
+                    <select
+                      style={fieldSelectStyle}
+                      value={classementMeubleTourisme}
+                      onChange={(e) => setClassementMeubleTourisme(normalizeClassementMeuble(e.target.value))}
+                    >
+                      {CLASSEMENT_MEUBLE_OPTS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                      Le classement officiel Atout France. Apparaît sur le contrat de séjour et la déclaration de taxe
+                      de séjour.
+                    </p>
                   </label>
                   <label className="flex flex-col gap-1.5 text-sm" style={{ color: PC.muted }}>
                     <span className="font-medium">Instructions d&apos;accès</span>

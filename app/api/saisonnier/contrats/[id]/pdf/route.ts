@@ -96,6 +96,9 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
         montant_acompte: Number((reservation as { montant_acompte?: number }).montant_acompte ?? 0),
       },
       signatureImage,
+      numeroEnregistrement: (logement.numero_enregistrement as string | undefined) ?? undefined,
+      classementMeubleTourisme: (logement.classement_meuble_tourisme as string | undefined) ?? "non_classe",
+      preneurNom: voyageur ? `${voyageur.prenom ?? ""} ${voyageur.nom ?? ""}`.trim() : undefined,
     });
 
     const { data: sigDoc } = await supabaseAdmin
