@@ -216,6 +216,17 @@ function logementTarifPayload(lg: LogementOption) {
   };
 }
 
+function motifExonerationLabel(value: string): string {
+  const labels: Record<string, string> = {
+    mineurs: "Mineurs de moins de 18 ans",
+    handicap: "Personnes en situation de handicap",
+    saisonnier: "Travailleurs saisonniers de la commune",
+    urgence: "Hébergement d'urgence / relogement temporaire",
+    autre: "Autre motif",
+  };
+  return labels[value] ?? value;
+}
+
 export default function ReservationsSaisonnierPage() {
   const uxToast = useToast();
   const [plan, setPlan] = useState<LocavioPlan>("free");
@@ -260,6 +271,8 @@ export default function ReservationsSaisonnierPage() {
     notes: "",
     menage_inclus: true,
     delai_solde_jours: "30",
+    nuitees_exonerees: "0",
+    motif_exoneration: "",
   });
   const [tarifManuelAirbnb, setTarifManuelAirbnb] = useState("");
   const [viewMode, setViewMode] = useState<"liste" | "calendrier">("liste");
@@ -490,7 +503,19 @@ export default function ReservationsSaisonnierPage() {
   const preview = useMemo(() => {
     const arr = form.date_arrivee;
     const dep = form.date_depart;
-    if (!arr || !dep || dep <= arr) return { nuits: 0, nuitees: 0, menage: 0, taxe: 0, caution: 0, total: 0, acompte: 0 };
+    if (!arr || !dep || dep <= arr) {
+      return {
+        nuits: 0,
+        nuitees: 0,
+        menage: 0,
+        taxe: 0,
+        caution: 0,
+        total: 0,
+        acompte: 0,
+        nuiteesExonerees: 0,
+        motifExoneration: "",
+      };
+    }
     const nuits = daysBetween(arr, dep);
     const lg = logements.find((l) => l.id === form.logement_id);
     const nuitees =
@@ -502,11 +527,24 @@ export default function ReservationsSaisonnierPage() {
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
-    const taxe = taxeN * nv * nuits;
+    const nuiteesExonerees = Math.max(0, Math.min(nuits, Math.floor(Number(form.nuitees_exonerees) || 0)));
+    const nuitsTaxables = Math.max(0, nuits - nuiteesExonerees);
+    const taxe = taxeN * nv * nuitsTaxables;
     const baseAcompte = nuitees + menage + taxe;
     const total = baseAcompte + caution;
     const acompte = (baseAcompte * acomptePct) / 100;
-    return { nuits, nuitees, menage, taxe, caution, total, acompte };
+    const motifExoneration = form.motif_exoneration.trim();
+    return {
+      nuits,
+      nuitees,
+      menage,
+      taxe,
+      caution,
+      total,
+      acompte,
+      nuiteesExonerees,
+      motifExoneration,
+    };
   }, [form, logements, acomptePct, tarifManuelAirbnb]);
 
   function openModal() {
@@ -523,6 +561,8 @@ export default function ReservationsSaisonnierPage() {
       notes: "",
       menage_inclus: true,
       delai_solde_jours: "30",
+      nuitees_exonerees: "0",
+      motif_exoneration: "",
     });
     setTarifManuelAirbnb("");
     setModalOpen(true);
@@ -542,6 +582,8 @@ export default function ReservationsSaisonnierPage() {
       notes: "",
       menage_inclus: true,
       delai_solde_jours: "30",
+      nuitees_exonerees: "0",
+      motif_exoneration: "",
     });
     setTarifManuelAirbnb("");
     setModalOpen(true);
@@ -583,6 +625,10 @@ export default function ReservationsSaisonnierPage() {
     const caution = lg?.tarif_caution != null ? Number(lg.tarif_caution) : 0;
     const taxeN = lg?.taxe_sejour_nuit != null ? Number(lg.taxe_sejour_nuit) : 0;
     const nv = Math.max(1, Number(form.nb_voyageurs) || 1);
+    const nuiteesExonerees = Math.max(0, Math.min(nuits, Math.floor(Number(form.nuitees_exonerees) || 0)));
+    const motifExoneration =
+      nuiteesExonerees > 0 && form.motif_exoneration.trim() ? form.motif_exoneration.trim() : null;
+    const nuitsTaxables = Math.max(0, nuits - nuiteesExonerees);
     let tarifTotal: number;
     let tn: number;
     if (form.source === "direct") {
@@ -597,7 +643,7 @@ export default function ReservationsSaisonnierPage() {
       tn = tnm;
       tarifTotal = nuits * tn;
     }
-    const taxeTotal = taxeN * nv * nuits;
+    const taxeTotal = taxeN * nv * nuitsTaxables;
     const totalTtc = tarifTotal + menageFacture + taxeTotal + caution;
     const baseAcompte = tarifTotal + menageFacture + taxeTotal;
     const acompte = (baseAcompte * acomptePct) / 100;
@@ -621,6 +667,8 @@ export default function ReservationsSaisonnierPage() {
         tarif_caution: caution,
         montant_acompte: Math.round(acompte * 100) / 100,
         taxe_sejour_total: taxeTotal,
+        nuitees_exonerees: nuiteesExonerees,
+        motif_exoneration: motifExoneration,
         statut: form.source === "direct" ? "confirmee" : "en_attente",
         source: form.source,
         notes: form.notes.trim() || null,
@@ -640,8 +688,10 @@ export default function ReservationsSaisonnierPage() {
         logement_id: form.logement_id,
         montant: taxeTotal,
         nb_personnes: nv,
-        nb_nuits: nuits,
+        nb_nuits: nuitsTaxables,
         tarif_par_personne_nuit: taxeN,
+        nuitees_exonerees: nuiteesExonerees,
+        motif_exoneration: motifExoneration,
         mois: d.getMonth() + 1,
         annee: d.getFullYear(),
       });
@@ -1818,6 +1868,54 @@ export default function ReservationsSaisonnierPage() {
                   <p style={{ color: PC.muted }}>Ménage : à la charge du voyageur (non facturé)</p>
                 )}
                 <p>Taxe de séjour : {preview.taxe.toFixed(2)} €</p>
+                <label className="mt-2 flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                  Nuitées exonérées de taxe de séjour
+                  <input
+                    type="number"
+                    min={0}
+                    max={preview.nuits || undefined}
+                    style={fieldInputStyle}
+                    value={form.nuitees_exonerees}
+                    onChange={(e) => {
+                      const raw = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                      const capped = preview.nuits > 0 ? Math.min(raw, preview.nuits) : raw;
+                      setForm((f) => ({
+                        ...f,
+                        nuitees_exonerees: String(capped),
+                        motif_exoneration: capped > 0 ? f.motif_exoneration : "",
+                      }));
+                    }}
+                  />
+                  <span className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                    Ex : nuits non taxables (mineurs, saisonnier...)
+                  </span>
+                </label>
+                {preview.nuiteesExonerees > 0 ? (
+                  <label className="flex flex-col gap-1 text-sm" style={{ color: PC.muted }}>
+                    Motif d&apos;exonération
+                    <select
+                      style={fieldSelectStyle}
+                      value={form.motif_exoneration}
+                      onChange={(e) => setForm((f) => ({ ...f, motif_exoneration: e.target.value }))}
+                    >
+                      <option value="">— Sélectionner —</option>
+                      <option value="mineurs">Mineurs de moins de 18 ans</option>
+                      <option value="handicap">Personnes en situation de handicap</option>
+                      <option value="saisonnier">Travailleurs saisonniers de la commune</option>
+                      <option value="urgence">Hébergement d&apos;urgence / relogement temporaire</option>
+                      <option value="autre">Autre motif</option>
+                    </select>
+                  </label>
+                ) : null}
+                {preview.nuiteesExonerees > 0 ? (
+                  <p className="text-xs leading-relaxed" style={{ color: PC.muted }}>
+                    Dont {preview.nuiteesExonerees} nuit{preview.nuiteesExonerees > 1 ? "s" : ""} exonérée
+                    {preview.nuiteesExonerees > 1 ? "s" : ""}
+                    {preview.motifExoneration
+                      ? ` — ${motifExonerationLabel(preview.motifExoneration)}`
+                      : ""}
+                  </p>
+                ) : null}
                 <p>Caution : {preview.caution.toFixed(2)} €</p>
                 <p className="font-medium" style={{ color: PC.text }}>
                   Total TTC : {preview.total.toFixed(2)} €

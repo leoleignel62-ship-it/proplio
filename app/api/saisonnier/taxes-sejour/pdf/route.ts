@@ -42,6 +42,8 @@ export async function POST(request: Request) {
         dates: `${r.mois}/${r.annee}`,
         voyageurs: String(r.nb_personnes ?? ""),
         nuits: Number(r.nb_nuits ?? 0),
+        nuitees_exonerees: Number(r.nuitees_exonerees ?? 0),
+        motif_exoneration: r.motif_exoneration ? String(r.motif_exoneration) : null,
         tarif_pp_n: Number(r.tarif_par_personne_nuit ?? 0),
         total: Number(r.montant ?? 0),
       })) ?? [];

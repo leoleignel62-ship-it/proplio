@@ -20,6 +20,8 @@ export type TaxeSejourRowPdf = {
   dates: string;
   voyageurs: string;
   nuits: number;
+  nuitees_exonerees?: number;
+  motif_exoneration?: string | null;
   tarif_pp_n: number;
   total: number;
 };
@@ -44,12 +46,24 @@ function wrapLegal(text: string, maxLen: number): string[] {
   return m ?? [text];
 }
 
+function motifExonerationLabel(value: string): string {
+  const labels: Record<string, string> = {
+    mineurs: "Mineurs de moins de 18 ans",
+    handicap: "Personnes en situation de handicap",
+    saisonnier: "Travailleurs saisonniers de la commune",
+    urgence: "Hébergement d'urgence / relogement temporaire",
+    autre: "Autre motif",
+  };
+  return labels[value] ?? value;
+}
+
 export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Promise<Uint8Array> {
   const { periodeLabel, proprietaire, rows, totalAReverser, commune, signatureImage } = input;
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PDF_PAGE_W, PDF_PAGE_H]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
   const pageW = page.getWidth();
   const pageH = page.getHeight();
   const right = pageW - PDF_MARGIN_X;
@@ -99,8 +113,15 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
   const tableX = PDF_MARGIN_X;
   const tableW = right - PDF_MARGIN_X;
   const rowH = 22;
-  const headers = ["Dates", "Voyageurs", "Nuits", "€/p/n", "Total"];
-  const colW = [tableW * 0.28, tableW * 0.22, 0.12 * tableW, 0.18 * tableW, 0.2 * tableW];
+  const headers = ["Dates", "Voyageurs", "Nuits", "Exonérées", "€/p/n", "Total"];
+  const colW = [
+    tableW * 0.2,
+    tableW * 0.16,
+    tableW * 0.1,
+    tableW * 0.12,
+    tableW * 0.16,
+    tableW * 0.26,
+  ];
 
   page.drawRectangle({
     x: tableX,
@@ -120,6 +141,8 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
 
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r]!;
+    const exonerLabel =
+      row.nuitees_exonerees != null && row.nuitees_exonerees > 0 ? String(row.nuitees_exonerees) : "—";
     page.drawRectangle({
       x: tableX,
       y: y - rowH,
@@ -133,6 +156,7 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
       row.dates,
       row.voyageurs,
       String(row.nuits),
+      exonerLabel,
       row.tarif_pp_n.toFixed(2),
       row.total.toFixed(2) + " €",
     ];
@@ -142,6 +166,19 @@ export async function generateTaxeSejourPdfBuffer(input: TaxeSejourPdfInput): Pr
       cx += colW[i]!;
     }
     y -= rowH;
+    if (row.motif_exoneration?.trim()) {
+      page.drawText(
+        sanitizePdfText(`Motif : ${motifExonerationLabel(row.motif_exoneration.trim())}`),
+        {
+          x: tableX + 6,
+          y: y - 11,
+          size: 9,
+          font: fontItalic,
+          color: PDF_TEXT_SECONDARY,
+        },
+      );
+      y -= 14;
+    }
     if (y < 180) break;
   }
 
