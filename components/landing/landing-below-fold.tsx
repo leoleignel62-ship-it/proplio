@@ -116,8 +116,249 @@ const reassurance = [
   { Icon: RefreshCw, text: "Sauvegardes quotidiennes" },
 ] as const;
 
-export default function LandingBelowFold() {
+function useAnimatedValue(target: number, duration = 400) {
+  const [display, setDisplay] = useState(target);
+  const rafRef = useRef<number | undefined>(undefined);
+  const startRef = useRef<{ from: number; to: number; start: number } | null>(null);
+  const displayRef = useRef(display);
+  displayRef.current = display;
+
+  useEffect(() => {
+    if (startRef.current?.to === target) return;
+    startRef.current = { from: displayRef.current, to: target, start: performance.now() };
+    const animate = (now: number) => {
+      const { from, to, start } = startRef.current!;
+      const progress = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (to - from) * ease));
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return display;
+}
+
+function SavingsCalculatorSection() {
   const [logements, setLogements] = useState([{ id: 1, loyer: 850 }]);
+
+  const loyerTotal = logements.reduce((sum, l) => sum + l.loyer, 0);
+  const coutAgenceMin = loyerTotal * 12 * 0.06;
+  const coutAgenceMax = loyerTotal * 12 * 0.1;
+  const coutLocavio = 129;
+  const economieMin = coutAgenceMin - coutLocavio;
+  const economieMax = coutAgenceMax - coutLocavio;
+  const xFoisMin = Math.round(coutAgenceMin / coutLocavio);
+  const xFoisMax = Math.round(coutAgenceMax / coutLocavio);
+
+  const animatedCoutAgenceMin = useAnimatedValue(Math.round(coutAgenceMin));
+  const animatedCoutAgenceMax = useAnimatedValue(Math.round(coutAgenceMax));
+  const animatedCoutLocavio = useAnimatedValue(coutLocavio);
+  const animatedEconomieMin = useAnimatedValue(Math.round(economieMin));
+  const animatedEconomieMax = useAnimatedValue(Math.round(economieMax));
+
+  const locavioBarWidth = coutAgenceMax > 0 ? Math.max(4, (129 / coutAgenceMax) * 100) : 4;
+
+  return (
+    <RevealOnView className="mt-12">
+      <section className="landing-section py-8">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-gray-100 bg-white px-8 py-10">
+          <h2 className="text-center text-3xl font-bold text-[#1a0533]">Combien allez-vous économiser ?</h2>
+          <p className="mt-3 text-center text-[#6b7280]">
+            Renseignez le loyer de chacun de vos logements et découvrez ce que vous coûte vraiment une agence.
+          </p>
+
+          <div className="mt-10 space-y-5">
+            {logements.map((l, index) => (
+              <div key={l.id}>
+                <p className="text-sm text-[#6b7280]">Logement {index + 1}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <input
+                    type="number"
+                    min={100}
+                    max={10000}
+                    step={50}
+                    value={l.loyer}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setLogements(logements.map((row) => (row.id === l.id ? { ...row, loyer: val } : row)));
+                    }}
+                    className="w-32 shrink-0"
+                    style={fieldInputStyle}
+                    aria-label={`Loyer logement ${index + 1}`}
+                  />
+                  <div className="min-w-[120px] flex-1">
+                    <input
+                      type="range"
+                      min={100}
+                      max={5000}
+                      step={50}
+                      value={Math.min(Math.max(l.loyer, 100), 5000)}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setLogements(logements.map((row) => (row.id === l.id ? { ...row, loyer: val } : row)));
+                      }}
+                      className="w-full accent-violet-600"
+                      aria-label={`Curseur loyer logement ${index + 1}`}
+                    />
+                    <p className="mt-1 text-xs font-medium text-[#7c3aed]">{l.loyer.toLocaleString("fr-FR")} €/mois</p>
+                  </div>
+                  {logements.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setLogements(logements.filter((row) => row.id !== l.id))}
+                      className="shrink-0 text-sm text-[#9ca3af] transition hover:text-red-500"
+                      aria-label={`Supprimer le logement ${index + 1}`}
+                    >
+                      <X className="size-4" strokeWidth={2} />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {logements.length < 10 ? (
+            <button
+              type="button"
+              onClick={() => setLogements([...logements, { id: Date.now(), loyer: 700 }])}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-violet-200 px-4 py-2 text-sm text-[#7c3aed] transition hover:bg-violet-50"
+            >
+              <Plus className="size-4 shrink-0" strokeWidth={2} />
+              Ajouter un logement
+            </button>
+          ) : null}
+
+          <hr className="my-6 border-gray-200" />
+
+          <p className="text-center text-sm text-[#9ca3af]">
+            Loyer total mensuel : {loyerTotal.toLocaleString("fr-FR")} €
+          </p>
+
+          <div className="mt-8 space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-red-600">Agence {animatedCoutAgenceMax.toLocaleString("fr-FR")} €/an</span>
+              <span className="text-[#7c3aed]">Locavio {animatedCoutLocavio.toLocaleString("fr-FR")} €/an</span>
+            </div>
+            <div className="relative h-3 overflow-hidden rounded-full bg-red-100">
+              <div className="absolute inset-0 rounded-full bg-red-400/80" aria-hidden />
+              <div
+                className="absolute bottom-0 left-0 top-0 rounded-full bg-[#7c3aed]"
+                style={{
+                  width: `${locavioBarWidth}%`,
+                  transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                aria-hidden
+              />
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 items-center gap-4 sm:grid-cols-3">
+            <div
+              className="rounded-xl border px-5 py-6 text-center"
+              style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }}
+            >
+              <p className="text-sm font-medium text-red-600">Agence traditionnelle</p>
+              <p className="text-xs text-red-600/70">entre 6% et 10% de vos loyers/an</p>
+              <div className="mt-2 flex items-baseline justify-center gap-1">
+                <span className="text-2xl font-bold text-red-600">
+                  {animatedCoutAgenceMin.toLocaleString("fr-FR")}
+                </span>
+                <span className="text-sm text-red-600/70">à</span>
+                <span className="text-3xl font-bold text-red-600">
+                  {animatedCoutAgenceMax.toLocaleString("fr-FR")} €
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
+            </div>
+            <div
+              className="relative rounded-xl border px-5 py-6 text-center"
+              style={{
+                transform: "scale(1.06)",
+                background: "rgba(124,58,237,0.08)",
+                borderColor: "#7c3aed",
+                borderWidth: "2px",
+                boxShadow: "0 8px 32px rgba(124,58,237,0.18)",
+              }}
+            >
+              <span
+                className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#7c3aed] px-3 py-1 text-xs font-semibold text-white"
+              >
+                Meilleur choix ✓
+              </span>
+              <p className="text-sm font-medium text-[#7c3aed]">Locavio Pro</p>
+              <p className="text-xs text-[#7c3aed]/70">Tout inclus, illimité</p>
+              <p className="text-3xl font-bold text-[#7c3aed]">{animatedCoutLocavio.toLocaleString("fr-FR")} €</p>
+              <p className="text-sm text-[#9ca3af]">par an</p>
+              <ul className="mt-3 space-y-1 text-left text-xs text-[#4b5563]">
+                <li className="flex items-center gap-1.5">
+                  <Check className="size-3 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Tous vos logements
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="size-3 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Documents illimités
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="size-3 shrink-0 text-[#7c3aed]" strokeWidth={2.5} aria-hidden />
+                  Signature électronique
+                </li>
+              </ul>
+            </div>
+            <div
+              className="rounded-xl border px-5 py-6 text-center"
+              style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}
+            >
+              <p className="text-sm font-medium text-emerald-600">Votre économie</p>
+              <p className="text-xs font-medium text-emerald-600/80">
+                {xFoisMin}x à {xFoisMax}x moins cher que l&apos;agence
+              </p>
+              <div className="mt-2 flex items-baseline justify-center gap-1">
+                <span className="text-2xl font-bold text-emerald-600">
+                  {animatedEconomieMin.toLocaleString("fr-FR")}
+                </span>
+                <span className="text-sm text-emerald-600/70">à</span>
+                <span className="text-4xl font-bold text-emerald-600">
+                  {animatedEconomieMax.toLocaleString("fr-FR")} €
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
+              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs text-emerald-700">
+                <Check className="size-3 shrink-0" strokeWidth={2.5} aria-hidden />
+                Garanti
+              </span>
+            </div>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-[#6b7280]">
+            Avec {loyerTotal.toLocaleString("fr-FR")} €/mois de loyers, vous économisez jusqu&apos;à{" "}
+            <strong className="font-semibold text-emerald-600">
+              {animatedEconomieMax.toLocaleString("fr-FR")} €
+            </strong>{" "}
+            par an avec Locavio — soit{" "}
+            <strong className="font-semibold text-[#7c3aed]">{xFoisMax}x</strong> moins cher qu&apos;une agence
+            traditionnelle.
+          </p>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/register"
+              className="inline-flex rounded-xl bg-violet-600 px-8 py-3.5 text-lg font-semibold text-white transition hover:bg-violet-500"
+            >
+              Commencer gratuitement et économiser jusqu&apos;à {animatedEconomieMax.toLocaleString("fr-FR")} € →
+            </Link>
+            <p className="mt-3 text-center text-sm text-[#9ca3af]">Gratuit pour commencer · Sans carte bancaire</p>
+          </div>
+        </div>
+      </section>
+    </RevealOnView>
+  );
+}
+
+export default function LandingBelowFold() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [dashboardScale, setDashboardScale] = useState(0.95);
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -157,15 +398,6 @@ export default function LandingBelowFold() {
   }, [reducedMotion]);
 
   const statParallaxY = reducedMotion ? 0 : -20 * Math.min(1, scrollProgress / 0.3);
-
-  const loyerTotal = logements.reduce((sum, l) => sum + l.loyer, 0);
-  const coutAgenceMin = loyerTotal * 12 * 0.06;
-  const coutAgenceMax = loyerTotal * 12 * 0.1;
-  const coutLocavio = 129;
-  const economieMin = coutAgenceMin - coutLocavio;
-  const economieMax = coutAgenceMax - coutLocavio;
-  const xFoisMin = Math.round(coutAgenceMin / coutLocavio);
-  const xFoisMax = Math.round(coutAgenceMax / coutLocavio);
 
   return (
     <>
@@ -374,141 +606,7 @@ export default function LandingBelowFold() {
         </section>
       </RevealOnView>
 
-      {/* Section 7 — Calculateur (inchangé) */}
-      <RevealOnView className="mt-12">
-        <section className="landing-section py-8">
-          <div className="mx-auto max-w-4xl rounded-2xl border border-gray-100 bg-white px-8 py-10">
-            <h2 className="text-center text-3xl font-bold text-[#1a0533]">Combien allez-vous économiser ?</h2>
-            <p className="mt-3 text-center text-[#6b7280]">
-              Renseignez le loyer de chacun de vos logements et découvrez ce que vous coûte vraiment une agence.
-            </p>
-
-            <div className="mt-10 space-y-5">
-              {logements.map((l, index) => (
-                <div key={l.id}>
-                  <p className="text-sm text-[#6b7280]">Logement {index + 1}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3">
-                    <input
-                      type="number"
-                      min={100}
-                      max={10000}
-                      step={50}
-                      value={l.loyer}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setLogements(logements.map((row) => (row.id === l.id ? { ...row, loyer: val } : row)));
-                      }}
-                      className="w-32 shrink-0"
-                      style={fieldInputStyle}
-                      aria-label={`Loyer logement ${index + 1}`}
-                    />
-                    <input
-                      type="range"
-                      min={100}
-                      max={5000}
-                      step={50}
-                      value={Math.min(Math.max(l.loyer, 100), 5000)}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        setLogements(logements.map((row) => (row.id === l.id ? { ...row, loyer: val } : row)));
-                      }}
-                      className="accent-violet-600 min-w-[120px] flex-1"
-                      aria-label={`Curseur loyer logement ${index + 1}`}
-                    />
-                    {logements.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => setLogements(logements.filter((row) => row.id !== l.id))}
-                        className="shrink-0 text-sm text-[#9ca3af] transition hover:text-red-500"
-                        aria-label={`Supprimer le logement ${index + 1}`}
-                      >
-                        <X className="size-4" strokeWidth={2} />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {logements.length < 10 ? (
-              <button
-                type="button"
-                onClick={() => setLogements([...logements, { id: Date.now(), loyer: 700 }])}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl border border-violet-200 px-4 py-2 text-sm text-[#7c3aed] transition hover:bg-violet-50"
-              >
-                <Plus className="size-4 shrink-0" strokeWidth={2} />
-                Ajouter un logement
-              </button>
-            ) : null}
-
-            <hr className="my-6 border-gray-200" />
-
-            <p className="text-center text-sm text-[#9ca3af]">
-              Loyer total mensuel : {loyerTotal.toLocaleString("fr-FR")} €
-            </p>
-
-            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div
-                className="rounded-xl border px-5 py-6 text-center"
-                style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }}
-              >
-                <p className="text-sm font-medium text-red-600">Agence traditionnelle</p>
-                <p className="text-xs text-red-600/70">entre 6% et 10% de vos loyers/an</p>
-                <div className="mt-2 flex items-baseline justify-center gap-1">
-                  <span className="text-2xl font-bold text-red-600">{coutAgenceMin.toLocaleString("fr-FR")}</span>
-                  <span className="text-sm text-red-600/70">à</span>
-                  <span className="text-3xl font-bold text-red-600">{coutAgenceMax.toLocaleString("fr-FR")} €</span>
-                </div>
-                <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
-              </div>
-              <div
-                className="rounded-xl border px-5 py-6"
-                style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(124,58,237,0.2)" }}
-              >
-                <p className="text-sm font-medium text-[#7c3aed]">Locavio Pro</p>
-                <p className="text-xs text-[#7c3aed]/70">Tout inclus, illimité</p>
-                <p className="text-3xl font-bold text-[#7c3aed]">129 €</p>
-                <p className="text-sm text-[#9ca3af]">par an</p>
-              </div>
-              <div
-                className="rounded-xl border px-5 py-6 text-center"
-                style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}
-              >
-                <p className="text-sm font-medium text-emerald-600">Votre économie</p>
-                <p className="text-xs font-medium text-emerald-600/80">
-                  {xFoisMin}x à {xFoisMax}x moins cher que l&apos;agence
-                </p>
-                <div className="mt-2 flex items-baseline justify-center gap-1">
-                  <span className="text-2xl font-bold text-emerald-600">{economieMin.toLocaleString("fr-FR")}</span>
-                  <span className="text-sm text-emerald-600/70">à</span>
-                  <span className="text-4xl font-bold text-emerald-600">{economieMax.toLocaleString("fr-FR")} €</span>
-                </div>
-                <p className="mt-1 text-sm text-[#9ca3af]">par an</p>
-                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs text-emerald-700">
-                  <Check className="size-3 shrink-0" strokeWidth={2.5} aria-hidden />
-                  Garanti
-                </span>
-              </div>
-            </div>
-
-            <p className="mt-6 text-center text-sm text-[#6b7280]">
-              Avec un loyer total de {loyerTotal.toLocaleString("fr-FR")} €/mois, une agence vous coûte entre{" "}
-              {coutAgenceMin.toLocaleString("fr-FR")} € et {coutAgenceMax.toLocaleString("fr-FR")} € par an (6 à 10% de vos
-              loyers). Locavio vous revient à 129 € — soit jusqu&apos;à {xFoisMax}x moins cher.
-            </p>
-
-            <div className="mt-8 text-center">
-              <Link
-                href="/register"
-                className="inline-flex rounded-xl bg-violet-600 px-8 py-3.5 text-lg font-semibold text-white transition hover:bg-violet-500"
-              >
-                Commencer gratuitement et économiser jusqu&apos;à {economieMax.toLocaleString("fr-FR")} € →
-              </Link>
-              <p className="mt-3 text-center text-sm text-[#9ca3af]">Gratuit pour commencer · Sans carte bancaire</p>
-            </div>
-          </div>
-        </section>
-      </RevealOnView>
+      <SavingsCalculatorSection />
 
       {/* Section 8 — Tarifs */}
       <RevealOnView className="mt-12">
