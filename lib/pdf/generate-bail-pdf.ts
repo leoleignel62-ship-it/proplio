@@ -171,13 +171,32 @@ function truncateOneLine(text: string, font: PDFFont, size: number, maxW: number
   return cut > 0 ? `${text.slice(0, cut)}${ell}` : ell;
 }
 
+/** Champs bail utilisés par le PDF (schema TypeScript ; pas de migration SQL). */
+export type BailPdfData = Record<string, unknown> & {
+  zone_tendue?: boolean;
+  loyer_reference?: number;
+  loyer_reference_majore?: number;
+  complement_loyer?: number;
+  surface_loi_boutin?: number;
+  colocation?: boolean;
+};
+
 export type GenerateBailPdfParams = {
-  bail: Record<string, unknown>;
+  bail: BailPdfData;
   proprietaire: Record<string, unknown>;
   logement: Record<string, unknown> | null;
   locatairesOrdered: BailPdfLocataire[];
   signatureImage?: { bytes: Uint8Array; isPng: boolean } | null;
 };
+
+const MEUBLE_INVENTAIRE_LEGAL =
+  "Conformément au décret n° 2015-981 du 31 juillet 2015, un logement meublé doit comporter au minimum : literie avec couette ou couverture, dispositif d'occultation des fenêtres dans les pièces destinées à être utilisées comme chambre à coucher, plaques de cuisson, four ou four à micro-ondes, réfrigérateur comportant au minimum un freezer, vaisselle nécessaire à la prise des repas, ustensiles de cuisine, table et sièges, étagères de rangement, luminaires, matériel d'entretien ménager adapté.";
+
+const COLOCATION_SOLIDARITE =
+  "Les colocataires sont tenus solidairement et indivisiblement au paiement du loyer et des charges. La solidarité s'applique également à leurs cautions respectives. Elle prend fin à l'égard du colocataire sortant, six mois après notification au bailleur de son départ par lettre recommandée avec accusé de réception (article 8-1 de la loi du 6 juillet 1989).";
+
+const NOTICE_INFORMATION =
+  "Conformément au décret n° 2015-587 du 29 mai 2015, une notice d'information relative aux droits et obligations des locataires et des bailleurs a été remise au locataire préalablement à la signature du présent contrat. Le locataire reconnaît en avoir pris connaissance. Cette notice est disponible sur le site du Service Public (www.service-public.fr) et auprès des associations de défense des locataires et des bailleurs.";
 
 function wrapLines(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -464,11 +483,33 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   const bailleurEmail = String(proprietaire.email ?? "").trim();
   const bailleurTel = String(proprietaire.telephone ?? "").trim();
 
-  const preneurFooterName =
+  const locataireSignNames =
     locatairesOrdered
-      .map((l) => `${String(l.nom ?? "").trim()} ${String(l.prenom ?? "").trim()}`.trim())
+      .map((l) => `${String(l.prenom ?? "").trim()} ${String(l.nom ?? "").trim()}`.trim())
       .filter(Boolean)
       .join(", ") || "—";
+
+  const surfaceLoiBoutinRaw = bail.surface_loi_boutin;
+  const surfaceLoiBoutinFromBail =
+    surfaceLoiBoutinRaw != null &&
+    surfaceLoiBoutinRaw !== "" &&
+    Number.isFinite(Number(surfaceLoiBoutinRaw)) &&
+    Number(surfaceLoiBoutinRaw) > 0;
+  const logementSurfaceN =
+    logement?.surface != null && Number.isFinite(Number(logement.surface)) ? Number(logement.surface) : NaN;
+  const surfaceLoiBoutinValue = surfaceLoiBoutinFromBail
+    ? `${Number(surfaceLoiBoutinRaw)} m²`
+    : Number.isFinite(logementSurfaceN) && logementSurfaceN > 0
+      ? `${logementSurfaceN} m²`
+      : "—";
+  const surfaceLoiBoutinUsesLogementDefault =
+    !surfaceLoiBoutinFromBail && Number.isFinite(logementSurfaceN) && logementSurfaceN > 0;
+
+  const zoneTendue = bail.zone_tendue === true;
+  const loyerReference = Number(bail.loyer_reference ?? 0);
+  const loyerReferenceMajore = Number(bail.loyer_reference_majore ?? 0);
+  const complementLoyer = Number(bail.complement_loyer ?? 0);
+  const isColocation = bail.colocation === true;
 
   const logementEtage = typeof bail.logement_etage === "string" ? bail.logement_etage.trim() : "";
   const interphoneOui = Boolean(bail.interphone_digicode_oui);
@@ -620,6 +661,19 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       value: `${surfaceChambreStr} m²`,
       valueBold: true,
     });
+    if (isColocation) {
+      objetRows.push({
+        label: "Solidarité entre colocataires",
+        value: COLOCATION_SOLIDARITE,
+        valueBold: false,
+      });
+    }
+  } else if (isColocation) {
+    objetRows.push({
+      label: "Solidarité entre colocataires",
+      value: COLOCATION_SOLIDARITE,
+      valueBold: false,
+    });
   }
   objetRows.push(
     { label: "Désignation", value: String(bail.designation_logement ?? "—") },
@@ -647,6 +701,11 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     {
       label: "Surface et type (référence fiche logement)",
       value: `${logement?.type ?? "—"} — ${logement?.surface ?? "—"} m²`,
+      valueBold: true,
+    },
+    {
+      label: "Surface habitable (loi Boutin)",
+      value: surfaceLoiBoutinValue,
       valueBold: true,
     },
   );
@@ -682,6 +741,15 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       ctx.y -= BODY_GAP;
     }
     ctx.y -= 6;
+  }
+
+  if (surfaceLoiBoutinUsesLogementDefault) {
+    await drawParagraph(
+      ctx,
+      "La surface habitable est celle définie à l'article R.156-1 du Code de la construction et de l'habitation.",
+      { oblique: true, size: LEGAL_PT },
+    );
+    ctx.y -= 4;
   }
 
   await drawArticleTitle(ctx, 1, "Désignation du logement");
@@ -765,9 +833,30 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     ],
     20,
   );
+  if (zoneTendue) {
+    const loyerComparePhrase =
+      complementLoyer > 0
+        ? `dépasse de ${complementLoyer.toFixed(2)} €`
+        : "ne dépasse pas";
+    await drawParagraph(
+      ctx,
+      "ATTENTION — ENCADREMENT DES LOYERS (Zone tendue)",
+      { size: BODY_PT },
+    );
+    await drawParagraph(
+      ctx,
+      `Le logement est situé dans une zone soumise à l'encadrement des loyers. Loyer de référence : ${loyerReference.toFixed(2)} €/m²/mois. Loyer de référence majoré : ${loyerReferenceMajore.toFixed(2)} €/m²/mois. Le loyer fixé ci-dessus ${loyerComparePhrase} le loyer de référence majoré.`,
+      { size: BODY_PT },
+    );
+    await drawParagraph(
+      ctx,
+      "Conformément à la loi du 6 juillet 1989 et au décret annuel préfectoral, le loyer ne peut excéder le loyer de référence majoré applicable à la date de signature du bail.",
+      { oblique: true, size: LEGAL_PT },
+    );
+  }
   await drawParagraph(
     ctx,
-    "Les charges locatives récupérables sont celles prévues par la loi du 6 juillet 1989 et le décret n° 87-712 du 26 août 1987. " +
+    "Les charges locatives récupérables sont celles prévues par la loi du 6 juillet 1989 et le décret n° 87-713 du 26 août 1987. " +
       "Une régularisation annuelle sur justificatifs doit être communiquée au locataire.",
     { oblique: true, size: LEGAL_PT },
   );
@@ -787,8 +876,8 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   ctx.y -= BODY_GAP;
   await drawParagraph(
     ctx,
-    "Le dépôt de garantie ne peut excéder un mois du loyer hors charges (bail vide) ou deux mois (bail meublé), article 22 de la loi du 6 juillet 1989. " +
-      "Il est restitué dans le délai d'un mois après la restitution des clés, déduction faite des sommes dues, sous réserve de justificatifs.",
+    "Le dépôt de garantie ne peut excéder un mois du loyer hors charges (bail vide) ou deux mois (bail meublé), conformément à l'article 22 de la loi du 6 juillet 1989. " +
+      "Il est restitué dans un délai d'un mois à compter de la remise des clés si l'état des lieux de sortie est conforme à l'entrée, ou dans un délai de deux mois en cas de dégradations constatées, déduction faite des sommes justifiées dues au bailleur.",
     { oblique: true, size: LEGAL_PT },
   );
   drawArticleSeparator(ctx);
@@ -850,14 +939,18 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
       ? "En location meublée, le préavis du locataire est d'un mois (article 15 de la loi du 6 juillet 1989), sous réserve des dispositions plus favorables applicables."
       : "En location vide, le préavis du locataire est en principe de trois mois ; des réductions peuvent s'appliquer selon la zone et le motif (article 15). Le bailleur est tenu à un préavis de trois mois en cas de congé pour reprise ou vente, sauf disposition contraire.",
   );
+  await drawParagraph(
+    ctx,
+    typeMeuble
+      ? "Le bailleur est tenu de respecter un préavis de trois mois avant l'échéance du bail en cas de congé pour reprise personnelle du logement, pour vente ou pour motif légitime et sérieux (article 15 de la loi du 6 juillet 1989). Le congé doit être notifié par lettre recommandée avec accusé de réception, par acte d'huissier ou par remise en main propre contre récépissé."
+      : "Le bailleur est tenu de respecter un préavis de six mois avant l'échéance du bail en cas de congé pour reprise personnelle du logement ou pour vente, et de trois mois pour motif légitime et sérieux (article 15 de la loi du 6 juillet 1989). Le congé doit être notifié par lettre recommandée avec accusé de réception, par acte d'huissier ou par remise en main propre contre récépissé. En cas de congé pour vente, le locataire bénéficie d'un droit de préemption.",
+  );
   drawArticleSeparator(ctx);
 
   await drawArticleTitle(ctx, 10, "Clause résolutoire");
   await drawParagraph(
     ctx,
-    "En cas de défaut de paiement du loyer ou des charges à l'échéance, et huit jours après une mise en demeure restée infructueuse selon la loi, le bailleur peut demander la résiliation du bail et l'expulsion devant le juge. " +
-      "Les modalités de procédure relèvent du Code de la procédure civile et du décret n° 2006-1687 du 22 décembre 2006.",
-    { oblique: true, size: LEGAL_PT },
+    "Conformément à l'article 24 de la loi du 6 juillet 1989, en cas de non-paiement du loyer ou des charges, de non-versement du dépôt de garantie ou de défaut d'assurance, le bailleur peut faire délivrer par huissier de justice un commandement de payer ou de justifier de l'assurance. A l'expiration d'un délai de deux mois suivant ce commandement demeuré infructueux, le juge peut constater la résiliation du bail et ordonner l'expulsion du locataire. Durant ce délai, le locataire peut saisir la commission de coordination des actions de prévention des expulsions locatives (CCAPEX). Le juge peut accorder des délais de paiement dans les conditions prévues aux articles 1343-5 du Code civil.",
   );
   drawArticleSeparator(ctx);
 
@@ -881,6 +974,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   await drawArticleTitle(ctx, 12, "Inventaire du mobilier");
   if (typeMeuble) {
+    await drawParagraph(ctx, MEUBLE_INVENTAIRE_LEGAL, { oblique: true, size: LEGAL_PT });
     if (equipements.length === 0) {
       await drawParagraph(ctx, "Aucun équipement n'a été déclaré dans le formulaire. Les parties peuvent compléter par avenant ou annexe signée.");
     } else {
@@ -968,6 +1062,25 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
   }
   drawArticleSeparator(ctx);
 
+  await ensureSpaceMinLines(ctx, 6);
+  ctx.page.drawText("NOTICE D'INFORMATION", {
+    x: MARGIN,
+    y: ctx.y,
+    size: 12,
+    font: ctx.fontBold,
+    color: PRIMARY,
+  });
+  ctx.y -= 8;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: PAGE_W - MARGIN, y: ctx.y },
+    thickness: 0.8,
+    color: SECONDARY,
+  });
+  ctx.y -= 16;
+  await drawParagraph(ctx, NOTICE_INFORMATION, { size: BODY_PT });
+  drawArticleSeparator(ctx);
+
   const villeSign = String(proprietaire.ville ?? "").trim() || "…………………";
   const dateSignFr = formatDateFrLong(new Date());
   /** Espace signature + pied (points), aligné demande produit ~150 pt + marge basse page. */
@@ -1010,6 +1123,7 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
     ville: villeSign,
     dateStr: dateSignFr,
     proprietaireNom: bailleurNomPrenomOrder,
+    locataireNom: locataireSignNames,
     signatureImage: img,
     marginX: MARGIN,
     pageWidth: PAGE_W,
