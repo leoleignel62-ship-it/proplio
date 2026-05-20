@@ -210,6 +210,9 @@ async function buildPdfBuffer(type: ExampleType): Promise<Uint8Array> {
       taxe_sejour_total: 24.5,
       montant_acompte: 312,
     },
+    numeroEnregistrement: undefined,
+    classementMeubleTourisme: "non_classe",
+    preneurNom: "Thomas Martin",
   });
 }
 
