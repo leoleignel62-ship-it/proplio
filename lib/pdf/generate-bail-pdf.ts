@@ -491,10 +491,10 @@ export async function generateBailPdfBuffer(params: GenerateBailPdfParams): Prom
 
   const surfaceLoiBoutinRaw = bail.surface_loi_boutin;
   const surfaceLoiBoutinFromBail =
-    surfaceLoiBoutinRaw != null &&
-    surfaceLoiBoutinRaw !== "" &&
-    Number.isFinite(Number(surfaceLoiBoutinRaw)) &&
-    Number(surfaceLoiBoutinRaw) > 0;
+    surfaceLoiBoutinRaw !== null &&
+    surfaceLoiBoutinRaw !== undefined &&
+    Number.isFinite(surfaceLoiBoutinRaw) &&
+    surfaceLoiBoutinRaw > 0;
   const logementSurfaceN =
     logement?.surface != null && Number.isFinite(Number(logement.surface)) ? Number(logement.surface) : NaN;
   const surfaceLoiBoutinValue = surfaceLoiBoutinFromBail
