@@ -5,16 +5,16 @@ export const STRIPE_PRICE_IDS: Record<
   { monthly: string; yearly: string }
 > = {
   starter: {
-    monthly: "price_1TXLr9RrlH0LxLdsHEx4xjEV",
-    yearly: "price_1TXLr9RrlH0LxLdse5n5629v",
+    monthly: "price_1TZSOTCMmhzifgoaEeRjQLuM",
+    yearly: "price_1TZSQ9CMmhzifgoaNi1WdACf",
   },
   pro: {
-    monthly: "price_1TXLrjRrlH0LxLdsj7T3mhQi",
-    yearly: "price_1TXLrjRrlH0LxLds9URNr1Ld",
+    monthly: "price_1TZSQyCMmhzifgoaBeF6VOV4",
+    yearly: "price_1TZSRJCMmhzifgoa68dZ2Rte",
   },
   expert: {
-    monthly: "price_1TXLs7RrlH0LxLdsmzOSZS0E",
-    yearly: "price_1TXLs7RrlH0LxLdsSBZMhpw6",
+    monthly: "price_1TZSS8CMmhzifgoaaoWARTy7",
+    yearly: "price_1TZSSOCMmhzifgoanW6kJw19",
   },
 };
 
