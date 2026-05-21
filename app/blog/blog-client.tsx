@@ -21,7 +21,8 @@ const categories = [
 type Cat = (typeof categories)[number];
 
 function formatPublished(iso: string): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", {
+  const dateOnly = iso.slice(0, 10);
+  return new Date(`${dateOnly}T12:00:00`).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

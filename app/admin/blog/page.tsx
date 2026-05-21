@@ -53,7 +53,8 @@ function rowToForm(row: BlogArticleRow): FormState {
 
 function formatDate(iso: string) {
   if (!iso) return "—";
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", {
+  const dateOnly = iso.slice(0, 10);
+  return new Date(`${dateOnly}T12:00:00`).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
