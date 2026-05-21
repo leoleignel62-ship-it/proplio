@@ -253,7 +253,7 @@ export default function AdminDashboardPage() {
                       width={32}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value} inscription${value > 1 ? "s" : ""}`, "Inscrits"]}
+                      formatter={(value: number | string) => [`${value} inscription${Number(value) > 1 ? "s" : ""}`, "Semaine"]}
                       labelFormatter={(label) => `Semaine du ${label}`}
                       contentStyle={{
                         borderRadius: 8,
